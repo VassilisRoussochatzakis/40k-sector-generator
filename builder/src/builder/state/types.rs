@@ -243,7 +243,7 @@ impl BuilderTab {
     ];
 }
 
-/// §N3: armed tool on the MAP tab. Bound to [`super::BuilderState::map_tool`]
+/// §N3: armed tool on the MAP tab. Bound to `BuilderState::map_view.tool`
 /// so the router and inspector tabs can read it without reaching for global
 /// state. Phase B panels (§S1 / §R2 / §REG2) consume this when the user clicks
 /// the hex map.
@@ -500,7 +500,7 @@ impl ControlOverlay {
 }
 
 /// §CTX1 — Phase 1 of `docs/CONTEXT_MENU.txt`: open right-click context menu
-/// payload on the MAP tab. `None` on [`super::BuilderState::sector_context_menu`]
+/// payload on the MAP tab. `None` on `BuilderState::map_view.sector_context_menu`
 /// means no menu is open. Transient — never serialised.
 #[derive(Debug, Clone)]
 pub struct SectorContextMenu {
@@ -519,7 +519,7 @@ pub struct SectorContextMenu {
 
 /// §CTX1 Phase 6 — open right-click context menu on the in-system map
 /// embedded under the SYSTEM tab (`§6.6`..`§6.9`). `None` on
-/// [`super::BuilderState::system_context_menu`] means no menu is open.
+/// `BuilderState::map_view.system_context_menu` means no menu is open.
 /// Transient — never serialised.
 #[derive(Debug, Clone)]
 pub struct SystemContextMenu {
@@ -583,7 +583,7 @@ pub enum SectorMenuTarget {
         coord: sectorforge::sector_model::HexCoord,
     },
     /// Click landed inside the live rect-select box or on a system already in
-    /// [`super::BuilderState::selected_systems`] with `len >= 2`. Phase 3
+    /// `BuilderState::selection.systems` with `len >= 2`. Phase 3
     /// reads this to surface bulk actions.
     MultiSelection { ids: Vec<SystemId> },
 }

@@ -123,7 +123,7 @@ pub(super) fn show_features_section(
                         w.world.notable_features.push(feature);
                     }
                 }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
         },

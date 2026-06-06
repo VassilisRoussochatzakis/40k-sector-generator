@@ -297,10 +297,10 @@ fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
     // §PR1 system picker. Seed from the SYSTEM tab's selection on first focus
     // so cross-tab navigation lands on a sensible row, then track the panel's
     // own pick.
-    if state.selected_prose_system_id.is_none() {
-        state.selected_prose_system_id = state.selected_system_id.clone();
+    if state.selection.prose_system_id.is_none() {
+        state.selection.prose_system_id = state.selection.system_id.clone();
     }
-    let mut selected = state.selected_prose_system_id.clone();
+    let mut selected = state.selection.prose_system_id.clone();
     let label_for = |sid: &SystemId| -> String {
         report
             .system_entries
@@ -342,8 +342,8 @@ fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
             }
         },
     );
-    if selected != state.selected_prose_system_id {
-        state.selected_prose_system_id = selected.clone();
+    if selected != state.selection.prose_system_id {
+        state.selection.prose_system_id = selected.clone();
     }
 }
 
@@ -358,7 +358,7 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
         return;
     }
 
-    let Some(sid) = state.selected_prose_system_id.clone() else {
+    let Some(sid) = state.selection.prose_system_id.clone() else {
         ui_kit::placeholder(ui, "Pick a system on the left to edit its prose here.");
         return;
     };
@@ -476,7 +476,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.prose = Some(DEFAULT_PROSE_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Couldn't save prose: {e}"
                 )));
             }

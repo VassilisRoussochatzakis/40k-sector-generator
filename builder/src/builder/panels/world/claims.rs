@@ -58,7 +58,7 @@ pub(super) fn show_claims_section(
                 if let Err(e) = state.edit_world(wid, |w| {
                     w.claims.remove(i);
                 }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
             ui.add_space(4.0);
@@ -149,7 +149,7 @@ pub(super) fn show_add_claim_row(
                         strength: buf.strength,
                     });
                 }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
         }

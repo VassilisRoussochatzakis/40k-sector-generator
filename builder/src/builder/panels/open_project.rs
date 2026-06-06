@@ -27,7 +27,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                             close = true;
                         }
                         Err(e) => {
-                            state.modal = Some(ModalKind::Message(format!("Open failed: {e}")));
+                            state.feedback.modal =
+                                Some(ModalKind::Message(format!("Open failed: {e}")));
                             return;
                         }
                     }
@@ -38,8 +39,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
             close = true;
         }
     });
-    if close && !matches!(state.modal, Some(ModalKind::Message(_))) {
-        state.modal = None;
+    if close && !matches!(state.feedback.modal, Some(ModalKind::Message(_))) {
+        state.feedback.modal = None;
     }
     close
 }

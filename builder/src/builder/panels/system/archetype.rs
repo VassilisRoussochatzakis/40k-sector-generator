@@ -212,7 +212,8 @@ pub(super) fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_
             after: working,
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Archetype update failed: {e}")));
+            state.feedback.modal =
+                Some(ModalKind::Message(format!("Archetype update failed: {e}")));
         }
     }
 }
@@ -242,7 +243,8 @@ pub(super) fn show_archetype_auto_assign(ui: &mut Ui, state: &mut BuilderState) 
                     before: Vec::new(),
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!("Auto-assign failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("Auto-assign failed: {e}")));
                 }
             }
         },

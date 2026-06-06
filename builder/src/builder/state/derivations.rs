@@ -21,7 +21,7 @@ impl BuilderState {
     /// `Instant::now`. The actual `validate(&project)` call happens in
     /// [`Self::pump_validation`] after `validation_debounce` elapses.
     pub fn mark_validation_dirty(&mut self) {
-        self.validation_dirty_since = Some(Instant::now());
+        self.feedback.validation_dirty_since = Some(Instant::now());
     }
 
     /// Mark the session dirty and flag the catalog file that backs it (§E13):
@@ -79,23 +79,24 @@ impl BuilderState {
         match kind {
             DerivationKind::Personae => digest_input(&self.data_catalogs.personae),
             DerivationKind::Hooks => {
-                digest_input(&(&self.data_catalogs.hooks, self.hooks_player_edition))
+                digest_input(&(&self.data_catalogs.hooks, self.hooks_panel.player_edition))
             }
             DerivationKind::Sites => {
-                digest_input(&(&self.data_catalogs.sites, self.sites_player_edition))
+                digest_input(&(&self.data_catalogs.sites, self.sites_panel.player_edition))
             }
-            DerivationKind::Missions => {
-                digest_input(&(&self.data_catalogs.missions, self.missions_player_edition))
-            }
+            DerivationKind::Missions => digest_input(&(
+                &self.data_catalogs.missions,
+                self.missions_panel.player_edition,
+            )),
             DerivationKind::Prose => digest_input(&self.data_catalogs.prose),
             DerivationKind::History => digest_input(&self.data_catalogs.history),
             DerivationKind::Analytics => digest_input(&self.analytics.config),
             DerivationKind::Briefing => digest_input(&(
-                &self.briefing_preset,
-                &self.briefing_observer,
-                self.briefing_min_confidence,
+                &self.briefing_panel.preset,
+                &self.briefing_panel.observer,
+                self.briefing_panel.min_confidence,
             )),
-            DerivationKind::Interestingness => digest_input(&self.interestingness_profile),
+            DerivationKind::Interestingness => digest_input(&self.interestingness_panel.profile),
             _ => String::new(),
         }
     }
@@ -446,7 +447,7 @@ impl BuilderState {
     /// preserves them across regenerates.
     pub fn recompute_hooks(&mut self) {
         let mut cfg = self.data_catalogs.hooks.clone().unwrap_or_default();
-        cfg.hide_hidden_hooks = self.hooks_player_edition;
+        cfg.hide_hidden_hooks = self.hooks_panel.player_edition;
         let report = sectorforge::hooks::derive_with(&self.sector, &cfg);
         self.hooks_report = Some(report);
         self.mark_validation_dirty();
@@ -466,7 +467,7 @@ impl BuilderState {
     /// preserves them across regenerates.
     pub fn recompute_sites(&mut self) {
         let mut cfg = self.data_catalogs.sites.clone().unwrap_or_default();
-        cfg.player_edition = self.sites_player_edition;
+        cfg.player_edition = self.sites_panel.player_edition;
         let report = sectorforge::sites::derive_with(&self.sector, &cfg);
         self.sites_report = Some(report);
         self.mark_validation_dirty();
@@ -486,7 +487,7 @@ impl BuilderState {
     /// recompute path automatically preserves them across regenerates.
     pub fn recompute_missions(&mut self) {
         let mut cfg = self.data_catalogs.missions.clone().unwrap_or_default();
-        cfg.player_edition = self.missions_player_edition;
+        cfg.player_edition = self.missions_panel.player_edition;
         let report = sectorforge::missions::derive_with(&self.sector, &cfg);
         self.missions_report = Some(report);
         self.mark_validation_dirty();
@@ -517,10 +518,10 @@ impl BuilderState {
     /// when a fresh report was produced this tick so the caller can request a
     /// repaint.
     pub fn pump_validation(&mut self) -> bool {
-        let Some(since) = self.validation_dirty_since else {
+        let Some(since) = self.feedback.validation_dirty_since else {
             return false;
         };
-        if since.elapsed() < self.validation_debounce {
+        if since.elapsed() < self.feedback.validation_debounce {
             return false;
         }
         self.revalidate_now();
@@ -531,15 +532,16 @@ impl BuilderState {
     /// of whether catalogs were complete enough to build a `ProjectInput` —
     /// otherwise an incomplete catalog would re-arm every tick.
     pub fn revalidate_now(&mut self) {
-        self.validation_dirty_since = None;
+        self.feedback.validation_dirty_since = None;
         if let Some(input) = self.synthesize_project_input() {
             self.validation_report = Some(validate(&input));
-            self.last_validation_skip_reason = None;
+            self.feedback.last_validation_skip_reason = None;
         } else {
             // D10: no worlds catalog → `validate` cannot run. Record why so the
             // status bar shows the skip instead of silently leaving the prior
             // (or empty) report in place looking like a clean pass.
-            self.last_validation_skip_reason = Some("no worlds catalog loaded".to_string());
+            self.feedback.last_validation_skip_reason =
+                Some("no worlds catalog loaded".to_string());
         }
     }
 
@@ -658,7 +660,8 @@ impl BuilderState {
     }
 
     /// §CF4 / §CF5: run `BuilderCommand::AdvanceConflictTicks` for `ticks` and
-    /// append per-system + per-world diff rows to [`Self::tick_log`]. Diffs
+    /// append per-system + per-world diff rows to the `conflict_panel` tick log.
+    /// Diffs
     /// only land in the log when a momentum, intensity, defender, or visible
     /// controller field actually changed — pristine entities stay quiet.
     pub fn advance_conflict_ticks(
@@ -689,7 +692,12 @@ impl BuilderState {
         else {
             return Ok(());
         };
-        let next_index = self.tick_log.back().map(|e| e.tick_index + 1).unwrap_or(0);
+        let next_index = self
+            .conflict_panel
+            .tick_log
+            .back()
+            .map(|e| e.tick_index + 1)
+            .unwrap_or(0);
         let mut sys_lookup: BTreeMap<sectorforge::ids::WorldId, sectorforge::ids::SystemId> =
             BTreeMap::new();
         for sys in &self.sector.systems {
@@ -755,9 +763,9 @@ impl BuilderState {
     }
 
     fn push_tick_entry(&mut self, entry: super::types::TickLogEntry) {
-        if self.tick_log.len() >= self.tick_log_capacity {
-            self.tick_log.pop_front();
+        if self.conflict_panel.tick_log.len() >= self.conflict_panel.tick_log_capacity {
+            self.conflict_panel.tick_log.pop_front();
         }
-        self.tick_log.push_back(entry);
+        self.conflict_panel.tick_log.push_back(entry);
     }
 }

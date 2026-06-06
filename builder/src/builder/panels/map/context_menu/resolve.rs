@@ -26,13 +26,13 @@ pub(in crate::builder::panels::map) fn resolve_sector_context(
     ctrl_down: bool,
 ) -> Option<SectorMenuTarget> {
     // Suppression guards (§4.1).
-    if state.drag_system.is_some() || state.rect_select.is_some() {
+    if state.drag.drag_system.is_some() || state.drag.rect_select.is_some() {
         return None;
     }
-    if state.pending_collision.is_some() {
+    if state.drag.pending_collision.is_some() {
         return None;
     }
-    if state.map_tool == MapTool::RegionPaint && !ctrl_down {
+    if state.map_view.tool == MapTool::RegionPaint && !ctrl_down {
         return None;
     }
 
@@ -43,9 +43,9 @@ pub(in crate::builder::panels::map) fn resolve_sector_context(
             .iter()
             .find(|s| s.id == id)
             .map(|s| s.coord)?;
-        if state.selected_systems.contains(&id) && state.selected_systems.len() >= 2 {
+        if state.selection.systems.contains(&id) && state.selection.systems.len() >= 2 {
             return Some(SectorMenuTarget::MultiSelection {
-                ids: state.selected_systems.iter().cloned().collect(),
+                ids: state.selection.systems.iter().cloned().collect(),
             });
         }
         return Some(SectorMenuTarget::System { id, coord });
@@ -66,7 +66,8 @@ pub(in crate::builder::panels::map) fn resolve_sector_context(
 
     if let Some(coord) = geom.pick_hex(pos, sector_w, sector_h) {
         if let Some(region) = state
-            .map_view_cache
+            .map_view
+            .cache
             .as_ref()
             .and_then(|c| c.lookup.region_for_hex(coord))
         {

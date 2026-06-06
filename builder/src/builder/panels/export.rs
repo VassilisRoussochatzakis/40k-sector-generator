@@ -142,7 +142,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         match result {
             ExportJobResult::Done(msg) => {
                 state.export.error = None;
-                state.modal = Some(ModalKind::Message(msg));
+                state.feedback.modal = Some(ModalKind::Message(msg));
             }
             ExportJobResult::Failed(msg) => state.export.error = Some(msg),
         }
@@ -689,7 +689,7 @@ fn run_overlay(state: &mut BuilderState, overlay: Overlay) {
     match write_overlay(state, dir.as_path(), overlay) {
         Ok(()) => {
             state.export.error = None;
-            state.modal = Some(ModalKind::Message(format!(
+            state.feedback.modal = Some(ModalKind::Message(format!(
                 "Wrote {0}.md + {0}.json to {dir}",
                 overlay.artefact()
             )));
@@ -827,7 +827,7 @@ fn run_standalone_system(state: &mut BuilderState) {
             } else {
                 format!("{id}.json")
             };
-            state.modal = Some(ModalKind::Message(format!("Wrote {suffix} to {dir}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Wrote {suffix} to {dir}")));
         }
         Err(e) => {
             state.export.error = Some(format!("Standalone-system export failed: {e}"));

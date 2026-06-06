@@ -166,7 +166,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     // §FRIENDLY_PANEL_PASS transform #7: a worlds.toml row delete bypasses the undo
     // bus — confirm before dropping a recipe (the in-grid 🗑 only requests it).
     if let Some(idx) = delete_request {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete world recipe?".into(),
             body: format!("Delete world recipe row #{}.", idx + 1),
             action: ConfirmAction::DeleteWorldGenRow(idx),
@@ -174,7 +174,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
     if do_save {
         if let Err(e) = save(state, &rel) {
-            state.modal = Some(ModalKind::Message(format!("Save failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Save failed: {e}")));
         }
     }
 }

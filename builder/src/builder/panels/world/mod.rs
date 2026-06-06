@@ -68,7 +68,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
 /// directly (no command bus needed — only model edits route through `state.run`).
 fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
-    let current = state.selected_world_id.clone();
+    let current = state.selection.world_id.clone();
     let mut pick = None;
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
@@ -108,8 +108,8 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
     if let Some((sid, wid)) = pick {
-        state.selected_world_id = Some(wid);
-        state.selected_system_id = Some(sid);
+        state.selection.world_id = Some(wid);
+        state.selection.system_id = Some(sid);
     }
 }
 
@@ -118,13 +118,13 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
 /// The injected conflict / surface-region / intel sub-sections just become
 /// columns like any other section.
 fn show_world_inspector(ui: &mut Ui, state: &mut BuilderState) {
-    let selected = state.selected_world_id.clone();
+    let selected = state.selection.world_id.clone();
     let Some(wid) = selected else {
         ui_kit::placeholder(ui, "Select a world from the roster on the left.");
         return;
     };
     let Some((sys_idx, w_idx)) = state.find_world_indices(&wid) else {
-        state.selected_world_id = None;
+        state.selection.world_id = None;
         return;
     };
 

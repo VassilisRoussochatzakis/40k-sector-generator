@@ -100,8 +100,8 @@ pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.nav_rail_collapsed = !state.nav_rail_collapsed;
         }
         ui.separator();
-        let can_back = !state.nav_back_stack.is_empty();
-        let can_forward = !state.nav_forward_stack.is_empty();
+        let can_back = !state.selection.nav_back_stack.is_empty();
+        let can_forward = !state.selection.nav_forward_stack.is_empty();
         if ui
             .add_enabled(can_back, egui::Button::new("‹").small())
             .on_hover_text("Back (Alt+←)")

@@ -10,7 +10,7 @@
 //! §E6  lifeline-lane visualiser: toggle highlights the top supplier→consumer
 //!      dependency edges on the MAP route layer via `path_route_ids`.
 //! §E7  trade-volume / food / tithe / supply heatmap mode picker. Drives
-//!      [`BuilderState::map_heatmap_mode`] which the MAP panel consumes when no
+//!      `BuilderState::map_view.heatmap_mode` which the MAP panel consumes when no
 //!      §C7 / §C8 control overlay is active.
 //!
 //! The panel never edits `sector.economy` directly — all mutations land in
@@ -251,7 +251,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             return;
         }
 
-        let selected = state.selected_world_id.clone();
+        let selected = state.selection.world_id.clone();
         let world_options: Vec<(WorldId, String)> = state
             .sector
             .economy
@@ -275,11 +275,11 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                 for (id, line) in &world_options {
                     let active = selected.as_ref() == Some(id);
                     if ui.selectable_label(active, line).clicked() {
-                        state.selected_world_id = Some(id.clone());
+                        state.selection.world_id = Some(id.clone());
                     }
                 }
             });
-            if let Some(id) = state.selected_world_id.clone() {
+            if let Some(id) = state.selection.world_id.clone() {
                 if ui
                     .button("Open in World tab  →")
                     .on_hover_text("Jump to the World tab for this world")
@@ -296,7 +296,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
 
-        let Some(world_id) = state.selected_world_id.clone() else {
+        let Some(world_id) = state.selection.world_id.clone() else {
             ui_kit::placeholder(ui, "Pick a world above to tune its production.");
             return;
         };
@@ -643,14 +643,14 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::section(ui, "Supply lines (lifelines)", |ui| {
         ui.horizontal_wrapped(|ui| {
             ui.checkbox(
-                &mut state.economy_highlight_lifelines,
+                &mut state.economy_panel.highlight_lifelines,
                 "💡  Show supply lines on the map",
             )
             .on_hover_text("Highlight the busiest supplier → consumer routes on the map's route layer.");
             ui.label("Min. importance:")
                 .on_hover_text("Only show supply lines scoring at least this high (schema: economy_lifeline_min_score).");
             ui.add(
-                egui::DragValue::new(&mut state.economy_lifeline_min_score)
+                egui::DragValue::new(&mut state.economy_panel.lifeline_min_score)
                     .range(0.0..=200.0)
                     .speed(1.0),
             );
@@ -667,7 +667,7 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
             .economy
             .dependency_edges
             .iter()
-            .filter(|e| e.score >= state.economy_lifeline_min_score)
+            .filter(|e| e.score >= state.economy_panel.lifeline_min_score)
             .cloned()
             .collect();
         edges.sort_by(|a, b| {
@@ -717,11 +717,15 @@ fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
         ui.horizontal_wrapped(|ui| {
             ui.label("Shade map by:")
                 .on_hover_text("Tint the map by an economy figure (schema: map_heatmap_mode).");
-            let current = state.map_heatmap_mode;
+            let current = state.map_view.heatmap_mode;
             ui_kit::combo("econ_heatmap_mode", heatmap_human(current)).show_ui(ui, |ui| {
                 for mode in E7_MODES {
-                    ui.selectable_value(&mut state.map_heatmap_mode, *mode, heatmap_human(*mode))
-                        .on_hover_text(format!("key: {}", mode.as_slug()));
+                    ui.selectable_value(
+                        &mut state.map_view.heatmap_mode,
+                        *mode,
+                        heatmap_human(*mode),
+                    )
+                    .on_hover_text(format!("key: {}", mode.as_slug()));
                 }
             });
             if ui
@@ -823,7 +827,7 @@ fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
         }
         if save_clicked {
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Save economy.toml failed: {e}"
                 )));
             }
@@ -1030,7 +1034,7 @@ pub(crate) fn stranded_system_ids(state: &BuilderState) -> std::collections::BTr
 pub(crate) fn lifeline_route_ids(
     state: &BuilderState,
 ) -> std::collections::HashSet<sectorforge::ids::RouteId> {
-    if !state.economy_highlight_lifelines {
+    if !state.economy_panel.highlight_lifelines {
         return std::collections::HashSet::new();
     }
     state
@@ -1038,7 +1042,7 @@ pub(crate) fn lifeline_route_ids(
         .economy
         .dependency_edges
         .iter()
-        .filter(|e| e.score >= state.economy_lifeline_min_score)
+        .filter(|e| e.score >= state.economy_panel.lifeline_min_score)
         .filter_map(|e| e.route_id.clone())
         .collect()
 }

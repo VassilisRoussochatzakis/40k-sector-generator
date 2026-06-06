@@ -96,7 +96,7 @@ pub(super) fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx:
                         .find(|s| s.coord == new_coord && s.id != sys_id)
                         .map(|s| s.id.clone());
                     if let Some(occupant) = occupant {
-                        state.modal = Some(ModalKind::Message(format!(
+                        state.feedback.modal = Some(ModalKind::Message(format!(
                             "Hex ({},{}) is held by {occupant}. Move or delete it before regenerating here.",
                             new_coord.q, new_coord.r
                         )));
@@ -131,7 +131,7 @@ fn run_regen(state: &mut BuilderState, coord: HexCoord, index: usize, seed: &str
             state.focus_system(id);
         }
         Err(e) => {
-            state.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
         }
     }
 }

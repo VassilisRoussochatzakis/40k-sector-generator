@@ -167,11 +167,11 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
 ) -> bool {
     // §CTX1 Phase 7 — capture the activation label up-front so we record
     // *what* the user clicked even when the action errors out below.
-    state.last_menu_action = Some(sector_menu_action_label(&action).to_string());
+    state.feedback.last_menu_action = Some(sector_menu_action_label(&action).to_string());
     match action {
         SectorMenuAction::PlaceSystem { coord } => {
             let default_name = format!("Sys-{}", state.sector.systems.len() + 1);
-            state.pending_place = Some(PendingPlace {
+            state.drag.pending_place = Some(PendingPlace {
                 coord,
                 name: default_name,
             });
@@ -190,8 +190,9 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 // D1: discrete erase → one undoable EditRegion.
                 state.begin_region_stroke(&rid);
                 if let Err(e) = state.erase_region_hex(&rid, coord) {
-                    state.region_stroke_before = None;
-                    state.modal = Some(ModalKind::Message(format!("Region erase failed: {e}")));
+                    state.drag.region_stroke_before = None;
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("Region erase failed: {e}")));
                 } else {
                     state.commit_region_stroke();
                 }
@@ -208,7 +209,7 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 .find(|s| s.id == id)
                 .map(|s| s.name.to_string())
                 .unwrap_or_default();
-            state.pending_rename = Some(PendingRename { id, text: name });
+            state.drag.pending_rename = Some(PendingRename { id, text: name });
         }
         SectorMenuAction::DeleteSystem { id } => {
             let cmd = BuilderCommand::RemoveSystem {
@@ -217,12 +218,12 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 removed_routes: Vec::new(),
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Delete failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Delete failed: {e}")));
             }
         }
         SectorMenuAction::AddRouteFrom { id } => {
-            state.map_tool = MapTool::AddRoute;
-            state.pending_route_start = Some(id);
+            state.map_view.tool = MapTool::AddRoute;
+            state.drag.pending_route_start = Some(id);
         }
         SectorMenuAction::AddWorld { id } => {
             let (sys_name, next_orbit, next_index) = state
@@ -254,7 +255,8 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
             };
             match state.run(cmd) {
                 Err(e) => {
-                    state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("Add world failed: {e}")));
                 }
                 Ok(()) => {
                     // §R4: pin the new world's orbit through the command bus
@@ -276,7 +278,7 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                             after: next_orbit,
                         };
                         if let Err(e) = state.run(orbit_cmd) {
-                            state.modal =
+                            state.feedback.modal =
                                 Some(ModalKind::Message(format!("Set world orbit failed: {e}")));
                         }
                     }
@@ -297,7 +299,7 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
             match state.generate_system_here(coord, index, None) {
                 Ok(new_id) => state.focus_system(new_id),
                 Err(e) => {
-                    state.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
                 }
             }
         }
@@ -309,7 +311,7 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
             }
         }
         SectorMenuAction::StartPartialRegen { coord } => {
-            state.partial_regen_anchor = Some(coord);
+            state.map_view.partial_regen_anchor = Some(coord);
         }
         SectorMenuAction::OpenIn { id, target } => match target {
             OpenInTarget::System => {
@@ -327,34 +329,34 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 }
             }
             OpenInTarget::Routes => {
-                state.selected_system_id = Some(id);
+                state.selection.system_id = Some(id);
                 state.focus_entity(EntityRef::Tab(BuilderTab::Routes));
             }
         },
         SectorMenuAction::MultiFocusFirst => {
-            if let Some(first) = state.selected_systems.iter().next().cloned() {
+            if let Some(first) = state.selection.systems.iter().next().cloned() {
                 state.focus_entity(EntityRef::System(first));
             }
         }
         SectorMenuAction::MultiBulkRenameOpen => {
-            state.pending_bulk_rename = Some(PendingBulkRename {
+            state.drag.pending_bulk_rename = Some(PendingBulkRename {
                 pattern: "Sys-{n}".to_string(),
             });
         }
         SectorMenuAction::MultiPinAll => {
-            let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+            let ids: Vec<SystemId> = state.selection.systems.iter().cloned().collect();
             for id in ids {
                 state.pinned_systems.insert(id);
             }
         }
         SectorMenuAction::MultiUnpinAll => {
-            let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+            let ids: Vec<SystemId> = state.selection.systems.iter().cloned().collect();
             for id in ids {
                 state.pinned_systems.remove(&id);
             }
         }
         SectorMenuAction::MultiDeleteAllConfirmed => {
-            let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+            let ids: Vec<SystemId> = state.selection.systems.iter().cloned().collect();
             for id in ids {
                 let cmd = BuilderCommand::RemoveSystem {
                     id: id.clone(),
@@ -362,14 +364,14 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                     removed_routes: Vec::new(),
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!(
+                    state.feedback.modal = Some(ModalKind::Message(format!(
                         "Bulk delete failed at {id}: {e}"
                     )));
                     break;
                 }
             }
-            state.selected_systems.clear();
-            state.selected_system_id = None;
+            state.selection.systems.clear();
+            state.selection.system_id = None;
         }
         SectorMenuAction::MultiAssignPrimaryFaction { fid } => {
             crate::builder::panels::system::apply_bulk_primary_faction(state, fid);
@@ -381,8 +383,8 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
             crate::builder::panels::system::apply_bulk_reseed(state);
         }
         SectorMenuAction::MultiClearSelection => {
-            state.selected_systems.clear();
-            state.selected_system_id = None;
+            state.selection.systems.clear();
+            state.selection.system_id = None;
         }
         SectorMenuAction::FocusRoute { id } => {
             state.focus_entity(EntityRef::Route(id));
@@ -390,7 +392,8 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
         SectorMenuAction::RemoveRoute { id } => {
             let cmd = BuilderCommand::RemoveRoute { id, before: None };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Remove route failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Remove route failed: {e}")));
             }
         }
         SectorMenuAction::SetRouteType { id, value } => {
@@ -410,7 +413,8 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 after: value,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Set route type failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Set route type failed: {e}")));
             }
         }
         SectorMenuAction::SetRouteStability { id, value } => {
@@ -430,7 +434,8 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 after: value,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Set stability failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Set stability failed: {e}")));
             }
         }
         SectorMenuAction::FocusRegion { region } => {
@@ -440,8 +445,9 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
             // D1: discrete erase → one undoable EditRegion.
             state.begin_region_stroke(&region);
             if let Err(e) = state.erase_region_hex(&region, coord) {
-                state.region_stroke_before = None;
-                state.modal = Some(ModalKind::Message(format!("Region erase failed: {e}")));
+                state.drag.region_stroke_before = None;
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Region erase failed: {e}")));
             } else {
                 state.commit_region_stroke();
             }
@@ -463,7 +469,8 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 after: value,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Recolor region failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Recolor region failed: {e}")));
             }
         }
         SectorMenuAction::RenameRegionOpen { region } => {
@@ -474,11 +481,11 @@ pub(in crate::builder::panels::map) fn apply_sector_menu_action(
                 .find(|r| r.id == region)
                 .map(|r| r.name.clone())
                 .unwrap_or_default();
-            state.pending_region_rename = Some(PendingRegionRename { region, text });
+            state.drag.pending_region_rename = Some(PendingRegionRename { region, text });
         }
         SectorMenuAction::CancelRoute => {
-            state.pending_route_start = None;
-            state.map_tool = MapTool::Select;
+            state.drag.pending_route_start = None;
+            state.map_view.tool = MapTool::Select;
         }
     }
     true

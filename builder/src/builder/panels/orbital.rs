@@ -62,7 +62,7 @@ pub(crate) fn derive_and_apply_orbital_assets(state: &mut BuilderState, system: 
             after: assets,
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!(
+            state.feedback.modal = Some(ModalKind::Message(format!(
                 "Orbital asset derive failed: {e}"
             )));
             return;
@@ -82,7 +82,7 @@ pub(crate) fn derive_and_apply_orbital_assets(state: &mut BuilderState, system: 
             after: report,
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Blockade derive failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Blockade derive failed: {e}")));
         }
     }
 }
@@ -151,7 +151,7 @@ pub(crate) fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_id
                 after: assets_working,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!(
+                state.feedback.modal = Some(ModalKind::Message(format!(
                     "Orbital asset update failed: {e}"
                 )));
             }
@@ -163,7 +163,8 @@ pub(crate) fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_id
                 after: report_working,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Blockade update failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Blockade update failed: {e}")));
             }
         }
     });

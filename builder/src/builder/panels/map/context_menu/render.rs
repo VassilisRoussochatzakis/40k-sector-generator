@@ -27,7 +27,7 @@ pub(super) fn render_empty_hex_menu(
         close |= apply_sector_menu_action(state, SectorMenuAction::PlaceSystem { coord });
     }
 
-    let paint_enabled = state.selected_region_id.is_some();
+    let paint_enabled = state.selection.region_id.is_some();
     let paint_resp = ui.add_enabled(
         paint_enabled,
         egui::SelectableLabel::new(false, "PAINT REGION HERE"),
@@ -83,7 +83,7 @@ pub(super) fn render_system_menu(
     // §CTX1 §10 row 12 — while ADD-ROUTE is half-armed, the system menu
     // collapses to "CANCEL ROUTE" + "Open in ROUTES" so the user can't
     // accidentally start a second pending route or run a destructive item.
-    if state.pending_route_start.is_some() {
+    if state.drag.pending_route_start.is_some() {
         let mut close = false;
         if ui.selectable_label(false, "CANCEL ROUTE").clicked() {
             close |= apply_sector_menu_action(state, SectorMenuAction::CancelRoute);
@@ -249,6 +249,7 @@ pub(super) fn render_multi_selection_menu(
     ui.separator();
 
     let confirming = state
+        .map_view
         .sector_context_menu
         .as_ref()
         .map(|m| m.bulk_delete_confirm)
@@ -260,7 +261,7 @@ pub(super) fn render_multi_selection_menu(
                 close |= apply_sector_menu_action(state, SectorMenuAction::MultiDeleteAllConfirmed);
             }
             if ui.button("No").clicked() {
-                if let Some(menu) = state.sector_context_menu.as_mut() {
+                if let Some(menu) = state.map_view.sector_context_menu.as_mut() {
                     menu.bulk_delete_confirm = false;
                 }
             }
@@ -269,7 +270,7 @@ pub(super) fn render_multi_selection_menu(
         .selectable_label(false, format!("✕ DELETE ALL ({})", ids.len()))
         .clicked()
     {
-        if let Some(menu) = state.sector_context_menu.as_mut() {
+        if let Some(menu) = state.map_view.sector_context_menu.as_mut() {
             menu.bulk_delete_confirm = true;
         }
     }

@@ -40,12 +40,12 @@ pub fn handle(ctx: &egui::Context, state: &mut BuilderState) {
     });
     if undo {
         if let Err(e) = state.undo() {
-            state.modal = Some(ModalKind::Message(format!("undo failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("undo failed: {e}")));
         }
     }
     if redo {
         if let Err(e) = state.redo() {
-            state.modal = Some(ModalKind::Message(format!("redo failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("redo failed: {e}")));
         }
     }
     if nav_back {

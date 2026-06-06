@@ -5,15 +5,15 @@
 //!        already groups by world id. The panel exposes the full 21-kind
 //!        [`SiteKind`] picker (governor's palace … naval anchorage),
 //!        controller, public/actual status, and one-line hook on every row.
-//!        Selecting a row populates [`BuilderState::selected_site_id`] and
-//!        [`BuilderState::sites_edit_target`] so cross-tab links land here
+//!        Selecting a row populates `BuilderState::selection.site_id` and
+//!        `BuilderState::sites_panel.edit_target` so cross-tab links land here
 //!        first-class.
 //! §ST2  "Regenerate sites" calls [`BuilderState::recompute_sites`] which
 //!        runs `sites::derive_with(&sector, &cfg)`. Manual entries survive
 //!        because [`sectorforge::sites::derive_with`] appends `cfg.manual`
 //!        last after sorting the derived set.
 //! §ST3  Player-edition toggle (mirrors `--player`): flips
-//!        [`BuilderState::sites_player_edition`] and re-runs the recompute
+//!        `BuilderState::sites_panel.player_edition` and re-runs the recompute
 //!        so the cached report has rows where `public_status !=
 //!        actual_status` stripped.
 //! §ST4  `data/sites.toml` editor: per-knob `max_per_world` /
@@ -131,7 +131,7 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     // Per-world site counts from the cached report (honours the kind filter so
     // the badge matches what the table will show).
-    let filter = state.sites_filter_kind;
+    let filter = state.sites_panel.filter_kind;
     let mut counts: std::collections::BTreeMap<WorldId, usize> = std::collections::BTreeMap::new();
     if let Some(report) = state.sites_report.as_ref() {
         for s in &report.sites {
@@ -141,7 +141,7 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
         }
     }
 
-    let current = state.selected_world_id.clone();
+    let current = state.selection.world_id.clone();
     let mut pick: Option<(SystemId, WorldId)> = None;
     let total_worlds: usize = state.sector.systems.iter().map(|s| s.worlds.len()).sum();
     egui::ScrollArea::vertical()
@@ -190,8 +190,8 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
     if let Some((sid, wid)) = pick {
-        state.selected_world_id = Some(wid);
-        state.selected_system_id = Some(sid);
+        state.selection.world_id = Some(wid);
+        state.selection.system_id = Some(sid);
     }
 }
 
@@ -206,10 +206,10 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             ensure_sites_catalog(state);
             state.recompute_sites();
         }
-        ui.checkbox(&mut state.sites_auto_recompute, "Regenerate after every edit")
+        ui.checkbox(&mut state.sites_panel.auto_recompute, "Regenerate after every edit")
             .on_hover_text("Re-run the generator automatically whenever you change a setting or a manual site");
         if ui
-            .checkbox(&mut state.sites_player_edition, "Players' view")
+            .checkbox(&mut state.sites_panel.player_edition, "Players' view")
             .on_hover_text(
                 "Hide each site's true status, showing only what's publicly known — \
                  the same as the --player export flag",
@@ -276,14 +276,14 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label(RichText::new("Show only").strong());
-        let label = match state.sites_filter_kind {
+        let label = match state.sites_panel.filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
         ui_kit::combo("st1_kind", label).show_ui(ui, |ui| {
-            ui.selectable_value(&mut state.sites_filter_kind, None, "all kinds");
+            ui.selectable_value(&mut state.sites_panel.filter_kind, None, "all kinds");
             for k in KIND_VARIANTS {
-                ui.selectable_value(&mut state.sites_filter_kind, Some(*k), kind_label(*k))
+                ui.selectable_value(&mut state.sites_panel.filter_kind, Some(*k), kind_label(*k))
                     .on_hover_text(format!("schema key: {}", k.as_slug()));
             }
         });
@@ -295,7 +295,7 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
 fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
     // §COLUMNS — the right pane is the selected world's site table. Without a
     // world selected, prompt the user to pick one from the roster on the left.
-    let Some(world_id) = state.selected_world_id.clone() else {
+    let Some(world_id) = state.selection.world_id.clone() else {
         ui.label(RichText::new("Sites on this world").strong());
         ui_kit::placeholder(
             ui,
@@ -319,7 +319,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
-    let filter = state.sites_filter_kind;
+    let filter = state.sites_panel.filter_kind;
     let rows: Vec<&WorldSite> = report
         .sites
         .iter()
@@ -333,8 +333,8 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let selected = state.selected_site_id.clone();
-    let show_actual = !state.sites_player_edition;
+    let selected = state.selection.site_id.clone();
+    let show_actual = !state.sites_panel.player_edition;
     egui::ScrollArea::horizontal()
         .id_salt("st_grid_scroll")
         .show(ui, |ui| {
@@ -370,8 +370,8 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                             .selectable_label(is_selected, RichText::new(s.id.clone()).monospace())
                             .clicked()
                         {
-                            state.selected_site_id = Some(s.id.clone());
-                            state.sites_edit_target = Some(s.id.clone());
+                            state.selection.site_id = Some(s.id.clone());
+                            state.sites_panel.edit_target = Some(s.id.clone());
                             state.focus_entity(EntityRef::World {
                                 system: s.system_id.clone(),
                                 world: s.world_id.clone(),
@@ -407,8 +407,8 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                             .on_hover_text("Select this site and highlight its world on the map")
                             .clicked()
                         {
-                            state.selected_site_id = Some(s.id.clone());
-                            state.sites_edit_target = Some(s.id.clone());
+                            state.selection.site_id = Some(s.id.clone());
+                            state.sites_panel.edit_target = Some(s.id.clone());
                             state.focus_entity(EntityRef::World {
                                 system: s.system_id.clone(),
                                 world: s.world_id.clone(),
@@ -425,9 +425,10 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Selected site").strong());
     let target = state
-        .sites_edit_target
+        .sites_panel
+        .edit_target
         .clone()
-        .or_else(|| state.selected_site_id.clone());
+        .or_else(|| state.selection.site_id.clone());
     let Some(target_id) = target else {
         ui_kit::placeholder(
             ui,
@@ -447,7 +448,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
-    let show_actual = !state.sites_player_edition;
+    let show_actual = !state.sites_panel.player_edition;
     labeled(ui, "ID", "Stable site identifier (schema: id).", |ui| {
         ui.label(RichText::new(site.id.clone()).monospace());
     });
@@ -669,7 +670,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         on_catalog_edited(state);
     }
     if let Some((idx, label)) = pending_delete {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete site?".into(),
             body: format!("Remove the hand-added site “{label}”."),
             action: ConfirmAction::DeleteManualSite(idx),
@@ -1013,7 +1014,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.sites = Some(DEFAULT_SITES_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Save sites.toml failed: {e}"
                 )));
             }
@@ -1049,7 +1050,7 @@ fn ensure_sites_catalog_if_needed(state: &mut BuilderState) {
 fn on_catalog_edited(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.sites.clone(), DEFAULT_SITES_PATH);
     state.mark_validation_dirty();
-    if state.sites_auto_recompute {
+    if state.sites_panel.auto_recompute {
         state.recompute_sites();
     }
 }
@@ -1141,7 +1142,7 @@ mod tests {
         // report is still produced.
         let mut state = BuilderState::new_blank("t", "T", "s", 4, 4);
         state.data_catalogs.sites = Some(SitesConfig::default());
-        state.sites_player_edition = true;
+        state.sites_panel.player_edition = true;
         state.recompute_sites();
         assert!(state.sites_report.is_some());
     }

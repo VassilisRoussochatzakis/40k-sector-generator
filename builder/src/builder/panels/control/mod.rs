@@ -259,13 +259,13 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
                 ControlOverlay::Religious,
                 ControlOverlay::Sympathetic,
             ] {
-                let selected = state.control_overlay == mode;
+                let selected = state.map_view.control_overlay == mode;
                 if ui
                     .selectable_label(selected, mode.label())
                     .on_hover_text(overlay_help(mode))
                     .clicked()
                 {
-                    state.control_overlay = mode;
+                    state.map_view.control_overlay = mode;
                 }
             }
             if ui
@@ -312,7 +312,7 @@ fn overlay_help(mode: ControlOverlay) -> &'static str {
 
 fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "ctrl_world_presence", "World presence", true, |ui| {
-        let world_id = state.selected_world_id.clone();
+        let world_id = state.selection.world_id.clone();
         let Some(world_id) = world_id else {
             ui_kit::placeholder(
                 ui,
@@ -521,7 +521,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                 before: None,
                 after: Box::new(draft),
             }) {
-                state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }
         }
 
@@ -640,7 +640,7 @@ fn show_add_presence_row(
                     intel_confidence: 100,
                 });
             }) {
-                state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }
         }
     });
@@ -651,7 +651,7 @@ fn show_add_presence_row(
 
 fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "ctrl_system_control", "System control", true, |ui| {
-        let system_id = state.selected_system_id.clone();
+        let system_id = state.selection.system_id.clone();
         let Some(system_id) = system_id else {
             ui_kit::placeholder(
                 ui,
@@ -711,7 +711,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
             // ride through the clone unchanged.
             let id = state.sector.systems[sys_idx].id.clone();
             if let Err(e) = state.edit_system(id, |sys| sys.control.state = ns) {
-                state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }
         }
 
@@ -767,7 +767,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                 let id = state.sector.systems[sys_idx].id.clone();
                 if let Err(e) = state.edit_system(id, |sys| sys.primary_factions = derived.clone())
                 {
-                    state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
                 }
             }
         });
@@ -828,7 +828,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
 
         // Echo derived world-control for the selected world to make the
         // §C3 dominance loop legible from the system view too.
-        if let Some(wid) = state.selected_world_id.clone() {
+        if let Some(wid) = state.selection.world_id.clone() {
             if let Some((wsi, wwi)) = state.find_world_indices(&wid) {
                 if wsi == sys_idx {
                     let w = &state.sector.systems[wsi].worlds[wwi];
@@ -926,7 +926,7 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
                     before: Vec::new(),
                     after,
                 }) {
-                    state.modal = Some(ModalKind::Message(format!("Apply failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Apply failed: {e}")));
                 }
             }
         },
@@ -1163,7 +1163,7 @@ fn apply_bulk_convert(
             before: Vec::new(),
             after,
         }) {
-            state.modal = Some(ModalKind::Message(format!("Bulk convert failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Bulk convert failed: {e}")));
         }
     }
     n

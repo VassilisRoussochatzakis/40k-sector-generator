@@ -61,25 +61,25 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         // §CTX1 Phase 7 — right-click menu telemetry tail. Shows the most
         // recent menu activation as `ctx_menu: <schema> :: <item>` so the
         // status bar gives a single-line trace of what the menu dispatched.
-        if let Some(label) = state.last_menu_action.as_ref() {
+        if let Some(label) = state.feedback.last_menu_action.as_ref() {
             ui.separator();
             ui.label(mono(format!("ctx_menu: {label}")));
         }
-        if let Some(err) = state.last_save_error.as_ref() {
+        if let Some(err) = state.feedback.last_save_error.as_ref() {
             ui.separator();
             ui.label(mono(format!("save: {err}")).color(palette::danger()));
         }
-        if let Some(err) = state.last_catalog_error.as_ref() {
+        if let Some(err) = state.feedback.last_catalog_error.as_ref() {
             ui.separator();
             ui.label(mono(format!("reload: {err}")).color(palette::danger()));
         }
-        if let Some(err) = state.last_subsector_error.as_ref() {
+        if let Some(err) = state.feedback.last_subsector_error.as_ref() {
             ui.separator();
             ui.label(mono(format!("subsectors: {err}")).color(palette::danger()));
         }
         // D10: validation was skipped (e.g. no worlds catalog). Warn, not
         // danger — it's a missing input, not an error in the sector.
-        if let Some(reason) = state.last_validation_skip_reason.as_ref() {
+        if let Some(reason) = state.feedback.last_validation_skip_reason.as_ref() {
             ui.separator();
             ui.label(mono(format!("validation skipped: {reason}")).color(palette::warning()));
         }

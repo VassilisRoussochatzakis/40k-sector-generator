@@ -124,7 +124,7 @@ pub(super) fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                     to: name_buf.clone(),
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
                 } else {
                     crate::builder::panels::persistent_text_clear(ui, name_buf_key);
                 }
@@ -154,7 +154,7 @@ pub(super) fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                 // write). `worlds` rides through the system clone unchanged.
                 let sys_id = state.sector.systems[sys_idx].id.clone();
                 if let Err(e) = state.edit_system(sys_id, |sys| sys.kind = kind_choice) {
-                    state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
                 } else {
                     ui.data_mut(|d| d.remove::<SystemKind>(kind_choice_key));
                 }
@@ -169,7 +169,7 @@ pub(super) fn apply_coord_move(state: &mut BuilderState, id: SystemId, from: Hex
         || (to.q as u32) >= state.sector.width
         || (to.r as u32) >= state.sector.height
     {
-        state.modal = Some(ModalKind::Message(format!(
+        state.feedback.modal = Some(ModalKind::Message(format!(
             "Coord ({},{}) out of bounds {}x{}.",
             to.q, to.r, state.sector.width, state.sector.height
         )));
@@ -182,7 +182,7 @@ pub(super) fn apply_coord_move(state: &mut BuilderState, id: SystemId, from: Hex
         .find(|s| s.coord == to && s.id != id)
         .map(|s| s.id.clone());
     if let Some(occupant) = occupant {
-        state.pending_collision = Some(crate::builder::state::PendingCollision {
+        state.drag.pending_collision = Some(crate::builder::state::PendingCollision {
             dragging: id,
             target: to,
             occupant,
@@ -191,7 +191,7 @@ pub(super) fn apply_coord_move(state: &mut BuilderState, id: SystemId, from: Hex
     }
     let cmd = BuilderCommand::MoveSystem { id, from, to };
     if let Err(e) = state.run(cmd) {
-        state.modal = Some(ModalKind::Message(format!("Move failed: {e}")));
+        state.feedback.modal = Some(ModalKind::Message(format!("Move failed: {e}")));
     }
 }
 
@@ -319,7 +319,7 @@ pub(super) fn show_star_section(
                                 after,
                             };
                             if let Err(e) = state.run(cmd) {
-                                state.modal =
+                                state.feedback.modal =
                                     Some(ModalKind::Message(format!("Star update failed: {e}")));
                             }
                         }
@@ -330,7 +330,7 @@ pub(super) fn show_star_section(
                             after: star_buf,
                         };
                         if let Err(e) = state.run(cmd) {
-                            state.modal =
+                            state.feedback.modal =
                                 Some(ModalKind::Message(format!("Star update failed: {e}")));
                         } else {
                             crate::builder::panels::persistent_text_clear(ui, code_key);
@@ -385,7 +385,7 @@ pub(super) fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys
                     .map(Arc::from)
                     .collect();
             }) {
-                state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
             } else {
                 crate::builder::panels::persistent_text_clear(ui, tags_key);
             }
@@ -402,7 +402,7 @@ pub(super) fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys
                     .map(Arc::from)
                     .collect();
             }) {
-                state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
             } else {
                 crate::builder::panels::persistent_text_clear(ui, notes_key);
             }

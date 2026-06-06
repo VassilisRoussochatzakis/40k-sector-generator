@@ -105,7 +105,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         custom_h,
         seed,
         baseline,
-    } = state.modal.clone().unwrap_or_else(default_modal)
+    } = state.feedback.modal.clone().unwrap_or_else(default_modal)
     else {
         return false;
     };
@@ -242,13 +242,13 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     });
 
     if close {
-        state.modal = None;
+        state.feedback.modal = None;
         return true;
     }
     // Persist the in-progress form so edits survive the next frame. When a spawn
     // just fired, keeping the modal open means the next frame renders the
     // progress popup (the `is_running` guard at the top of `show`).
-    state.modal = Some(ModalKind::GenerateRandom {
+    state.feedback.modal = Some(ModalKind::GenerateRandom {
         size,
         custom_w,
         custom_h,
@@ -266,13 +266,13 @@ fn apply_result(state: &mut BuilderState, result: RandomJobResult) -> bool {
         RandomJobResult::Done { dest } => match open_project(&dest) {
             Ok(new_state) => *state = new_state,
             Err(e) => {
-                state.modal = Some(ModalKind::Message(format!(
+                state.feedback.modal = Some(ModalKind::Message(format!(
                     "Generated the sector but reopening it failed: {e}"
                 )));
             }
         },
         RandomJobResult::Failed(message) => {
-            state.modal = Some(ModalKind::Message(message));
+            state.feedback.modal = Some(ModalKind::Message(message));
         }
     }
     true
@@ -312,9 +312,9 @@ fn show_progress(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     {
         // Detach the worker (it finishes in the background; its result is
         // dropped on the next pump because the revision no longer matches) and
-        // close the wizard — `show_modal` only dismisses via `state.modal`.
+        // close the wizard — `show_modal` only dismisses via `state.feedback.modal`.
         state.random_gen.cancel();
-        state.modal = None;
+        state.feedback.modal = None;
         dismiss = true;
     }
 

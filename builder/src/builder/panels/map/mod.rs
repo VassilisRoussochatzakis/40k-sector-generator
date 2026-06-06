@@ -84,23 +84,23 @@ fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.horizontal_wrapped(|ui| {
                 ui.label("Zoom:")
                     .on_hover_text("Hex size on screen — drag to zoom the map in or out.");
-                ui.add(egui::Slider::new(&mut state.hex_size, 12.0..=64.0).text("hex"));
+                ui.add(egui::Slider::new(&mut state.map_view.hex_size, 12.0..=64.0).text("hex"));
             });
-            if !state.selected_systems.is_empty() {
+            if !state.selection.systems.is_empty() {
                 ui.label(format!(
                     "Selected: {} system(s)",
-                    state.selected_systems.len()
+                    state.selection.systems.len()
                 ));
             }
-            if let Some(id) = &state.selected_system_id {
+            if let Some(id) = &state.selection.system_id {
                 ui.label(format!("Focused: {id}"));
             }
-            if let Some(id) = &state.pending_route_start {
+            if let Some(id) = &state.drag.pending_route_start {
                 ui.label(format!("Drawing route from: {id}"));
             }
             // Phase 4 — surface the live partial-regen anchor so the user can
             // tell why their next click on the map will be consumed.
-            if let Some(anchor) = state.partial_regen_anchor {
+            if let Some(anchor) = state.map_view.partial_regen_anchor {
                 ui.colored_label(
                     egui::Color32::from_rgb(120, 200, 240),
                     format!(
@@ -113,7 +113,7 @@ fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
                     .on_hover_text("Stop picking a region to regenerate.")
                     .clicked()
                 {
-                    state.partial_regen_anchor = None;
+                    state.map_view.partial_regen_anchor = None;
                 }
             }
             ui.separator();
@@ -136,15 +136,15 @@ pub(crate) fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
             MapTool::AddRoute,
             MapTool::RegionPaint,
         ] {
-            let selected = state.map_tool == tool;
+            let selected = state.map_view.tool == tool;
             if ui
                 .selectable_label(selected, tool.label())
                 .on_hover_text(tool_help(tool))
                 .clicked()
             {
-                state.map_tool = tool;
+                state.map_view.tool = tool;
                 if tool != MapTool::AddRoute {
-                    state.pending_route_start = None;
+                    state.drag.pending_route_start = None;
                 }
             }
         }
@@ -186,8 +186,8 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            let multi = state.selected_systems.len();
-            let Some(sys_id) = state.selected_system_id.clone() else {
+            let multi = state.selection.systems.len();
+            let Some(sys_id) = state.selection.system_id.clone() else {
                 ui_kit::placeholder(ui, "Click a system on the map to inspect it here.");
                 if multi > 1 {
                     ui.add_space(4.0);
@@ -287,7 +287,7 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
                     ui_kit::placeholder(ui, "No worlds in this system yet.");
                 }
                 for (wid, wname) in &worlds {
-                    let sel = state.selected_world_id.as_ref() == Some(wid);
+                    let sel = state.selection.world_id.as_ref() == Some(wid);
                     if ui
                         .selectable_label(sel, format!("{wname}  ·  {wid}"))
                         .clicked()
@@ -298,7 +298,7 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
             });
 
             // World detail card — only when the selected world is in this system.
-            if let Some(wid) = state.selected_world_id.clone() {
+            if let Some(wid) = state.selection.world_id.clone() {
                 if let Some(w_idx) = state.sector.systems[sys_idx]
                     .worlds
                     .iter()
@@ -361,7 +361,7 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
 
             // Apply deferred selection / navigation after the borrows above end.
             if let Some(wid) = pick_world {
-                state.selected_world_id = Some(wid);
+                state.selection.world_id = Some(wid);
             }
             if open_system {
                 state.focus_entity(EntityRef::System(sys_id.clone()));
@@ -411,8 +411,8 @@ mod tests {
             .add_system(HexCoord { q: 0, r: 0 }, "A")
             .unwrap();
         let wid = state.sector.add_world_to_system(&sid, "W").unwrap();
-        state.selected_system_id = Some(sid);
-        state.selected_world_id = Some(wid);
+        state.selection.system_id = Some(sid);
+        state.selection.world_id = Some(wid);
         let ctx = egui::Context::default();
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             egui::SidePanel::right("map_inspector_test")
@@ -451,8 +451,8 @@ mod tests {
             Some(HexCoord { q: 1, r: 1 }),
             false,
         );
-        assert_eq!(state.selected_system_id, Some(id.clone()));
-        assert!(state.selected_systems.contains(&id));
+        assert_eq!(state.selection.system_id, Some(id.clone()));
+        assert!(state.selection.systems.contains(&id));
     }
 
     #[test]
@@ -478,8 +478,8 @@ mod tests {
             Some(HexCoord { q: 1, r: 0 }),
             true,
         );
-        assert!(state.selected_systems.contains(&a));
-        assert!(state.selected_systems.contains(&b));
+        assert!(state.selection.systems.contains(&a));
+        assert!(state.selection.systems.contains(&b));
     }
 
     #[test]
@@ -506,7 +506,7 @@ mod tests {
             .add_system(HexCoord { q: 2, r: 2 }, "B")
             .unwrap();
         handle_drag_drop(&mut state, a.clone(), HexCoord { q: 2, r: 2 });
-        let pending = state.pending_collision.expect("collision dialog armed");
+        let pending = state.drag.pending_collision.expect("collision dialog armed");
         assert_eq!(pending.dragging, a);
         assert_eq!(pending.occupant, b);
     }
@@ -521,7 +521,7 @@ mod tests {
         handle_drag_drop(&mut state, id.clone(), HexCoord { q: 9, r: 9 });
         let sys = state.sector.systems.iter().find(|s| s.id == id).unwrap();
         assert_eq!(sys.coord, HexCoord { q: 1, r: 1 });
-        assert!(matches!(state.modal, Some(ModalKind::Message(_))));
+        assert!(matches!(state.feedback.modal, Some(ModalKind::Message(_))));
     }
 
     #[test]
@@ -545,9 +545,9 @@ mod tests {
             HexCoord { q: 3, r: 3 },
             false,
         );
-        assert!(state.selected_systems.contains(&a));
-        assert!(state.selected_systems.contains(&b));
-        assert_eq!(state.selected_systems.len(), 2);
+        assert!(state.selection.systems.contains(&a));
+        assert!(state.selection.systems.contains(&b));
+        assert_eq!(state.selection.systems.len(), 2);
     }
 
     #[test]
@@ -562,7 +562,7 @@ mod tests {
             .add_system(HexCoord { q: 3, r: 3 }, "B")
             .unwrap();
         refresh_map_cache(&mut state);
-        let cache = state.map_view_cache.as_ref().expect("cache populated");
+        let cache = state.map_view.cache.as_ref().expect("cache populated");
         assert!(!cache.subsectors.is_empty());
         assert_eq!(
             cache.lookup.hex_system.len(),
@@ -616,7 +616,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
             .unwrap();
-        state.drag_system = Some(id);
+        state.drag.drag_system = Some(id);
         let geom = SectorGeom::new(28.0, Pos2::ZERO);
         let centre = geom.hex_center(2, 2);
         assert!(
@@ -628,7 +628,7 @@ mod tests {
     #[test]
     fn secondary_click_dismissed_during_rect_select() {
         let mut state = blank(8, 8);
-        state.rect_select = Some((HexCoord { q: 0, r: 0 }, HexCoord { q: 4, r: 4 }));
+        state.drag.rect_select = Some((HexCoord { q: 0, r: 0 }, HexCoord { q: 4, r: 4 }));
         let geom = SectorGeom::new(28.0, Pos2::ZERO);
         let centre = geom.hex_center(2, 2);
         assert!(resolve_sector_context(&state, &geom, centre, 8, 8, false).is_none());
@@ -637,7 +637,7 @@ mod tests {
     #[test]
     fn secondary_click_in_region_paint_needs_ctrl() {
         let mut state = blank(8, 8);
-        state.map_tool = MapTool::RegionPaint;
+        state.map_view.tool = MapTool::RegionPaint;
         let geom = SectorGeom::new(28.0, Pos2::ZERO);
         let centre = geom.hex_center(1, 1);
         assert!(
@@ -661,8 +661,8 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 2, r: 2 }, "B")
             .unwrap();
-        state.selected_systems.insert(a.clone());
-        state.selected_systems.insert(b.clone());
+        state.selection.systems.insert(a.clone());
+        state.selection.systems.insert(b.clone());
         let geom = SectorGeom::new(28.0, Pos2::ZERO);
         let centre = geom.hex_center(1, 1);
         let target = resolve_sector_context(&state, &geom, centre, 8, 8, false).unwrap();
@@ -692,7 +692,7 @@ mod tests {
     #[test]
     fn context_menu_field_default_none() {
         let state = blank(4, 4);
-        assert!(state.sector_context_menu.is_none());
+        assert!(state.map_view.sector_context_menu.is_none());
     }
 
     // ── §CTX1 Phase 2 tests — per-item action assertions ──────────────────
@@ -719,7 +719,7 @@ mod tests {
             },
         );
         assert!(closed);
-        let pending = state.pending_place.expect("pending_place armed");
+        let pending = state.drag.pending_place.expect("pending_place armed");
         assert_eq!(pending.coord, HexCoord { q: 2, r: 3 });
         assert!(pending.name.starts_with("Sys-"));
     }
@@ -728,7 +728,7 @@ mod tests {
     fn ctx_action_paint_region_paints_when_region_selected() {
         let mut state = blank(8, 8);
         add_region(&mut state, "reg-a", HexCoord { q: 0, r: 0 });
-        state.selected_region_id = Some("reg-a".into());
+        state.selection.region_id = Some("reg-a".into());
         apply_sector_menu_action(
             &mut state,
             SectorMenuAction::PaintRegion {
@@ -772,7 +772,7 @@ mod tests {
             .unwrap();
         state.active_tab = BuilderTab::Map;
         apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id: id.clone() });
-        assert_eq!(state.selected_system_id, Some(id));
+        assert_eq!(state.selection.system_id, Some(id));
         assert_eq!(state.active_tab, BuilderTab::System);
     }
 
@@ -787,7 +787,7 @@ mod tests {
             &mut state,
             SectorMenuAction::RenameSystem { id: id.clone() },
         );
-        let pending = state.pending_rename.expect("rename armed");
+        let pending = state.drag.pending_rename.expect("rename armed");
         assert_eq!(pending.id, id);
         assert_eq!(pending.text, "Alpha");
     }
@@ -817,8 +817,8 @@ mod tests {
             &mut state,
             SectorMenuAction::AddRouteFrom { id: id.clone() },
         );
-        assert_eq!(state.map_tool, MapTool::AddRoute);
-        assert_eq!(state.pending_route_start, Some(id));
+        assert_eq!(state.map_view.tool, MapTool::AddRoute);
+        assert_eq!(state.drag.pending_route_start, Some(id));
     }
 
     #[test]
@@ -856,7 +856,7 @@ mod tests {
             .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
             .unwrap();
         state.pinned_systems.insert(id.clone());
-        let before_modal = state.modal.is_some();
+        let before_modal = state.feedback.modal.is_some();
         apply_sector_menu_action(
             &mut state,
             SectorMenuAction::RegenerateSystem {
@@ -864,7 +864,7 @@ mod tests {
                 coord: HexCoord { q: 2, r: 2 },
             },
         );
-        assert_eq!(state.modal.is_some(), before_modal);
+        assert_eq!(state.feedback.modal.is_some(), before_modal);
     }
 
     #[test]
@@ -896,7 +896,7 @@ mod tests {
             },
         );
         assert_eq!(state.active_tab, BuilderTab::Routes);
-        assert_eq!(state.selected_system_id, Some(id));
+        assert_eq!(state.selection.system_id, Some(id));
     }
 
     #[test]
@@ -931,8 +931,8 @@ mod tests {
             },
         );
         assert_eq!(state.active_tab, BuilderTab::World);
-        assert_eq!(state.selected_system_id, Some(id));
-        assert_eq!(state.selected_world_id, Some(first_world));
+        assert_eq!(state.selection.system_id, Some(id));
+        assert_eq!(state.selection.world_id, Some(first_world));
     }
 
     // ── §CTX1 Phase 3 tests — multi-selection menu ────────────────────────
@@ -947,9 +947,9 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 2, r: 2 }, "B")
             .unwrap();
-        state.selected_systems.insert(a.clone());
-        state.selected_systems.insert(b.clone());
-        state.sector_context_menu = Some(SectorContextMenu {
+        state.selection.systems.insert(a.clone());
+        state.selection.systems.insert(b.clone());
+        state.map_view.sector_context_menu = Some(SectorContextMenu {
             screen_pos: Pos2::ZERO,
             target: SectorMenuTarget::MultiSelection {
                 ids: vec![a.clone(), b.clone()],
@@ -964,7 +964,7 @@ mod tests {
         let (mut state, a, _b) = multi_state(8, 8);
         state.active_tab = BuilderTab::Map;
         apply_sector_menu_action(&mut state, SectorMenuAction::MultiFocusFirst);
-        assert_eq!(state.selected_system_id, Some(a));
+        assert_eq!(state.selection.system_id, Some(a));
         assert_eq!(state.active_tab, BuilderTab::System);
     }
 
@@ -972,7 +972,7 @@ mod tests {
     fn ctx_multi_bulk_rename_open_arms_pending_dialog() {
         let (mut state, _a, _b) = multi_state(8, 8);
         apply_sector_menu_action(&mut state, SectorMenuAction::MultiBulkRenameOpen);
-        let pending = state.pending_bulk_rename.expect("dialog armed");
+        let pending = state.drag.pending_bulk_rename.expect("dialog armed");
         assert_eq!(pending.pattern, "Sys-{n}");
     }
 
@@ -999,21 +999,21 @@ mod tests {
         let (mut state, a, b) = multi_state(8, 8);
         apply_sector_menu_action(&mut state, SectorMenuAction::MultiDeleteAllConfirmed);
         assert!(state.sector.systems.iter().all(|s| s.id != a && s.id != b));
-        assert!(state.selected_systems.is_empty());
-        assert!(state.selected_system_id.is_none());
+        assert!(state.selection.systems.is_empty());
+        assert!(state.selection.system_id.is_none());
     }
 
     #[test]
     fn ctx_multi_delete_requires_confirm_gate() {
         let (mut state, a, b) = multi_state(8, 8);
         let confirming = state
-            .sector_context_menu
+            .map_view.sector_context_menu
             .as_ref()
             .map(|m| m.bulk_delete_confirm)
             .unwrap();
         assert!(!confirming, "fresh menu starts with confirm unarmed");
         state
-            .sector_context_menu
+            .map_view.sector_context_menu
             .as_mut()
             .unwrap()
             .bulk_delete_confirm = true;
@@ -1072,8 +1072,8 @@ mod tests {
     fn ctx_multi_clear_selection_drops_selected_systems() {
         let (mut state, _a, _b) = multi_state(8, 8);
         apply_sector_menu_action(&mut state, SectorMenuAction::MultiClearSelection);
-        assert!(state.selected_systems.is_empty());
-        assert!(state.selected_system_id.is_none());
+        assert!(state.selection.systems.is_empty());
+        assert!(state.selection.system_id.is_none());
     }
 
     #[test]
@@ -1081,9 +1081,9 @@ mod tests {
         let (mut state, a, b) = multi_state(8, 8);
         state.pinned_systems.insert(a.clone());
         state.pinned_systems.insert(b.clone());
-        let before_modal = state.modal.is_some();
+        let before_modal = state.feedback.modal.is_some();
         apply_sector_menu_action(&mut state, SectorMenuAction::MultiReseedWorlds);
-        assert_eq!(state.modal.is_some(), before_modal);
+        assert_eq!(state.feedback.modal.is_some(), before_modal);
     }
 
     // ── §CTX1 Phase 4 tests — partial-regen anchor ────────────────────────
@@ -1091,7 +1091,7 @@ mod tests {
     #[test]
     fn ctx_partial_regen_anchor_defaults_none() {
         let state = blank(4, 4);
-        assert!(state.partial_regen_anchor.is_none());
+        assert!(state.map_view.partial_regen_anchor.is_none());
     }
 
     #[test]
@@ -1101,18 +1101,18 @@ mod tests {
         let closed =
             apply_sector_menu_action(&mut state, SectorMenuAction::StartPartialRegen { coord });
         assert!(closed, "menu dismisses after arming the anchor");
-        assert_eq!(state.partial_regen_anchor, Some(coord));
-        assert!(state.partial_regen_rect.is_none());
+        assert_eq!(state.map_view.partial_regen_anchor, Some(coord));
+        assert!(state.map_view.partial_regen_rect.is_none());
     }
 
     #[test]
     fn ctx_partial_regen_anchor_click_completes_rect() {
         let mut state = blank(8, 8);
-        state.partial_regen_anchor = Some(HexCoord { q: 1, r: 5 });
+        state.map_view.partial_regen_anchor = Some(HexCoord { q: 1, r: 5 });
         let consumed = apply_partial_regen_anchor_click(&mut state, HexCoord { q: 4, r: 2 });
         assert!(consumed, "click consumed while anchor was armed");
-        assert!(state.partial_regen_anchor.is_none(), "anchor cleared");
-        let rect = state.partial_regen_rect.expect("rect populated");
+        assert!(state.map_view.partial_regen_anchor.is_none(), "anchor cleared");
+        let rect = state.map_view.partial_regen_rect.expect("rect populated");
         assert_eq!(rect.min_q, 1);
         assert_eq!(rect.max_q, 4);
         assert_eq!(rect.min_r, 2);
@@ -1124,17 +1124,17 @@ mod tests {
         let mut state = blank(8, 8);
         let consumed = apply_partial_regen_anchor_click(&mut state, HexCoord { q: 0, r: 0 });
         assert!(!consumed);
-        assert!(state.partial_regen_rect.is_none());
+        assert!(state.map_view.partial_regen_rect.is_none());
     }
 
     #[test]
     fn ctx_partial_regen_anchor_not_in_session_file() {
         use crate::builder::session::SessionFile;
         let mut state = blank(4, 4);
-        state.partial_regen_anchor = Some(HexCoord { q: 2, r: 2 });
+        state.map_view.partial_regen_anchor = Some(HexCoord { q: 2, r: 2 });
         let file = SessionFile::from_state(&state, Vec::new());
         let round_tripped = file.into_state();
-        assert!(round_tripped.partial_regen_anchor.is_none());
+        assert!(round_tripped.map_view.partial_regen_anchor.is_none());
     }
 
     // ── §CTX1 Phase 5 tests — route + region-hex menus ───────────────────
@@ -1269,7 +1269,7 @@ mod tests {
         let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
         state.active_tab = BuilderTab::Map;
         apply_sector_menu_action(&mut state, SectorMenuAction::FocusRoute { id: id.clone() });
-        assert_eq!(state.selected_route_id, Some(id));
+        assert_eq!(state.selection.route_id, Some(id));
         assert_eq!(state.active_tab, BuilderTab::Routes);
     }
 
@@ -1307,7 +1307,7 @@ mod tests {
                 region: "reg-x".into(),
             },
         );
-        assert_eq!(state.selected_region_id.as_deref(), Some("reg-x"));
+        assert_eq!(state.selection.region_id.as_deref(), Some("reg-x"));
         assert_eq!(state.active_tab, BuilderTab::Regions);
     }
 
@@ -1341,7 +1341,7 @@ mod tests {
                 region: "reg-x".into(),
             },
         );
-        let pending = state.pending_region_rename.expect("dialog armed");
+        let pending = state.drag.pending_region_rename.expect("dialog armed");
         assert_eq!(pending.region, "reg-x");
         assert_eq!(pending.text, "Region reg-x");
     }
@@ -1355,14 +1355,14 @@ mod tests {
             .unwrap();
         refresh_map_cache(&mut state);
         let digest = state
-            .map_view_cache
+            .map_view.cache
             .as_ref()
             .map(|c| c.digest.clone())
             .unwrap();
         refresh_map_cache(&mut state);
         assert_eq!(
             digest,
-            state.map_view_cache.as_ref().unwrap().digest,
+            state.map_view.cache.as_ref().unwrap().digest,
             "digest unchanged when sector slice unchanged"
         );
     }
@@ -1412,10 +1412,10 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 1, r: 1 }, "Alpha")
             .unwrap();
-        assert!(state.last_menu_action.is_none());
+        assert!(state.feedback.last_menu_action.is_none());
         apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id });
         assert_eq!(
-            state.last_menu_action.as_deref(),
+            state.feedback.last_menu_action.as_deref(),
             Some("sector :: FOCUS SYSTEM"),
         );
     }
@@ -1461,10 +1461,10 @@ mod tests {
             .add_system(HexCoord { q: 1, r: 1 }, "Alpha")
             .unwrap();
         apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id });
-        assert!(state.last_menu_action.is_some());
+        assert!(state.feedback.last_menu_action.is_some());
         let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
         let restored = file.into_state();
-        assert!(restored.last_menu_action.is_none());
+        assert!(restored.feedback.last_menu_action.is_none());
     }
 
     // ── §CTX1 §10 edge-case tests ─────────────────────────────────────────
@@ -1488,7 +1488,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 2, r: 2 }, "B")
             .unwrap();
-        state.pending_collision = Some(PendingCollision {
+        state.drag.pending_collision = Some(PendingCollision {
             dragging: a,
             target: HexCoord { q: 2, r: 2 },
             occupant: b,
@@ -1583,7 +1583,7 @@ mod tests {
     fn set_active_tab_drops_sector_context_menu() {
         let mut state = blank(4, 4);
         state.active_tab = BuilderTab::Map;
-        state.sector_context_menu = Some(SectorContextMenu {
+        state.map_view.sector_context_menu = Some(SectorContextMenu {
             screen_pos: Pos2::ZERO,
             target: SectorMenuTarget::EmptyHex {
                 coord: HexCoord { q: 0, r: 0 },
@@ -1591,7 +1591,7 @@ mod tests {
             bulk_delete_confirm: false,
         });
         state.set_active_tab(BuilderTab::Routes);
-        assert!(state.sector_context_menu.is_none());
+        assert!(state.map_view.sector_context_menu.is_none());
         assert_eq!(state.active_tab, BuilderTab::Routes);
     }
 
@@ -1599,7 +1599,7 @@ mod tests {
     fn set_active_tab_keeps_menu_when_tab_unchanged() {
         let mut state = blank(4, 4);
         state.active_tab = BuilderTab::Map;
-        state.sector_context_menu = Some(SectorContextMenu {
+        state.map_view.sector_context_menu = Some(SectorContextMenu {
             screen_pos: Pos2::ZERO,
             target: SectorMenuTarget::EmptyHex {
                 coord: HexCoord { q: 0, r: 0 },
@@ -1607,7 +1607,7 @@ mod tests {
             bulk_delete_confirm: false,
         });
         state.set_active_tab(BuilderTab::Map);
-        assert!(state.sector_context_menu.is_some());
+        assert!(state.map_view.sector_context_menu.is_some());
     }
 
     #[test]
@@ -1617,19 +1617,19 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 1, r: 1 }, "A")
             .unwrap();
-        state.map_tool = MapTool::AddRoute;
-        state.pending_route_start = Some(a);
+        state.map_view.tool = MapTool::AddRoute;
+        state.drag.pending_route_start = Some(a);
         let closed = apply_sector_menu_action(&mut state, SectorMenuAction::CancelRoute);
         assert!(closed);
-        assert!(state.pending_route_start.is_none());
-        assert_eq!(state.map_tool, MapTool::Select);
-        assert_eq!(state.last_menu_action.as_deref(), Some("route :: CANCEL"));
+        assert!(state.drag.pending_route_start.is_none());
+        assert_eq!(state.map_view.tool, MapTool::Select);
+        assert_eq!(state.feedback.last_menu_action.as_deref(), Some("route :: CANCEL"));
     }
 
     #[test]
     fn ctx_menu_dropped_through_session_round_trip() {
         let mut state = blank(4, 4);
-        state.sector_context_menu = Some(SectorContextMenu {
+        state.map_view.sector_context_menu = Some(SectorContextMenu {
             screen_pos: Pos2::ZERO,
             target: SectorMenuTarget::EmptyHex {
                 coord: HexCoord { q: 0, r: 0 },
@@ -1638,6 +1638,6 @@ mod tests {
         });
         let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
         let restored = file.into_state();
-        assert!(restored.sector_context_menu.is_none());
+        assert!(restored.map_view.sector_context_menu.is_none());
     }
 }

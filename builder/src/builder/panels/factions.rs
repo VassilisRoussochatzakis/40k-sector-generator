@@ -188,7 +188,7 @@ fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
         {
             add_new_row(state);
         }
-        if let Some(id) = state.selected_faction_id.clone() {
+        if let Some(id) = state.selection.faction_id.clone() {
             if ui
                 .button("⧉  Duplicate")
                 .on_hover_text("Copy the selected faction with a new id")
@@ -202,7 +202,7 @@ fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
                 .clicked()
             {
                 let name = faction_name_for(state, &id);
-                state.modal = Some(ModalKind::ConfirmDeleteFaction {
+                state.feedback.modal = Some(ModalKind::ConfirmDeleteFaction {
                     id: id.clone(),
                     name,
                 });
@@ -299,7 +299,7 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
             .push(i);
     }
 
-    let selected = state.selected_faction_id.clone();
+    let selected = state.selection.faction_id.clone();
     let mut new_selection: Option<sectorforge::ids::FactionId> = None;
     let mut confirm_delete: Option<(sectorforge::ids::FactionId, String)> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
@@ -386,10 +386,10 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
         }
     });
     if let Some(id) = new_selection {
-        state.selected_faction_id = Some(id);
+        state.selection.faction_id = Some(id);
     }
     if let Some((id, name)) = confirm_delete {
-        state.modal = Some(ModalKind::ConfirmDeleteFaction { id, name });
+        state.feedback.modal = Some(ModalKind::ConfirmDeleteFaction { id, name });
     }
 }
 
@@ -482,7 +482,7 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             .clone()
             .unwrap_or_else(|| DEFAULT_FACTIONS_REL.to_string());
         state.dirty_files.insert(rel);
-        state.selected_faction_id = Some(id);
+        state.selection.faction_id = Some(id);
     }
 }
 
@@ -922,7 +922,7 @@ fn presence_link(ui: &mut Ui, state: &mut BuilderState, draft: &FactionDef) {
         .on_hover_text("Jump to the Control tab to assign this faction to systems and worlds")
         .clicked()
     {
-        state.selected_faction_id = Some(draft.id.clone());
+        state.selection.faction_id = Some(draft.id.clone());
         state.focus_entity(EntityRef::Tab(BuilderTab::Control));
     }
 }
@@ -1068,13 +1068,13 @@ fn faction_name_for(state: &BuilderState, id: &FactionId) -> String {
 
 fn selected_index(state: &mut BuilderState) -> Option<usize> {
     let file = state.data_catalogs.factions.as_ref()?;
-    if let Some(id) = &state.selected_faction_id {
+    if let Some(id) = &state.selection.faction_id {
         if let Some((i, _)) = file.factions.iter().enumerate().find(|(_, f)| f.id == *id) {
             return Some(i);
         }
     }
     if let Some(f) = file.factions.first() {
-        state.selected_faction_id = Some(f.id.clone());
+        state.selection.faction_id = Some(f.id.clone());
         return Some(0);
     }
     None
@@ -1110,7 +1110,7 @@ fn add_new_row(state: &mut BuilderState) {
         legend_visible: None,
     };
     file.factions.push(new);
-    state.selected_faction_id = Some(FactionId::new(id.as_str()));
+    state.selection.faction_id = Some(FactionId::new(id.as_str()));
     state.dirty = true;
     let rel = state
         .config
@@ -1141,7 +1141,7 @@ fn duplicate_row(state: &mut BuilderState, id: &FactionId) {
     }
     let new_id = copy.id.clone();
     file.factions.insert(idx + 1, copy);
-    state.selected_faction_id = Some(new_id);
+    state.selection.faction_id = Some(new_id);
     state.dirty = true;
     let rel = state
         .config
@@ -1160,7 +1160,7 @@ pub(crate) fn delete_row(state: &mut BuilderState, id: &FactionId) {
         return;
     };
     file.factions.remove(idx);
-    state.selected_faction_id = file.factions.first().map(|f| f.id.clone());
+    state.selection.faction_id = file.factions.first().map(|f| f.id.clone());
     state.dirty = true;
     let rel = state
         .config
@@ -1183,7 +1183,7 @@ fn save_factions_only(state: &mut BuilderState) {
             });
         }
         Err(e) => {
-            state.modal = Some(ModalKind::Message(format!(
+            state.feedback.modal = Some(ModalKind::Message(format!(
                 "Save factions.toml failed: {e}"
             )));
         }

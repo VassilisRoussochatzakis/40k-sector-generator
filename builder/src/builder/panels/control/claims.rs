@@ -200,7 +200,7 @@ fn show_world_row(
                 if let Err(e) = state.edit_world(id, |w| {
                     w.claims.remove(i);
                 }) {
-                    state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
                 }
             }
         }
@@ -284,7 +284,7 @@ fn show_add_claim_row(
                     strength: buf.strength,
                 });
             }) {
-                state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }
         }
     });

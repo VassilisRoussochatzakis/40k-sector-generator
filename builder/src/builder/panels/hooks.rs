@@ -7,8 +7,8 @@
 //!        kind filter and §HK5 player-edition mask on top.
 //! §HK2  Per-hook details: anchor link, situation/stakes/complications,
 //!        weight, GM-only flag. Selecting a row populates
-//!        [`BuilderState::selected_hook_id`] and
-//!        [`BuilderState::hooks_edit_target`] so cross-tab links land here
+//!        `BuilderState::selection.hook_id` and
+//!        `BuilderState::hooks_panel.edit_target` so cross-tab links land here
 //!        first-class.
 //! §HK3  "+ manual hook" appends a blank [`Hook`] onto
 //!        `HooksConfig::manual` with editors for kind / anchor / prose.
@@ -17,7 +17,7 @@
 //!        drops any derived hook sharing a manual id and then appends the
 //!        whole `cfg.manual` block.
 //! §HK5  Player-edition toggle (mirrors `--player`): flips
-//!        [`BuilderState::hooks_player_edition`] and re-runs the recompute
+//!        `BuilderState::hooks_panel.player_edition` and re-runs the recompute
 //!        so the cached report has `gm_only = true` rows stripped.
 //! §HK6  Click-to-highlight anchor on map: anchor link in every row +
 //!        "highlight on map" button on the detail card use
@@ -117,10 +117,13 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             ensure_hooks_catalog(state);
             state.recompute_hooks();
         }
-        ui.checkbox(&mut state.hooks_auto_recompute, "Auto-refresh on edit")
-            .on_hover_text("Regenerate automatically whenever you change a hook.");
+        ui.checkbox(
+            &mut state.hooks_panel.auto_recompute,
+            "Auto-refresh on edit",
+        )
+        .on_hover_text("Regenerate automatically whenever you change a hook.");
         if ui
-            .checkbox(&mut state.hooks_player_edition, "Player edition")
+            .checkbox(&mut state.hooks_panel.player_edition, "Player edition")
             .on_hover_text(
                 "Hide GM-only hooks, as in a handout for players (matches the --player export).",
             )
@@ -154,16 +157,20 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label(RichText::new("Show").strong());
-        let label = match state.hooks_filter_kind {
+        let label = match state.hooks_panel.filter_kind {
             None => "All kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
         ui_kit::combo("hk1_kind", label)
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.hooks_filter_kind, None, "All kinds");
+                ui.selectable_value(&mut state.hooks_panel.filter_kind, None, "All kinds");
                 for k in KIND_VARIANTS {
-                    ui.selectable_value(&mut state.hooks_filter_kind, Some(*k), kind_label(*k))
-                        .on_hover_text(format!("schema: {}", k.as_slug()));
+                    ui.selectable_value(
+                        &mut state.hooks_panel.filter_kind,
+                        Some(*k),
+                        kind_label(*k),
+                    )
+                    .on_hover_text(format!("schema: {}", k.as_slug()));
                 }
             })
             .response
@@ -182,7 +189,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
-    let filter = state.hooks_filter_kind;
+    let filter = state.hooks_panel.filter_kind;
     let rows: Vec<&Hook> = report
         .hooks
         .iter()
@@ -195,7 +202,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let selected = state.selected_hook_id.clone();
+    let selected = state.selection.hook_id.clone();
     // §COLUMNS — compact rail rows: a selectable title line per hook with
     // kind / weight subline + click-to-highlight; full fields and the anchor
     // deep-link live in the detail card on the right.
@@ -226,12 +233,12 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
                     .clicked()
             });
         if focus_clicked {
-            state.selected_hook_id = Some(h.id.to_string());
-            state.hooks_edit_target = Some(h.id.to_string());
+            state.selection.hook_id = Some(h.id.to_string());
+            state.hooks_panel.edit_target = Some(h.id.to_string());
             focus_anchor(state, &h.anchor);
         } else if resp.clicked() {
-            state.selected_hook_id = Some(h.id.to_string());
-            state.hooks_edit_target = Some(h.id.to_string());
+            state.selection.hook_id = Some(h.id.to_string());
+            state.hooks_panel.edit_target = Some(h.id.to_string());
         }
         ui.separator();
     }
@@ -241,7 +248,8 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Hook details").strong());
-    let target = super::roster::detail_target(&state.hooks_edit_target, &state.selected_hook_id);
+    let target =
+        super::roster::detail_target(&state.hooks_panel.edit_target, &state.selection.hook_id);
     let Some(target_id) = target else {
         ui_kit::placeholder(ui, "Pick a hook on the left to read its details here.");
         return;
@@ -443,7 +451,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         on_catalog_edited(state);
     }
     if let Some((idx, label)) = pending_delete {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete hook?".into(),
             body: format!("Remove the manual hook “{label}”."),
             action: ConfirmAction::DeleteManualHook(idx),
@@ -901,7 +909,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.hooks = Some(DEFAULT_HOOKS_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Could not save hooks: {e}"
                 )));
             }
@@ -938,7 +946,7 @@ fn ensure_hooks_catalog_if_needed(state: &mut BuilderState) {
 fn on_catalog_edited(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.hooks.clone(), DEFAULT_HOOKS_PATH);
     state.mark_validation_dirty();
-    if state.hooks_auto_recompute {
+    if state.hooks_panel.auto_recompute {
         state.recompute_hooks();
     }
 }
@@ -989,7 +997,7 @@ mod tests {
         h.gm_only = true;
         cfg.manual.push(h);
         state.data_catalogs.hooks = Some(cfg);
-        state.hooks_player_edition = true;
+        state.hooks_panel.player_edition = true;
         state.recompute_hooks();
         let report = state.hooks_report.as_ref().unwrap();
         assert!(!report.hooks.iter().any(|h| h.id == "hook-manual-0000"));

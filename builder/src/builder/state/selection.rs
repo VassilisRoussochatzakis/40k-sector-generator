@@ -14,22 +14,22 @@ const NAV_STACK_CAP: usize = 64;
 impl BuilderState {
     /// §S1: focus a single system. Replaces any multi-selection with `{id}`.
     pub fn focus_system(&mut self, id: SystemId) {
-        self.selected_systems.clear();
-        self.selected_systems.insert(id.clone());
-        self.selected_system_id = Some(id);
+        self.selection.systems.clear();
+        self.selection.systems.insert(id.clone());
+        self.selection.system_id = Some(id);
     }
 
     /// §S4: shift-click toggle — add/remove the system from `selected_systems`
     /// while leaving `selected_system_id` pointing at the most recent pick.
     pub fn toggle_system_selection(&mut self, id: SystemId) {
-        if self.selected_systems.contains(&id) {
-            self.selected_systems.remove(&id);
-            if self.selected_system_id.as_ref() == Some(&id) {
-                self.selected_system_id = self.selected_systems.iter().next().cloned();
+        if self.selection.systems.contains(&id) {
+            self.selection.systems.remove(&id);
+            if self.selection.system_id.as_ref() == Some(&id) {
+                self.selection.system_id = self.selection.systems.iter().next().cloned();
             }
         } else {
-            self.selected_systems.insert(id.clone());
-            self.selected_system_id = Some(id);
+            self.selection.systems.insert(id.clone());
+            self.selection.system_id = Some(id);
         }
     }
 
@@ -40,8 +40,8 @@ impl BuilderState {
     /// poke the field directly.
     pub fn set_active_tab(&mut self, tab: BuilderTab) {
         if self.active_tab != tab {
-            self.sector_context_menu = None;
-            self.system_context_menu = None;
+            self.map_view.sector_context_menu = None;
+            self.map_view.system_context_menu = None;
         }
         self.active_tab = tab;
     }
@@ -50,7 +50,7 @@ impl BuilderState {
     /// [`Self::focus_entity`]). Backs the builder bin's `--select-faction` dev
     /// flag; use this instead of writing the now-`pub(crate)` field directly.
     pub fn select_faction(&mut self, id: Option<FactionId>) {
-        self.selected_faction_id = id;
+        self.selection.faction_id = id;
     }
 
     /// §LINK2 — navigate to an entity: switch tabs and populate the matching
@@ -62,11 +62,11 @@ impl BuilderState {
             return;
         }
         if let Some(prev) = prev {
-            self.nav_back_stack.push(prev);
-            if self.nav_back_stack.len() > NAV_STACK_CAP {
-                self.nav_back_stack.remove(0);
+            self.selection.nav_back_stack.push(prev);
+            if self.selection.nav_back_stack.len() > NAV_STACK_CAP {
+                self.selection.nav_back_stack.remove(0);
             }
-            self.nav_forward_stack.clear();
+            self.selection.nav_forward_stack.clear();
         }
         self.apply_focus(target);
     }
@@ -74,13 +74,13 @@ impl BuilderState {
     /// §LINK3 — pop the most recent focus off the back-stack, restore it, and
     /// push the current focus onto the forward stack.
     pub fn nav_back(&mut self) {
-        let Some(prev) = self.nav_back_stack.pop() else {
+        let Some(prev) = self.selection.nav_back_stack.pop() else {
             return;
         };
         if let Some(cur) = self.current_focus() {
-            self.nav_forward_stack.push(cur);
-            if self.nav_forward_stack.len() > NAV_STACK_CAP {
-                self.nav_forward_stack.remove(0);
+            self.selection.nav_forward_stack.push(cur);
+            if self.selection.nav_forward_stack.len() > NAV_STACK_CAP {
+                self.selection.nav_forward_stack.remove(0);
             }
         }
         self.apply_focus(prev);
@@ -88,13 +88,13 @@ impl BuilderState {
 
     /// §LINK3 — symmetric to [`Self::nav_back`].
     pub fn nav_forward(&mut self) {
-        let Some(next) = self.nav_forward_stack.pop() else {
+        let Some(next) = self.selection.nav_forward_stack.pop() else {
             return;
         };
         if let Some(cur) = self.current_focus() {
-            self.nav_back_stack.push(cur);
-            if self.nav_back_stack.len() > NAV_STACK_CAP {
-                self.nav_back_stack.remove(0);
+            self.selection.nav_back_stack.push(cur);
+            if self.selection.nav_back_stack.len() > NAV_STACK_CAP {
+                self.selection.nav_back_stack.remove(0);
             }
         }
         self.apply_focus(next);
@@ -104,24 +104,29 @@ impl BuilderState {
     /// back-stack so that returning to a tab restores the previous focus.
     pub fn current_focus(&self) -> Option<EntityRef> {
         match self.active_tab {
-            BuilderTab::System => self.selected_system_id.clone().map(EntityRef::System),
-            BuilderTab::World => match (&self.selected_system_id, &self.selected_world_id) {
+            BuilderTab::System => self.selection.system_id.clone().map(EntityRef::System),
+            BuilderTab::World => match (&self.selection.system_id, &self.selection.world_id) {
                 (Some(s), Some(w)) => Some(EntityRef::World {
                     system: s.clone(),
                     world: w.clone(),
                 }),
                 _ => None,
             },
-            BuilderTab::Factions => self.selected_faction_id.clone().map(EntityRef::Faction),
-            BuilderTab::Routes => self.selected_route_id.clone().map(EntityRef::Route),
-            BuilderTab::Regions => self.selected_region_id.clone().map(EntityRef::Region),
-            BuilderTab::Subsectors => self.selected_subsector_id.clone().map(EntityRef::Subsector),
-            BuilderTab::Personae => self.selected_persona_id.clone().map(EntityRef::Persona),
+            BuilderTab::Factions => self.selection.faction_id.clone().map(EntityRef::Faction),
+            BuilderTab::Routes => self.selection.route_id.clone().map(EntityRef::Route),
+            BuilderTab::Regions => self.selection.region_id.clone().map(EntityRef::Region),
+            BuilderTab::Subsectors => self
+                .selection
+                .subsector_id
+                .clone()
+                .map(EntityRef::Subsector),
+            BuilderTab::Personae => self.selection.persona_id.clone().map(EntityRef::Persona),
             BuilderTab::History => self
-                .selected_history_event
+                .selection
+                .history_event
                 .clone()
                 .map(EntityRef::HistoryEvent),
-            BuilderTab::Hooks => self.selected_hook_id.clone().map(EntityRef::Hook),
+            BuilderTab::Hooks => self.selection.hook_id.clone().map(EntityRef::Hook),
             other => Some(EntityRef::Tab(other)),
         }
     }
@@ -133,28 +138,28 @@ impl BuilderState {
             }
             EntityRef::World { system, world } => {
                 self.focus_system(system.clone());
-                self.selected_world_id = Some(world.clone());
+                self.selection.world_id = Some(world.clone());
             }
             EntityRef::Faction(fid) => {
-                self.selected_faction_id = Some(fid.clone());
+                self.selection.faction_id = Some(fid.clone());
             }
             EntityRef::Route(rid) => {
-                self.selected_route_id = Some(rid.clone());
+                self.selection.route_id = Some(rid.clone());
             }
             EntityRef::Region(rid) => {
-                self.selected_region_id = Some(rid.clone());
+                self.selection.region_id = Some(rid.clone());
             }
             EntityRef::Subsector(sid) => {
-                self.selected_subsector_id = Some(sid.clone());
+                self.selection.subsector_id = Some(sid.clone());
             }
             EntityRef::Persona(pid) => {
-                self.selected_persona_id = Some(pid.clone());
+                self.selection.persona_id = Some(pid.clone());
             }
             EntityRef::HistoryEvent(eid) => {
-                self.selected_history_event = Some(eid.clone());
+                self.selection.history_event = Some(eid.clone());
             }
             EntityRef::Hook(hid) => {
-                self.selected_hook_id = Some(hid.clone());
+                self.selection.hook_id = Some(hid.clone());
             }
             EntityRef::Tab(_) => {}
         }

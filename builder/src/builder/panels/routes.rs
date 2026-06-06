@@ -98,14 +98,14 @@ fn show_summary(ui: &mut Ui, state: &BuilderState) {
 }
 
 fn selected_route_index(state: &mut BuilderState) -> Option<usize> {
-    if let Some(id) = &state.selected_route_id {
+    if let Some(id) = &state.selection.route_id {
         if let Some(idx) = state.index.routes.get(id).copied() {
             return Some(idx);
         }
     }
-    state.selected_route_id = state.sector.routes.first().map(|r| r.id.clone());
+    state.selection.route_id = state.sector.routes.first().map(|r| r.id.clone());
     state
-        .selected_route_id
+        .selection.route_id
         .as_ref()
         .and_then(|id| state.index.routes.get(id).copied())
 }
@@ -119,19 +119,19 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(RichText::new(format!("{} route(s)", state.sector.routes.len())).strong());
         if ui
             .add_enabled(
-                state.selected_route_id.is_some(),
+                state.selection.route_id.is_some(),
                 egui::Button::new("🗑  Delete"),
             )
             .on_hover_text("Remove the selected route")
             .clicked()
         {
-            if let Some(id) = state.selected_route_id.clone() {
+            if let Some(id) = state.selection.route_id.clone() {
                 let cmd = BuilderCommand::RemoveRoute { id, before: None };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!("Delete route failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Delete route failed: {e}")));
                 } else {
                     apply_ensure_connected_if_enabled(state);
-                    state.selected_route_id = state.sector.routes.first().map(|r| r.id.clone());
+                    state.selection.route_id = state.sector.routes.first().map(|r| r.id.clone());
                 }
             }
         }
@@ -145,7 +145,7 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let current = state.selected_route_id.clone();
+    let current = state.selection.route_id.clone();
     let mut pick: Option<RouteId> = None;
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
@@ -174,7 +174,7 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
     if let Some(id) = pick {
-        state.selected_route_id = Some(id);
+        state.selection.route_id = Some(id);
     }
 }
 
@@ -309,7 +309,7 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
     if draft != original {
         let new_id = draft.id.clone();
         replace_route_at(state, idx, draft);
-        state.selected_route_id = Some(new_id);
+        state.selection.route_id = Some(new_id);
     }
 }
 
@@ -581,7 +581,7 @@ fn replace_routes(state: &mut BuilderState, mut routes: Vec<GeneratedRoute>) {
         after: routes,
     };
     if let Err(e) = state.run(cmd) {
-        state.modal = Some(ModalKind::Message(format!("Route update failed: {e}")));
+        state.feedback.modal = Some(ModalKind::Message(format!("Route update failed: {e}")));
     }
 }
 
@@ -607,7 +607,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                     optional_route_type_combo(
                         ui,
                         "bulk_filter_type",
-                        &mut state.route_bulk_filter_type,
+                        &mut state.route_bulk.filter_type,
                     )
                 },
             );
@@ -619,7 +619,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                     optional_stability_combo(
                         ui,
                         "bulk_filter_stability",
-                        &mut state.route_bulk_filter_stability,
+                        &mut state.route_bulk.filter_stability,
                     )
                 },
             );
@@ -629,7 +629,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 "Only match routes carrying a tag with this text (schema: tags). Blank matches all.",
                 |ui| {
                     ui.add(
-                        egui::TextEdit::singleline(&mut state.route_bulk_filter_tag)
+                        egui::TextEdit::singleline(&mut state.route_bulk.filter_tag)
                             .hint_text("e.g. bridge"),
                     );
                 },
@@ -648,7 +648,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                     optional_region_combo(
                         ui,
                         "bulk_filter_region",
-                        &mut state.route_bulk_filter_region,
+                        &mut state.route_bulk.filter_region,
                         &region_options,
                     )
                 },
@@ -670,13 +670,13 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
             );
             ui.horizontal_wrapped(|ui| {
                 ui.label("Set lane type to");
-                route_type_combo(ui, "bulk_set_type", &mut state.route_bulk_set_type);
+                route_type_combo(ui, "bulk_set_type", &mut state.route_bulk.set_type);
                 if ui
                     .button("Apply")
                     .on_hover_text("Set the lane type on every matching route")
                     .clicked()
                 {
-                    apply_bulk_routes(state, BulkRouteAction::SetType(state.route_bulk_set_type));
+                    apply_bulk_routes(state, BulkRouteAction::SetType(state.route_bulk.set_type));
                 }
             });
             ui.horizontal_wrapped(|ui| {
@@ -684,7 +684,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 stability_combo(
                     ui,
                     "bulk_set_stability",
-                    &mut state.route_bulk_set_stability,
+                    &mut state.route_bulk.set_stability,
                 );
                 if ui
                     .button("Apply")
@@ -693,7 +693,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 {
                     apply_bulk_routes(
                         state,
-                        BulkRouteAction::SetStability(state.route_bulk_set_stability),
+                        BulkRouteAction::SetStability(state.route_bulk.set_stability),
                     );
                 }
             });
@@ -729,7 +729,7 @@ fn apply_bulk_routes(state: &mut BuilderState, action: BulkRouteAction) {
         }
     }
     if changed == 0 {
-        state.modal = Some(ModalKind::Message("No matching routes changed.".into()));
+        state.feedback.modal = Some(ModalKind::Message("No matching routes changed.".into()));
         return;
     }
     replace_routes(state, routes);
@@ -737,18 +737,18 @@ fn apply_bulk_routes(state: &mut BuilderState, action: BulkRouteAction) {
 
 fn route_matches_bulk(state: &BuilderState, route: &GeneratedRoute) -> bool {
     if state
-        .route_bulk_filter_type
+        .route_bulk.filter_type
         .is_some_and(|filter| filter != route.route_type)
     {
         return false;
     }
     if state
-        .route_bulk_filter_stability
+        .route_bulk.filter_stability
         .is_some_and(|filter| filter != route.stability)
     {
         return false;
     }
-    let tag_filter = state.route_bulk_filter_tag.trim();
+    let tag_filter = state.route_bulk.filter_tag.trim();
     if !tag_filter.is_empty()
         && !route
             .tags
@@ -757,7 +757,7 @@ fn route_matches_bulk(state: &BuilderState, route: &GeneratedRoute) -> bool {
     {
         return false;
     }
-    if let Some(region_id) = &state.route_bulk_filter_region {
+    if let Some(region_id) = &state.route_bulk.filter_region {
         if !route_crosses_region(&state.sector, route, region_id) {
             return false;
         }
@@ -1072,21 +1072,21 @@ fn mark_route_rules_changed(ui: &Ui, state: &mut BuilderState) {
     state.mark_validation_dirty();
     let now = ui.ctx().input(|i| i.time);
     state
-        .preview
+        .generation.preview
         .schedule(now, DEFAULT_DEBOUNCE_MS as f64 / 1000.0);
 }
 
 fn show_preview_status(ui: &mut Ui, state: &BuilderState) {
-    if state.preview.timer.is_some() {
+    if state.generation.preview.timer.is_some() {
         ui.label(RichText::new("Preview update queued…").color(Color32::DARK_GRAY));
-    } else if state.preview.job.is_some() {
+    } else if state.generation.preview.job.is_some() {
         ui.label(RichText::new("Updating preview…").color(Color32::DARK_GRAY));
-    } else if let Some(sector) = &state.preview.sector {
+    } else if let Some(sector) = &state.generation.preview.sector {
         ui.label(
             RichText::new(format!("Preview ready: {} route(s).", sector.routes.len()))
                 .color(Color32::DARK_GRAY),
         );
-    } else if let Some(err) = &state.preview.error {
+    } else if let Some(err) = &state.generation.preview.error {
         ui.colored_label(palette::danger(), err);
     }
 }
@@ -1109,18 +1109,18 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                 ui,
                 "Lane kind",
                 "Which covert lane type to build (schema: route_type).",
-                |ui| hidden_kind_combo(ui, &mut state.hidden_route_kind),
+                |ui| hidden_kind_combo(ui, &mut state.hidden_routes.kind),
             );
             labeled(
                 ui,
                 "Links per system",
                 "Connect each system to this many nearest neighbours (schema: k_nearest).",
                 |ui| {
-                    ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
+                    ui.add(egui::DragValue::new(&mut state.hidden_routes.k_nearest).range(1..=16));
                 },
             );
             ui.checkbox(
-                &mut state.hidden_route_exclude_blackout,
+                &mut state.hidden_routes.exclude_blackout,
                 "Skip Blackout regions",
             )
             .on_hover_text("Don't route covert lanes through Blackout warp regions");
@@ -1137,14 +1137,14 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                     .on_hover_text("Use the systems currently selected on the Map tab")
                     .clicked()
                 {
-                    state.hidden_route_endpoints = state.selected_systems.clone();
+                    state.hidden_routes.endpoints = state.selection.systems.clone();
                 }
                 if ui
                     .button("Select all")
                     .on_hover_text("Use every system in the sector")
                     .clicked()
                 {
-                    state.hidden_route_endpoints =
+                    state.hidden_routes.endpoints =
                         state.sector.systems.iter().map(|s| s.id.clone()).collect();
                 }
                 if ui
@@ -1152,10 +1152,10 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                     .on_hover_text("Deselect every endpoint")
                     .clicked()
                 {
-                    state.hidden_route_endpoints.clear();
+                    state.hidden_routes.endpoints.clear();
                 }
                 ui.label(
-                    RichText::new(format!("{} selected", state.hidden_route_endpoints.len()))
+                    RichText::new(format!("{} selected", state.hidden_routes.endpoints.len()))
                         .color(Color32::DARK_GRAY),
                 );
             });
@@ -1164,15 +1164,15 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                 .max_height(160.0)
                 .show(ui, |ui| {
                     for sys in &state.sector.systems {
-                        let mut selected = state.hidden_route_endpoints.contains(&sys.id);
+                        let mut selected = state.hidden_routes.endpoints.contains(&sys.id);
                         if ui
                             .checkbox(&mut selected, format!("{} — {}", sys.id, sys.name))
                             .changed()
                         {
                             if selected {
-                                state.hidden_route_endpoints.insert(sys.id.clone());
+                                state.hidden_routes.endpoints.insert(sys.id.clone());
                             } else {
-                                state.hidden_route_endpoints.remove(&sys.id);
+                                state.hidden_routes.endpoints.remove(&sys.id);
                             }
                         }
                     }
@@ -1185,10 +1185,10 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                     .clicked()
                 {
                     let cfg = sectorforge::hidden_routes::HiddenRoutesConfig {
-                        kind: state.hidden_route_kind,
-                        endpoints: state.hidden_route_endpoints.iter().cloned().collect(),
-                        k_nearest: state.hidden_route_k_nearest.max(1),
-                        exclude_blackout_regions: state.hidden_route_exclude_blackout,
+                        kind: state.hidden_routes.kind,
+                        endpoints: state.hidden_routes.endpoints.iter().cloned().collect(),
+                        k_nearest: state.hidden_routes.k_nearest.max(1),
+                        exclude_blackout_regions: state.hidden_routes.exclude_blackout,
                     };
                     let new_routes = sectorforge::hidden_routes::configured_hidden_routes(
                         &state.sector.systems,
@@ -1198,7 +1198,7 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                         &cfg,
                     );
                     if new_routes.is_empty() {
-                        state.modal = Some(ModalKind::Message(
+                        state.feedback.modal = Some(ModalKind::Message(
                             "No hidden routes added; endpoints may be too few or already linked."
                                 .into(),
                         ));
@@ -1214,12 +1214,12 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                     .on_hover_text("Delete every route of the selected lane kind")
                     .clicked()
                 {
-                    let kind = state.hidden_route_kind;
+                    let kind = state.hidden_routes.kind;
                     let mut routes = state.sector.routes.clone();
                     let before = routes.len();
                     routes.retain(|route| route.route_type != kind);
                     if routes.len() == before {
-                        state.modal = Some(ModalKind::Message(
+                        state.feedback.modal = Some(ModalKind::Message(
                             "No matching hidden routes found.".into(),
                         ));
                     } else {
@@ -1300,7 +1300,7 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
             {
                 let (routes, added) = ensure_connected_routes(state, state.sector.routes.clone());
                 if added == 0 {
-                    state.modal = Some(ModalKind::Message("Route graph already connected.".into()));
+                    state.feedback.modal = Some(ModalKind::Message("Route graph already connected.".into()));
                 } else {
                     replace_routes(state, routes);
                 }

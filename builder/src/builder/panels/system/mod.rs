@@ -2,7 +2,7 @@
 //!
 //! Covers every `GeneratedSystem` field via a per-section inspector, the
 //! §S3 pinned toggle (driven by [`BuilderState::pinned_systems`]), the §S4
-//! bulk-ops block over [`BuilderState::selected_systems`], the §S5
+//! bulk-ops block over `BuilderState::selection.systems`, the §S5
 //! single-system regenerate (`sectorforge::generate_system_standalone`), and
 //! the §S6 coord-validity check on inline coord edits. Fields managed by
 //! sibling panels (worlds §8, primary factions §10, control §11, orbital
@@ -135,7 +135,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
 /// multi-selection to just this system. Pure view state, so written directly.
 fn show_system_roster(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
-    let current = state.selected_system_id.clone();
+    let current = state.selection.system_id.clone();
     let mut pick = None;
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
@@ -161,14 +161,14 @@ fn show_system_roster(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
     if let Some(id) = pick {
-        state.selected_system_id = Some(id.clone());
-        state.selected_systems.clear();
-        state.selected_systems.insert(id);
+        state.selection.system_id = Some(id.clone());
+        state.selection.systems.clear();
+        state.selection.systems.insert(id);
     }
 }
 
 fn show_system_inspector(ui: &mut Ui, state: &mut BuilderState) {
-    let selected = state.selected_system_id.clone();
+    let selected = state.selection.system_id.clone();
     let Some(sys_id) = selected else {
         egui::ScrollArea::vertical()
             .auto_shrink([false; 2])
@@ -179,7 +179,7 @@ fn show_system_inspector(ui: &mut Ui, state: &mut BuilderState) {
         return;
     };
     let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == sys_id) else {
-        state.selected_system_id = None;
+        state.selection.system_id = None;
         return;
     };
 
@@ -203,11 +203,11 @@ fn show_system_inspector(ui: &mut Ui, state: &mut BuilderState) {
                     show_identity_section(left, state, sys_idx);
                     left.add_space(4.0);
                     let star_resp = show_star_section(left, state, sys_idx);
-                    if state.scroll_target == Some(SYS_STAR_GRID_ANCHOR) {
+                    if state.selection.scroll_target == Some(SYS_STAR_GRID_ANCHOR) {
                         star_resp
                             .header_response
                             .scroll_to_me(Some(egui::Align::TOP));
-                        state.scroll_target = None;
+                        state.selection.scroll_target = None;
                     }
                     left.add_space(4.0);
                     show_tags_notes_section(left, state, sys_idx);
@@ -314,7 +314,7 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 };
                 match state.run(cmd) {
                     Err(e) => {
-                        state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+                        state.feedback.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
                     }
                     Ok(()) => {
                         // §R4: pin the new world's orbit through SetWorldOrbit
@@ -337,7 +337,7 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                                 after: next_orbit,
                             };
                             if let Err(e) = state.run(cmd) {
-                                state.modal =
+                                state.feedback.modal =
                                     Some(ModalKind::Message(format!("Set orbit failed: {e}")));
                             }
                         }
@@ -461,7 +461,7 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             // covers the control summary; the setter is a plain field write with
             // no cascade, so the clone-mutate-dispatch shape is exact.
             if let Err(e) = state.edit_system(id, |sys| sys.control.state = current) {
-                state.modal = Some(ModalKind::Message(format!("Control update failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Control update failed: {e}")));
             }
         }
         ui.add_space(4.0);
@@ -581,8 +581,8 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 1, r: 0 }, "B")
             .unwrap();
-        state.selected_systems.insert(a.clone());
-        state.selected_systems.insert(b.clone());
+        state.selection.systems.insert(a.clone());
+        state.selection.systems.insert(b.clone());
         apply_bulk_rename(&mut state, "Bulk-{n}");
         let names: Vec<_> = state
             .sector
@@ -601,7 +601,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 0, r: 0 }, "A")
             .unwrap();
-        state.selected_systems.insert(a.clone());
+        state.selection.systems.insert(a.clone());
         apply_bulk_control_state(&mut state, Some(SystemState::Warzone));
         assert_eq!(
             state.sector.systems[0].control.state,
@@ -616,7 +616,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 0, r: 0 }, "A")
             .unwrap();
-        state.selected_systems.insert(a.clone());
+        state.selection.systems.insert(a.clone());
         state.pinned_systems.insert(a.clone());
         assert!(state.pinned_systems.contains(&a));
         state.pinned_systems.remove(&a);
@@ -632,7 +632,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 0, r: 0 }, "A")
             .unwrap();
-        state.selected_system_id = Some(a);
+        state.selection.system_id = Some(a);
         let ctx = egui::Context::default();
         let raw = egui::RawInput::default();
         let _ = ctx.run(raw, |ctx| {
@@ -641,13 +641,13 @@ mod tests {
                     .sector
                     .systems
                     .iter()
-                    .position(|s| Some(&s.id) == state.selected_system_id.as_ref())
+                    .position(|s| Some(&s.id) == state.selection.system_id.as_ref())
                     .unwrap();
                 show_system_map_section(ui, &mut state, sys_idx);
             });
         });
-        assert!(state.selected_world_id.is_none());
-        assert!(state.scroll_target.is_none());
+        assert!(state.selection.world_id.is_none());
+        assert!(state.selection.scroll_target.is_none());
     }
 
     #[test]
@@ -668,11 +668,11 @@ mod tests {
             .unwrap()
             .index;
         handle_system_view_click(&mut state, sys_idx, SystemClick::World(world_idx));
-        assert_eq!(state.selected_world_id.as_ref(), Some(&world));
-        assert!(state.scroll_target.is_none());
+        assert_eq!(state.selection.world_id.as_ref(), Some(&world));
+        assert!(state.selection.scroll_target.is_none());
 
         handle_system_view_click(&mut state, sys_idx, SystemClick::Star);
-        assert_eq!(state.scroll_target, Some(SYS_STAR_GRID_ANCHOR));
+        assert_eq!(state.selection.scroll_target, Some(SYS_STAR_GRID_ANCHOR));
     }
 
     #[test]
@@ -688,6 +688,6 @@ mod tests {
             HexCoord { q: 1, r: 1 },
             HexCoord { q: 99, r: 99 },
         );
-        assert!(matches!(state.modal, Some(ModalKind::Message(_))));
+        assert!(matches!(state.feedback.modal, Some(ModalKind::Message(_))));
     }
 }

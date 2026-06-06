@@ -93,20 +93,20 @@ fn show_heatmap_selector(ui: &mut Ui, state: &mut BuilderState) {
             .selected_text(current_heatmap_label(state))
             .show_ui(ui, |ui| {
                 for mode in HeatmapMode::ALL {
-                    let selected =
-                        state.map_stability_dim.is_none() && state.map_heatmap_mode == *mode;
+                    let selected = state.map_view.stability_dim.is_none()
+                        && state.map_view.heatmap_mode == *mode;
                     if ui.selectable_label(selected, mode.label()).clicked() {
-                        state.map_heatmap_mode = *mode;
-                        state.map_stability_dim = None;
+                        state.map_view.heatmap_mode = *mode;
+                        state.map_view.stability_dim = None;
                     }
                 }
                 ui.separator();
                 ui_kit::placeholder(ui, "Stability — by dimension:");
                 for dim in StabilityDimension::ALL {
-                    let selected = state.map_stability_dim == Some(*dim);
+                    let selected = state.map_view.stability_dim == Some(*dim);
                     if ui.selectable_label(selected, dim.label()).clicked() {
-                        state.map_stability_dim = Some(*dim);
-                        state.map_heatmap_mode = HeatmapMode::Off;
+                        state.map_view.stability_dim = Some(*dim);
+                        state.map_view.heatmap_mode = HeatmapMode::Off;
                     }
                 }
             });
@@ -118,9 +118,9 @@ fn show_heatmap_selector(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn current_heatmap_label(state: &BuilderState) -> String {
-    match state.map_stability_dim {
+    match state.map_view.stability_dim {
         Some(dim) => format!("Stability: {}", dim.label()),
-        None => state.map_heatmap_mode.label().to_string(),
+        None => state.map_view.heatmap_mode.label().to_string(),
     }
 }
 
@@ -156,7 +156,7 @@ fn show_theme_picker(ui: &mut Ui, state: &mut BuilderState) {
                     {
                         // Pick a clean builtin — drop any custom overrides.
                         state.config.outputs.bitmap.theme = MapThemeConfig::named(*name);
-                        state.theme_save_name = (*name).to_string();
+                        state.theme_panel.save_name = (*name).to_string();
                         mark_theme_dirty(state);
                     }
                 }
@@ -411,8 +411,8 @@ fn edit_theme_fields(ui: &mut Ui, cfg: &mut MapThemeConfig) -> bool {
 }
 
 fn show_save_load_row(ui: &mut Ui, state: &mut BuilderState) {
-    if state.theme_save_name.is_empty() {
-        state.theme_save_name = state
+    if state.theme_panel.save_name.is_empty() {
+        state.theme_panel.save_name = state
             .config
             .outputs
             .bitmap
@@ -424,12 +424,12 @@ fn show_save_load_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label("data/map_themes/");
         ui.add(
-            egui::TextEdit::singleline(&mut state.theme_save_name)
+            egui::TextEdit::singleline(&mut state.theme_panel.save_name)
                 .hint_text("theme name")
                 .desired_width(140.0),
         );
         ui.label(".toml");
-        let name_ok = !state.theme_save_name.trim().is_empty();
+        let name_ok = !state.theme_panel.save_name.trim().is_empty();
         let has_project = state.project_path.is_some();
         if ui
             .add_enabled(name_ok && has_project, egui::Button::new("💾  Save theme"))
@@ -449,7 +449,7 @@ fn show_save_load_row(ui: &mut Ui, state: &mut BuilderState) {
             ui.colored_label(Color32::DARK_GRAY, "(open a project to save)");
         }
     });
-    if let Some(msg) = &state.theme_status {
+    if let Some(msg) = &state.theme_panel.status {
         let col = if msg.starts_with('✓') {
             Color32::from_rgb(120, 200, 130)
         } else {
@@ -465,7 +465,7 @@ fn save_theme_to_disk(state: &mut BuilderState) {
     let Some(root) = state.project_path.clone() else {
         return;
     };
-    let name = state.theme_save_name.trim().to_string();
+    let name = state.theme_panel.save_name.trim().to_string();
     let mut cfg = state.config.outputs.bitmap.theme.clone();
     if cfg.name.is_none() {
         cfg.name = Some(name.clone());
@@ -474,21 +474,21 @@ fn save_theme_to_disk(state: &mut BuilderState) {
     let text = match toml::to_string_pretty(&file) {
         Ok(t) => t,
         Err(e) => {
-            state.theme_status = Some(format!("✗ Could not serialise theme: {e}"));
+            state.theme_panel.status = Some(format!("✗ Could not serialise theme: {e}"));
             return;
         }
     };
     let dir = root.join("data").join("map_themes");
     if let Err(e) = std::fs::create_dir_all(&dir) {
-        state.theme_status = Some(format!("✗ Could not create folder: {e}"));
+        state.theme_panel.status = Some(format!("✗ Could not create folder: {e}"));
         return;
     }
     let path = dir.join(format!("{name}.toml"));
     match crate::builder::project_io::atomic_write(&path, text.as_bytes()) {
         Ok(()) => {
-            state.theme_status = Some(format!("✓ Saved data/map_themes/{name}.toml"));
+            state.theme_panel.status = Some(format!("✓ Saved data/map_themes/{name}.toml"));
         }
-        Err(e) => state.theme_status = Some(format!("✗ Could not write file: {e}")),
+        Err(e) => state.theme_panel.status = Some(format!("✗ Could not write file: {e}")),
     }
 }
 
@@ -496,7 +496,7 @@ fn load_theme_from_disk(state: &mut BuilderState) {
     let Some(root) = state.project_path.clone() else {
         return;
     };
-    let name = state.theme_save_name.trim().to_string();
+    let name = state.theme_panel.save_name.trim().to_string();
     let path = root
         .join("data")
         .join("map_themes")
@@ -504,7 +504,7 @@ fn load_theme_from_disk(state: &mut BuilderState) {
     let text = match std::fs::read_to_string(&path) {
         Ok(t) => t,
         Err(e) => {
-            state.theme_status = Some(format!("✗ Could not read file: {e}"));
+            state.theme_panel.status = Some(format!("✗ Could not read file: {e}"));
             return;
         }
     };
@@ -512,9 +512,9 @@ fn load_theme_from_disk(state: &mut BuilderState) {
         Ok(cfg) => {
             state.config.outputs.bitmap.theme = cfg;
             mark_theme_dirty(state);
-            state.theme_status = Some(format!("✓ Loaded data/map_themes/{name}.toml"));
+            state.theme_panel.status = Some(format!("✓ Loaded data/map_themes/{name}.toml"));
         }
-        Err(e) => state.theme_status = Some(format!("✗ Could not parse theme: {e}")),
+        Err(e) => state.theme_panel.status = Some(format!("✗ Could not parse theme: {e}")),
     }
 }
 

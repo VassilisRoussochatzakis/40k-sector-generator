@@ -250,7 +250,7 @@ pub(super) fn show_regen_section(
         ui.label(
             RichText::new(format!(
                 "re-rolls this session: {}",
-                state.world_reroll_counter
+                state.generation.world_reroll_counter
             ))
             .color(Color32::DARK_GRAY),
         );
@@ -260,7 +260,8 @@ pub(super) fn show_regen_section(
             .clicked()
         {
             if let Err(e) = state.regenerate_world(&wid) {
-                state.modal = Some(ModalKind::Message(format!("World re-roll failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("World re-roll failed: {e}")));
             }
         }
     });

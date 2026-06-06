@@ -29,7 +29,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         .clicked()
     {
         if let Err(e) = save_project(state) {
-            state.modal = Some(ModalKind::Message(format!("Save failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Save failed: {e}")));
         }
     }
     if ui.button("Save as…").clicked() {
@@ -39,7 +39,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         {
             if let Ok(path) = Utf8PathBuf::from_path_buf(folder) {
                 if let Err(e) = save_project_as(state, &path) {
-                    state.modal = Some(ModalKind::Message(format!("Save-as failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Save-as failed: {e}")));
                 }
             }
         }

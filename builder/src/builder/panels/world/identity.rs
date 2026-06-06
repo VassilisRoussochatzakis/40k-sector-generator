@@ -101,7 +101,7 @@ pub(super) fn show_identity_section(
                 before: 0,
                 after: new_orbit,
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
         }
         if name_changed && name_buf.trim() != cur_name {
@@ -111,7 +111,7 @@ pub(super) fn show_identity_section(
                 before: String::new(),
                 after,
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
             crate::builder::panels::persistent_text_clear(ui, name_buf_key);
         }
@@ -179,7 +179,7 @@ pub(super) fn show_classification_section(
                 before: None,
                 after: Box::new(draft),
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
         }
     });
@@ -233,7 +233,7 @@ pub(super) fn show_tags_notes_section(
                     .map(Arc::from)
                     .collect();
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
             crate::builder::panels::persistent_text_clear(ui, tags_key);
         }
@@ -248,7 +248,7 @@ pub(super) fn show_tags_notes_section(
                     .map(Arc::from)
                     .collect();
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
             crate::builder::panels::persistent_text_clear(ui, notes_key);
         }

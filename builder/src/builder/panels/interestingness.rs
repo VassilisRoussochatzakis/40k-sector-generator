@@ -16,7 +16,7 @@
 //!        right. `vmax` is `max(target_high * 1.5, observed * 1.2, 1.0)`
 //!        so the band always has room to breathe.
 //! §INT4  Custom-profile editor: per-active-profile threshold overrides
-//!        live in [`BuilderState::interestingness_custom_overrides`],
+//!        live in `BuilderState::interestingness_panel.custom_overrides`,
 //!        keyed by the snake-case profile id. The "Add override" row picks
 //!        a metric name (drawn from a fixed catalog covering every metric
 //!        emitted by `interestingness::observed_metrics`) and seeds it
@@ -77,7 +77,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     // The profile/override config builder is panel-local, so this overlay
     // self-heals here. No score yet ⇒ stay cold until the user scores once.
     if state.derivations.is_stale(DerivationKind::Interestingness)
-        && state.interestingness_report.is_some()
+        && state.interestingness_panel.report.is_some()
     {
         rescore(state);
     }
@@ -127,12 +127,12 @@ fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
         "Target profile",
         "The overall feel to aim for (schema: profile). Switching profiles clears the current score and starts a fresh override table.",
         |ui| {
-            let prev = state.interestingness_profile;
-            ui_kit::combo("int1_profile", profile_label(state.interestingness_profile))
+            let prev = state.interestingness_panel.profile;
+            ui_kit::combo("int1_profile", profile_label(state.interestingness_panel.profile))
                 .show_ui(ui, |ui| {
                     for p in PROFILE_VARIANTS {
                         ui.selectable_value(
-                            &mut state.interestingness_profile,
+                            &mut state.interestingness_panel.profile,
                             *p,
                             profile_label(*p),
                         )
@@ -140,16 +140,16 @@ fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
                     }
                 })
                 .response
-                .on_hover_text(profile_key(state.interestingness_profile));
-            if state.interestingness_profile != prev {
-                state.interestingness_report = None;
-                state.interestingness_custom_pick.clear();
+                .on_hover_text(profile_key(state.interestingness_panel.profile));
+            if state.interestingness_panel.profile != prev {
+                state.interestingness_panel.report = None;
+                state.interestingness_panel.custom_pick.clear();
             }
         },
     );
     ui.colored_label(
         Color32::DARK_GRAY,
-        profile_blurb(state.interestingness_profile),
+        profile_blurb(state.interestingness_panel.profile),
     );
 }
 
@@ -165,7 +165,7 @@ fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
         {
             rescore(state);
         }
-        match state.interestingness_report.as_ref() {
+        match state.interestingness_panel.report.as_ref() {
             Some(r) => {
                 ui.label(
                     RichText::new(format!("Overall: {} / 100", r.overall))
@@ -179,7 +179,7 @@ fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
         }
     });
 
-    let Some(report) = state.interestingness_report.as_ref() else {
+    let Some(report) = state.interestingness_panel.report.as_ref() else {
         return;
     };
 
@@ -200,18 +200,19 @@ fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
 fn rescore(state: &mut BuilderState) {
     let cfg = build_config(state);
     let report = sectorforge::derive_interestingness_with(&state.sector, &cfg);
-    state.interestingness_report = Some(report);
+    state.interestingness_panel.report = Some(report);
     state.mark_derivation_fresh(DerivationKind::Interestingness);
 }
 
 fn build_config(state: &BuilderState) -> InterestingnessConfig {
     let mut cfg = InterestingnessConfig {
-        profile: state.interestingness_profile,
+        profile: state.interestingness_panel.profile,
         custom: BTreeMap::new(),
     };
     if let Some(overrides) = state
-        .interestingness_custom_overrides
-        .get(profile_key(state.interestingness_profile))
+        .interestingness_panel
+        .custom_overrides
+        .get(profile_key(state.interestingness_panel.profile))
     {
         cfg.custom = overrides.clone();
     }
@@ -222,7 +223,7 @@ fn build_config(state: &BuilderState) -> InterestingnessConfig {
 
 fn show_metrics_chart(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Metric bands").strong());
-    let Some(report) = state.interestingness_report.as_ref() else {
+    let Some(report) = state.interestingness_panel.report.as_ref() else {
         ui_kit::placeholder(
             ui,
             "no score yet — click Score sector to see each metric's target band and where your sector lands.",
@@ -307,9 +308,10 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     show_add_override_row(ui, state);
 
-    let key = profile_key(state.interestingness_profile).to_string();
+    let key = profile_key(state.interestingness_panel.profile).to_string();
     let entries: Vec<(String, MetricTarget)> = state
-        .interestingness_custom_overrides
+        .interestingness_panel
+        .custom_overrides
         .get(&key)
         .map(|m| m.iter().map(|(k, v)| (k.clone(), *v)).collect())
         .unwrap_or_default();
@@ -386,7 +388,8 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
     let mut mutated = false;
     if !updates.is_empty() {
         let map = state
-            .interestingness_custom_overrides
+            .interestingness_panel
+            .custom_overrides
             .entry(key.clone())
             .or_default();
         for (n, t) in updates {
@@ -395,38 +398,39 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
         mutated = true;
     }
     if let Some(name) = removed {
-        if let Some(map) = state.interestingness_custom_overrides.get_mut(&key) {
+        if let Some(map) = state.interestingness_panel.custom_overrides.get_mut(&key) {
             map.remove(&name);
             if map.is_empty() {
-                state.interestingness_custom_overrides.remove(&key);
+                state.interestingness_panel.custom_overrides.remove(&key);
             }
         }
         mutated = true;
     }
     if mutated {
-        state.interestingness_report = None;
+        state.interestingness_panel.report = None;
     }
 }
 
 fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
         ui.label("Tweak a metric:");
-        let key = profile_key(state.interestingness_profile).to_string();
+        let key = profile_key(state.interestingness_panel.profile).to_string();
         let already: Vec<&'static str> = METRIC_CATALOG
             .iter()
             .copied()
             .filter(|m| {
                 state
-                    .interestingness_custom_overrides
+                    .interestingness_panel
+                    .custom_overrides
                     .get(&key)
                     .map(|map| map.contains_key(*m))
                     .unwrap_or(false)
             })
             .collect();
-        let label = if state.interestingness_custom_pick.is_empty() {
+        let label = if state.interestingness_panel.custom_pick.is_empty() {
             RichText::new("(pick a metric)")
         } else {
-            metric_label(&state.interestingness_custom_pick)
+            metric_label(&state.interestingness_panel.custom_pick)
         };
         ui_kit::combo("int4_metric_pick", label).show_ui(ui, |ui| {
             for m in METRIC_CATALOG {
@@ -434,14 +438,14 @@ fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
                     continue;
                 }
                 ui.selectable_value(
-                    &mut state.interestingness_custom_pick,
+                    &mut state.interestingness_panel.custom_pick,
                     (*m).to_string(),
                     metric_label(m),
                 )
                 .on_hover_text(format!("metric id: {m}"));
             }
         });
-        let pick = state.interestingness_custom_pick.clone();
+        let pick = state.interestingness_panel.custom_pick.clone();
         let can_add = !pick.is_empty() && !already.iter().any(|m| *m == pick);
         if ui
             .add_enabled(can_add, egui::Button::new("➕  Add"))
@@ -450,14 +454,15 @@ fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
             )
             .clicked()
         {
-            let seed = seed_target(state.interestingness_profile, pick.as_str());
+            let seed = seed_target(state.interestingness_panel.profile, pick.as_str());
             state
-                .interestingness_custom_overrides
+                .interestingness_panel
+                .custom_overrides
                 .entry(key)
                 .or_default()
                 .insert(pick.clone(), seed);
-            state.interestingness_custom_pick.clear();
-            state.interestingness_report = None;
+            state.interestingness_panel.custom_pick.clear();
+            state.interestingness_panel.report = None;
         }
     });
 }
@@ -595,25 +600,28 @@ mod tests {
     #[test]
     fn defaults_seed_political_sandbox_with_no_report() {
         let state = seeded_state();
-        assert_eq!(state.interestingness_profile, ProfileId::PoliticalSandbox);
-        assert!(state.interestingness_report.is_none());
-        assert!(state.interestingness_custom_overrides.is_empty());
-        assert!(state.interestingness_custom_pick.is_empty());
+        assert_eq!(
+            state.interestingness_panel.profile,
+            ProfileId::PoliticalSandbox
+        );
+        assert!(state.interestingness_panel.report.is_none());
+        assert!(state.interestingness_panel.custom_overrides.is_empty());
+        assert!(state.interestingness_panel.custom_pick.is_empty());
     }
 
     #[test]
     fn rescore_populates_report() {
         let mut state = seeded_state();
         rescore(&mut state);
-        assert!(state.interestingness_report.is_some());
-        let r = state.interestingness_report.as_ref().unwrap();
+        assert!(state.interestingness_panel.report.is_some());
+        let r = state.interestingness_panel.report.as_ref().unwrap();
         assert_eq!(r.profile, "political_sandbox");
     }
 
     #[test]
     fn build_config_layers_per_profile_overrides() {
         let mut state = seeded_state();
-        let key = profile_key(state.interestingness_profile).to_string();
+        let key = profile_key(state.interestingness_panel.profile).to_string();
         let mut over = BTreeMap::new();
         over.insert(
             "faction_gini".to_string(),
@@ -625,7 +633,10 @@ mod tests {
                 weight: 2.0,
             },
         );
-        state.interestingness_custom_overrides.insert(key, over);
+        state
+            .interestingness_panel
+            .custom_overrides
+            .insert(key, over);
 
         let cfg = build_config(&state);
         let band = cfg.custom.get("faction_gini").expect("override missing");
@@ -638,11 +649,12 @@ mod tests {
     fn switching_profile_clears_cached_report_but_keeps_overrides() {
         let mut state = seeded_state();
         rescore(&mut state);
-        assert!(state.interestingness_report.is_some());
+        assert!(state.interestingness_panel.report.is_some());
 
-        let key = profile_key(state.interestingness_profile).to_string();
+        let key = profile_key(state.interestingness_panel.profile).to_string();
         state
-            .interestingness_custom_overrides
+            .interestingness_panel
+            .custom_overrides
             .entry(key)
             .or_default()
             .insert(
@@ -658,13 +670,14 @@ mod tests {
 
         // Simulate the picker switching profiles + clearing the cached
         // report (matches the §INT1 row body).
-        state.interestingness_profile = ProfileId::Frontier;
-        state.interestingness_report = None;
+        state.interestingness_panel.profile = ProfileId::Frontier;
+        state.interestingness_panel.report = None;
 
         // Frontier has its own override slot (empty) but the prior
         // political_sandbox table is untouched.
         let political_overrides = state
-            .interestingness_custom_overrides
+            .interestingness_panel
+            .custom_overrides
             .get("political_sandbox")
             .expect("political_sandbox overrides dropped");
         assert!(political_overrides.contains_key("warzone_count"));

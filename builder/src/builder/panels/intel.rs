@@ -33,34 +33,34 @@ use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
 
 /// §I4 — observer-faction lens combo + §I5 cutoff slider + §I3 baseline button.
-/// Rendered above the hex map. Mutates `BuilderState::intel_observer` and
-/// `BuilderState::intel_player_min_confidence`. The baseline button walks the
+/// Rendered above the hex map. Mutates `BuilderState::history_panel.intel_observer`
+/// and `BuilderState::history_panel.intel_player_min_confidence`. The baseline button walks the
 /// full sector and writes both layers.
 pub(crate) fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label("Seen through:")
             .on_hover_text("Which faction's knowledge to view the map through. (omniscient) shows everything.");
-        let current = state.intel_observer.clone();
+        let current = state.history_panel.intel_observer.clone();
         let label = current
             .as_ref()
             .map(|id| id.to_string())
             .unwrap_or_else(|| "(omniscient)".into());
         ui_kit::combo("intel_observer_picker", label)
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.intel_observer, None, "(omniscient)");
+                ui.selectable_value(&mut state.history_panel.intel_observer, None, "(omniscient)");
                 for f in &state.sector.factions {
                     let value = Some(f.id.clone());
-                    let sel = state.intel_observer == value;
+                    let sel = state.history_panel.intel_observer == value;
                     let name = format!("{} — {}", f.id, f.name);
                     if ui.selectable_label(sel, name).clicked() {
-                        state.intel_observer = value;
+                        state.history_panel.intel_observer = value;
                     }
                 }
             });
         ui.separator();
         ui.label("Hide below:")
             .on_hover_text("Confidence cutoff. Presences this faction is less sure of than the cutoff are hidden from the map.");
-        ui.add(egui::Slider::new(&mut state.intel_player_min_confidence, 0..=100).text("min confidence"));
+        ui.add(egui::Slider::new(&mut state.history_panel.intel_player_min_confidence, 0..=100).text("min confidence"));
         ui.separator();
         if ui
             .button("↺  Re-derive baseline intel")
@@ -69,13 +69,13 @@ pub(crate) fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
         {
             run_baseline_intel(state);
         }
-        if state.intel_observer.is_some()
+        if state.history_panel.intel_observer.is_some()
             && ui
                 .button("🚫  Clear lens")
                 .on_hover_text("Stop viewing through a faction — show the omniscient map.")
                 .clicked()
         {
-            state.intel_observer = None;
+            state.history_panel.intel_observer = None;
         }
     });
 }
@@ -99,7 +99,7 @@ pub(crate) fn run_baseline_intel(state: &mut BuilderState) {
         before_systems: Vec::new(),
         before_worlds: Vec::new(),
     }) {
-        state.modal = Some(ModalKind::Message(format!("Baseline intel failed: {e}")));
+        state.feedback.modal = Some(ModalKind::Message(format!("Baseline intel failed: {e}")));
     }
 }
 
@@ -130,7 +130,7 @@ pub(crate) fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, s
                 before: None,
                 after: Box::new(draft),
             }) {
-                state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
             }
         }
     });
@@ -166,16 +166,18 @@ pub(crate) fn show_world_intel_section(
                 before: None,
                 after: Box::new(draft),
             }) {
-                state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
             }
         }
-        if state.intel_player_min_confidence > 0 || state.intel_observer.is_some() {
+        if state.history_panel.intel_player_min_confidence > 0
+            || state.history_panel.intel_observer.is_some()
+        {
             ui.separator();
             show_world_redaction_preview(
                 ui,
                 &state.sector.systems[sys_idx].worlds[w_idx],
-                state.intel_observer.as_ref(),
-                state.intel_player_min_confidence,
+                state.history_panel.intel_observer.as_ref(),
+                state.history_panel.intel_player_min_confidence,
             );
         }
     });
@@ -190,7 +192,7 @@ fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
         {
             run_baseline_intel(state);
         }
-        if let Some(obs) = state.intel_observer.clone() {
+        if let Some(obs) = state.history_panel.intel_observer.clone() {
             ui.colored_label(
                 palette::info(),
                 format!("Viewing as: {obs}"),
@@ -200,7 +202,7 @@ fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
         }
         ui.colored_label(
             Color32::DARK_GRAY,
-            format!("Hide below confidence: {}", state.intel_player_min_confidence),
+            format!("Hide below confidence: {}", state.history_panel.intel_player_min_confidence),
         );
     });
 }

@@ -1,7 +1,7 @@
 //! RELATIONS tab (§N1 / §N2) — Phase C §REL1..§REL9.
 //!
 //! §REL1  Diplomacy matrix grid. One row per derived [`FactionRelation`] with a
-//!        click target that arms [`BuilderState::relations_selected_pair`] for
+//!        click target that arms `BuilderState::relations_panel.selected_pair` for
 //!        the cell editor below.
 //! §REL2  Cell editor exposes both the symmetric attitudes and the directional
 //!        `a→b` / `b→a` view of the picked pair. Edits land in
@@ -77,7 +77,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     // §COLUMNS — the diplomacy Matrix is the focal surface, so it (plus the
     // header/settings and the rules editors) fills the central pane while the
     // per-pair cell editor lives in a resizable right rail. Clicking a row in the
-    // matrix arms `BuilderState::relations_selected_pair` (existing view state),
+    // matrix arms `BuilderState::relations_panel.selected_pair` (existing view state),
     // which the right panel reads — no new model/state fields needed.
     egui::SidePanel::right("relations_pair_editor")
         .resizable(true)
@@ -120,7 +120,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         {
             state.recompute_relations();
         }
-        ui.checkbox(&mut state.relations_auto_recompute, "Auto-rebuild on edit")
+        ui.checkbox(&mut state.relations_panel.auto_recompute, "Auto-rebuild on edit")
             .on_hover_text(
                 "Regenerate the matrix automatically whenever a rule or override changes",
             );
@@ -192,7 +192,7 @@ fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
         state.dirty = true;
         state.dirty_files.insert("sectorforge.toml".into());
         state.mark_validation_dirty();
-        if state.relations_auto_recompute {
+        if state.relations_panel.auto_recompute {
             state.recompute_relations();
         }
     }
@@ -209,7 +209,7 @@ fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let selected = state.relations_selected_pair.clone();
+    let selected = state.relations_panel.selected_pair.clone();
     egui::ScrollArea::horizontal()
         .id_salt("rel_grid_scroll")
         .show(ui, |ui| {
@@ -246,13 +246,13 @@ fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
                             .selectable_label(is_selected, rel.a.to_string())
                             .clicked()
                         {
-                            state.relations_selected_pair = Some(pair.clone());
+                            state.relations_panel.selected_pair = Some(pair.clone());
                         }
                         if ui
                             .selectable_label(is_selected, rel.b.to_string())
                             .clicked()
                         {
-                            state.relations_selected_pair = Some(pair.clone());
+                            state.relations_panel.selected_pair = Some(pair.clone());
                         }
                         ui.colored_label(
                             attitude_color(rel.public_attitude),
@@ -272,7 +272,7 @@ fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
                             .on_hover_text("Open this pair in the editor on the right")
                             .clicked()
                         {
-                            state.relations_selected_pair = Some(pair.clone());
+                            state.relations_panel.selected_pair = Some(pair.clone());
                         }
                         ui.end_row();
                     }
@@ -320,7 +320,7 @@ fn metric_text(v: u8) -> RichText {
 
 fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Pair editor").strong());
-    let Some(pair) = state.relations_selected_pair.clone() else {
+    let Some(pair) = state.relations_panel.selected_pair.clone() else {
         ui_kit::placeholder(ui, "Pick a pair in the matrix on the left to edit it.");
         return;
     };
@@ -356,7 +356,7 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
             .on_hover_text("Stop editing this pair")
             .clicked()
         {
-            state.relations_selected_pair = None;
+            state.relations_panel.selected_pair = None;
         }
     });
     ui.colored_label(
@@ -850,7 +850,7 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
     // §FRIENDLY_PANEL_PASS transform #7: pair overrides bypass the undo bus, so a
     // 🗑 click opens a confirm rather than deleting inline.
     if let Some(idx) = remove_idx {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete pin?".into(),
             body: "Remove this pinned faction pair.".into(),
             action: ConfirmAction::DeleteRelationPair(idx),
@@ -952,7 +952,7 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
     // §FRIENDLY_PANEL_PASS transform #7: kind rules bypass the undo bus, so a 🗑
     // click opens a confirm rather than deleting inline.
     if let Some(idx) = remove_idx {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete type rule?".into(),
             body: "Remove this faction-type stance rule.".into(),
             action: ConfirmAction::DeleteRelationKindRule(idx),
@@ -1050,7 +1050,7 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
     // §FRIENDLY_PANEL_PASS transform #7: disposition rules bypass the undo bus, so
     // a 🗑 click opens a confirm rather than deleting inline.
     if let Some(idx) = remove_idx {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete disposition rule?".into(),
             body: "Remove this disposition stance nudge.".into(),
             action: ConfirmAction::DeleteRelationDispositionRule(idx),
@@ -1074,7 +1074,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.relations = Some(DEFAULT_RELATIONS_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Save relations.toml failed: {e}"
                 )));
             }
@@ -1154,7 +1154,7 @@ pub(crate) fn delete_disposition_rule(state: &mut BuilderState, idx: usize) {
 fn on_catalog_edited(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.relations.clone(), DEFAULT_RELATIONS_PATH);
     state.mark_validation_dirty();
-    if state.relations_auto_recompute {
+    if state.relations_panel.auto_recompute {
         state.recompute_relations();
     }
 }

@@ -129,10 +129,10 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         {
             // D2/D11: undoable regenerate — lands on the command bus.
             if let Err(e) = state.recompute_chronicle_undoable() {
-                state.last_save_error = Some(format!("chronicle regenerate failed: {e}"));
+                state.feedback.last_save_error = Some(format!("chronicle regenerate failed: {e}"));
             }
         }
-        ui.checkbox(&mut state.history_auto_recompute, "Rebuild after every edit")
+        ui.checkbox(&mut state.history_panel.auto_recompute, "Rebuild after every edit")
             .on_hover_text(
                 "Regenerate the chronicle automatically whenever you change settings, eras, or rules.",
             );
@@ -539,7 +539,7 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
             return;
         }
 
-        let selected = state.selected_history_event.clone();
+        let selected = state.selection.history_event.clone();
         egui::ScrollArea::vertical()
             .id_salt("h4_events_scroll")
             .max_height(320.0)
@@ -564,7 +564,7 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .selectable_label(is_sel, RichText::new(&ev.date).monospace())
                                 .clicked()
                             {
-                                state.selected_history_event = Some(ev.id.clone());
+                                state.selection.history_event = Some(ev.id.clone());
                             }
                             ui.label(kind_label(ev.kind));
                             ui.label(anchor_label(&ev.anchor));
@@ -585,7 +585,7 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .on_hover_text("Select this event to edit it below")
                                 .clicked()
                             {
-                                state.selected_history_event = Some(ev.id.clone());
+                                state.selection.history_event = Some(ev.id.clone());
                             }
                             ui.end_row();
                         }
@@ -598,7 +598,7 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
-    let Some(id) = state.selected_history_event.clone() else {
+    let Some(id) = state.selection.history_event.clone() else {
         ui_kit::placeholder(ui, "Select an event above to inspect / edit.");
         return;
     };
@@ -609,7 +609,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
         .iter()
         .position(|e| e.id == id)
     else {
-        state.selected_history_event = None;
+        state.selection.history_event = None;
         return;
     };
 
@@ -828,9 +828,9 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
             before: None,
             after: Box::new(chron),
         }) {
-            state.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
         } else {
-            state.selected_history_event = None;
+            state.selection.history_event = None;
         }
         return;
     }
@@ -846,7 +846,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
             before: None,
             after: Box::new(chron),
         }) {
-            state.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
         }
     }
 }
@@ -855,7 +855,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "hist_add_event", "Add an event", false, |ui| {
-        if state.history_wizard.is_none() {
+        if state.history_panel.wizard.is_none() {
             ui_kit::placeholder(
                 ui,
                 "Write your own chronicle event — pick where and what, then commit.",
@@ -865,7 +865,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                 .on_hover_text("Open the guided event builder")
                 .clicked()
             {
-                state.history_wizard = Some(HistoryWizardState::default());
+                state.history_panel.wizard = Some(HistoryWizardState::default());
             }
             return;
         }
@@ -916,7 +916,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
         let mut close = false;
         let mut commit = false;
         {
-            let w = state.history_wizard.as_mut().unwrap();
+            let w = state.history_panel.wizard.as_mut().unwrap();
             ui.horizontal_wrapped(|ui| {
                 hint_label(
                     ui,
@@ -1119,7 +1119,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
         }
 
         if commit {
-            if let Some(w) = state.history_wizard.take() {
+            if let Some(w) = state.history_panel.wizard.take() {
                 let ev = build_manual_event(&w, &systems, &worlds, &routes, &regions);
                 // §R4: push + re-sort on a clone and commit via
                 // EditChronicle (was a direct `chronicle.events.push` +
@@ -1134,11 +1134,11 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                     before: None,
                     after: Box::new(chron),
                 }) {
-                    state.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
                 }
             }
         } else if close {
-            state.history_wizard = None;
+            state.history_panel.wizard = None;
         }
     });
 }
@@ -1430,7 +1430,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.history = Some(DEFAULT_HISTORY_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Save history.toml failed: {e}"
                 )));
             }
@@ -1480,11 +1480,11 @@ fn ensure_history_catalog_if_needed(state: &mut BuilderState) {
 fn on_catalog_edited(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.history.clone(), DEFAULT_HISTORY_PATH);
     state.mark_validation_dirty();
-    if state.history_auto_recompute {
+    if state.history_panel.auto_recompute {
         // D2/D11: route through the bus so the auto-recompute is undoable and
         // cannot silently diverge from a prior EditChronicle on the undo stack.
         if let Err(e) = state.recompute_chronicle_undoable() {
-            state.last_save_error = Some(format!("chronicle regenerate failed: {e}"));
+            state.feedback.last_save_error = Some(format!("chronicle regenerate failed: {e}"));
         }
     }
 }

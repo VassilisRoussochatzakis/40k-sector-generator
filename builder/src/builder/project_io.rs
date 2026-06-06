@@ -824,8 +824,8 @@ pub fn drain_watcher_events(state: &mut BuilderState) {
         state.file_mtimes.insert(ev.rel_path.clone(), ev.mtime);
         if state.dirty || state.dirty_files.contains(&ev.rel_path) {
             // User has unsaved changes — defer to the resolver dialog.
-            if state.modal.is_none() {
-                state.modal = Some(super::ModalKind::ConflictResolver {
+            if state.feedback.modal.is_none() {
+                state.feedback.modal = Some(super::ModalKind::ConflictResolver {
                     rel_path: ev.rel_path,
                 });
             }
@@ -842,10 +842,10 @@ pub fn drain_watcher_events(state: &mut BuilderState) {
             let rel = ev.rel_path.clone();
             match reload_catalog(state, &rel, &text) {
                 Ok(()) => {
-                    state.last_catalog_error = None;
+                    state.feedback.last_catalog_error = None;
                 }
                 Err(e) => {
-                    state.last_catalog_error = Some(e.to_string());
+                    state.feedback.last_catalog_error = Some(e.to_string());
                 }
             }
         }
@@ -854,7 +854,7 @@ pub fn drain_watcher_events(state: &mut BuilderState) {
 
 /// Error returned by [`reload_catalog`] when an on-disk catalog edit
 /// triggered by the file watcher can no longer be parsed. Stored in
-/// [`BuilderState::last_catalog_error`] so the status bar surfaces it.
+/// `BuilderState::feedback.last_catalog_error` so the status bar surfaces it.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum CatalogReloadError {

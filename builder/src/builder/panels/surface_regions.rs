@@ -100,7 +100,7 @@ pub(crate) fn show_surface_regions_section(
                 after: working,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!(
+                state.feedback.modal = Some(ModalKind::Message(format!(
                     "Surface region update failed: {e}"
                 )));
             }

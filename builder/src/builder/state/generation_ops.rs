@@ -107,7 +107,7 @@ impl BuilderState {
     ///
     /// The bus error is **returned**, not surfaced — each call site keeps its
     /// own `ModalKind::Message` text (they differ: "Edit failed" vs "World edit
-    /// failed" vs …), so this helper never touches `self.modal`. A stale id maps
+    /// failed" vs …), so this helper never touches `self.feedback.modal`. A stale id maps
     /// to [`MutationError::WorldNotFound`], matching what `run(EditWorld)` would
     /// itself return for a missing world.
     pub fn edit_world(
@@ -188,13 +188,13 @@ impl BuilderState {
         if let Some(features) = &input.catalogs.authored_features {
             sectorforge::world_pool::apply_authored_features(&mut pool, features);
         }
-        self.world_reroll_counter = self.world_reroll_counter.wrapping_add(1);
+        self.generation.world_reroll_counter = self.generation.world_reroll_counter.wrapping_add(1);
         let (dto, source_row, tags) = sectorforge::generation::regenerate_world_payload(
             &input.config,
             &pool,
             star_colour,
             id.as_str(),
-            self.world_reroll_counter,
+            self.generation.world_reroll_counter,
         )
         .map_err(|e| BuilderError::ParseFailed {
             file: "regenerate-world".into(),
@@ -211,18 +211,18 @@ impl BuilderState {
         Ok(())
     }
 
-    /// §G2: derive the next seed. When [`Self::seed_locked`] is true, returns
+    /// §G2: derive the next seed. When `generation.seed_locked` is true, returns
     /// the current seed unchanged. Otherwise increments
-    /// [`Self::seed_reroll_counter`] and returns the
+    /// `generation.seed_reroll_counter` and returns the
     /// `blake3("sectorforge:{seed}:reroll:{n}")` digest.
     pub fn reroll_seed(&mut self) -> String {
-        if self.seed_locked {
+        if self.generation.seed_locked {
             return self.config.generation.seed.clone();
         }
-        self.seed_reroll_counter = self.seed_reroll_counter.wrapping_add(1);
+        self.generation.seed_reroll_counter = self.generation.seed_reroll_counter.wrapping_add(1);
         let new_seed = super::super::preview::derive_reroll_seed(
             &self.config.generation.seed,
-            self.seed_reroll_counter,
+            self.generation.seed_reroll_counter,
         );
         self.config.generation.seed = new_seed.clone();
         new_seed
@@ -233,7 +233,7 @@ impl BuilderState {
     /// pre-preview snapshot replaces the regenerated entry at the same id.
     /// Returns `true` on success; `false` when no preview is ready.
     pub fn apply_preview(&mut self) -> bool {
-        let Some(mut preview_sector) = self.preview.sector.take() else {
+        let Some(mut preview_sector) = self.generation.preview.sector.take() else {
             return false;
         };
         if !self.pinned_systems.is_empty() {
@@ -268,18 +268,19 @@ impl BuilderState {
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
-        self.preview.clear();
+        self.generation.preview.clear();
         true
     }
 
     /// §G5: regenerate only the systems whose coord falls inside
-    /// [`Self::partial_regen_rect`]. Pinned systems are skipped. Each
+    /// the `map_view.partial_regen_rect`. Pinned systems are skipped. Each
     /// regenerated slot is rebuilt via
     /// [`sectorforge::generate_system_standalone`] so the rest of the sector
     /// stays untouched. Returns the number of systems regenerated, or an
     /// error when no rect is selected / no project input can be synthesised.
     pub fn regenerate_partial(&mut self) -> Result<usize, BuilderError> {
         let rect = self
+            .map_view
             .partial_regen_rect
             .ok_or_else(|| BuilderError::ParseFailed {
                 file: "partial-regen".into(),

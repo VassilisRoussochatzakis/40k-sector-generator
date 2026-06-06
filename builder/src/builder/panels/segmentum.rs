@@ -264,7 +264,7 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     if let Some(id) = delete_child {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Remove child sector?".into(),
             body: format!("Drop child “{id}” from the segmentum grid."),
             action: ConfirmAction::DeleteSegmentumChild(id),
@@ -825,7 +825,7 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
     // §FRIENDLY_PANEL_PASS transform #7: inter-sector links bypass the undo bus,
     // so a 🗑 click opens a confirm rather than deleting inline.
     if let Some(idx) = remove {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Remove warp link?".into(),
             body: "Remove this inter-sector warp link.".into(),
             action: ConfirmAction::DeleteSegmentumLink(idx),

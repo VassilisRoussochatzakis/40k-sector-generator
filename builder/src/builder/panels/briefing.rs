@@ -24,7 +24,7 @@
 //! §BR5  "Export to folder…" pops a native folder picker via `rfd` and
 //!        writes `briefing-<profile_id>.md` + `briefing-<profile_id>.json`
 //!        through [`sectorforge::write_briefing`]. The picked folder
-//!        sticks on [`BuilderState::briefing_export_dir`] so a follow-up
+//!        sticks on `BuilderState::briefing_panel.export_dir` so a follow-up
 //!        export to the same target needs no second pick.
 
 use camino::Utf8PathBuf;
@@ -53,7 +53,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     // §39 LD4: refresh the cached preview when a prior mutation left it stale.
     // The briefing profile builder is panel-local, so this overlay self-heals
     // here rather than through `pump_derivations`. No preview yet ⇒ stay cold.
-    if state.derivations.is_stale(DerivationKind::Briefing) && state.briefing_preview_md.is_some() {
+    if state.derivations.is_stale(DerivationKind::Briefing)
+        && state.briefing_panel.preview_md.is_some()
+    {
         regenerate_preview(state);
     }
     ui.heading("Briefing");
@@ -109,20 +111,20 @@ fn show_preset_row(ui: &mut Ui, state: &mut BuilderState) {
         "Audience",
         "Who the briefing is written for (schema: preset). Sets how aggressively secrets are redacted.",
         |ui| {
-            let label = preset_label(state.briefing_preset);
-            let prev = state.briefing_preset;
+            let label = preset_label(state.briefing_panel.preset);
+            let prev = state.briefing_panel.preset;
             ui_kit::combo("br1_preset", label).show_ui(ui, |ui| {
                 for p in PRESET_VARIANTS {
-                    ui.selectable_value(&mut state.briefing_preset, *p, preset_label(*p))
+                    ui.selectable_value(&mut state.briefing_panel.preset, *p, preset_label(*p))
                         .on_hover_text(preset_blurb(*p));
                 }
             });
-            if state.briefing_preset != prev {
+            if state.briefing_panel.preset != prev {
                 invalidate_preview(state);
             }
         },
     );
-    ui.label(RichText::new(preset_blurb(state.briefing_preset)).color(Color32::DARK_GRAY));
+    ui.label(RichText::new(preset_blurb(state.briefing_panel.preset)).color(Color32::DARK_GRAY));
 }
 
 // ── §BR2 observer-faction picker ──────────────────────────────────────────
@@ -134,19 +136,19 @@ fn show_observer_row(ui: &mut Ui, state: &mut BuilderState) {
         "The faction whose knowledge limits the briefing (schema: observer_faction). Leave as (none) for an audience with no faction of its own.",
         |ui| {
             let selected_text = state
-                .briefing_observer
+                .briefing_panel.observer
                 .as_ref()
                 .map(|id| observer_label(state, id))
                 .unwrap_or_else(|| "(none)".to_string());
-            let prev = state.briefing_observer.clone();
+            let prev = state.briefing_panel.observer.clone();
             ui_kit::combo("br2_observer", selected_text).show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.briefing_observer, None, "(none)");
+                ui.selectable_value(&mut state.briefing_panel.observer, None, "(none)");
                 for f in &state.sector.factions {
                     let label = format!("{} ({})", f.name, f.id);
-                    ui.selectable_value(&mut state.briefing_observer, Some(f.id.clone()), label);
+                    ui.selectable_value(&mut state.briefing_panel.observer, Some(f.id.clone()), label);
                 }
             });
-            if state.briefing_observer != prev {
+            if state.briefing_panel.observer != prev {
                 invalidate_preview(state);
             }
         },
@@ -172,23 +174,23 @@ fn show_confidence_row(ui: &mut Ui, state: &mut BuilderState) {
         "Confidence floor",
         "Lowest certainty an item needs to appear (schema: minimum_intel_confidence). 0 shows everything; 100 keeps only what is directly observed.",
         |ui| {
-            let prev = state.briefing_min_confidence;
+            let prev = state.briefing_panel.min_confidence;
             ui.add(
-                egui::Slider::new(&mut state.briefing_min_confidence, 0..=100)
+                egui::Slider::new(&mut state.briefing_panel.min_confidence, 0..=100)
                     .text("0 = show all, 100 = directly observable only"),
             );
-            if state.briefing_min_confidence != prev {
+            if state.briefing_panel.min_confidence != prev {
                 invalidate_preview(state);
             }
         },
     );
     let effective = effective_min_confidence(state);
-    if effective != state.briefing_min_confidence {
+    if effective != state.briefing_panel.min_confidence {
         ui.colored_label(
             palette::warning(),
             format!(
                 "The {} audience raises the floor to {effective}.",
-                preset_label(state.briefing_preset)
+                preset_label(state.briefing_panel.preset)
             ),
         );
     }
@@ -233,11 +235,11 @@ fn show_generate_row(ui: &mut Ui, state: &mut BuilderState) {
         {
             regenerate_preview(state);
         }
-        if state.briefing_preview_md.is_some() {
+        if state.briefing_panel.preview_md.is_some() {
             ui.colored_label(Color32::DARK_GRAY, "preview ready");
         }
     });
-    if state.briefing_preview_md.is_none() {
+    if state.briefing_panel.preview_md.is_none() {
         ui_kit::placeholder(ui, "No preview yet — click Generate briefing to build one.");
     }
 }
@@ -246,20 +248,20 @@ fn regenerate_preview(state: &mut BuilderState) {
     let profile = build_profile(state);
     let pack = sectorforge::apply_briefing(&state.sector, &profile);
     let md = briefing::render_markdown(&pack, &profile);
-    state.briefing_preview_md = Some(md);
-    state.briefing_preview_pack = Some(pack);
+    state.briefing_panel.preview_md = Some(md);
+    state.briefing_panel.preview_pack = Some(pack);
     state.mark_derivation_fresh(DerivationKind::Briefing);
 }
 
 fn invalidate_preview(state: &mut BuilderState) {
-    state.briefing_preview_md = None;
-    state.briefing_preview_pack = None;
+    state.briefing_panel.preview_md = None;
+    state.briefing_panel.preview_pack = None;
 }
 
 fn build_profile(state: &BuilderState) -> BriefingProfile {
-    let mut profile = briefing::preset(state.briefing_preset);
-    profile.minimum_intel_confidence = state.briefing_min_confidence;
-    profile.observer_faction = state.briefing_observer.clone();
+    let mut profile = briefing::preset(state.briefing_panel.preset);
+    profile.minimum_intel_confidence = state.briefing_panel.min_confidence;
+    profile.observer_faction = state.briefing_panel.observer.clone();
     profile
 }
 
@@ -277,12 +279,12 @@ fn show_export_row(ui: &mut Ui, state: &mut BuilderState) {
                 .pick_folder()
             {
                 if let Ok(path) = Utf8PathBuf::from_path_buf(folder) {
-                    state.briefing_export_dir = Some(path);
+                    state.briefing_panel.export_dir = Some(path);
                 }
             }
         }
-        let has_pack = state.briefing_preview_pack.is_some();
-        let has_dir = state.briefing_export_dir.is_some();
+        let has_pack = state.briefing_panel.preview_pack.is_some();
+        let has_dir = state.briefing_panel.export_dir.is_some();
         if ui
             .add_enabled(
                 has_pack && has_dir,
@@ -294,13 +296,14 @@ fn show_export_row(ui: &mut Ui, state: &mut BuilderState) {
             export_pack(state);
         }
         let dir_label = state
-            .briefing_export_dir
+            .briefing_panel
+            .export_dir
             .as_ref()
             .map(|p| p.to_string())
             .unwrap_or_else(|| "(no folder picked)".to_string());
         ui.colored_label(Color32::DARK_GRAY, dir_label);
     });
-    if state.briefing_preview_pack.is_none() {
+    if state.briefing_panel.preview_pack.is_none() {
         ui_kit::placeholder(
             ui,
             "Generate the briefing first — export writes the previewed pack.",
@@ -309,22 +312,22 @@ fn show_export_row(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn export_pack(state: &mut BuilderState) {
-    let Some(dir) = state.briefing_export_dir.clone() else {
+    let Some(dir) = state.briefing_panel.export_dir.clone() else {
         return;
     };
-    let Some(pack) = state.briefing_preview_pack.clone() else {
+    let Some(pack) = state.briefing_panel.preview_pack.clone() else {
         return;
     };
     let profile = build_profile(state);
     match sectorforge::write_briefing(dir.as_path(), &pack, &profile) {
         Ok(()) => {
-            state.modal = Some(ModalKind::Message(format!(
+            state.feedback.modal = Some(ModalKind::Message(format!(
                 "Wrote briefing-{}.md and briefing-{}.json to {}",
                 profile.id, profile.id, dir
             )));
         }
         Err(e) => {
-            state.modal = Some(ModalKind::Message(format!("Briefing export failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Briefing export failed: {e}")));
         }
     }
 }
@@ -333,7 +336,7 @@ fn export_pack(state: &mut BuilderState) {
 
 fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Redacted preview").strong());
-    let Some(md) = state.briefing_preview_md.as_ref() else {
+    let Some(md) = state.briefing_panel.preview_md.as_ref() else {
         ui_kit::placeholder(
             ui,
             "No preview yet — set the audience, watcher, and confidence above, then click Generate briefing.",
@@ -424,20 +427,20 @@ mod tests {
     #[test]
     fn defaults_seed_gm_full_truth_with_min_30() {
         let state = seeded_state();
-        assert_eq!(state.briefing_preset, AudiencePreset::GmFullTruth);
-        assert_eq!(state.briefing_min_confidence, 30);
-        assert!(state.briefing_observer.is_none());
-        assert!(state.briefing_preview_md.is_none());
-        assert!(state.briefing_preview_pack.is_none());
+        assert_eq!(state.briefing_panel.preset, AudiencePreset::GmFullTruth);
+        assert_eq!(state.briefing_panel.min_confidence, 30);
+        assert!(state.briefing_panel.observer.is_none());
+        assert!(state.briefing_panel.preview_md.is_none());
+        assert!(state.briefing_panel.preview_pack.is_none());
     }
 
     #[test]
     fn generate_populates_preview_and_pack() {
         let mut state = seeded_state();
         regenerate_preview(&mut state);
-        assert!(state.briefing_preview_md.is_some());
-        assert!(state.briefing_preview_pack.is_some());
-        let pack = state.briefing_preview_pack.as_ref().unwrap();
+        assert!(state.briefing_panel.preview_md.is_some());
+        assert!(state.briefing_panel.preview_pack.is_some());
+        let pack = state.briefing_panel.preview_pack.as_ref().unwrap();
         assert_eq!(pack.profile_id, "gm_full_truth");
     }
 
@@ -446,16 +449,16 @@ mod tests {
         let mut state = seeded_state();
         regenerate_preview(&mut state);
         invalidate_preview(&mut state);
-        assert!(state.briefing_preview_md.is_none());
-        assert!(state.briefing_preview_pack.is_none());
+        assert!(state.briefing_panel.preview_md.is_none());
+        assert!(state.briefing_panel.preview_pack.is_none());
     }
 
     #[test]
     fn build_profile_layers_observer_and_confidence() {
         let mut state = seeded_state();
-        state.briefing_preset = AudiencePreset::Inquisition;
-        state.briefing_observer = Some(FactionId::new("imp"));
-        state.briefing_min_confidence = 5;
+        state.briefing_panel.preset = AudiencePreset::Inquisition;
+        state.briefing_panel.observer = Some(FactionId::new("imp"));
+        state.briefing_panel.min_confidence = 5;
         let p = build_profile(&state);
         assert_eq!(p.preset, Some(AudiencePreset::Inquisition));
         assert_eq!(p.observer_faction.as_deref(), Some("imp"));

@@ -14,7 +14,7 @@ use std::path::Path;
 use crate::builder::{BuilderState, ModalKind};
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
-    let Some(ModalKind::ConflictResolver { rel_path }) = state.modal.clone() else {
+    let Some(ModalKind::ConflictResolver { rel_path }) = state.feedback.modal.clone() else {
         return false;
     };
     ui.heading("External change detected");
@@ -30,8 +30,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                 let abs = root.join(&rel_path);
                 if let Ok(text) = fs::read_to_string(Path::new(abs.as_str())) {
                     match crate::builder::project_io::reload_catalog(state, &rel_path, &text) {
-                        Ok(()) => state.last_catalog_error = None,
-                        Err(e) => state.last_catalog_error = Some(e.to_string()),
+                        Ok(()) => state.feedback.last_catalog_error = None,
+                        Err(e) => state.feedback.last_catalog_error = Some(e.to_string()),
                     }
                     state.dirty_files.remove(&rel_path);
                 }
@@ -43,7 +43,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         }
     });
     if close {
-        state.modal = None;
+        state.feedback.modal = None;
     }
     close
 }

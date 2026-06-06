@@ -10,7 +10,7 @@ use crate::builder::state::{PendingBulkRename, PendingPlace, PendingRegionRename
 use crate::builder::{BuilderState, ModalKind};
 
 pub(super) fn show_place_dialog(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(pending) = state.pending_place.clone() else {
+    let Some(pending) = state.drag.pending_place.clone() else {
         return;
     };
     let mut name = pending.name.clone();
@@ -40,13 +40,13 @@ pub(super) fn show_place_dialog(ctx: &egui::Context, state: &mut BuilderState) {
             result_id: None,
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Add failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Add failed: {e}")));
         }
     }
     if close {
-        state.pending_place = None;
+        state.drag.pending_place = None;
     } else {
-        state.pending_place = Some(PendingPlace {
+        state.drag.pending_place = Some(PendingPlace {
             coord: pending.coord,
             name,
         });
@@ -54,7 +54,7 @@ pub(super) fn show_place_dialog(ctx: &egui::Context, state: &mut BuilderState) {
 }
 
 pub(super) fn show_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(pending) = state.pending_rename.clone() else {
+    let Some(pending) = state.drag.pending_rename.clone() else {
         return;
     };
     let mut text = pending.text.clone();
@@ -91,13 +91,13 @@ pub(super) fn show_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) 
             to: text.clone(),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
         }
     }
     if close {
-        state.pending_rename = None;
+        state.drag.pending_rename = None;
     } else {
-        state.pending_rename = Some(PendingRename {
+        state.drag.pending_rename = Some(PendingRename {
             id: pending.id,
             text,
         });
@@ -109,10 +109,10 @@ pub(super) fn show_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) 
 /// `{name}`) match the §S4 bulk-ops dialog and dispatch through
 /// [`crate::builder::panels::system::apply_bulk_rename`] on commit.
 pub(super) fn show_bulk_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(pending) = state.pending_bulk_rename.clone() else {
+    let Some(pending) = state.drag.pending_bulk_rename.clone() else {
         return;
     };
-    let n = state.selected_systems.len();
+    let n = state.selection.systems.len();
     let mut pattern = pending.pattern.clone();
     let mut commit = false;
     let mut close = false;
@@ -138,16 +138,16 @@ pub(super) fn show_bulk_rename_dialog(ctx: &egui::Context, state: &mut BuilderSt
         crate::builder::panels::system::apply_bulk_rename(state, &pattern);
     }
     if close {
-        state.pending_bulk_rename = None;
+        state.drag.pending_bulk_rename = None;
     } else {
-        state.pending_bulk_rename = Some(PendingBulkRename { pattern });
+        state.drag.pending_bulk_rename = Some(PendingBulkRename { pattern });
     }
 }
 
 /// §CTX1 Phase 5 — modal rename dialog for the §6.5 "RENAME REGION…" entry.
 /// Commits through [`BuilderCommand::RenameRegion`] so the change is undoable.
 pub(super) fn show_region_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(pending) = state.pending_region_rename.clone() else {
+    let Some(pending) = state.drag.pending_region_rename.clone() else {
         return;
     };
     let before = state
@@ -188,13 +188,13 @@ pub(super) fn show_region_rename_dialog(ctx: &egui::Context, state: &mut Builder
             after: text.clone(),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Rename region failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Rename region failed: {e}")));
         }
     }
     if close {
-        state.pending_region_rename = None;
+        state.drag.pending_region_rename = None;
     } else {
-        state.pending_region_rename = Some(PendingRegionRename {
+        state.drag.pending_region_rename = Some(PendingRegionRename {
             region: pending.region,
             text,
         });
@@ -202,7 +202,7 @@ pub(super) fn show_region_rename_dialog(ctx: &egui::Context, state: &mut Builder
 }
 
 pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(pending) = state.pending_collision.clone() else {
+    let Some(pending) = state.drag.pending_collision.clone() else {
         return;
     };
     let mut close = false;
@@ -232,11 +232,11 @@ pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderStat
             b: pending.occupant.clone(),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Swap failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Swap failed: {e}")));
         }
     }
     if close {
-        state.pending_collision = None;
+        state.drag.pending_collision = None;
     }
 }
 

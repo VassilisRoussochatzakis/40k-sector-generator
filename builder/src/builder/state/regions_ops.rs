@@ -37,7 +37,7 @@ impl BuilderState {
             centre,
         });
         // Transient UI selection (§R4 carve-out) — not document state.
-        self.selected_region_id = Some(id.clone());
+        self.selection.region_id = Some(id.clone());
         id
     }
 
@@ -47,8 +47,8 @@ impl BuilderState {
             before: None,
         })?;
         // Transient UI: move the selection off the region we just deleted.
-        if self.selected_region_id.as_deref() == Some(id) {
-            self.selected_region_id = self.sector.regions.first().map(|r| r.id.clone());
+        if self.selection.region_id.as_deref() == Some(id) {
+            self.selection.region_id = self.sector.regions.first().map(|r| r.id.clone());
         }
         Ok(())
     }
@@ -94,7 +94,7 @@ impl BuilderState {
     /// [`Self::commit_region_stroke`]. The snapshot is transient drag scratch
     /// (§R4 carve-out), so it is written directly.
     pub fn begin_region_stroke(&mut self, region_id: &str) {
-        self.region_stroke_before = self
+        self.drag.region_stroke_before = self
             .sector
             .regions
             .iter()
@@ -107,7 +107,7 @@ impl BuilderState {
     /// hex-list change through the bus as one undoable `EditRegion`. No-op when
     /// nothing was snapshot or the footprint is unchanged.
     pub fn commit_region_stroke(&mut self) {
-        let Some(before) = self.region_stroke_before.take() else {
+        let Some(before) = self.drag.region_stroke_before.take() else {
             return;
         };
         let Some(after) = self

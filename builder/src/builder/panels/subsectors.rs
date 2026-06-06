@@ -122,7 +122,7 @@ pub(crate) fn apply_subsector_overrides(subs: &mut [Subsector], state: &BuilderS
 // ── §SUB1 helpers ───────────────────────────────────────────────────────────
 
 fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
-    if let Some(cache) = state.map_view_cache.as_ref() {
+    if let Some(cache) = state.map_view.cache.as_ref() {
         return cache.subsectors.clone();
     }
     let mut subs = match build_subsectors(
@@ -133,11 +133,11 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
         },
     ) {
         Ok(v) => {
-            state.last_subsector_error = None;
+            state.feedback.last_subsector_error = None;
             v
         }
         Err(e) => {
-            state.last_subsector_error = Some(e.to_string());
+            state.feedback.last_subsector_error = Some(e.to_string());
             Vec::new()
         }
     };
@@ -153,7 +153,7 @@ pub(crate) fn clear_all_overrides(state: &mut BuilderState) {
     state.subsector_capital_overrides.clear();
     state.subsector_colour_overrides.clear();
     state.subsector_manual.clear();
-    state.map_view_cache = None;
+    state.map_view.cache = None;
 }
 
 fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
@@ -170,7 +170,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             .on_hover_text("Roughly how many systems each subsector should contain.");
         if response.changed() && value != old {
             state.subsector_target_systems = value;
-            state.map_view_cache = None; // force refresh on next MAP-tab tick
+            state.map_view.cache = None; // force refresh on next MAP-tab tick
         }
         if ui
             .button("↺  Recluster")
@@ -180,7 +180,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             .clicked()
         {
             state.subsector_target_systems = value.max(1);
-            state.map_view_cache = None;
+            state.map_view.cache = None;
         }
         if ui
             .button("↺  Reset target")
@@ -188,7 +188,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             .clicked()
         {
             state.subsector_target_systems = DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR;
-            state.map_view_cache = None;
+            state.map_view.cache = None;
         }
         if (!state.subsector_system_overrides.is_empty()
             || !state.subsector_capital_overrides.is_empty()
@@ -203,7 +203,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
         {
             // §FRIENDLY_PANEL_PASS transform #7: a reset-all that bypasses the undo
             // bus — confirm before wiping every manual subsector override.
-            state.modal = Some(ModalKind::ConfirmDestructive {
+            state.feedback.modal = Some(ModalKind::ConfirmDestructive {
                 title: "Clear all overrides?".into(),
                 body: "Drop every manual move, capital, and colour override and regroup from scratch."
                     .into(),
@@ -239,7 +239,7 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             for s in subs {
-                let selected = state.selected_subsector_id.as_deref() == Some(s.id.as_ref());
+                let selected = state.selection.subsector_id.as_deref() == Some(s.id.as_ref());
                 let name_part = s
                     .name
                     .strip_prefix("Subsector")
@@ -288,14 +288,14 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
             }
         });
     if let Some(id) = pick {
-        state.selected_subsector_id = Some(id);
+        state.selection.subsector_id = Some(id);
     }
 }
 
 // ── §SUB3..§SUB5 inspector ───────────────────────────────────────────────────
 
 fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
-    let Some(selected) = state.selected_subsector_id.clone() else {
+    let Some(selected) = state.selection.subsector_id.clone() else {
         ui_kit::placeholder(ui, "Pick a subsector on the left to edit it.");
         return;
     };
@@ -304,7 +304,7 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
             ui,
             "That subsector no longer exists after reclustering — pick another on the left.",
         );
-        state.selected_subsector_id = None;
+        state.selection.subsector_id = None;
         return;
     };
 
@@ -413,7 +413,7 @@ fn show_capital_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsect
                             }
                         }
                         state.subsector_manual.insert(sub_id.clone());
-                        state.map_view_cache = None;
+                        state.map_view.cache = None;
                         state.dirty = true;
                     }
                     if current.is_some()
@@ -423,7 +423,7 @@ fn show_capital_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsect
                             .clicked()
                     {
                         state.subsector_capital_overrides.remove(sub_id.as_str());
-                        state.map_view_cache = None;
+                        state.map_view.cache = None;
                         state.dirty = true;
                     }
                 });
@@ -587,12 +587,12 @@ fn show_manual_reassign(
             .insert(sid, target_id.clone());
         state.subsector_manual.insert(target_id);
         state.subsector_manual.insert(sub_id.clone());
-        state.map_view_cache = None;
+        state.map_view.cache = None;
         state.dirty = true;
     }
     for sid in clears {
         state.subsector_system_overrides.remove(&sid);
-        state.map_view_cache = None;
+        state.map_view.cache = None;
         state.dirty = true;
     }
 }

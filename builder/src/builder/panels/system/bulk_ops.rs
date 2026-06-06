@@ -18,7 +18,7 @@ use super::system_state_label;
 
 pub(super) fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "sys_bulk_ops", "Bulk operations", false, |ui| {
-        let n = state.selected_systems.len();
+        let n = state.selection.systems.len();
         ui.label(format!("{n} system(s) selected"));
         if n == 0 {
             ui_kit::placeholder(
@@ -34,14 +34,14 @@ pub(super) fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 .on_hover_text("Deselect every system")
                 .clicked()
             {
-                state.selected_systems.clear();
+                state.selection.systems.clear();
             }
             if ui
                 .button("📌 Pin all")
                 .on_hover_text("Protect every selected system from regeneration")
                 .clicked()
             {
-                for id in state.selected_systems.iter().cloned().collect::<Vec<_>>() {
+                for id in state.selection.systems.iter().cloned().collect::<Vec<_>>() {
                     state.pinned_systems.insert(id);
                 }
             }
@@ -50,7 +50,7 @@ pub(super) fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 .on_hover_text("Allow every selected system to be regenerated again")
                 .clicked()
             {
-                for id in state.selected_systems.iter().cloned().collect::<Vec<_>>() {
+                for id in state.selection.systems.iter().cloned().collect::<Vec<_>>() {
                     state.pinned_systems.remove(&id);
                 }
             }
@@ -152,7 +152,7 @@ pub(super) fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
 /// multi-selection menu can dispatch the same bulk-rename helper. Pattern
 /// tokens (`{n}`/`{id}`/`{name}`) match the §S4 bulk-ops dialog.
 pub(crate) fn apply_bulk_rename(state: &mut BuilderState, pattern: &str) {
-    let selection: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+    let selection: Vec<SystemId> = state.selection.systems.iter().cloned().collect();
     for (n, id) in selection.into_iter().enumerate() {
         let from = match state.sector.systems.iter().find(|s| s.id == id) {
             Some(s) => s.name.to_string(),
@@ -171,7 +171,7 @@ pub(crate) fn apply_bulk_rename(state: &mut BuilderState, pattern: &str) {
             to,
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Bulk rename failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Bulk rename failed: {e}")));
             return;
         }
     }
@@ -187,7 +187,7 @@ pub(crate) fn apply_bulk_primary_faction(
     // `primary_factions.push`) so the bulk assignment is undoable. One undo
     // entry per system mutated; systems already carrying `fid` are skipped so
     // they don't emit no-op commands.
-    let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+    let ids: Vec<SystemId> = state.selection.systems.iter().cloned().collect();
     for id in ids {
         let draft = state
             .sector
@@ -206,7 +206,7 @@ pub(crate) fn apply_bulk_primary_faction(
             after: Box::new(draft),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
             return;
         }
     }
@@ -218,7 +218,7 @@ pub(crate) fn apply_bulk_clear_factions(state: &mut BuilderState) {
     // §R4: clear each affected system's primary factions through EditSystem
     // (was an in-place `primary_factions.clear()` over `sector_mut()`).
     // Systems already empty are skipped so they don't emit no-op commands.
-    let ids: BTreeSet<SystemId> = state.selected_systems.clone();
+    let ids: BTreeSet<SystemId> = state.selection.systems.clone();
     let targets: Vec<SystemId> = state
         .sector
         .systems
@@ -237,7 +237,7 @@ pub(crate) fn apply_bulk_clear_factions(state: &mut BuilderState) {
             after: Box::new(draft),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
             return;
         }
     }
@@ -250,7 +250,7 @@ pub(crate) fn apply_bulk_control_state(state: &mut BuilderState, value: Option<S
     // in-place `set_system_control_state` over `sector` that bypassed the bus,
     // matching the sibling `apply_bulk_clear_factions`). Systems already at
     // `value` are skipped so they don't emit no-op commands.
-    let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+    let ids: Vec<SystemId> = state.selection.systems.iter().cloned().collect();
     for id in ids {
         let Some(mut draft) = state
             .sector
@@ -268,7 +268,7 @@ pub(crate) fn apply_bulk_control_state(state: &mut BuilderState, value: Option<S
             after: Box::new(draft),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Control flip failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Control flip failed: {e}")));
             return;
         }
     }
@@ -278,7 +278,8 @@ pub(crate) fn apply_bulk_control_state(state: &mut BuilderState, value: Option<S
 /// multi-selection menu. Pinned systems are skipped (§S3).
 pub(crate) fn apply_bulk_reseed(state: &mut BuilderState) {
     let targets: Vec<(SystemId, HexCoord, usize)> = state
-        .selected_systems
+        .selection
+        .systems
         .iter()
         .filter_map(|id| {
             let sys = state.sector.systems.iter().find(|s| s.id == *id)?;
@@ -290,7 +291,7 @@ pub(crate) fn apply_bulk_reseed(state: &mut BuilderState) {
         .collect();
     for (_id, coord, index) in targets {
         if let Err(e) = state.generate_system_here(coord, index, None) {
-            state.modal = Some(ModalKind::Message(format!("Reseed failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Reseed failed: {e}")));
             return;
         }
     }

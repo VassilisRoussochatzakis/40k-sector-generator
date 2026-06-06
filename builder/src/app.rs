@@ -184,7 +184,7 @@ impl BuilderApp {
     }
 
     fn show_modal(&mut self, ctx: &egui::Context) {
-        let modal = self.workspace.active().modal.clone();
+        let modal = self.workspace.active().feedback.modal.clone();
         // §BEAUTY §6.7: dim + inert the page behind any open modal. Called every
         // frame (even with no modal) so the scrim fades out on close.
         let _ = sectorforge_gui_core::modal::scrim(ctx, modal.is_some());
@@ -236,7 +236,7 @@ impl BuilderApp {
                 ModalKind::Message(message) => {
                     ui.label(message);
                     if ui.button("OK").clicked() {
-                        self.workspace.active_mut().modal = None;
+                        self.workspace.active_mut().feedback.modal = None;
                     }
                 }
                 ModalKind::ConfirmDeleteFaction { id, name } => {
@@ -250,12 +250,12 @@ impl BuilderApp {
                     ui.add_space(6.0);
                     ui.horizontal(|ui| {
                         if widgets::ghost_button(ui, "Cancel").clicked() {
-                            self.workspace.active_mut().modal = None;
+                            self.workspace.active_mut().feedback.modal = None;
                         }
                         if widgets::danger_button(ui, "🗑  Delete").clicked() {
                             let state = self.workspace.active_mut();
                             crate::builder::panels::factions::delete_row(state, &id);
-                            state.modal = None;
+                            state.feedback.modal = None;
                         }
                     });
                 }
@@ -269,12 +269,12 @@ impl BuilderApp {
                     ui.add_space(6.0);
                     ui.horizontal(|ui| {
                         if widgets::ghost_button(ui, "Cancel").clicked() {
-                            self.workspace.active_mut().modal = None;
+                            self.workspace.active_mut().feedback.modal = None;
                         }
                         if widgets::danger_button(ui, "🗑  Delete").clicked() {
                             let state = self.workspace.active_mut();
                             apply_confirm_action(state, action);
-                            state.modal = None;
+                            state.feedback.modal = None;
                         }
                     });
                 }

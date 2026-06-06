@@ -24,7 +24,7 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
         let panel_width = ui.available_width();
         ui.horizontal(|ui| {
             ui.label("Layout:");
-            let mut horiz = matches!(state.system_layout, SystemLayout::Horizontal);
+            let mut horiz = matches!(state.system_view.layout, SystemLayout::Horizontal);
             if ui
                 .selectable_label(horiz, "Horizontal")
                 .on_hover_text("Star left, planets arrayed right in orbit order")
@@ -39,7 +39,7 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
             {
                 horiz = false;
             }
-            state.system_layout = if horiz {
+            state.system_view.layout = if horiz {
                 SystemLayout::Horizontal
             } else {
                 SystemLayout::Orbital
@@ -48,7 +48,7 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
             ui.label("Size:");
             ui.add(
                 egui::Slider::new(
-                    &mut state.system_view_side,
+                    &mut state.system_view.side,
                     SYSTEM_VIEW_SIDE_MIN..=SYSTEM_VIEW_SIDE_MAX,
                 )
                 .show_value(false),
@@ -58,13 +58,13 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
                 .on_hover_text("Resize preview to fill the panel width")
                 .clicked()
             {
-                state.system_view_side =
+                state.system_view.side =
                     panel_width.clamp(SYSTEM_VIEW_SIDE_MIN, SYSTEM_VIEW_SIDE_MAX);
             }
         });
-        let layout = state.system_layout;
+        let layout = state.system_view.layout;
         let side = state
-            .system_view_side
+            .system_view.side
             .clamp(SYSTEM_VIEW_SIDE_MIN, SYSTEM_VIEW_SIDE_MAX);
         // 3:1 aspect — preview spans the panel width but only a third as
         // tall so the in-system map doesn't dominate the SYSTEM tab.
@@ -76,7 +76,7 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
         // SELECTION ring so we don't need to allocate a separate painter
         // overlay. Falls back to `selected_world_id` when no menu is open.
         let selected = crate::builder::panels::system_map::menu_selection_override(state, sys_idx)
-            .unwrap_or_else(|| match state.selected_world_id.as_ref() {
+            .unwrap_or_else(|| match state.selection.world_id.as_ref() {
                 Some(wid) => sys
                     .worlds
                     .iter()
@@ -121,12 +121,12 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
 pub(super) fn handle_system_view_click(state: &mut BuilderState, sys_idx: usize, click: SystemClick) {
     match click {
         SystemClick::Star => {
-            state.scroll_target = Some(SYS_STAR_GRID_ANCHOR);
+            state.selection.scroll_target = Some(SYS_STAR_GRID_ANCHOR);
         }
         SystemClick::World(idx) => {
             let sys = &state.sector.systems[sys_idx];
             if let Some(w) = sys.worlds.iter().find(|w| w.index == idx) {
-                state.selected_world_id = Some(w.id.clone());
+                state.selection.world_id = Some(w.id.clone());
             }
         }
         _ => {}

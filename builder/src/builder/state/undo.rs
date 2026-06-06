@@ -69,7 +69,7 @@ impl BuilderState {
     /// Write the sector to [`Self::auto_save_path`] as pretty JSON when set.
     /// No-op when no path is configured. On failure, leaves `dirty = true`
     /// (so the next event retries) and stores the error in
-    /// [`Self::last_save_error`] for the status bar to render.
+    /// `feedback.last_save_error` for the status bar to render.
     pub fn trigger_auto_save(&mut self) {
         let Some(path) = self.auto_save_path.as_ref() else {
             return;
@@ -77,17 +77,17 @@ impl BuilderState {
         let text = match serde_json::to_string_pretty(&self.sector) {
             Ok(t) => t,
             Err(e) => {
-                self.last_save_error = Some(format!("auto-save serialize: {e}"));
+                self.feedback.last_save_error = Some(format!("auto-save serialize: {e}"));
                 return;
             }
         };
         match std::fs::write(Path::new(path.as_std_path()), text) {
             Ok(()) => {
                 self.dirty = false;
-                self.last_save_error = None;
+                self.feedback.last_save_error = None;
             }
             Err(e) => {
-                self.last_save_error = Some(format!("auto-save write to {path}: {e}"));
+                self.feedback.last_save_error = Some(format!("auto-save write to {path}: {e}"));
             }
         }
     }

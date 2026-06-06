@@ -283,24 +283,24 @@ fn jump_to(state: &mut BuilderState, vio: &InvariantViolation) {
         return;
     };
     if let Some((system, world)) = parse_system_world(path) {
-        state.selected_system_id = Some(SystemId::new(system.as_str()));
-        state.selected_world_id = Some(WorldId::new(world.as_str()));
+        state.selection.system_id = Some(SystemId::new(system.as_str()));
+        state.selection.world_id = Some(WorldId::new(world.as_str()));
         return;
     }
     if let Some(system) = parse_path(path, "systems.") {
-        state.selected_system_id = Some(SystemId::new(system.as_str()));
+        state.selection.system_id = Some(SystemId::new(system.as_str()));
         return;
     }
     if let Some(route) = parse_path(path, "routes.") {
-        state.selected_route_id = Some(RouteId::new(route.as_str()));
+        state.selection.route_id = Some(RouteId::new(route.as_str()));
         return;
     }
     if let Some(faction) = parse_path(path, "factions.") {
-        state.selected_faction_id = Some(FactionId::new(faction.as_str()));
+        state.selection.faction_id = Some(FactionId::new(faction.as_str()));
         return;
     }
     if let Some(region) = parse_path(path, "regions.") {
-        state.selected_region_id = Some(region);
+        state.selection.region_id = Some(region);
     }
 }
 

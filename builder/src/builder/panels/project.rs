@@ -80,7 +80,7 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .on_hover_text("Start a fresh, empty sector from a name, seed, and size")
                 .clicked()
             {
-                state.modal = Some(ModalKind::NewProject {
+                state.feedback.modal = Some(ModalKind::NewProject {
                     name: "new-sector".to_string(),
                     title: "New Sector".to_string(),
                     seed: "seed-1".to_string(),
@@ -93,7 +93,7 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .on_hover_text("Open an existing project folder")
                 .clicked()
             {
-                state.modal = Some(ModalKind::OpenProject { path: None });
+                state.feedback.modal = Some(ModalKind::OpenProject { path: None });
             }
             if ui
                 .button("🎲  Random sector…")
@@ -103,7 +103,7 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                 )
                 .clicked()
             {
-                state.modal = Some(ModalKind::GenerateRandom {
+                state.feedback.modal = Some(ModalKind::GenerateRandom {
                     size: "medium".to_string(),
                     custom_w: 10,
                     custom_h: 12,
@@ -124,7 +124,8 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .clicked()
             {
                 if let Err(e) = files::save_all(state) {
-                    state.modal = Some(ModalKind::Message(format!("Save all failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("Save all failed: {e}")));
                 }
             }
         });
@@ -285,14 +286,15 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
     if let Some(name) = revert_to {
         if !state.revert_to_snapshot(&name) {
-            state.modal = Some(ModalKind::Message(format!("Snapshot '{name}' not found.")));
+            state.feedback.modal =
+                Some(ModalKind::Message(format!("Snapshot '{name}' not found.")));
         }
     }
     // §FRIENDLY_PANEL_PASS transform #7: a snapshot is a save point that bypasses
     // the undo bus, so route deletion through a confirm rather than dropping it on
     // a single misclick.
     if let Some(name) = delete {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete snapshot?".into(),
             body: format!("Delete the snapshot “{name}”."),
             action: ConfirmAction::DeleteSnapshot(name),

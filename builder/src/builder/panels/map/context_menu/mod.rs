@@ -52,11 +52,11 @@ pub(in crate::builder::panels) use resolve::menu_anchor_pivot;
 
 /// §CTX1 — render the floating right-click menu.
 pub(super) fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(menu) = state.sector_context_menu.as_ref() else {
+    let Some(menu) = state.map_view.sector_context_menu.as_ref() else {
         return;
     };
     if sector_menu_target_is_stale(state, &menu.target) {
-        state.sector_context_menu = None;
+        state.map_view.sector_context_menu = None;
         return;
     }
     let screen_pos = menu.screen_pos;
@@ -108,6 +108,6 @@ pub(super) fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderS
     });
 
     if close || should_dismiss_sector_context_menu(esc, focused, primary_click_outside) {
-        state.sector_context_menu = None;
+        state.map_view.sector_context_menu = None;
     }
 }

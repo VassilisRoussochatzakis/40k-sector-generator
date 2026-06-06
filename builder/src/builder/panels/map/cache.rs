@@ -16,7 +16,8 @@ use crate::builder::BuilderState;
 pub(super) fn refresh_map_cache(state: &mut BuilderState) {
     let digest = sector_view_digest(state);
     let stale = state
-        .map_view_cache
+        .map_view
+        .cache
         .as_ref()
         .map(|c| c.digest != digest)
         .unwrap_or(true);
@@ -31,17 +32,17 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
         },
     ) {
         Ok(v) => {
-            state.last_subsector_error = None;
+            state.feedback.last_subsector_error = None;
             v
         }
         Err(e) => {
-            state.last_subsector_error = Some(e.to_string());
+            state.feedback.last_subsector_error = Some(e.to_string());
             Vec::new()
         }
     };
     crate::builder::panels::subsectors::apply_subsector_overrides(&mut subsectors, state);
     let lookup = SectorMapCache::new(&state.sector, &subsectors);
-    state.map_view_cache = Some(MapViewCache {
+    state.map_view.cache = Some(MapViewCache {
         digest,
         subsectors,
         lookup,

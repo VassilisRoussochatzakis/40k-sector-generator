@@ -54,7 +54,7 @@ pub(super) fn show_factions_section(
             if let Err(e) = state.edit_world(wid, |w| {
                 w.factions.remove(i);
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
         }
         ui.separator();
@@ -186,7 +186,7 @@ pub(super) fn show_add_presence_row(
                     intel_confidence: 100,
                 });
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
         }
     });

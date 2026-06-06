@@ -60,7 +60,7 @@ pub(super) fn show_environment_section(
                 before: None,
                 after: Box::new(draft),
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
         }
     });
@@ -115,7 +115,7 @@ pub(super) fn show_society_section(
                 before: None,
                 after: Box::new(draft),
             }) {
-                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
         }
     });

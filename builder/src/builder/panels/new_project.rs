@@ -17,7 +17,7 @@ use crate::builder::{BuilderState, ModalKind};
 
 /// Render the wizard. Returns `true` when the modal consumed the close click
 /// (e.g. user pressed Cancel) so the caller can drop it from
-/// `BuilderState::modal`.
+/// `BuilderState::feedback.modal`.
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     let ModalKind::NewProject {
         name,
@@ -25,7 +25,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         seed,
         width,
         height,
-    } = state.modal.clone().unwrap_or_else(default_modal())
+    } = state.feedback.modal.clone().unwrap_or_else(default_modal())
     else {
         return false;
     };
@@ -161,7 +161,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                             close = true;
                         }
                         Err(e) => {
-                            state.modal =
+                            state.feedback.modal =
                                 Some(ModalKind::Message(format!("New project failed: {e}")));
                             return;
                         }
@@ -179,7 +179,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     });
 
     if !close {
-        state.modal = Some(ModalKind::NewProject {
+        state.feedback.modal = Some(ModalKind::NewProject {
             name,
             title,
             seed,
@@ -187,7 +187,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
             height,
         });
     } else if !create {
-        state.modal = None;
+        state.feedback.modal = None;
     }
     close
 }

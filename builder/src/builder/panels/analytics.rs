@@ -237,7 +237,7 @@ fn export(state: &mut BuilderState) {
     match sectorforge::write_analysis(dir.as_path(), &report) {
         Ok(()) => {
             state.analytics.error = None;
-            state.modal = Some(ModalKind::Message(format!(
+            state.feedback.modal = Some(ModalKind::Message(format!(
                 "Wrote analysis.md and analysis.json to {dir}"
             )));
         }

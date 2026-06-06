@@ -388,12 +388,12 @@ fn export(state: &mut BuilderState) {
     };
     match sectorforge::write_diff(dir.as_path(), &report) {
         Ok(()) => {
-            state.modal = Some(ModalKind::Message(format!(
+            state.feedback.modal = Some(ModalKind::Message(format!(
                 "Wrote diff.md and diff.json to {dir}"
             )));
         }
         Err(e) => {
-            state.modal = Some(ModalKind::Message(format!("Diff export failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Diff export failed: {e}")));
         }
     }
 }

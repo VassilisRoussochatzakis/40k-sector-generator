@@ -134,8 +134,11 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             ensure_personae_catalog(state);
             state.recompute_personae();
         }
-        ui.checkbox(&mut state.personae_auto_recompute, "Auto-update on edit")
-            .on_hover_text("Re-derive automatically whenever you change a setting on this tab");
+        ui.checkbox(
+            &mut state.personae_panel.auto_recompute,
+            "Auto-update on edit",
+        )
+        .on_hover_text("Re-derive automatically whenever you change a setting on this tab");
         let total = state
             .personae_report
             .as_ref()
@@ -256,7 +259,7 @@ fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let selected = state.selected_persona_id.clone();
+    let selected = state.selection.persona_id.clone();
     for p in &report.personae {
         let is_selected = selected.as_deref() == Some(p.id.as_str());
         let name = if p.name.is_empty() {
@@ -275,7 +278,7 @@ fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
             });
         });
         if resp.clicked() {
-            state.selected_persona_id = Some(p.id.to_string());
+            state.selection.persona_id = Some(p.id.to_string());
         }
         ui.separator();
     }
@@ -295,7 +298,7 @@ fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
-    let Some(sel) = state.selected_persona_id.clone() else {
+    let Some(sel) = state.selection.persona_id.clone() else {
         ui_kit::placeholder(
             ui,
             "Pick a persona from the cast on the left to see its details.",
@@ -357,7 +360,7 @@ fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
         .on_hover_text("Open this persona below as an editable manual entry")
         .clicked()
     {
-        state.personae_edit_target = Some(p.id.to_string());
+        state.personae_panel.edit_target = Some(p.id.to_string());
     }
 }
 
@@ -452,7 +455,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     // PER-1: consume the one-shot "edit this persona" request the detail card's
     // copy button stored in `personae_edit_target`. Read it before the
     // `data_catalogs` borrow so the matching manual row can scroll into view.
-    let edit_target = state.personae_edit_target.take();
+    let edit_target = state.personae_panel.edit_target.take();
     // Snapshot the existing faction ids before the mutable personae borrow so
     // the per-row faction picker can offer them as a dropdown (transform 6).
     let faction_ids = existing_faction_ids(state);
@@ -558,7 +561,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         on_catalog_edited(state);
     }
     if let Some((idx, label)) = pending_delete {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete persona?".into(),
             body: format!("Remove the hand-written persona “{label}”."),
             action: ConfirmAction::DeleteManualPersona(idx),
@@ -777,7 +780,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.personae = Some(DEFAULT_PERSONAE_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Could not save the personae file: {e}"
                 )));
             }
@@ -822,7 +825,7 @@ fn ensure_personae_catalog_if_needed(state: &mut BuilderState) {
 fn on_catalog_edited(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.personae.clone(), DEFAULT_PERSONAE_PATH);
     state.mark_validation_dirty();
-    if state.personae_auto_recompute {
+    if state.personae_panel.auto_recompute {
         state.recompute_personae();
     }
 }

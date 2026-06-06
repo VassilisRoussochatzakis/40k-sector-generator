@@ -82,7 +82,7 @@ pub(crate) fn show_world_conflict_section(
                     after: working,
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!(
+                    state.feedback.modal = Some(ModalKind::Message(format!(
                         "World conflict update failed: {e}"
                     )));
                 }
@@ -129,7 +129,7 @@ pub(crate) fn show_world_conflict_section(
                     after: stab,
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!(
+                    state.feedback.modal = Some(ModalKind::Message(format!(
                         "World stability update failed: {e}"
                     )));
                 }
@@ -194,7 +194,7 @@ pub(crate) fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState
                     after: derived,
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.last_command_error = Some(format!("aggregate sync: {e}"));
+                    state.feedback.last_command_error = Some(format!("aggregate sync: {e}"));
                 }
             }
             ui.label(
@@ -222,7 +222,7 @@ pub(crate) fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState
                     after: working,
                 };
                 if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!(
+                    state.feedback.modal = Some(ModalKind::Message(format!(
                         "System conflict update failed: {e}"
                     )));
                 }
@@ -246,7 +246,7 @@ pub(crate) fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState
 fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
     use sectorforge::heatmap::HeatmapMode;
     ui.label(RichText::new("Conflict heatmap on the map").strong());
-    let mut on = matches!(state.map_heatmap_mode, HeatmapMode::ConflictIntensity);
+    let mut on = matches!(state.map_view.heatmap_mode, HeatmapMode::ConflictIntensity);
     ui.horizontal_wrapped(|ui| {
         if ui
             .checkbox(&mut on, "Tint systems by fighting intensity")
@@ -256,7 +256,7 @@ fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
             )
             .changed()
         {
-            state.map_heatmap_mode = if on {
+            state.map_view.heatmap_mode = if on {
                 HeatmapMode::ConflictIntensity
             } else {
                 HeatmapMode::Off
@@ -281,7 +281,7 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
     ui.horizontal(|ui| {
         ui.label("Ticks:");
         ui.add(
-            egui::DragValue::new(&mut state.conflict_ticks_to_advance)
+            egui::DragValue::new(&mut state.conflict_panel.ticks_to_advance)
                 .range(1..=u32::MAX)
                 .speed(1.0),
         );
@@ -295,9 +295,10 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
             )
             .clicked()
         {
-            let ticks = state.conflict_ticks_to_advance.max(1);
+            let ticks = state.conflict_panel.ticks_to_advance.max(1);
             if let Err(e) = state.advance_conflict_ticks(ticks) {
-                state.modal = Some(ModalKind::Message(format!("Advance ticks failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Advance ticks failed: {e}")));
             }
         }
     });
@@ -305,7 +306,7 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
 
 pub(crate) fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Option<&str>) {
     ui.label(RichText::new("Tick log").strong());
-    if state.tick_log.is_empty() {
+    if state.conflict_panel.tick_log.is_empty() {
         ui_kit::placeholder(
             ui,
             "No ticks yet — use Advance time above to step the simulation.",
@@ -313,20 +314,20 @@ pub(crate) fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system
         return;
     }
     ui.horizontal(|ui| {
-        ui.label(format!("{} entries", state.tick_log.len()));
+        ui.label(format!("{} entries", state.conflict_panel.tick_log.len()));
         if ui
             .small_button("🗑  Clear log")
             .on_hover_text("Discard all recorded tick history")
             .clicked()
         {
-            state.tick_log.clear();
+            state.conflict_panel.tick_log.clear();
         }
     });
     egui::ScrollArea::vertical()
         .id_salt("cf5_tick_log_scroll")
         .max_height(180.0)
         .show(ui, |ui| {
-            for entry in state.tick_log.iter().rev() {
+            for entry in state.conflict_panel.tick_log.iter().rev() {
                 if let Some(sys_filter) = filter_system {
                     let in_scope = match &entry.scope {
                         TickLogScope::System(id) => id.as_str() == sys_filter,

@@ -96,14 +96,15 @@ fn show_region_table(ui: &mut Ui, state: &mut BuilderState) {
 // ── helpers ─────────────────────────────────────────────────────────────────
 
 fn selected_region_index(state: &mut BuilderState) -> Option<usize> {
-    if let Some(id) = state.selected_region_id.clone() {
+    if let Some(id) = state.selection.region_id.clone() {
         if let Some(i) = state.sector.regions.iter().position(|r| r.id == id) {
             return Some(i);
         }
     }
-    state.selected_region_id = state.sector.regions.first().map(|r| r.id.clone());
+    state.selection.region_id = state.sector.regions.first().map(|r| r.id.clone());
     state
-        .selected_region_id
+        .selection
+        .region_id
         .as_ref()
         .and_then(|id| state.sector.regions.iter().position(|r| &r.id == id))
 }
@@ -163,7 +164,7 @@ fn show_region_picker(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let current = state.selected_region_id.clone();
+    let current = state.selection.region_id.clone();
     let mut pick: Option<String> = None;
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
@@ -186,7 +187,7 @@ fn show_region_picker(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
     if let Some(id) = pick {
-        state.selected_region_id = Some(id);
+        state.selection.region_id = Some(id);
     }
 }
 
@@ -317,7 +318,7 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                 .on_hover_text("Switch to the map's region brush to paint this region's cells")
                 .clicked()
             {
-                state.map_tool = MapTool::RegionPaint;
+                state.map_view.tool = MapTool::RegionPaint;
                 state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
             if ui
@@ -345,7 +346,8 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
         let w = state.sector.width.saturating_sub(1) as i32;
         let h = state.sector.height.saturating_sub(1) as i32;
         let seed_state = state
-            .selected_region_id
+            .selection
+            .region_id
             .clone()
             .unwrap_or_else(|| "new".into());
 
@@ -355,9 +357,9 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
             "Where the blob starts growing from (schema: centre on the resulting region).",
             |ui| {
                 ui.label("q");
-                ui.add(egui::DragValue::new(&mut state.region_grow_q).range(0..=w));
+                ui.add(egui::DragValue::new(&mut state.region_grow.q).range(0..=w));
                 ui.label("r");
-                ui.add(egui::DragValue::new(&mut state.region_grow_r).range(0..=h));
+                ui.add(egui::DragValue::new(&mut state.region_grow.r).range(0..=h));
             },
         );
         labeled(
@@ -365,7 +367,7 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
             "Target size",
             "Roughly how many hexes to grow (schema: mean_size). Actual size varies with the layout.",
             |ui| {
-                ui.add(egui::DragValue::new(&mut state.region_grow_size).range(1..=200));
+                ui.add(egui::DragValue::new(&mut state.region_grow.size).range(1..=200));
             },
         );
         labeled(
@@ -373,11 +375,11 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
             "Phenomenon",
             "Which warp condition the grown region will be (schema: kind).",
             |ui| {
-                ui_kit::combo("region_grow_kind", state.region_grow_kind.label()).show_ui(
+                ui_kit::combo("region_grow_kind", state.region_grow.kind.label()).show_ui(
                     ui,
                     |ui| {
                         for k in RegionConditionKind::ALL {
-                            ui.selectable_value(&mut state.region_grow_kind, *k, k.label());
+                            ui.selectable_value(&mut state.region_grow.kind, *k, k.label());
                         }
                     },
                 );
@@ -385,7 +387,7 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
         );
         ui.add_space(4.0);
         ui.horizontal(|ui| {
-            let mode_label = if state.selected_region_id.is_some() {
+            let mode_label = if state.selection.region_id.is_some() {
                 "Grow will replace the selected region's hexes"
             } else {
                 "Grow will create a new region"
@@ -397,40 +399,40 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
                 .clicked()
             {
                 let centre = HexCoord {
-                    q: state.region_grow_q,
-                    r: state.region_grow_r,
+                    q: state.region_grow.q,
+                    r: state.region_grow.r,
                 };
                 let existing: Vec<WarpRegion> = state
                     .sector
                     .regions
                     .iter()
-                    .filter(|r| Some(r.id.as_str()) != state.selected_region_id.as_deref())
+                    .filter(|r| Some(r.id.as_str()) != state.selection.region_id.as_deref())
                     .cloned()
                     .collect();
                 let hexes = seed_region(
                     state.sector.seed.as_ref(),
-                    &format!("manual:{seed_state}:{}", state.region_grow_size),
+                    &format!("manual:{seed_state}:{}", state.region_grow.size),
                     centre,
-                    state.region_grow_size as usize,
+                    state.region_grow.size as usize,
                     state.sector.width,
                     state.sector.height,
                     &existing,
                 );
                 if hexes.is_empty() {
-                    state.modal = Some(crate::builder::state::ModalKind::Message(
+                    state.feedback.modal = Some(crate::builder::state::ModalKind::Message(
                         "Grow returned no hexes (centre blocked or sector empty).".into(),
                     ));
                     return;
                 }
-                if let Some(id) = state.selected_region_id.clone() {
-                    let kind = state.region_grow_kind;
+                if let Some(id) = state.selection.region_id.clone() {
+                    let kind = state.region_grow.kind;
                     let _ = state.update_region(&id, |r| {
                         r.kind = kind;
                         r.centre = centre;
                         r.hexes = hexes;
                     });
                 } else {
-                    let new_id = state.add_region("Grown", state.region_grow_kind, centre);
+                    let new_id = state.add_region("Grown", state.region_grow.kind, centre);
                     let _ = state.update_region(&new_id, |r| r.hexes = hexes);
                 }
             }
@@ -506,7 +508,7 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
                     before: Vec::new(),
                     after,
                 }) {
-                    state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                    state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                         "Apply route effects failed: {e}"
                     )));
                 }
@@ -524,13 +526,13 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
 fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::section(ui, "Paint regions on the map", |ui| {
         ui.horizontal_wrapped(|ui| {
-            let active = state.map_tool == MapTool::RegionPaint;
+            let active = state.map_view.tool == MapTool::RegionPaint;
             if ui
                 .selectable_label(active, "🖌  Region brush")
                 .on_hover_text("Turn on the map's region brush and jump to the map")
                 .clicked()
             {
-                state.map_tool = MapTool::RegionPaint;
+                state.map_view.tool = MapTool::RegionPaint;
                 state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
             ui.colored_label(
@@ -756,7 +758,7 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
         }
         if save_clicked {
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Save regions.toml failed: {e}"
                 )));
             }

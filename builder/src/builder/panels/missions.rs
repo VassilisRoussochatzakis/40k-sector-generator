@@ -4,8 +4,8 @@
 //!      primary+secondary location / public objective / hidden complication /
 //!      reward / consequence over the cached [`MissionsReport`] published by
 //!      [`BuilderState::recompute_missions`]. Selecting a row populates
-//!      [`BuilderState::selected_mission_id`] +
-//!      [`BuilderState::missions_edit_target`] and focuses the primary
+//!      `BuilderState::selection.mission_id` +
+//!      `BuilderState::missions_panel.edit_target` and focuses the primary
 //!      location through [`BuilderState::focus_entity`] so cross-tab links
 //!      land first-class.
 //! §M2  Manual mission editor: kind picker plus the patron / target /
@@ -18,7 +18,7 @@
 //!      survive because `derive_with` appends `cfg.manual` after the
 //!      per-anchor cap pass.
 //! §M4  Player-edition toggle (mirrors `--player`): flips
-//!      [`BuilderState::missions_player_edition`] and re-runs the recompute
+//!      `BuilderState::missions_panel.player_edition` and re-runs the recompute
 //!      so the cached report has `gm_only` rows stripped.
 //! §M5  Click-to-highlight: each row plus the "highlight location" button
 //!      parses the mission's `primary_location` (`sys` or `sys/world`) into
@@ -125,10 +125,10 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             ensure_missions_catalog(state);
             state.recompute_missions();
         }
-        ui.checkbox(&mut state.missions_auto_recompute, "Re-suggest as I edit")
+        ui.checkbox(&mut state.missions_panel.auto_recompute, "Re-suggest as I edit")
             .on_hover_text("Re-run the suggestions automatically whenever you change a knob or a manual mission.");
         if ui
-            .checkbox(&mut state.missions_player_edition, "Player edition")
+            .checkbox(&mut state.missions_panel.player_edition, "Player edition")
             .on_hover_text(
                 "Hide GM-only missions, as a player would see them. Turn off to see everything.",
             )
@@ -197,15 +197,19 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label(RichText::new("Show").strong());
-        let label = match state.missions_filter_kind {
+        let label = match state.missions_panel.filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
         ui_kit::combo("m1_kind", label).show_ui(ui, |ui| {
-            ui.selectable_value(&mut state.missions_filter_kind, None, "all kinds");
+            ui.selectable_value(&mut state.missions_panel.filter_kind, None, "all kinds");
             for k in KIND_VARIANTS {
-                ui.selectable_value(&mut state.missions_filter_kind, Some(*k), kind_label(*k))
-                    .on_hover_text(format!("key: {}", k.as_slug()));
+                ui.selectable_value(
+                    &mut state.missions_panel.filter_kind,
+                    Some(*k),
+                    kind_label(*k),
+                )
+                .on_hover_text(format!("key: {}", k.as_slug()));
             }
         });
     });
@@ -222,7 +226,7 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
-    let filter = state.missions_filter_kind;
+    let filter = state.missions_panel.filter_kind;
     let rows: Vec<&MissionSeed> = report
         .missions
         .iter()
@@ -235,8 +239,8 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
-    let selected = state.selected_mission_id.clone();
-    let show_hidden = !state.missions_player_edition;
+    let selected = state.selection.mission_id.clone();
+    let show_hidden = !state.missions_panel.player_edition;
     // §COLUMNS — compact rail rows: a selectable title line per mission with
     // kind / scale subline; full fields live in the detail card on the right.
     for m in &rows {
@@ -283,8 +287,10 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Mission details").strong());
-    let target =
-        super::roster::detail_target(&state.missions_edit_target, &state.selected_mission_id);
+    let target = super::roster::detail_target(
+        &state.missions_panel.edit_target,
+        &state.selection.mission_id,
+    );
     let Some(target_id) = target else {
         ui_kit::placeholder(ui, "Pick a mission on the left to see its full details.");
         return;
@@ -301,7 +307,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
-    let show_hidden = !state.missions_player_edition;
+    let show_hidden = !state.missions_panel.player_edition;
 
     labeled(
         ui,
@@ -552,7 +558,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         on_catalog_edited(state);
     }
     if let Some((idx, label)) = pending_delete {
-        state.modal = Some(ModalKind::ConfirmDestructive {
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete mission?".into(),
             body: format!("Remove the manual mission “{label}”."),
             action: ConfirmAction::DeleteManualMission(idx),
@@ -931,7 +937,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 state.config.inputs.missions = Some(DEFAULT_MISSIONS_PATH.into());
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
                     "Saving missions failed: {e}"
                 )));
             }
@@ -963,14 +969,14 @@ fn ensure_missions_catalog_if_needed(state: &mut BuilderState) {
 fn on_catalog_edited(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.missions.clone(), DEFAULT_MISSIONS_PATH);
     state.mark_validation_dirty();
-    if state.missions_auto_recompute {
+    if state.missions_panel.auto_recompute {
         state.recompute_missions();
     }
 }
 
 fn select_mission(state: &mut BuilderState, m: &MissionSeed) {
-    state.selected_mission_id = Some(m.id.to_string());
-    state.missions_edit_target = Some(m.id.to_string());
+    state.selection.mission_id = Some(m.id.to_string());
+    state.missions_panel.edit_target = Some(m.id.to_string());
 }
 
 /// §M5 — resolve a mission location string into an [`EntityRef`] and call
@@ -1075,7 +1081,7 @@ mod tests {
     fn player_edition_flag_threads_into_recompute() {
         let mut state = BuilderState::new_blank("t", "T", "s", 4, 4);
         state.data_catalogs.missions = Some(MissionsConfig::default());
-        state.missions_player_edition = true;
+        state.missions_panel.player_edition = true;
         state.recompute_missions();
         let report = state.missions_report.as_ref().unwrap();
         assert!(report.missions.iter().all(|m| !m.gm_only));
@@ -1086,11 +1092,11 @@ mod tests {
         let mut state = BuilderState::new_blank("t", "T", "s", 4, 4);
         focus_primary_location(&mut state, "sys-0001/sys-0001-w1", &[]);
         assert_eq!(
-            state.selected_system_id.as_ref().map(|s| s.as_str()),
+            state.selection.system_id.as_ref().map(|s| s.as_str()),
             Some("sys-0001")
         );
         assert_eq!(
-            state.selected_world_id.as_ref().map(|w| w.as_str()),
+            state.selection.world_id.as_ref().map(|w| w.as_str()),
             Some("sys-0001-w1")
         );
     }
@@ -1100,7 +1106,7 @@ mod tests {
         let mut state = BuilderState::new_blank("t", "T", "s", 4, 4);
         focus_primary_location(&mut state, "sys-0002", &[]);
         assert_eq!(
-            state.selected_system_id.as_ref().map(|s| s.as_str()),
+            state.selection.system_id.as_ref().map(|s| s.as_str()),
             Some("sys-0002")
         );
     }

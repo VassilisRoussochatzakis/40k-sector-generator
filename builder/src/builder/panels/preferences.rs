@@ -49,7 +49,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         match open_project(&path) {
             Ok(new_state) => *state = new_state,
             Err(e) => {
-                state.modal = Some(ModalKind::Message(format!("Open failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Open failed: {e}")));
             }
         }
     }

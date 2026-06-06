@@ -108,10 +108,10 @@ pub(super) fn system_menu_action_label(action: &SystemMenuAction) -> &'static st
 pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemMenuAction) -> bool {
     // §CTX1 Phase 7 — capture activation in the telemetry tail before
     // dispatching so the status bar reflects the click even on errors.
-    state.last_menu_action = Some(system_menu_action_label(&action).to_string());
+    state.feedback.last_menu_action = Some(system_menu_action_label(&action).to_string());
     match action {
         SystemMenuAction::FocusStarDetails => {
-            state.scroll_target = Some(SYS_STAR_GRID_ANCHOR);
+            state.selection.scroll_target = Some(SYS_STAR_GRID_ANCHOR);
         }
         SystemMenuAction::CycleSpectralClass { system } => {
             cycle_spectral_class(state, &system);
@@ -123,7 +123,7 @@ pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemM
                 after: None,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Remove star failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Remove star failed: {e}")));
             }
         }
         SystemMenuAction::AddStar { system } => {
@@ -139,7 +139,7 @@ pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemM
                 after,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Add star failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Add star failed: {e}")));
             }
         }
         SystemMenuAction::FocusWorld { system, world } => {
@@ -152,7 +152,7 @@ pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemM
                 .find(|w| w.id == world)
                 .map(|w| w.name.to_string())
                 .unwrap_or_default();
-            state.pending_world_rename = Some(PendingWorldRename {
+            state.drag.pending_world_rename = Some(PendingWorldRename {
                 system,
                 world,
                 text,
@@ -174,7 +174,7 @@ pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemM
                 after: orbit,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Set orbit failed: {e}")));
+                state.feedback.modal = Some(ModalKind::Message(format!("Set orbit failed: {e}")));
             }
         }
         SystemMenuAction::DuplicateWorld { system, world } => {
@@ -188,7 +188,8 @@ pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemM
                 parent_position: None,
             };
             if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Remove world failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Remove world failed: {e}")));
             }
         }
         SystemMenuAction::OpenWorldTab { system, world } => {
@@ -223,7 +224,7 @@ pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemM
             match state.generate_system_here(coord, index, None) {
                 Ok(new_id) => state.focus_system(new_id),
                 Err(e) => {
-                    state.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
+                    state.feedback.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
                 }
             }
         }
@@ -266,7 +267,7 @@ fn cycle_spectral_class(state: &mut BuilderState, system: &SystemId) {
         after,
     };
     if let Err(e) = state.run(cmd) {
-        state.modal = Some(ModalKind::Message(format!(
+        state.feedback.modal = Some(ModalKind::Message(format!(
             "Cycle spectral class failed: {e}"
         )));
     }
@@ -295,7 +296,7 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
         result_id: None,
     };
     if let Err(e) = state.run(cmd) {
-        state.modal = Some(ModalKind::Message(format!("Duplicate world failed: {e}")));
+        state.feedback.modal = Some(ModalKind::Message(format!("Duplicate world failed: {e}")));
         return;
     }
     // The freshly added world is the one carrying `next_index`. Capture its
@@ -323,7 +324,7 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
         after: Box::new(draft),
     };
     if let Err(e) = state.run(cmd) {
-        state.modal = Some(ModalKind::Message(format!("Duplicate world failed: {e}")));
+        state.feedback.modal = Some(ModalKind::Message(format!("Duplicate world failed: {e}")));
     }
 }
 
@@ -354,7 +355,7 @@ fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
         result_id: None,
     };
     if let Err(e) = state.run(cmd) {
-        state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+        state.feedback.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
         return;
     }
     // The freshly added world is the one carrying `next_index`. `before: 0`
@@ -374,7 +375,7 @@ fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
             after: orbit,
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Set orbit failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Set orbit failed: {e}")));
         }
     }
 }
@@ -389,7 +390,7 @@ pub(super) fn menu_selection_override(
     state: &BuilderState,
     sys_idx: usize,
 ) -> Option<SystemSelection> {
-    let menu = state.system_context_menu.as_ref()?;
+    let menu = state.map_view.system_context_menu.as_ref()?;
     let sys = state.sector.systems.get(sys_idx)?;
     match &menu.target {
         SystemMenuTarget::Star { system } if system == &sys.id => Some(SystemSelection::Star),
@@ -435,14 +436,14 @@ pub(super) fn arm_system_context_menu(
     rect_origin: Pos2,
 ) {
     let local = Pos2::new(screen_pos.x - rect_origin.x, screen_pos.y - rect_origin.y);
-    let layout = state.system_layout;
+    let layout = state.system_view.layout;
     let sys = match state.sector.systems.get(sys_idx) {
         Some(s) => s,
         None => return,
     };
     let pick = pick_world(side, height, sys, layout, local);
     if let Some(target) = resolve_system_context(state, sys_idx, pick) {
-        state.system_context_menu = Some(SystemContextMenu { screen_pos, target });
+        state.map_view.system_context_menu = Some(SystemContextMenu { screen_pos, target });
     }
 }
 
@@ -450,14 +451,14 @@ pub(super) fn arm_system_context_menu(
 /// rules used by [`super::map::show_sector_context_menu`]: Escape, focus loss,
 /// outside primary click, or item activation closes the menu.
 pub(super) fn show_system_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(menu) = state.system_context_menu.as_ref() else {
+    let Some(menu) = state.map_view.system_context_menu.as_ref() else {
         return;
     };
     // §CTX1 §10 — re-resolve target validity. An undo/redo that removed the
     // host system (or the planet referenced by a `World` variant) drops the
     // menu instead of dispatching against a vanished id.
     if system_menu_target_is_stale(state, &menu.target) {
-        state.system_context_menu = None;
+        state.map_view.system_context_menu = None;
         return;
     }
     let screen_pos = menu.screen_pos;
@@ -509,7 +510,7 @@ pub(super) fn show_system_context_menu(ctx: &egui::Context, state: &mut BuilderS
     });
 
     if close || esc || !focused || primary_click_outside {
-        state.system_context_menu = None;
+        state.map_view.system_context_menu = None;
     }
 }
 
@@ -718,7 +719,7 @@ fn render_background_menu(ui: &mut egui::Ui, state: &mut BuilderState, system: S
 /// §CTX1 Phase 6 — modal rename dialog for the §6.7 "RENAME…" entry. Commits
 /// through [`BuilderCommand::RenameWorld`] so the change is undoable.
 pub(super) fn show_world_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
-    let Some(pending) = state.pending_world_rename.clone() else {
+    let Some(pending) = state.drag.pending_world_rename.clone() else {
         return;
     };
     let before = state
@@ -758,13 +759,13 @@ pub(super) fn show_world_rename_dialog(ctx: &egui::Context, state: &mut BuilderS
             after: text.clone(),
         };
         if let Err(e) = state.run(cmd) {
-            state.modal = Some(ModalKind::Message(format!("Rename world failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Rename world failed: {e}")));
         }
     }
     if close {
-        state.pending_world_rename = None;
+        state.drag.pending_world_rename = None;
     } else {
-        state.pending_world_rename = Some(PendingWorldRename {
+        state.drag.pending_world_rename = Some(PendingWorldRename {
             system: pending.system,
             world: pending.world,
             text,
@@ -940,7 +941,7 @@ mod tests {
                 world: wid.clone(),
             },
         );
-        let pending = state.pending_world_rename.as_ref().unwrap();
+        let pending = state.drag.pending_world_rename.as_ref().unwrap();
         assert_eq!(pending.world, wid);
         assert_eq!(pending.text, "Capitis");
     }
@@ -950,7 +951,7 @@ mod tests {
         let mut state = blank();
         let _ = add_sys_world(&mut state);
         apply_system_menu_action(&mut state, SystemMenuAction::FocusStarDetails);
-        assert_eq!(state.scroll_target, Some(SYS_STAR_GRID_ANCHOR));
+        assert_eq!(state.selection.scroll_target, Some(SYS_STAR_GRID_ANCHOR));
     }
 
     // ── §CTX1 Phase 7 polish tests ────────────────────────────────────────
@@ -966,7 +967,7 @@ mod tests {
     fn menu_selection_override_returns_star_for_star_target() {
         let mut state = blank();
         let (sys, _) = add_sys_world(&mut state);
-        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+        state.map_view.system_context_menu = Some(crate::builder::state::SystemContextMenu {
             screen_pos: egui::Pos2::ZERO,
             target: SystemMenuTarget::Star { system: sys },
         });
@@ -981,7 +982,7 @@ mod tests {
         let mut state = blank();
         let (sys, wid) = add_sys_world(&mut state);
         let idx = state.sector.systems[0].worlds[0].index;
-        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+        state.map_view.system_context_menu = Some(crate::builder::state::SystemContextMenu {
             screen_pos: egui::Pos2::ZERO,
             target: SystemMenuTarget::World {
                 system: sys,
@@ -999,7 +1000,7 @@ mod tests {
     fn menu_selection_override_none_for_background_target() {
         let mut state = blank();
         let (sys, _) = add_sys_world(&mut state);
-        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+        state.map_view.system_context_menu = Some(crate::builder::state::SystemContextMenu {
             screen_pos: egui::Pos2::ZERO,
             target: SystemMenuTarget::Background { system: sys },
         });
@@ -1011,7 +1012,10 @@ mod tests {
         let mut state = blank();
         let (sys, _) = add_sys_world(&mut state);
         apply_system_menu_action(&mut state, SystemMenuAction::AddStar { system: sys });
-        assert_eq!(state.last_menu_action.as_deref(), Some("star :: ADD"));
+        assert_eq!(
+            state.feedback.last_menu_action.as_deref(),
+            Some("star :: ADD")
+        );
     }
 
     #[test]
@@ -1098,12 +1102,12 @@ mod tests {
         let mut state = blank();
         let (sys, _) = add_sys_world(&mut state);
         state.active_tab = crate::builder::state::BuilderTab::System;
-        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+        state.map_view.system_context_menu = Some(crate::builder::state::SystemContextMenu {
             screen_pos: egui::Pos2::ZERO,
             target: SystemMenuTarget::Star { system: sys },
         });
         state.set_active_tab(crate::builder::state::BuilderTab::Map);
-        assert!(state.system_context_menu.is_none());
+        assert!(state.map_view.system_context_menu.is_none());
     }
 
     #[test]
@@ -1112,12 +1116,12 @@ mod tests {
         // menu, mirroring the sector-menu invariant.
         let mut state = blank();
         let (sys, _) = add_sys_world(&mut state);
-        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+        state.map_view.system_context_menu = Some(crate::builder::state::SystemContextMenu {
             screen_pos: egui::Pos2::ZERO,
             target: SystemMenuTarget::Star { system: sys },
         });
         let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
         let restored = file.into_state();
-        assert!(restored.system_context_menu.is_none());
+        assert!(restored.map_view.system_context_menu.is_none());
     }
 }

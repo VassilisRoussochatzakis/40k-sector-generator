@@ -89,29 +89,29 @@ fn undo_clamps_at_zero() {
 #[test]
 fn mutation_arms_validation_debounce() {
     let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
-    assert!(state.validation_dirty_since.is_none());
+    assert!(state.feedback.validation_dirty_since.is_none());
     add_n_systems(&mut state, 1);
-    assert!(state.validation_dirty_since.is_some());
+    assert!(state.feedback.validation_dirty_since.is_some());
 }
 
 #[test]
 fn pump_validation_holds_within_debounce_window() {
     let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
-    state.validation_debounce = Duration::from_secs(5);
+    state.feedback.validation_debounce = Duration::from_secs(5);
     add_n_systems(&mut state, 1);
     assert!(!state.pump_validation());
-    assert!(state.validation_dirty_since.is_some());
+    assert!(state.feedback.validation_dirty_since.is_some());
 }
 
 #[test]
 fn pump_validation_flushes_after_debounce() {
     let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
-    state.validation_debounce = Duration::from_millis(0);
+    state.feedback.validation_debounce = Duration::from_millis(0);
     add_n_systems(&mut state, 1);
     // No worlds catalog => synth returns None; debounce still clears so
     // we don't burn cycles every frame.
     assert!(state.pump_validation());
-    assert!(state.validation_dirty_since.is_none());
+    assert!(state.feedback.validation_dirty_since.is_none());
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn default_tab_is_project() {
 #[test]
 fn default_map_tool_is_select() {
     let state = BuilderState::new_blank("t", "T", "seed", 8, 8);
-    assert_eq!(state.map_tool, MapTool::Select);
+    assert_eq!(state.map_view.tool, MapTool::Select);
 }
 
 #[test]
@@ -271,34 +271,34 @@ fn focus_entity_sets_tab_and_selection_per_variant() {
 
     s.focus_entity(EntityRef::System(sid("sys-0001")));
     assert_eq!(s.active_tab, BuilderTab::System);
-    assert_eq!(s.selected_system_id, Some(sid("sys-0001")));
+    assert_eq!(s.selection.system_id, Some(sid("sys-0001")));
 
     s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
     assert_eq!(s.active_tab, BuilderTab::Factions);
-    assert_eq!(s.selected_faction_id, Some(FactionId::new("imperium")));
+    assert_eq!(s.selection.faction_id, Some(FactionId::new("imperium")));
 
     s.focus_entity(EntityRef::Tab(BuilderTab::Map));
     assert_eq!(s.active_tab, BuilderTab::Map);
 
     s.focus_entity(EntityRef::Region("warp-storm-1".into()));
     assert_eq!(s.active_tab, BuilderTab::Regions);
-    assert_eq!(s.selected_region_id.as_deref(), Some("warp-storm-1"));
+    assert_eq!(s.selection.region_id.as_deref(), Some("warp-storm-1"));
 
     s.focus_entity(EntityRef::Subsector("sub-A".into()));
     assert_eq!(s.active_tab, BuilderTab::Subsectors);
-    assert_eq!(s.selected_subsector_id.as_deref(), Some("sub-A"));
+    assert_eq!(s.selection.subsector_id.as_deref(), Some("sub-A"));
 
     s.focus_entity(EntityRef::HistoryEvent("ev-1".into()));
     assert_eq!(s.active_tab, BuilderTab::History);
-    assert_eq!(s.selected_history_event.as_deref(), Some("ev-1"));
+    assert_eq!(s.selection.history_event.as_deref(), Some("ev-1"));
 
     s.focus_entity(EntityRef::Persona("p-1".into()));
     assert_eq!(s.active_tab, BuilderTab::Personae);
-    assert_eq!(s.selected_persona_id.as_deref(), Some("p-1"));
+    assert_eq!(s.selection.persona_id.as_deref(), Some("p-1"));
 
     s.focus_entity(EntityRef::Hook("h-1".into()));
     assert_eq!(s.active_tab, BuilderTab::Hooks);
-    assert_eq!(s.selected_hook_id.as_deref(), Some("h-1"));
+    assert_eq!(s.selection.hook_id.as_deref(), Some("h-1"));
 }
 
 #[test]
@@ -309,8 +309,8 @@ fn focus_entity_world_sets_both_system_and_world() {
         world: WorldId::new("sys-0042-w01"),
     });
     assert_eq!(s.active_tab, BuilderTab::World);
-    assert_eq!(s.selected_system_id, Some(sid("sys-0042")));
-    assert_eq!(s.selected_world_id, Some(WorldId::new("sys-0042-w01")));
+    assert_eq!(s.selection.system_id, Some(sid("sys-0042")));
+    assert_eq!(s.selection.world_id, Some(WorldId::new("sys-0042-w01")));
 }
 
 #[test]
@@ -319,20 +319,20 @@ fn focus_entity_pushes_back_stack() {
     s.focus_entity(EntityRef::System(sid("sys-alpha")));
     s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
     // Stack contains the initial Tab(Project) snapshot plus System(alpha).
-    assert_eq!(s.nav_back_stack.len(), 2);
+    assert_eq!(s.selection.nav_back_stack.len(), 2);
     s.nav_back();
     assert_eq!(s.active_tab, BuilderTab::System);
-    assert_eq!(s.selected_system_id, Some(sid("sys-alpha")));
-    assert_eq!(s.nav_forward_stack.len(), 1);
+    assert_eq!(s.selection.system_id, Some(sid("sys-alpha")));
+    assert_eq!(s.selection.nav_forward_stack.len(), 1);
 }
 
 #[test]
 fn focus_entity_is_idempotent() {
     let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
     s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
-    let before = s.nav_back_stack.len();
+    let before = s.selection.nav_back_stack.len();
     s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
-    assert_eq!(s.nav_back_stack.len(), before);
+    assert_eq!(s.selection.nav_back_stack.len(), before);
 }
 
 #[test]
@@ -341,7 +341,7 @@ fn back_stack_caps_at_64() {
     for i in 0..100 {
         s.focus_entity(EntityRef::Faction(FactionId::new(format!("f-{i}"))));
     }
-    assert_eq!(s.nav_back_stack.len(), 64);
+    assert_eq!(s.selection.nav_back_stack.len(), 64);
 }
 
 #[test]
@@ -350,9 +350,9 @@ fn forward_stack_clears_on_new_focus() {
     s.focus_entity(EntityRef::System(sid("a")));
     s.focus_entity(EntityRef::System(sid("b")));
     s.nav_back();
-    assert_eq!(s.nav_forward_stack.len(), 1);
+    assert_eq!(s.selection.nav_forward_stack.len(), 1);
     s.focus_entity(EntityRef::System(sid("c")));
-    assert!(s.nav_forward_stack.is_empty());
+    assert!(s.selection.nav_forward_stack.is_empty());
 }
 
 #[test]

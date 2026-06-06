@@ -358,7 +358,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
 
     if changed {
         let now = ui.ctx().input(|i| i.time);
-        state.preview.schedule(now, DEBOUNCE_SECONDS);
+        state.generation.preview.schedule(now, DEBOUNCE_SECONDS);
     }
 }
 
@@ -418,15 +418,15 @@ fn world_selection_mode_combo(ui: &mut Ui, mode: &WorldSelectionMode) -> bool {
 fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "gen_seed", "Seed control", true, |ui| {
         ui.horizontal(|ui| {
-            ui.checkbox(&mut state.seed_locked, "Lock seed")
+            ui.checkbox(&mut state.generation.seed_locked, "Lock seed")
                 .on_hover_text(
                     "When locked, re-rolling keeps the same seed so the sector stays put.",
                 );
-            if state.seed_locked {
+            if state.generation.seed_locked {
                 ui_kit::placeholder(ui, "locked — re-roll keeps this seed");
             } else {
                 ui.label(
-                    RichText::new(format!("re-rolls so far: {}", state.seed_reroll_counter))
+                    RichText::new(format!("re-rolls so far: {}", state.generation.seed_reroll_counter))
                         .color(palette::chrome_text_dim()),
                 );
             }
@@ -439,8 +439,8 @@ fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
             {
                 let new_seed = state.reroll_seed();
                 let now = ui.ctx().input(|i| i.time);
-                state.preview.schedule(now, DEBOUNCE_SECONDS);
-                let preview = if state.seed_locked {
+                state.generation.preview.schedule(now, DEBOUNCE_SECONDS);
+                let preview = if state.generation.seed_locked {
                     "(locked)"
                 } else {
                     &new_seed
@@ -467,9 +467,9 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
         }
         let now = ui.ctx().input(|i| i.time);
         // Build the project input up front so the closure handed to
-        // `pump` does not borrow `state` while `state.preview` is held.
+        // `pump` does not borrow `state` while `state.generation.preview` is held.
         let pending_input = state.synthesize_project_input();
-        let new_result = state.preview.pump(ui.ctx(), now, move || pending_input);
+        let new_result = state.generation.preview.pump(ui.ctx(), now, move || pending_input);
         if new_result {
             ui.ctx().request_repaint();
         }
@@ -480,17 +480,17 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
                 .clicked()
             {
                 let now = ui.ctx().input(|i| i.time);
-                state.preview.schedule(now, 0.0);
+                state.generation.preview.schedule(now, 0.0);
             }
             if ui
                 .button("✖  Cancel preview")
                 .on_hover_text("Discard the in-progress or finished preview")
                 .clicked()
             {
-                state.preview.clear();
+                state.generation.preview.clear();
             }
         });
-        if let Some(preview_sector) = state.preview.sector.as_ref() {
+        if let Some(preview_sector) = state.generation.preview.sector.as_ref() {
             ui.colored_label(
                 palette::success(),
                 format!(
@@ -516,12 +516,12 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
                     ));
                 }
             }
-        } else if state.preview.job.is_some() {
+        } else if state.generation.preview.job.is_some() {
             ui.horizontal(|ui| {
                 ui.spinner();
                 ui.label("Generating preview…");
             });
-        } else if let Some(err) = state.preview.error.as_ref() {
+        } else if let Some(err) = state.generation.preview.error.as_ref() {
             ui.colored_label(palette::danger(), err);
         } else {
             ui_kit::placeholder(ui, "No preview yet — edit any setting above to build one.");
@@ -541,7 +541,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
             // §CTX1 Phase 4 — hint shown when the MAP tab's right-click
             // `START PARTIAL REGEN HERE` item armed an anchor. The next
             // primary click on the map completes the rect anchor→click.
-            if let Some(anchor) = state.partial_regen_anchor {
+            if let Some(anchor) = state.map_view.partial_regen_anchor {
                 ui.colored_label(
                     palette::info(),
                     format!(
@@ -554,11 +554,11 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                     .on_hover_text("Forget the armed corner and start over")
                     .clicked()
                 {
-                    state.partial_regen_anchor = None;
+                    state.map_view.partial_regen_anchor = None;
                 }
                 ui.separator();
             }
-            let mut rect = state.partial_regen_rect.unwrap_or(PartialRegenRect {
+            let mut rect = state.map_view.partial_regen_rect.unwrap_or(PartialRegenRect {
                 min_q: 0,
                 min_r: 0,
                 max_q: 0,
@@ -611,7 +611,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                     r: rect.max_r,
                 },
             );
-            state.partial_regen_rect = Some(normalised);
+            state.map_view.partial_regen_rect = Some(normalised);
 
             ui.add_space(4.0);
             ui.horizontal(|ui| {
@@ -620,7 +620,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                     .on_hover_text("Forget the selected box")
                     .clicked()
                 {
-                    state.partial_regen_rect = None;
+                    state.map_view.partial_regen_rect = None;
                 }
                 if ui
                     .button("🔄  Rebuild these hexes")
@@ -666,7 +666,7 @@ fn show_g6_new_from_preset(
                     "No second tab available — the new sector will replace this one.",
                 );
             }
-            let mut modal = match state.modal.clone() {
+            let mut modal = match state.feedback.modal.clone() {
                 Some(ModalKind::NewFromPreset {
                     preset_id,
                     dest,
@@ -733,7 +733,7 @@ fn show_g6_new_from_preset(
                         };
                         match new_project(opts) {
                             Ok(new_state) => {
-                                state.modal = None;
+                                state.feedback.modal = None;
                                 persist_modal = false;
                                 if let Some(ws) = workspace.as_mut() {
                                     ws.push(new_state);
@@ -742,7 +742,7 @@ fn show_g6_new_from_preset(
                                 }
                             }
                             Err(e) => {
-                                state.modal = Some(ModalKind::Message(format!(
+                                state.feedback.modal = Some(ModalKind::Message(format!(
                                     "Couldn't create the new sector: {e}"
                                 )));
                                 persist_modal = false;
@@ -754,15 +754,15 @@ fn show_g6_new_from_preset(
                         .on_hover_text("Close the launcher without creating anything")
                         .clicked()
                     {
-                        state.modal = None;
+                        state.feedback.modal = None;
                         persist_modal = false;
                     }
                 });
                 // Persist edits back to the modal state for the next frame.
                 if persist_modal
-                    && (matches!(state.modal, Some(ModalKind::NewFromPreset { .. })) || modal.3)
+                    && (matches!(state.feedback.modal, Some(ModalKind::NewFromPreset { .. })) || modal.3)
                 {
-                    state.modal = Some(ModalKind::NewFromPreset {
+                    state.feedback.modal = Some(ModalKind::NewFromPreset {
                         preset_id: modal.0,
                         dest: modal.1,
                         seed: modal.2,
@@ -791,11 +791,11 @@ mod tests {
     #[test]
     fn reroll_locked_keeps_seed() {
         let mut state = BuilderState::new_blank("t", "T", "seed-a", 4, 4);
-        state.seed_locked = true;
+        state.generation.seed_locked = true;
         let out = state.reroll_seed();
         assert_eq!(out, "seed-a");
         assert_eq!(state.config.generation.seed, "seed-a");
-        assert_eq!(state.seed_reroll_counter, 0);
+        assert_eq!(state.generation.seed_reroll_counter, 0);
     }
 
     #[test]
@@ -804,7 +804,7 @@ mod tests {
         let s1 = state.reroll_seed();
         let s2 = state.reroll_seed();
         assert_ne!(s1, s2);
-        assert_eq!(state.seed_reroll_counter, 2);
+        assert_eq!(state.generation.seed_reroll_counter, 2);
         assert_eq!(state.config.generation.seed, s2);
     }
 
@@ -817,7 +817,7 @@ mod tests {
     #[test]
     fn partial_regen_without_input_errors() {
         let mut state = BuilderState::new_blank("t", "T", "seed", 4, 4);
-        state.partial_regen_rect = Some(PartialRegenRect {
+        state.map_view.partial_regen_rect = Some(PartialRegenRect {
             min_q: 0,
             min_r: 0,
             max_q: 1,

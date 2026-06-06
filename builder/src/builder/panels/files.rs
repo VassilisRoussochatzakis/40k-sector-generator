@@ -240,7 +240,7 @@ fn editor_body(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
     if do_save {
         if let Err(e) = save_one(state, &active) {
-            state.modal = Some(ModalKind::Message(format!("Save failed: {e}")));
+            state.feedback.modal = Some(ModalKind::Message(format!("Save failed: {e}")));
         }
     }
 }
@@ -270,7 +270,7 @@ pub fn save_one(state: &mut BuilderState, rel: &str) -> Result<(), String> {
     // non-fatal (the bytes are already safely on disk) but is surfaced in the
     // status bar so a mismatch never passes silently.
     if let Err(e) = project_io::reload_catalog(state, rel, &text) {
-        state.last_catalog_error = Some(e.to_string());
+        state.feedback.last_catalog_error = Some(e.to_string());
     }
     if let Some(b) = state.toml_editor.open.get_mut(rel) {
         b.mark_saved();

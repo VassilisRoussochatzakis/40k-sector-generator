@@ -794,6 +794,15 @@ fn stitch_pair(
 
 // ── Render ───────────────────────────────────────────────────────────────────
 
+/// Sanitise a free-form value for a pipe-delimited markdown table cell: escape
+/// `|` and flatten newlines so a stray separator in an id can't corrupt the
+/// table (§C7).
+fn md_cell(v: impl core::fmt::Display) -> String {
+    v.to_string()
+        .replace('|', "\\|")
+        .replace(['\n', '\r'], "<br>")
+}
+
 /// Deterministic Markdown super-map for a composed segmentum.
 #[must_use]
 pub fn render_markdown(seg: &Segmentum) -> String {
@@ -832,10 +841,10 @@ pub fn render_markdown(seg: &Segmentum) -> String {
     for c in &seg.children {
         s.push_str(&format!(
             "| {} | ({}, {}) | {} | `{}` | {} | {} | {} |\n",
-            c.id,
+            md_cell(&c.id),
             c.column,
             c.row,
-            c.sector_id,
+            md_cell(&c.sector_id),
             c.seed,
             c.system_count,
             c.world_count,
@@ -853,11 +862,11 @@ pub fn render_markdown(seg: &Segmentum) -> String {
         for l in &seg.inter_sector_links {
             s.push_str(&format!(
                 "| {} | {}/{} | {}/{} | {} | {} | {:?} | {:?} |\n",
-                l.id,
-                l.from_child_id,
-                l.from_system_id,
-                l.to_child_id,
-                l.to_system_id,
+                md_cell(&l.id),
+                md_cell(&l.from_child_id),
+                md_cell(&l.from_system_id),
+                md_cell(&l.to_child_id),
+                md_cell(&l.to_system_id),
                 match l.orientation {
                     BorderOrientation::EastWest => "E-W",
                     BorderOrientation::NorthSouth => "N-S",

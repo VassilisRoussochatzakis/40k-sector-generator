@@ -802,6 +802,15 @@ macro_rules! wln {
     }};
 }
 
+/// Sanitise a free-form value for a pipe-delimited markdown table cell: escape
+/// `|` and flatten newlines so a stray separator in an id or name can't corrupt
+/// the table (§C7).
+fn md_cell(v: impl core::fmt::Display) -> String {
+    v.to_string()
+        .replace('|', "\\|")
+        .replace(['\n', '\r'], "<br>")
+}
+
 #[must_use]
 pub fn render_markdown(d: &SectorDiff) -> String {
     let mut s = String::new();
@@ -998,7 +1007,7 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             wln!(
                 s,
                 "| {} (`{}`) | {:+.2} | {:.2} | {:.2} | {:+} | {:+} |",
-                f.name,
+                md_cell(&f.name),
                 f.faction_id,
                 f.delta,
                 f.total_projection_before,
@@ -1013,7 +1022,14 @@ pub fn render_markdown(d: &SectorDiff) -> String {
         wln!(s, "\n## Diplomacy changes (§4)");
         wln!(s, "\n| A | B | Before | After |\n|---|---|---|---|");
         for c in &d.stance_changes {
-            wln!(s, "| {} | {} | {:?} | {:?} |", c.a, c.b, c.before, c.after);
+            wln!(
+                s,
+                "| {} | {} | {:?} | {:?} |",
+                md_cell(&c.a),
+                md_cell(&c.b),
+                c.before,
+                c.after
+            );
         }
     }
     if !(d.regions_added.is_empty() && d.regions_removed.is_empty() && d.regions_changed.is_empty())

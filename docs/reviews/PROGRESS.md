@@ -17,7 +17,7 @@ sequence". Update this file whenever a finding moves status.
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | **12 (A1–A12) — AREA COMPLETE** | 0 | 0 | 0 |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
-| C export/validate/worlds/cli | 13 | 9 (C1,C-S2,C3,C5,C6,C7,C8,C2,C-S1) | 0 | 2 (C4,C-S3) | 1 (C9†) |
+| C export/validate/worlds/cli | 13 | 11 (C1,C-S2,C3,C5,C6,C7,C8,C2,C-S1,C4,C-S3‡) | 0 | 0 | 1 (C9†) |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | **17 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E11,E12,E13,E14,E-S1,E-S2*,E-S3*) — AREA COMPLETE** | 0 | 0 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
@@ -57,8 +57,61 @@ sequence". Update this file whenever a finding moves status.
      exposure): F2 ✅ (the duplicated `enum_combo` hoisted to
      `gui_core::widgets::enum_combo`; viewer + builder keep thin forwarders).
      See log below.
+   - **Wave 20 — AREA_C export-label dedup** (byte-safe, golden-gated): C4 ✅
+     (`system_label_visible` → `render_core::labels`) · C-S3 ‡ (the byte-safe
+     `subsector_label_backed` neighbor predicate hoisted; deeper i32-vs-f32
+     geometry merge owner-gated). **AREA_C actionable complete.** See log below.
 
 ## Detailed log
+
+### 2026-06-05 — step 5, wave 20 (AREA_C label dedup — C4 + C-S3)
+
+The two export label backends (`src/export/bitmap/labels.rs`,
+`src/export/svg_export/labels.rs`) carried duplicated label code. Closed the
+last two actionable AREA_C findings; one commit each on main, both gated.
+
+- **C4** ✅ `a580c81` — `system_label_visible` was duplicated verbatim across the
+  two backends (only diff: bitmap used `crate::sector_model::GeneratedSystem`
+  fully-qualified, svg the imported alias, plus a cosmetic `|s|` vs `|sub|`
+  closure binder). It is a **pure predicate** over the sector/subsector/theme
+  model — no pixel geometry — so it is byte-safe to share. New
+  `src/export/render_core/labels.rs` owns `pub(crate) fn system_label_visible`;
+  both backends import it and drop their copies (svg also drops the now-unused
+  `GeneratedSystem` import). `render_core/mod.rs` gains `pub(crate) mod labels;`.
+
+- **C-S3 ‡** (partial — byte-safe slice landed; deeper merge owner-gated) ✅
+  `5cd0b00` — the *subsector*-label placement loop is structurally parallel
+  across the two files but is **NOT a pure code move**, contrary to the finding's
+  framing. Verified against live source: bitmap works in **scaled `i32` pixels**
+  (`hex_center → (i32,i32)` rounded, `i64` centroid + integer distance, real
+  glyph metrics via `text_size`/`GLYPH_H`, `2 * g.scale` gaps) while svg works in
+  **raw `f32`** (`hex_center → (f32,f32)`, `mul_add`/`powi` distance, heuristic
+  `chars * font * 0.6` widths, literal `2.0` gaps). The `Rect`/`MapBounds` types
+  themselves differ (`i32` vs `f32`). Merging that geometry would move the golden
+  bytes — exactly the precision constraint `render_core/mod.rs` already documents
+  for why labels stay backend-specific.
+  - **What was deduped (byte-safe):** the one part that touches **no** pixel
+    geometry — the integer `(q,r)` neighbor-coverage check inside both `try_place`
+    closures (place *above* needs NW+NE present, *below* needs SW+SE; indices per
+    `offset_r_neighbors` `0:E 1:SE 2:SW 3:W 4:NW 5:NE`) was verbatim-identical.
+    Hoisted to `render_core::labels::subsector_label_backed(q, r, above, &cells)
+    -> bool` and called from both; dropped the now-unused `offset_r_neighbors`
+    import from each backend.
+  - **What was NOT done (owner-gated):** the centroid / candidate-sort /
+    collision-rect / fallback math. A real merge there needs a *generic* over the
+    numeric type **and** the glyph-metric source (a trait rewrite) — not the
+    byte-identical move this finding scoped, and against the standing
+    proportionate-refactor preference. Left for an owner decision like the other
+    API-shape items (D-S3/D5, B-S1).
+
+**AREA_C actionable now complete** (C4 + C-S3 byte-safe slice). The only open C
+items are **C9 †** (WON'T-FIX — language-mandated wildcard, see below) and the
+**C-S3 ‡** deeper geometry merge (owner-gated, not a pure move).
+
+Verification (both commits): `cargo check -p sectorforge --all-targets` clean;
+golden (PNG blake3 pin + `sector.json`/`sector.md` content) **17/17**,
+`svg_export` (SVG blake3 pin) **3/3**, `export_writes` **3/3** — all
+byte-identical; `cargo clippy --workspace --all-targets -- -D warnings` clean.
 
 ### 2026-06-05 — step 5, wave 19 (AREA_C + AREA_G — wave-18 leftovers applied)
 

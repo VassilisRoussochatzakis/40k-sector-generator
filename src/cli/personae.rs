@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::emit_report;
+use super::common::{emit_report, resolve_sector_with_cfg};
 
 pub(crate) fn run_personae(
     project: Option<&Utf8PathBuf>,
@@ -12,22 +12,8 @@ pub(crate) fn run_personae(
     out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let (sec, cfg) = match (project, sector) {
-        (Some(p), None) => {
-            let input = sectorforge::load_project(p)?;
-            let cfg = input.catalogs.personae.clone();
-            (sectorforge::generate_sector(input)?, cfg)
-        }
-        (None, Some(s)) => (
-            sectorforge::load_sector_json(s)?,
-            sectorforge::personae::PersonaeConfig::default(),
-        ),
-        _ => {
-            return Err(sectorforge::SectorError::InvalidConfig(
-                "pass exactly one of --project <dir> or --sector <path>".into(),
-            ));
-        }
-    };
+    let (sec, cfg) =
+        resolve_sector_with_cfg(project, sector, |input| input.catalogs.personae.clone())?;
     let report = sectorforge::derive_personae_with(&sec, &cfg);
     emit_report(
         out,

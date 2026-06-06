@@ -257,6 +257,32 @@ pub fn load_or_regenerate(
     }
 }
 
+/// Resolve a derived-report runner's sector plus its per-runner config `C` from
+/// exactly one of `--project` / `--sector` (C2 / C-S1). On `--project`,
+/// `extract` pulls the runner's config out of the loaded `ProjectInput`
+/// **before** `generate_sector` consumes it; on `--sector` there is no project
+/// config, so `C::default()` is used. Centralises the "pass exactly one of …"
+/// error that was inlined across six runners. (`load_or_regenerate` above is the
+/// no-config variant for runners that need only the sector.)
+pub fn resolve_sector_with_cfg<C: Default>(
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    extract: impl FnOnce(&sectorforge::ProjectInput) -> C,
+) -> Result<(sectorforge::GeneratedSector, C), sectorforge::SectorError> {
+    match (project, sector) {
+        (Some(project), None) => {
+            let input = sectorforge::load_project(project)?;
+            let cfg = extract(&input);
+            let sec = sectorforge::generate_sector(input)?;
+            Ok((sec, cfg))
+        }
+        (None, Some(sector)) => Ok((sectorforge::load_sector_json(sector)?, C::default())),
+        (Some(_), Some(_)) | (None, None) => Err(sectorforge::SectorError::InvalidConfig(
+            "pass exactly one of --project <dir> or --sector <path>".into(),
+        )),
+    }
+}
+
 pub fn log_progress(message: impl std::fmt::Display) {
     eprintln!("[sectorforge] {message}");
 }

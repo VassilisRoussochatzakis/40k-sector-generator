@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::emit_report;
+use super::common::{emit_report, resolve_sector_with_cfg};
 
 pub(crate) fn run_sites(
     project: Option<&Utf8PathBuf>,
@@ -13,22 +13,8 @@ pub(crate) fn run_sites(
     json: bool,
     player: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let (sec, mut cfg) = match (project, sector) {
-        (Some(p), None) => {
-            let input = sectorforge::load_project(p)?;
-            let cfg = input.catalogs.sites.clone();
-            (sectorforge::generate_sector(input)?, cfg)
-        }
-        (None, Some(s)) => (
-            sectorforge::load_sector_json(s)?,
-            sectorforge::sites::SitesConfig::default(),
-        ),
-        _ => {
-            return Err(sectorforge::SectorError::InvalidConfig(
-                "pass exactly one of --project <dir> or --sector <path>".into(),
-            ));
-        }
-    };
+    let (sec, mut cfg) =
+        resolve_sector_with_cfg(project, sector, |input| input.catalogs.sites.clone())?;
     cfg.player_edition = player;
     let report = sectorforge::derive_sites_with(&sec, &cfg);
     emit_report(

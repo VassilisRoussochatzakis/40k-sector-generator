@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::emit_report;
+use super::common::{emit_report, resolve_sector_with_cfg};
 
 pub(crate) fn run_history(
     project: Option<&Utf8PathBuf>,
@@ -12,22 +12,8 @@ pub(crate) fn run_history(
     out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let (sec, mut cfg) = match (project, sector) {
-        (Some(project), None) => {
-            let input = sectorforge::load_project(project)?;
-            let cfg = input.catalogs.history.clone();
-            (sectorforge::generate_sector(input)?, cfg)
-        }
-        (None, Some(sector)) => (
-            sectorforge::load_sector_json(sector)?,
-            sectorforge::history::HistoryConfig::default(),
-        ),
-        (Some(_), Some(_)) | (None, None) => {
-            return Err(sectorforge::SectorError::InvalidConfig(
-                "pass exactly one of --project <dir> or --sector <path>".into(),
-            ));
-        }
-    };
+    let (sec, mut cfg) =
+        resolve_sector_with_cfg(project, sector, |input| input.catalogs.history.clone())?;
     cfg.enabled = true;
     let report = sectorforge::derive_history_with(&sec, &cfg);
     emit_report(

@@ -181,6 +181,41 @@ fn text_export_config() -> OutputConfig {
     cfg
 }
 
+fn single_format_config(format: OutputFormat) -> OutputConfig {
+    // Inherits render_systems=false so the bitmap arm stays a single map.
+    let mut cfg = json_export_config(false);
+    cfg.formats = vec![format];
+    cfg.write_manifest = false;
+    cfg
+}
+
+// G4: the Bitmap and Html arms of `export_sector` dispatch were never exercised
+// by the integration suite (only Json + Markdown). Smoke-test that each writes
+// its artifact; existence + non-empty only, no content pin.
+#[test]
+fn export_writes_bitmap_png() {
+    let cfg = single_format_config(OutputFormat::Bitmap);
+    let sector = fixture_sector();
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    sectorforge::export_sector(sector, &cfg, &tmp_path).unwrap();
+    let png = tmp_path.join("sector.png");
+    assert!(png.exists());
+    assert!(fs::metadata(&png).unwrap().len() > 0);
+}
+
+#[test]
+fn export_writes_interactive_html() {
+    let cfg = single_format_config(OutputFormat::Html);
+    let sector = fixture_sector();
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    sectorforge::export_sector(sector, &cfg, &tmp_path).unwrap();
+    let html = tmp_path.join("sector.html");
+    assert!(html.exists());
+    assert!(fs::metadata(&html).unwrap().len() > 0);
+}
+
 fn assert_exported_sector_matches(output_dir: &Utf8PathBuf, expected: &GeneratedSector) {
     let exported = sectorforge::load_sector_json(output_dir.join("sector.json")).unwrap();
     assert_eq!(exported.seed.as_ref(), expected.seed.as_ref());

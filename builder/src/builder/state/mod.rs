@@ -193,6 +193,25 @@ pub struct BuilderState {
     pub(crate) derivation_jobs: super::derivation_jobs::DerivationJobs,
     pub(crate) dirty: bool,
     pub(crate) auto_save_path: Option<Utf8PathBuf>,
+    /// Audit finding #30: auto-save debounce flag. Set by
+    /// [`BuilderState::trigger_auto_save`] when a write is owed but the
+    /// debounce interval has not elapsed; cleared by the next actual write
+    /// (throttled flush or close-flush). Transient view state — never
+    /// serialized, never undoable, written directly off the command bus.
+    pub(crate) auto_save_pending: bool,
+    /// Audit finding #30: timestamp of the last auto-save write to disk,
+    /// used to throttle blocking `fs::write` to at most once per
+    /// [`Self::AUTO_SAVE_MIN_INTERVAL`]. `None` until the first write.
+    /// Transient view state.
+    pub(crate) last_auto_save: Option<std::time::Instant>,
+    /// Audit finding #22/#30: while set, [`BuilderState::trigger_auto_save`]
+    /// only marks a write pending and never writes immediately, even when the
+    /// debounce interval has elapsed. `undo`/`redo` set it across their
+    /// derived-state re-establishment so the several internal `recompute_*`
+    /// writes collapse into a single trailing write of the fully self-consistent
+    /// sector, never persisting a half-recomputed intermediate. Transient view
+    /// state.
+    pub(crate) suspend_auto_save_writes: bool,
     /// Status-bar / modal feedback channel grouped on [`FeedbackState`]: the
     /// last error of each kind, the active modal, the last menu action trail,
     /// and the §V3 live-validation debounce timer. Transient view state.
@@ -471,6 +490,9 @@ impl BuilderState {
             derivation_jobs: super::derivation_jobs::DerivationJobs::default(),
             dirty: false,
             auto_save_path: None,
+            auto_save_pending: false,
+            last_auto_save: None,
+            suspend_auto_save_writes: false,
             feedback: FeedbackState::default(),
             feature_weights_cache: BTreeMap::new(),
             validation_report: None,
@@ -543,6 +565,7 @@ fn default_config(id: &str, title: &str, seed: &str, width: u32, height: u32) ->
         RelationsGenerationConfig, RouteGenerationConfig, WorldSelectionConfig,
     };
     AppConfig {
+        schema_version: None,
         project: ProjectConfig {
             id: id.to_string(),
             title: title.to_string(),

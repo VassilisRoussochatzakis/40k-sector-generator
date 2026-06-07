@@ -280,22 +280,30 @@ fn phase_fraction(phase: RandomPhase, intra: f32) -> f32 {
 /// Mint a fresh root seed from process entropy. This is the **only**
 /// non-deterministic step in the whole path (RANDOM.md §5.1). Output is a
 /// 16-char hex string. Avoids `rand::thread_rng()` to honour the determinism
-/// invariant — entropy comes from wall-clock nanos, the pid, and an ASLR-tinged
-/// stack address, folded through blake3.
+/// invariant — entropy comes from wall-clock nanos, the pid, and a per-process
+/// monotonic counter, folded through blake3. The counter guarantees distinct
+/// seeds for back-to-back mints in the same process even when the wall clock
+/// has not advanced (e.g. scripted loops with a coarse clock).
+///
+/// determinism: SEED MINT ONLY — never call inside a generation stage.
 #[must_use]
 pub fn mint_seed() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+    // Per-process monotonic tie-breaker so two mints in the same nanosecond
+    // still produce different seeds (coarse clocks collide under tight loops).
+    static SEED_COUNTER: AtomicU64 = AtomicU64::new(0);
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     let pid = u128::from(std::process::id());
-    let stack_marker = (&nanos as *const u128) as usize;
+    let counter = SEED_COUNTER.fetch_add(1, Ordering::Relaxed);
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"sectorforge:random-seed-mint:");
     hasher.update(&nanos.to_le_bytes());
     hasher.update(&pid.to_le_bytes());
-    hasher.update(&stack_marker.to_le_bytes());
+    hasher.update(&counter.to_le_bytes());
     let hex = hasher.finalize().to_hex();
     hex[..16].to_string()
 }
@@ -446,6 +454,7 @@ fn build_random_config_inner(
     };
 
     let config = AppConfig {
+        schema_version: None,
         project: ProjectConfig {
             id: format!("random-{slug}"),
             title: format!("Random Sector {slug}"),

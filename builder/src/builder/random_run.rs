@@ -33,6 +33,12 @@ pub enum RandomJobResult {
     Failed(String),
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for RandomJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("Random generation panicked: {message}")))
+    }
+}
+
 /// Per-frame random-generation state owned by [`crate::builder::BuilderState`].
 #[derive(Default)]
 pub struct RandomGenState {

@@ -154,6 +154,20 @@ fn reproduce_hint(size: SectorSize, baseline: &str, seed: &str) -> String {
     }
 }
 
+/// Filesystem-safe slug for the default project directory name.
+fn dir_slug(seed: &str) -> String {
+    let s: String = seed
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(16)
+        .collect();
+    if s.is_empty() {
+        "sector".to_string()
+    } else {
+        s
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,19 +248,5 @@ mod tests {
             SectorSize::Large
         );
         assert_invalid(resolve_size(Some("nope"), None, None), "unknown --size");
-    }
-}
-
-/// Filesystem-safe slug for the default project directory name.
-fn dir_slug(seed: &str) -> String {
-    let s: String = seed
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
-        .take(16)
-        .collect();
-    if s.is_empty() {
-        "sector".to_string()
-    } else {
-        s
     }
 }

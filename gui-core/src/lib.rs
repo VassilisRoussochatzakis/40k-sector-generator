@@ -3,6 +3,7 @@
 pub mod app_icon;
 pub mod card;
 pub mod design;
+pub mod diagnostics;
 pub mod fonts;
 pub mod heatmap;
 pub mod info_panel;

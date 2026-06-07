@@ -4,14 +4,48 @@
 //! auto-save fires when configured.
 
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use super::super::command::BuilderCommand;
+use super::super::derivation_cache::DepClass;
 use super::super::errors::BuilderError;
 use super::super::index::BuilderIndex;
 use super::super::snapshot::Snapshot;
 use super::BuilderState;
 
+/// Audit finding #46: decide whether a mutation's [`DepClass`] set can change
+/// the [`BuilderIndex`] (the ID → positional-index maps for systems / worlds /
+/// routes / factions). The index is purely structural, so a class that only
+/// ever feeds *derivations* without touching an indexed `GeneratedSector`
+/// collection can skip the O(n) rebuild.
+///
+/// Conservative by construction (correctness over the micro-opt): `Regions`,
+/// `RelationsCfg`, and `EconomyCfg` never mutate `sector.systems` / `worlds` /
+/// `routes` / `factions`, so a command whose classes are drawn *only* from
+/// those skips the rebuild. Anything carrying `SystemsWorlds`, `Factions`, or
+/// `Routes` rebuilds — those classes *may* reflect an add / remove / reindex,
+/// and `dep_classes` is too coarse to prove a given edit was field-only (e.g.
+/// `RenameWorld` and `AddSystem` both carry `SystemsWorlds`), so we rebuild to
+/// be safe. The win lands on warp-region edits and pure catalog-config edits,
+/// which provably leave every indexed collection untouched.
+fn dep_classes_touch_index(classes: &[DepClass]) -> bool {
+    classes.iter().any(|c| {
+        matches!(
+            c,
+            DepClass::SystemsWorlds | DepClass::Factions | DepClass::Routes
+        )
+    })
+}
+
 impl BuilderState {
+    /// Audit finding #30: minimum wall-clock gap between two blocking
+    /// auto-save `fs::write`s. A burst of commands inside one window (e.g.
+    /// every tick of a value-drag) coalesces into a single deferred write;
+    /// the trailing edit is captured by [`Self::flush_auto_save`] from the
+    /// throttled app-update call and an unconditional close-flush, so no edit
+    /// is ever lost.
+    pub(crate) const AUTO_SAVE_MIN_INTERVAL: Duration = Duration::from_millis(750);
+
     /// Run a [`BuilderCommand`] through the command bus.
     ///
     /// Per R4 the bus enforces, in order:
@@ -47,10 +81,17 @@ impl BuilderState {
             let after = (**after).clone();
             self.restore_catalogs(after);
         }
-        self.index = BuilderIndex::rebuild(&self.sector);
+        // Audit finding #46: only rebuild the structural lookup index when this
+        // command's `dep_classes` could have changed it. A field-only edge of
+        // the dep table (region / catalog-config classes) leaves every indexed
+        // collection untouched, so the O(n) rebuild is skipped there.
+        let classes = cmd.dep_classes();
+        if dep_classes_touch_index(classes) {
+            self.index = BuilderIndex::rebuild(&self.sector);
+        }
         self.derivation_cache.clear();
         // LD2: stale exactly the overlays this mutation's inputs feed.
-        self.derivations.invalidate(cmd.dep_classes());
+        self.derivations.invalidate(classes);
         self.command_log.truncate(self.command_cursor);
         self.command_log.push(cmd);
         self.command_cursor = self.command_log.len();
@@ -78,11 +119,80 @@ impl BuilderState {
         }
     }
 
-    /// Write the sector to [`Self::auto_save_path`] as pretty JSON when set.
-    /// No-op when no path is configured. On failure, leaves `dirty = true`
-    /// (so the next event retries) and stores the error in
-    /// `feedback.last_save_error` for the status bar to render.
+    /// Audit finding #30: request an auto-save. No-op when no
+    /// [`Self::auto_save_path`] is configured. Rather than serialize the whole
+    /// `GeneratedSector` and do a blocking `fs::write` on *every* command (e.g.
+    /// every tick of a value-drag), this only writes immediately when the
+    /// [`Self::AUTO_SAVE_MIN_INTERVAL`] has elapsed since the last write;
+    /// otherwise it marks [`Self::auto_save_pending`] so a later
+    /// [`Self::flush_auto_save`] (throttled from the app update loop, or
+    /// unconditionally on close) performs the trailing write. The serialize +
+    /// write stays synchronous — off-thread is out of scope — the win is
+    /// eliminating per-keystroke writes while guaranteeing a final flush.
     pub fn trigger_auto_save(&mut self) {
+        if self.auto_save_path.is_none() {
+            return;
+        }
+        // Always owe a write after a mutation; the question is only *when*.
+        self.auto_save_pending = true;
+        // Audit finding #22: while a re-establishment burst is in progress
+        // (undo/redo recomputing in-sector derived state) never write — defer
+        // so only the final, fully-consistent sector reaches disk.
+        if self.suspend_auto_save_writes {
+            return;
+        }
+        let due = self
+            .last_auto_save
+            .is_none_or(|t| t.elapsed() >= Self::AUTO_SAVE_MIN_INTERVAL);
+        if due {
+            self.write_auto_save_now();
+        }
+    }
+
+    /// Audit finding #30: throttled flush, called from the app's per-frame
+    /// update loop. Performs the deferred auto-save write *iff* one is pending
+    /// and the [`Self::AUTO_SAVE_MIN_INTERVAL`] has elapsed since the last
+    /// write — bounding blocking `fs::write` to once per interval while still
+    /// catching the trailing edit of a burst within one interval of the user
+    /// going idle.
+    ///
+    /// Returns `Some(remaining)` when a write is still owed but the interval
+    /// has not elapsed, so the caller can schedule a repaint after `remaining`
+    /// to guarantee the flush fires even if the app would otherwise sit idle
+    /// (no further user input to drive a frame). Returns `None` when nothing is
+    /// owed or the pending write was performed this call.
+    pub fn tick_auto_save(&mut self) -> Option<Duration> {
+        if !self.auto_save_pending {
+            return None;
+        }
+        let remaining = match self.last_auto_save {
+            None => Duration::ZERO,
+            Some(t) => Self::AUTO_SAVE_MIN_INTERVAL.saturating_sub(t.elapsed()),
+        };
+        if remaining.is_zero() {
+            self.write_auto_save_now();
+            None
+        } else {
+            Some(remaining)
+        }
+    }
+
+    /// Audit finding #30: force the pending auto-save to disk *now*, ignoring
+    /// the debounce interval. Wired to app close/exit so the trailing edit of
+    /// a burst is never dropped. No-op when nothing is owed or no path is set.
+    pub fn flush_auto_save(&mut self) {
+        if self.auto_save_pending && self.auto_save_path.is_some() {
+            self.write_auto_save_now();
+        }
+    }
+
+    /// Audit finding #30: the actual serialize + blocking write to
+    /// [`Self::auto_save_path`] as pretty JSON. Clears [`Self::auto_save_pending`]
+    /// and stamps [`Self::last_auto_save`] on success so the debounce window
+    /// restarts. On failure, leaves `dirty = true` and `auto_save_pending`
+    /// set (so the next tick/flush retries) and stores the error in
+    /// `feedback.last_save_error` for the status bar to render.
+    fn write_auto_save_now(&mut self) {
         let Some(path) = self.auto_save_path.as_ref() else {
             return;
         };
@@ -96,6 +206,8 @@ impl BuilderState {
         match std::fs::write(Path::new(path.as_std_path()), text) {
             Ok(()) => {
                 self.dirty = false;
+                self.auto_save_pending = false;
+                self.last_auto_save = Some(Instant::now());
                 self.feedback.last_save_error = None;
             }
             Err(e) => {
@@ -124,11 +236,22 @@ impl BuilderState {
             self.restore_catalogs(before);
         }
         self.command_cursor -= 1;
-        self.index = BuilderIndex::rebuild(&self.sector);
+        // Audit finding #46: gate the structural index rebuild on dep_classes —
+        // a reverted field-only edit cannot have changed an indexed collection.
+        if dep_classes_touch_index(classes) {
+            self.index = BuilderIndex::rebuild(&self.sector);
+        }
         self.derivation_cache.clear();
         self.derivations.invalidate(classes);
         self.dirty = true;
         self.mark_validation_dirty();
+        // Audit finding #22: re-establish the derived state that lives *inside*
+        // the sector (and is therefore serialized into `sector.json`) so an
+        // auto-save flush can never persist a sector whose `economy` /
+        // `relations` / `chronicle` describe the pre-undo graph. Must run before
+        // `trigger_auto_save` so the (possibly immediate) write sees the
+        // recomputed, self-consistent pair.
+        self.reestablish_persisted_derived();
         self.trigger_auto_save();
         Ok(())
     }
@@ -149,13 +272,47 @@ impl BuilderState {
         }
         self.command_log[self.command_cursor] = cmd;
         self.command_cursor += 1;
-        self.index = BuilderIndex::rebuild(&self.sector);
+        // Audit finding #46: gate the structural index rebuild on dep_classes —
+        // a re-applied field-only edit cannot have changed an indexed collection.
+        if dep_classes_touch_index(classes) {
+            self.index = BuilderIndex::rebuild(&self.sector);
+        }
         self.derivation_cache.clear();
         self.derivations.invalidate(classes);
         self.dirty = true;
         self.mark_validation_dirty();
+        // Audit finding #22: same as `undo` — recompute the in-sector derived
+        // state before any auto-save flush so the serialized artifact is
+        // self-consistent with the redone graph.
+        self.reestablish_persisted_derived();
         self.trigger_auto_save();
         Ok(())
+    }
+
+    /// Audit finding #22: after an `undo` / `redo` re-establish the derived
+    /// state that is stored *inside* the `GeneratedSector` and thus serialized
+    /// into `sector.json` — `economy` (`sector.economy`), `relations`
+    /// (`sector.relations`), and `chronicle` (`sector.chronicle`). Each is
+    /// recomputed via [`Self::ensure_fresh`], which is a no-op unless the
+    /// command's `dep_classes` invalidation actually staled that overlay *and*
+    /// it was previously derived (a cold overlay's in-sector value was already
+    /// restored verbatim by `revert`/`apply`). The other tracked overlays
+    /// (`personae` / `hooks` / …) live on `BuilderState` fields, not in the
+    /// sector, so they do not affect the persisted artifact and are refreshed
+    /// lazily by the normal LD3/LD4 pump.
+    fn reestablish_persisted_derived(&mut self) {
+        use crate::builder::derivation_cache::DerivationKind;
+        // Suspend immediate auto-save writes so the internal `recompute_*`
+        // writes during this burst collapse into the single trailing
+        // `trigger_auto_save` the caller issues against the consistent sector —
+        // never persisting an Economy-fresh / Relations-stale intermediate (the
+        // §E4 feed-stability nudge re-stales Relations + History, which the
+        // ordering below then refreshes against the nudged graph).
+        let prev = std::mem::replace(&mut self.suspend_auto_save_writes, true);
+        self.ensure_fresh(DerivationKind::Economy);
+        self.ensure_fresh(DerivationKind::Relations);
+        self.ensure_fresh(DerivationKind::History);
+        self.suspend_auto_save_writes = prev;
     }
 
     /// Capture a named snapshot at the current command-log position.

@@ -687,15 +687,28 @@ fn issue(code: &str, message: &str, severity: Severity) -> ValidationIssue {
     }
 }
 
-/// Canonical set of validation `code` strings. Each variant maps to a stable
-/// SCREAMING_SNAKE_CASE slug via [`Self::as_slug`], which is what surfaces in
-/// the report JSON and the markdown render. Callers should prefer
-/// `ValidationCode::Foo.as_slug()` over inline string literals so that:
+/// Enum-backed subset of the validation `code` strings. Each variant maps to a
+/// stable SCREAMING_SNAKE_CASE slug via [`Self::as_slug`], which is what
+/// surfaces in the report JSON and the markdown render.
 ///
-/// 1. Typos are caught at compile time.
-/// 2. The set of codes is centrally enumerable (e.g. for documentation or for
-///    a future `--list-codes` CLI flag).
-/// 3. Renaming a code is a single-site edit.
+/// **This enum is *not* the complete code registry.** Today only the
+/// config-driven `resources`/`relations`/`economy`/`regions`/`route`/`faction`
+/// validators route through it; the structural checks (`GEN_*`, `OUT_*`,
+/// `WB_*`, `KEY_TABLE_EMPTY`, `NAME_POOL_EMPTY`, …) still emit their codes as
+/// bare string literals via the [`issue`] helper. Both forms produce the same
+/// `ValidationIssue { code: String, .. }`; this enum simply gives a portion of
+/// them compile-time-checked, single-site definitions. Preferring
+/// `ValidationCode::Foo.as_slug()` over an inline literal — where a variant
+/// exists — buys:
+///
+/// 1. Typos caught at compile time.
+/// 2. Central enumerability for that subset (e.g. documentation, or a future
+///    `--list-codes` CLI flag).
+/// 3. Renaming a code as a single-site edit.
+///
+/// New codes do not *have* to be added here, but doing so is encouraged. The
+/// `validation_code_slugs_are_unique_and_screaming_snake_case` test guards the
+/// casing and uniqueness of the slugs this enum does own.
 ///
 /// `#[non_exhaustive]` so adding a new code is not a SemVer break.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -747,5 +760,102 @@ enum_slug!(const ValidationCode {
 impl std::fmt::Display for ValidationCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_slug())
+    }
+}
+
+#[cfg(test)]
+mod code_registry_tests {
+    use super::ValidationCode;
+
+    /// Every [`ValidationCode`] variant, enumerated for the guard test below.
+    /// Kept in lock-step with the enum by [`assert_listed`], which `match`es
+    /// exhaustively (no `_` arm) — so adding a new variant is a compile error
+    /// until it is also added here, and no code can silently escape the guard.
+    const ALL: &[ValidationCode] = &[
+        ValidationCode::FactionDuplicateId,
+        ValidationCode::FactionBadWeight,
+        ValidationCode::FactionUnknownWorldType,
+        ValidationCode::FactionUnknownGovernment,
+        ValidationCode::FactionUnknownFeature,
+        ValidationCode::RouteBadMultiplier,
+        ValidationCode::RouteUnknownFeature,
+        ValidationCode::RouteUnknownWorldType,
+        ValidationCode::RouteUnknownGovernment,
+        ValidationCode::RouteUnknownRouteType,
+        ValidationCode::RelationsKindRuleEmpty,
+        ValidationCode::RelationsPairUnknownFaction,
+        ValidationCode::RelationsOverrideUnknownFaction,
+        ValidationCode::RegionsConditionBadWeight,
+        ValidationCode::EconomyTechMultiplierBad,
+        ValidationCode::EconomyPopMultiplierBad,
+        ValidationCode::ResourceScoreBad,
+        ValidationCode::ResourceTradeMultiplierBad,
+        ValidationCode::ResourceSupplyResilienceBad,
+    ];
+
+    /// Compile-time anchor: this exhaustive `match` (no `_` arm) fails to compile
+    /// if a `ValidationCode` variant is added without also being added to `ALL`.
+    /// Called from the test below so it is never dead code.
+    fn assert_listed(code: ValidationCode) {
+        match code {
+            ValidationCode::FactionDuplicateId
+            | ValidationCode::FactionBadWeight
+            | ValidationCode::FactionUnknownWorldType
+            | ValidationCode::FactionUnknownGovernment
+            | ValidationCode::FactionUnknownFeature
+            | ValidationCode::RouteBadMultiplier
+            | ValidationCode::RouteUnknownFeature
+            | ValidationCode::RouteUnknownWorldType
+            | ValidationCode::RouteUnknownGovernment
+            | ValidationCode::RouteUnknownRouteType
+            | ValidationCode::RelationsKindRuleEmpty
+            | ValidationCode::RelationsPairUnknownFaction
+            | ValidationCode::RelationsOverrideUnknownFaction
+            | ValidationCode::RegionsConditionBadWeight
+            | ValidationCode::EconomyTechMultiplierBad
+            | ValidationCode::EconomyPopMultiplierBad
+            | ValidationCode::ResourceScoreBad
+            | ValidationCode::ResourceTradeMultiplierBad
+            | ValidationCode::ResourceSupplyResilienceBad => {}
+        }
+    }
+
+    /// Every enum-backed slug is SCREAMING_SNAKE_CASE and unique. Guards the
+    /// "split-brain" code registry (Finding #39): the enum owns only a subset of
+    /// the codes, but the slugs it does own must stay well-formed and collision
+    /// free.
+    #[test]
+    fn validation_code_slugs_are_unique_and_screaming_snake_case() {
+        use std::collections::BTreeSet;
+
+        let mut seen: BTreeSet<&'static str> = BTreeSet::new();
+        for &code in ALL {
+            assert_listed(code);
+            let slug = code.as_slug();
+
+            // SCREAMING_SNAKE_CASE: starts with an uppercase letter, then only
+            // uppercase letters, digits, or underscores. No leading digit, no
+            // lowercase, no other punctuation, never empty.
+            assert!(
+                matches!(slug.chars().next(), Some('A'..='Z')),
+                "slug {slug:?} must start with an uppercase ASCII letter"
+            );
+            assert!(
+                slug.chars()
+                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_'),
+                "slug {slug:?} must be SCREAMING_SNAKE_CASE (^[A-Z][A-Z0-9_]*$)"
+            );
+
+            assert!(
+                seen.insert(slug),
+                "duplicate validation code slug: {slug:?}"
+            );
+        }
+
+        assert_eq!(
+            seen.len(),
+            ALL.len(),
+            "every ValidationCode variant must contribute a distinct slug"
+        );
     }
 }

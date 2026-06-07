@@ -25,6 +25,12 @@ impl ExportJobResult {
     }
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for ExportJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("export panicked: {message}")))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum View {
     Sector,

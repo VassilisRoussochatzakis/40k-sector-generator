@@ -80,6 +80,13 @@ impl BuilderWorkspace {
         self.states.iter().enumerate()
     }
 
+    /// Audit finding #30: mutable iterator over every open session, so the host
+    /// can flush each one's pending auto-save on app close/exit (not just the
+    /// focused state).
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut BuilderState> {
+        self.states.iter_mut()
+    }
+
     /// Push a new state onto the workspace and focus it. Returns the new
     /// active index. This is the §G6 "open in a new tab" entry point.
     pub fn push(&mut self, state: BuilderState) -> usize {

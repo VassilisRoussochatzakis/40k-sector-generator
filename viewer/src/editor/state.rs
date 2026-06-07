@@ -96,6 +96,12 @@ pub enum PreviewJobResult {
     Failed(String),
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for PreviewJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("preview panicked: {message}")))
+    }
+}
+
 pub struct EditorState {
     pub sector: Option<GeneratedSector>,
     pub project_input: Option<sectorforge::input::ProjectInput>,
@@ -312,16 +318,19 @@ mod tests {
     // route_pick/pending_route_start). `loaded_from` is set from `source_path`.
     #[test]
     fn set_sector_clears_dirty_bumps_revision_and_resets_state() {
-        let mut st = EditorState::default();
         // Dirty it up + set non-default transient state to prove the reset.
-        st.dirty = true;
-        st.revision = 5;
-        st.selection = Selection::System(SystemId::new("sys-0001"));
-        st.tab = Tab::Routes;
-        st.dialog = Dialog::Message("x".into());
-        st.route_pick = Some((0, RouteEndpoint::From));
-        st.pending_route_start = Some(SystemId::new("sys-0001"));
-        st.map_cache = None; // building a real SectorMapCache is heavy; field is set to None unconditionally.
+        // `map_cache` stays at its `None` default (building a real
+        // SectorMapCache is heavy; `set_sector` drops it unconditionally).
+        let mut st = EditorState {
+            dirty: true,
+            revision: 5,
+            selection: Selection::System(SystemId::new("sys-0001")),
+            tab: Tab::Routes,
+            dialog: Dialog::Message("x".into()),
+            route_pick: Some((0, RouteEndpoint::From)),
+            pending_route_start: Some(SystemId::new("sys-0001")),
+            ..Default::default()
+        };
 
         let before_rev = st.revision;
         st.set_sector(empty_sector("a", "A", "s", 8, 8), None, Some("path".into()));

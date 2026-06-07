@@ -117,6 +117,17 @@ impl eframe::App for BuilderApp {
 
         self.show_modal(ctx);
     }
+
+    /// Audit finding #30: guaranteed close-flush. eframe calls `on_exit` once
+    /// when the window is closing; flush every open session's pending auto-save
+    /// synchronously so the trailing edit of a debounced burst is never lost on
+    /// shutdown. Unconditional (ignores the debounce interval) and a no-op for
+    /// sessions with no `auto_save_path` or nothing pending.
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        for state in self.workspace.iter_mut() {
+            state.flush_auto_save();
+        }
+    }
 }
 
 impl BuilderApp {
@@ -147,6 +158,17 @@ impl BuilderApp {
         }
         if state.pump_validation() {
             ctx.request_repaint();
+        }
+        // Audit finding #30: throttled auto-save flush. Per-command writes are
+        // now debounced (`trigger_auto_save` only writes once per interval and
+        // otherwise marks a pending flag); this catches the trailing edit of a
+        // burst once the user goes idle, bounded to one blocking `fs::write`
+        // per `AUTO_SAVE_MIN_INTERVAL`. The unconditional close-flush lives in
+        // `eframe::App::on_exit`. When a write is still owed but deferred,
+        // schedule a repaint after the remaining interval so the flush fires
+        // even if no further user input would otherwise drive a frame.
+        if let Some(remaining) = state.tick_auto_save() {
+            ctx.request_repaint_after(remaining);
         }
     }
 

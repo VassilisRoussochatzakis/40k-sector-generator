@@ -35,6 +35,7 @@ use sectorforge::routes::RouteRulesFile;
 use sectorforge::sector_model::GeneratedSector;
 
 use super::data_catalogs::DataCatalogs;
+use super::derivation_cache::{DepClass, DerivationKind};
 use super::errors::BuilderError;
 use super::index::BuilderIndex;
 use super::state::BuilderState;
@@ -46,6 +47,7 @@ fn default_app_config(id: &str, title: &str, seed: &str, width: u32, height: u32
         RelationsGenerationConfig, RouteGenerationConfig, WorldSelectionConfig,
     };
     AppConfig {
+        schema_version: None,
         project: ProjectConfig {
             id: id.to_string(),
             title: title.to_string(),
@@ -895,6 +897,11 @@ pub fn reload_catalog(
     if rel == "sectorforge.toml" {
         state.config =
             toml::from_str::<AppConfig>(text).map_err(|e| reload_err("AppConfig", rel, e))?;
+        // Audit finding #21: a config reload can change any generation knob the
+        // derivation fingerprints fold in (e.g. relations `min_world_presence`),
+        // so stale every already-derived overlay so it re-derives against the
+        // new config.
+        state.invalidate_all_derivations();
         return Ok(());
     }
     let worlds_rel = format!(
@@ -906,72 +913,97 @@ pub fn reload_catalog(
         let cfg = sectorforge::worlds_toml::WorldsConfig::from_str(text)
             .map_err(|e| reload_err("WorldsConfig", rel, e))?;
         state.data_catalogs.worlds = Some(cfg);
+        // Audit finding #21: the worlds catalog is the §39 `SystemsWorlds`
+        // input, which fans out to every overlay — stale them all.
+        state.invalidate_all_derivations();
         return Ok(());
     }
     if state.config.inputs.factions.as_deref() == Some(rel) {
         let file =
             toml::from_str::<FactionsFile>(text).map_err(|e| reload_err("FactionsFile", rel, e))?;
         state.data_catalogs.factions = Some(file);
+        // Audit finding #21: mirror a `Factions`-class command's invalidation.
+        state.invalidate_derivations(&[DepClass::Factions]);
         return Ok(());
     }
     if state.config.inputs.route_rules.as_deref() == Some(rel) {
         let file = toml::from_str::<RouteRulesFile>(text)
             .map_err(|e| reload_err("RouteRulesFile", rel, e))?;
         state.data_catalogs.route_rules = Some(file.routes);
+        // Audit finding #21: mirror a `Routes`-class command's invalidation.
+        state.invalidate_derivations(&[DepClass::Routes]);
         return Ok(());
     }
     if state.config.inputs.relations.as_deref() == Some(rel) {
         let file = toml::from_str::<RelationsFile>(text)
             .map_err(|e| reload_err("RelationsFile", rel, e))?;
         state.data_catalogs.relations = Some(file.relations);
+        // Audit finding #21: mirror a `RelationsCfg`-class catalog edit.
+        state.invalidate_derivations(&[DepClass::RelationsCfg]);
         return Ok(());
     }
     if state.config.inputs.regions.as_deref() == Some(rel) {
         let file =
             toml::from_str::<RegionsFile>(text).map_err(|e| reload_err("RegionsFile", rel, e))?;
         state.data_catalogs.regions = Some(file.regions);
+        // Audit finding #21: mirror a `Regions`-class command's invalidation.
+        state.invalidate_derivations(&[DepClass::Regions]);
         return Ok(());
     }
     if state.config.inputs.economy.as_deref() == Some(rel) {
         let file = toml::from_str::<sectorforge::economy::EconomyFile>(text)
             .map_err(|e| reload_err("EconomyFile", rel, e))?;
         state.data_catalogs.economy = Some(file.into_config());
+        // Audit finding #21: mirror an `EconomyCfg`-class catalog edit.
+        state.invalidate_derivations(&[DepClass::EconomyCfg]);
         return Ok(());
     }
     if state.config.inputs.history.as_deref() == Some(rel) {
         let file =
             toml::from_str::<HistoryFile>(text).map_err(|e| reload_err("HistoryFile", rel, e))?;
         state.data_catalogs.history = Some(file.history);
+        // Audit finding #21: history has no DepClass — stale the kind directly.
+        state.invalidate_derivation_kinds(&[DerivationKind::History]);
         return Ok(());
     }
     if state.config.inputs.personae.as_deref() == Some(rel) {
         let cfg = toml::from_str::<sectorforge::personae::PersonaeConfig>(text)
             .map_err(|e| reload_err("PersonaeConfig", rel, e))?;
         state.data_catalogs.personae = Some(cfg);
+        // Audit finding #21: personae has no DepClass — stale the kind directly.
+        state.invalidate_derivation_kinds(&[DerivationKind::Personae]);
         return Ok(());
     }
     if state.config.inputs.hooks.as_deref() == Some(rel) {
         let cfg = toml::from_str::<sectorforge::hooks::HooksConfig>(text)
             .map_err(|e| reload_err("HooksConfig", rel, e))?;
         state.data_catalogs.hooks = Some(cfg);
+        // Audit finding #21: hooks has no DepClass — stale the kind directly.
+        state.invalidate_derivation_kinds(&[DerivationKind::Hooks]);
         return Ok(());
     }
     if state.config.inputs.sites.as_deref() == Some(rel) {
         let cfg = toml::from_str::<sectorforge::sites::SitesConfig>(text)
             .map_err(|e| reload_err("SitesConfig", rel, e))?;
         state.data_catalogs.sites = Some(cfg);
+        // Audit finding #21: sites has no DepClass — stale the kind directly.
+        state.invalidate_derivation_kinds(&[DerivationKind::Sites]);
         return Ok(());
     }
     if state.config.inputs.prose.as_deref() == Some(rel) {
         let cfg = toml::from_str::<sectorforge::prose::ProseConfig>(text)
             .map_err(|e| reload_err("ProseConfig", rel, e))?;
         state.data_catalogs.prose = Some(cfg);
+        // Audit finding #21: prose has no DepClass — stale the kind directly.
+        state.invalidate_derivation_kinds(&[DerivationKind::Prose]);
         return Ok(());
     }
     if state.config.inputs.missions.as_deref() == Some(rel) {
         let cfg = toml::from_str::<sectorforge::missions::MissionsConfig>(text)
             .map_err(|e| reload_err("MissionsConfig", rel, e))?;
         state.data_catalogs.missions = Some(cfg);
+        // Audit finding #21: missions has no DepClass — stale the kind directly.
+        state.invalidate_derivation_kinds(&[DerivationKind::Missions]);
         return Ok(());
     }
     if state.config.inputs.system_names.as_deref() == Some(rel)
@@ -980,6 +1012,9 @@ pub fn reload_catalog(
         let file = toml::from_str::<sectorforge::names::NameTables>(text)
             .map_err(|e| reload_err("NameTables", rel, e))?;
         state.data_catalogs.names = Some(file);
+        // Audit finding #21: name tables feed generation broadly with no single
+        // DepClass/kind — stale every already-derived overlay conservatively.
+        state.invalidate_all_derivations();
     }
     Ok(())
 }

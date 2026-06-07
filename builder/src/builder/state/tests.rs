@@ -1846,3 +1846,354 @@ fn recompute_methods_mark_fresh_and_arm_validation() {
         assert!(s.feedback.validation_dirty_since.is_some());
     }
 }
+
+// ── #35: apply ∘ revert == identity for EVERY BuilderCommand variant ──────────
+//
+// Parametric coverage layered on top of the bespoke per-command round-trip
+// tests above. The single source of truth for "one of every variant" is
+// `command::tests::all_variants()` (also reused by
+// `dep_classes_cover_all_variants`), so a new variant is automatically picked up
+// here the moment it is added there.
+//
+// For each variant: deep-clone the prepared fixture sector, `apply` the command
+// to the clone, then `revert` it, and assert the resulting sector matches the
+// pre-apply clone. This exercises each command's own mutation contract directly
+// (`BuilderCommand::apply`/`revert`) — the same surface the round-trip tests
+// above drive, just exhaustively. (`#[cfg(test)]` may build the fixture sector
+// off the bus, which is exactly what `all_variants()` does.)
+//
+// Two facts shape the comparison:
+//   * GeneratedSector has no PartialEq (leaf f32), so equality is over JSON.
+//   * Several reverts re-insert a removed/replaced entity at the *tail* of its
+//     vector rather than its original index (documented in command.rs — vec
+//     order is not load-bearing for output: "a re-add lands at the end of the
+//     vector — region order isn't load-bearing"). Equality is therefore
+//     compared with id-bearing arrays recursively sorted by id, i.e. "same
+//     entities, same field values, order-insensitive".
+//
+// `EditCatalog::{apply,revert}` are documented no-ops on the sector (the catalog
+// slice it carries lives outside `GeneratedSector` and is swapped in
+// `BuilderState::{run,undo}`), so identity on the sector holds trivially and
+// correctly for it; its catalog-slice round-trip is covered by the command-bus
+// tests above (e.g. the `EditCatalog` handling in `run`/`undo`/`redo`).
+#[cfg(test)]
+mod apply_revert_identity {
+    use crate::builder::command::tests::all_variants;
+    use sectorforge::sector_model::GeneratedSector;
+
+    /// Recursively sort every JSON array whose elements are all objects with a
+    /// string `"id"` field, keyed by that id. Canonicalises the order-insensitive
+    /// document collections (systems / routes / factions / regions / worlds) so
+    /// a tail-reinserting revert compares equal to the original.
+    fn canonicalize(v: &mut serde_json::Value) {
+        match v {
+            serde_json::Value::Array(items) => {
+                for item in items.iter_mut() {
+                    canonicalize(item);
+                }
+                let all_have_id = !items.is_empty()
+                    && items
+                        .iter()
+                        .all(|i| i.get("id").and_then(|x| x.as_str()).is_some());
+                if all_have_id {
+                    items.sort_by(|a, b| {
+                        let ak = a.get("id").and_then(|x| x.as_str()).unwrap_or("");
+                        let bk = b.get("id").and_then(|x| x.as_str()).unwrap_or("");
+                        ak.cmp(bk)
+                    });
+                }
+            }
+            serde_json::Value::Object(map) => {
+                for (_k, val) in map.iter_mut() {
+                    canonicalize(val);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Canonical (id-sorted) JSON snapshot of a sector.
+    fn canonical_sector(sector: &GeneratedSector) -> serde_json::Value {
+        let mut v = serde_json::to_value(sector).expect("serialize sector");
+        canonicalize(&mut v);
+        v
+    }
+
+    #[test]
+    fn every_variant_round_trips_to_identity() {
+        let (fixture, variants) = all_variants();
+        // Sanity tripwire: the reused list is the full command surface (mirrors
+        // the length assertion in `dep_classes_cover_all_variants`). If this
+        // drifts, the brief's "EVERY variant" guarantee has silently shrunk.
+        assert_eq!(
+            variants.len(),
+            40,
+            "all_variants() must cover every BuilderCommand variant"
+        );
+
+        for mut cmd in variants {
+            let label = format!("{cmd:?}");
+            let label = label
+                .split_whitespace()
+                .next()
+                .unwrap_or(&label)
+                .to_string();
+
+            // Fresh deep clone of the prepared document state per variant.
+            let mut sector = fixture.clone();
+            let before = canonical_sector(&sector);
+
+            cmd.apply(&mut sector)
+                .unwrap_or_else(|e| panic!("{label}: apply failed: {e:?}"));
+            cmd.revert(&mut sector)
+                .unwrap_or_else(|e| panic!("{label}: revert failed: {e:?}"));
+
+            let after = canonical_sector(&sector);
+            assert_eq!(
+                before, after,
+                "{label}: apply ∘ revert must restore the sector exactly \
+                 (compared as id-canonicalised JSON)"
+            );
+        }
+    }
+}
+
+/// Audit findings #30 / #22 / #46: auto-save debounce + close-flush, undo/redo
+/// re-establishing persisted-derived state, and the gated structural index
+/// rebuild. These exercise the off-bus derived/persistence seam — all document
+/// mutations still flow through the bus; the tests bypass it only to install
+/// fixtures and to corrupt the index as a rebuild tripwire (the `#[cfg(test)]`
+/// carve-out).
+mod off_bus_seam {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use sectorforge::sector_model::GeneratedSector;
+
+    fn auto_save_state(dir: &tempfile::TempDir) -> (BuilderState, Utf8PathBuf) {
+        let path = Utf8PathBuf::from_path_buf(dir.path().join("sector.json")).unwrap();
+        let mut s = seeded(); // alpha @ q0r0, beta @ q1r0
+        s.auto_save_path = Some(path.clone());
+        // The seeding ran before a path was set, so nothing is on disk yet and
+        // no write is owed.
+        s.auto_save_pending = false;
+        s.last_auto_save = None;
+        (s, path)
+    }
+
+    fn read_saved(path: &Utf8PathBuf) -> GeneratedSector {
+        let text = std::fs::read_to_string(path.as_std_path()).expect("auto-save file exists");
+        serde_json::from_str(&text).expect("auto-save JSON parses")
+    }
+
+    /// #30 — the FIRST command after a path is set writes immediately (no prior
+    /// write to throttle against), so the file lands and is up to date.
+    #[test]
+    fn first_command_writes_immediately() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let (mut s, path) = auto_save_state(&dir);
+        assert!(!path.as_std_path().exists(), "no write before the first command");
+
+        s.run(BuilderCommand::RenameSystem {
+            id: s.sector.systems[0].id.clone(),
+            from: String::new(),
+            to: "alpha-1".into(),
+        })
+        .unwrap();
+
+        assert!(!s.auto_save_pending, "the immediate write clears the pending flag");
+        let saved = read_saved(&path);
+        assert_eq!(saved.systems[0].name.as_ref(), "alpha-1");
+    }
+
+    /// #30 — a rapid SECOND command within the debounce interval does NOT write;
+    /// it only marks a pending flag, so the on-disk file still shows the first
+    /// edit. `flush_auto_save` then forces the trailing state out (the guaranteed
+    /// close-flush path), and the pending flag clears.
+    #[test]
+    fn rapid_second_command_debounced_then_flushed() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let (mut s, path) = auto_save_state(&dir);
+
+        s.run(BuilderCommand::RenameSystem {
+            id: s.sector.systems[0].id.clone(),
+            from: String::new(),
+            to: "first".into(),
+        })
+        .unwrap();
+        // Immediately rename again — well inside AUTO_SAVE_MIN_INTERVAL.
+        s.run(BuilderCommand::RenameSystem {
+            id: s.sector.systems[0].id.clone(),
+            from: "first".into(),
+            to: "second".into(),
+        })
+        .unwrap();
+
+        assert!(
+            s.auto_save_pending,
+            "the second rapid command is debounced — a write is owed, not done"
+        );
+        assert_eq!(
+            read_saved(&path).systems[0].name.as_ref(),
+            "first",
+            "on-disk file still reflects the first (throttled) write, not the burst tail"
+        );
+
+        s.flush_auto_save();
+        assert!(!s.auto_save_pending, "flush clears the pending flag");
+        assert_eq!(
+            read_saved(&path).systems[0].name.as_ref(),
+            "second",
+            "the guaranteed flush writes the trailing edit"
+        );
+    }
+
+    /// #30 — `flush_auto_save` / `tick_auto_save` are no-ops when no path is set
+    /// (debounce must never panic or spuriously mark state on an unconfigured
+    /// session) and when nothing is pending.
+    #[test]
+    fn flush_and_tick_are_noops_without_path_or_pending() {
+        let mut s = seeded();
+        assert!(s.auto_save_path.is_none());
+        s.run(BuilderCommand::RenameSystem {
+            id: s.sector.systems[0].id.clone(),
+            from: String::new(),
+            to: "x".into(),
+        })
+        .unwrap();
+        assert!(!s.auto_save_pending, "no path ⇒ no pending write");
+        s.flush_auto_save();
+        assert_eq!(s.tick_auto_save(), None);
+    }
+
+    /// #22 — after an undo that stales the in-sector `economy` derivation, the
+    /// undo path re-establishes it so `sector.economy` describes the REVERTED
+    /// graph (status Fresh), never the pre-undo one. Economy is primed first so
+    /// the §39 ledger actually tracks it (cold kinds are intentionally skipped).
+    #[test]
+    fn undo_reestablishes_persisted_economy() {
+        let mut s = seeded();
+        s.recompute_economy(); // prime: Economy now fresh + fingerprinted
+        assert_eq!(
+            s.derivation_status(DerivationKind::Economy),
+            DerivationStatus::Fresh
+        );
+
+        // A systems/worlds structural edit stales Economy (SystemsWorlds → all).
+        s.run(BuilderCommand::AddSystem {
+            coord: HexCoord { q: 2, r: 0 },
+            name: "gamma".into(),
+            result_id: None,
+        })
+        .unwrap();
+
+        // Undo it. The fix recomputes Economy against the reverted (2-system)
+        // graph BEFORE returning, so the status is Fresh, not Stale.
+        s.undo().unwrap();
+        assert_eq!(
+            s.derivation_status(DerivationKind::Economy),
+            DerivationStatus::Fresh,
+            "#22: undo must re-establish the in-sector economy so the persisted \
+             pair is self-consistent with the reverted graph"
+        );
+
+        // The installed report describes the reverted (2-system) graph, not the
+        // pre-undo 3-system one.
+        assert_eq!(
+            s.sector.economy.systems.len(),
+            2,
+            "the re-established economy matches the reverted graph's system count"
+        );
+    }
+
+    /// #22 + #30 together — with auto-save on, an undo flushes a sector whose
+    /// economy matches its graph. We force a flush and re-derive economy from the
+    /// persisted sector to confirm the serialized artifact is self-consistent.
+    #[test]
+    fn undo_then_flush_persists_consistent_economy() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let (mut s, path) = auto_save_state(&dir);
+        s.recompute_economy();
+
+        s.run(BuilderCommand::AddSystem {
+            coord: HexCoord { q: 2, r: 0 },
+            name: "gamma".into(),
+            result_id: None,
+        })
+        .unwrap();
+        s.undo().unwrap();
+        s.flush_auto_save();
+
+        // Reload the persisted sector and re-derive economy from it; a
+        // self-consistent artifact reproduces its own stored economy footprint.
+        let saved = read_saved(&path);
+        assert_eq!(saved.systems.len(), 2, "reverted graph persisted");
+        let cfg = sectorforge::economy::EconomyConfig {
+            enabled: true,
+            ..Default::default()
+        };
+        let fresh = sectorforge::economy::derive_with(&saved, &cfg);
+        // A stale (3-system) economy paired with a 2-system graph would differ.
+        assert_eq!(
+            saved.economy.systems.len(),
+            fresh.systems.len(),
+            "#22/#30: the persisted economy describes the persisted graph"
+        );
+    }
+
+    /// #46 — a region-only command (`dep_classes == [Regions]`) must NOT rebuild
+    /// the structural index. We corrupt the index with a sentinel beforehand; if
+    /// the gate works the sentinel survives (no rebuild), and a subsequent
+    /// structural command wipes it (rebuild fires).
+    #[test]
+    fn index_rebuild_gated_on_structural_dep_classes() {
+        let mut s = seeded();
+        let sentinel = SystemId::new("sentinel-not-in-sector");
+
+        // Region edit: index must be left untouched.
+        s.index.systems.insert(sentinel.clone(), 999);
+        s.run(BuilderCommand::AddRegion {
+            id: "reg-0001".into(),
+            name: "Rift".into(),
+            kind: sectorforge::regions::RegionConditionKind::WarpStorm,
+            centre: HexCoord { q: 0, r: 0 },
+        })
+        .unwrap();
+        assert!(
+            s.index.systems.contains_key(&sentinel),
+            "#46: a Regions-only command must skip the index rebuild"
+        );
+
+        // Structural edit: the rebuild fires and wipes the sentinel.
+        s.run(BuilderCommand::AddSystem {
+            coord: HexCoord { q: 3, r: 0 },
+            name: "delta".into(),
+            result_id: None,
+        })
+        .unwrap();
+        assert!(
+            !s.index.systems.contains_key(&sentinel),
+            "a SystemsWorlds command must rebuild the index"
+        );
+    }
+
+    /// #46 — the gate also covers `undo`: undoing a region edit leaves the index
+    /// untouched (no rebuild), proven again via the sentinel.
+    #[test]
+    fn index_rebuild_gated_on_undo_of_region_edit() {
+        let mut s = seeded();
+        s.run(BuilderCommand::AddRegion {
+            id: "reg-0001".into(),
+            name: "Rift".into(),
+            kind: sectorforge::regions::RegionConditionKind::WarpStorm,
+            centre: HexCoord { q: 0, r: 0 },
+        })
+        .unwrap();
+        let sentinel = SystemId::new("sentinel-not-in-sector");
+        s.index.systems.insert(sentinel.clone(), 999);
+        s.undo().unwrap();
+        assert!(
+            s.index.systems.contains_key(&sentinel),
+            "#46: undo of a Regions-only command must skip the index rebuild"
+        );
+    }
+}

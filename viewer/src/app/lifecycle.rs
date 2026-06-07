@@ -18,12 +18,29 @@ impl App {
     /// status string instead of silently collapsing to an empty `Vec` (the old
     /// `.unwrap_or_default()` swallow). Mirrors the builder's `last_subsector_error`
     /// slot; the viewer routes it through the shared sticky `export_status` line.
+    ///
+    /// Robustness (#25): a structurally-valid-but-inconsistent `sector.json`
+    /// (e.g. a seed system id missing from the system index) can trip an engine
+    /// `expect` *inside* `build_subsectors` — a panic the `Result` doesn't cover
+    /// — which would otherwise abort the whole GUI on ingestion. We wrap the call
+    /// in `catch_unwind` and turn a panic into the same `Option<String>` error
+    /// channel, so a bad load becomes a surfaced status line. The
+    /// `build_subsectors` signature is left untouched to avoid cross-crate ripple
+    /// (`src/export`). Under release `panic = "abort"` `catch_unwind` is a no-op;
+    /// the `gui-core` panic-hook crash note (#4) is the fallback there.
     pub(super) fn build_display_subsectors(
         sector: &GeneratedSector,
     ) -> (Vec<sectorforge::subsectors::Subsector>, Option<String>) {
-        match build_subsectors(sector, SubsectorConfig::default()) {
-            Ok(subs) => (subs, None),
-            Err(e) => (Vec::new(), Some(format!("subsectors: {e}"))),
+        let built = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            build_subsectors(sector, SubsectorConfig::default())
+        }));
+        match built {
+            Ok(Ok(subs)) => (subs, None),
+            Ok(Err(e)) => (Vec::new(), Some(format!("subsectors: {e}"))),
+            Err(payload) => (
+                Vec::new(),
+                Some(format!("subsectors panicked: {}", panic_msg(payload.as_ref()))),
+            ),
         }
     }
 
@@ -332,9 +349,21 @@ fn fraction(current: usize, total: usize) -> f32 {
     }
 }
 
+/// Best-effort message from a `catch_unwind` payload (#25). Panic payloads are
+/// almost always `&str` or `String`; anything else degrades to a placeholder.
+fn panic_msg(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "<non-string panic payload>".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{fraction, preview_progress};
+    use super::{fraction, panic_msg, preview_progress};
     use sectorforge::SectorProgress;
 
     #[test]
@@ -440,5 +469,39 @@ mod tests {
             crate::app::App::sector_to_json_bytes(&mut back2).unwrap(),
             json
         );
+    }
+
+    // #25: `build_display_subsectors` wraps the engine call in `catch_unwind`,
+    // so an inconsistent loaded sector surfaces as the `Option<String>` error
+    // instead of aborting the GUI. A valid sector yields no error (the wrapper
+    // is transparent on the happy path).
+    #[test]
+    fn build_display_subsectors_ok_on_valid_sector() {
+        use sectorforge::ids::system_id;
+        use sectorforge::sector_model::{empty_sector, empty_system, HexCoord, SystemKind};
+
+        let mut sector = empty_sector("t", "T", "seed-1", 8, 8);
+        sector.systems.push(empty_system(
+            system_id(1),
+            1,
+            "S1".into(),
+            HexCoord { q: 1, r: 1 },
+            SystemKind::Star,
+            None,
+        ));
+        let (_subs, err) = crate::app::App::build_display_subsectors(&sector);
+        assert!(err.is_none(), "valid sector should not surface an error");
+    }
+
+    // The panic-message extractor used to populate that error string handles the
+    // common payload shapes a caught engine `expect` produces.
+    #[test]
+    fn panic_msg_extracts_str_string_and_falls_back() {
+        let s: Box<dyn std::any::Any + Send> = Box::new("missing sys");
+        assert_eq!(panic_msg(s.as_ref()), "missing sys");
+        let owned: Box<dyn std::any::Any + Send> = Box::new(String::from("boom"));
+        assert_eq!(panic_msg(owned.as_ref()), "boom");
+        let other: Box<dyn std::any::Any + Send> = Box::new(7u8);
+        assert_eq!(panic_msg(other.as_ref()), "<non-string panic payload>");
     }
 }

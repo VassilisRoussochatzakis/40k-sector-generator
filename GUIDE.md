@@ -50,10 +50,12 @@ cargo build --release
 # codegen, incremental). A one-line GUI edit relaunches in ~1s instead of ~85s.
 # Use plain `--release` for shipping artifacts or runtime benchmarks.
 
-# Note: Example projects (big_test, big_sparse_test, m42_project) are 
-# bundled into the binaries for portability.
+# Note: Example projects (big_test, big_sparse_test, m42_project) are plain
+# on-disk directories under examples/ — NOT embedded in the binaries. Their
+# --project paths are CWD-relative, so run these commands from the repository
+# root (e.g. --project examples/<name>).
 
-# Validate the bundled example project (M42 world data + sample TOML files)
+# Validate the example project (M42 world data + sample TOML files)
 cargo run --bin sectorforge -- validate --project examples/m42_project
 
 # Generate a sector
@@ -501,7 +503,7 @@ cargo run --bin sectorforge -- diff \
 Entity matching uses the generator's stable IDs (`sys-NNNN`, `route-...`),
 so renaming a world is reported as a modification rather than a
 delete+add. The diff is a pure derivation — same inputs ⇒ same output —
-covered by golden-style tests against the bundled example project.
+covered by golden-style tests against the example project.
 
 The Markdown digest is organised by stratum: schema warnings, system-level
 changes (state, dominant/sovereign/occupier flips, primary-faction
@@ -1111,7 +1113,7 @@ my-sector-project/
   out/                             # created by generate
 ```
 
-The bundled [examples/m42_project/](examples/m42_project/) is the reference
+The [examples/m42_project/](examples/m42_project/) directory is the reference
 project that exercises every authorable knob — all `[features]` overlays, the
 full economy stack (`by_world_type` / `by_tech_level` / `by_population` and
 the §4 NEW2 `[resources]` block), every relation override form, all eight
@@ -1482,6 +1484,31 @@ with `UPDATE_GOLDEN_JSON=1 UPDATE_GOLDEN_MD=1 cargo test --test it -- golden`,
 then review `git diff tests/goldens/`. This content golden is the safety net the
 IMPROVEMENT_REVIEW god-file splits are gated on.
 
+Four more export writers carry their own self-blessing byte-goldens in
+[tests/it/export_byte_goldens.rs](tests/it/export_byte_goldens.rs), mirroring the
+`golden_png.rs` / `svg_export_tests.rs` blake3-pin pattern: the **heatmap**
+(`score_sector` data + a `HeatmapMode::Control` PNG render), the **system_map**
+(`render_system` PNG of the first fixture system), **html_export** (`render_html`
+bytes), and **segmentum** (a full committed `segmentum.json`, gated behind
+`#[ignore]` like the other slow composition tests). Bless / refresh each with its
+own env var — `UPDATE_GOLDEN_HEATMAP`, `UPDATE_GOLDEN_HEATMAP_PNG`,
+`UPDATE_GOLDEN_SYSTEM_MAP`, `UPDATE_GOLDEN_HTML`, and (with `--ignored`)
+`UPDATE_GOLDEN_SEGMENTUM` — then review `git diff tests/goldens/`.
+
+Two further determinism nets: an exhaustive `apply ∘ revert == identity` test
+over **every** `BuilderCommand` variant
+([builder/src/builder/state/tests.rs](builder/src/builder/state/tests.rs),
+`apply_revert_identity`), which reuses the single `command::tests::all_variants()`
+list (also driving `dep_classes_cover_all_variants`) and compares the sector as
+id-canonicalised JSON so tail-reinserting reverts still count as identity; and a
+`run_search` byte-equality test
+([tests/it/search_and_diff.rs](tests/it/search_and_diff.rs)) that pins the whole
+serialized `SearchOutcome` — including the concurrently-built `near_misses` set —
+identical whether the search runs on a forced single-thread rayon pool or the
+default parallel pool. The two new cargo-fuzz targets `sector_json_parse`
+(`serde_json::from_slice::<GeneratedSector>`) and `factions_toml_parse`
+(`FactionsFile`) live under [fuzz/](fuzz/) alongside the existing parse targets.
+
 To get different output, change the seed:
 
 ```bash
@@ -1529,11 +1556,42 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
 - **No locks held across rendering.** `egui` receives an `Arc<GeneratedSector>`
   clone for the frame and drops it at frame end; the worker side never
   takes a `Mutex` that overlaps the paint pass.
+- **Worker panics surface as failures, not dead channels.** `spawn_job`
+  ([gui-core/src/jobs.rs](gui-core/src/jobs.rs)) runs the worker closure inside
+  `std::panic::catch_unwind`; a panic is converted into the job's own failure
+  variant (`*JobResult::Failed`) via the `FromJobPanic` trait and delivered over
+  the normal channel, instead of dropping the sender and leaving the receiver to
+  observe only `Disconnected`. A result type that can't represent a panic
+  returns `None` from `FromJobPanic` (e.g. `DerivationJobResult`, whose `Failed`
+  needs the kind resolved at drain time) and falls back to the `Disconnected`
+  path. Under the release profile (`panic = "abort"`) `catch_unwind` is a no-op,
+  so this surfacing only applies to unwinding builds.
+- **Crash-note panic hook.** Both GUI mains install
+  `gui_core::diagnostics::install_panic_hook` ([gui-core/src/diagnostics.rs](gui-core/src/diagnostics.rs))
+  at the very start of `main`. Because the release build aborts on panic, the
+  hook writes a timestamped crash note (message + location + backtrace) to the
+  OS temp dir (`sectorforge-<app>-crash-<unix_millis>.txt`) before the process
+  dies — the only breadcrumb left under `panic = "abort"`. It chains the
+  previous hook, so the default abort/print still happens.
+- **Load-time ingestion is panic-guarded.** A structurally-valid-but-
+  inconsistent `sector.json` can trip an engine `expect` *inside*
+  `build_subsectors` (a panic its `SubsectorBuildError` `Result` doesn't cover)
+  during the post-load derived computation. The GUI ingestion seams wrap that
+  call in `catch_unwind` and surface the panic through the existing error
+  channel instead of aborting: the viewer via `App::build_display_subsectors`
+  ([viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs)) → `export_status`,
+  the builder via `panels::subsectors::catch_build_subsectors`
+  ([builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs))
+  → `feedback.last_subsector_error`. The `src/export` `build_subsectors`
+  signature is deliberately left unchanged to avoid cross-crate ripple; under
+  release `panic = "abort"` these catches are no-ops and the crash-note hook is
+  the fallback.
 
 If you add a new long-running job to the GUI or builder, follow the same
 pattern: snapshot the inputs, run on a `std::thread`, attach a revision,
-poll a cancellation flag, deliver via `mpsc::Sender`, and reject stale
-results on receive.
+poll a cancellation flag, deliver via `mpsc::Sender`, reject stale
+results on receive, and implement `FromJobPanic` for the result type so a
+worker panic surfaces as a failure rather than a dead channel.
 
 ---
 

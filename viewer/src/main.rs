@@ -31,6 +31,10 @@ struct Cli {
 }
 
 fn main() -> ExitCode {
+    // Install the crash-note panic hook before any other work: under release
+    // `panic = "abort"` a panic is an otherwise-silent hard crash, so this drops
+    // a breadcrumb to the OS temp dir first. See `gui-core/src/diagnostics.rs`.
+    sectorforge_gui_core::diagnostics::install_panic_hook("viewer");
     let cli = Cli::parse();
     let project_dir = if cli.segmentum.is_some() {
         None

@@ -3,7 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct AppConfig {
+    /// §34: forward-compat schema marker. Currently unused by any behaviour —
+    /// it only lets future loaders detect the file's schema generation. `None`
+    /// (the default) is the implicit v0 and is skipped on serialize so byte
+    /// output is unchanged for files that omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_version: Option<u32>,
     pub project: ProjectConfig,
     pub inputs: InputConfig,
     pub generation: GenerationConfig,
@@ -31,6 +38,7 @@ pub struct AppConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectConfig {
     pub id: String,
     pub title: String,
@@ -41,6 +49,7 @@ pub struct ProjectConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct InputConfig {
     /// Directory containing `worlds.toml`.
     pub world_data_dir: String,
@@ -90,6 +99,7 @@ pub struct InputConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct GenerationConfig {
     pub seed: String,
     pub sector_width: u32,
@@ -127,6 +137,7 @@ pub struct GenerationConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlacementConfig {
     #[serde(default = "default_placement_mode")]
     pub mode: PlacementMode,
@@ -176,6 +187,7 @@ fn default_min_dist() -> u32 {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct WorldSelectionConfig {
     #[serde(default = "default_selection_mode")]
     pub mode: WorldSelectionMode,
@@ -242,6 +254,7 @@ fn default_bias() -> f64 {
 /// safe than a longer one carrying the same hazards (the "short is safer than
 /// long" invariant is preserved by construction).
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct StabilityTargets {
     #[serde(default)]
     pub stable: f64,
@@ -254,6 +267,7 @@ pub struct StabilityTargets {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct RouteGenerationConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
@@ -298,6 +312,7 @@ fn default_route_density() -> f64 {
 /// pairs and tens of MB of JSON. Filtering by minimum world presence keeps
 /// the matrix scoped to factions that meaningfully appear in the sector.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct RelationsGenerationConfig {
     /// Minimum number of worlds a faction must occupy to appear in the
     /// `relations` matrix. `1` (default) emits a pair for every faction with
@@ -321,6 +336,7 @@ fn default_min_world_presence() -> usize {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct OutputConfig {
     pub directory: String,
     pub formats: Vec<OutputFormat>,
@@ -347,6 +363,7 @@ pub struct OutputConfig {
 /// design size. The base sector map is ~720x460 with an 8x10 grid; at
 /// `sector_scale = 5` it lands around 3600x2300, i.e. ~4K. Valid range 1..=8.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BitmapConfig {
     #[serde(default = "default_scale")]
     pub sector_scale: u32,
@@ -437,6 +454,7 @@ impl core::fmt::Display for OutputFormat {
 /// `player_edition` runs the existing intel redaction helper over the sector
 /// before inlining so Hidden-tier presences and GM-only fields are stripped.
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct HtmlConfig {
     #[serde(default = "default_html_theme")]
     pub theme: HtmlTheme,

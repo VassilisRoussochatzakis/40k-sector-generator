@@ -1,0 +1,83 @@
+{
+  "id": "seg-golden",
+  "title": "Golden Segmentum",
+  "stitch_seed": "stitch-golden",
+  "columns": 2,
+  "rows": 1,
+  "faction_mode": "shared",
+  "generator_name": "sectorforge",
+  "generator_version": "0.1.0",
+  "children": [
+    {
+      "id": "alpha",
+      "project": "/Users/vassilis/Documents/40k-sector-generator/examples/m42_project",
+      "column": 0,
+      "row": 0,
+      "title": "Alpha",
+      "sector_id": "m42-sector",
+      "seed": "alpha-seed",
+      "sector_digest": "blake3:4394440eb5879ece3547fd1a4e91f02dcdfa674018ef74b108ec73c2797aa00d",
+      "width": 10,
+      "height": 10,
+      "system_count": 24,
+      "world_count": 94,
+      "route_count": 67
+    },
+    {
+      "id": "beta",
+      "project": "/Users/vassilis/Documents/40k-sector-generator/examples/m42_project",
+      "column": 1,
+      "row": 0,
+      "title": "Beta",
+      "sector_id": "m42-sector",
+      "seed": "beta-seed",
+      "sector_digest": "blake3:3389488cace25e474f0e6c923bcb202cd940a81cda737bcc90676e11200577a2",
+      "width": 10,
+      "height": 10,
+      "system_count": 24,
+      "world_count": 93,
+      "route_count": 73
+    }
+  ],
+  "inter_sector_links": [
+    {
+      "id": "sl-0001",
+      "from_child_id": "alpha",
+      "to_child_id": "beta",
+      "from_system_id": "sys-0023",
+      "to_system_id": "sys-0005",
+      "orientation": "east_west",
+      "distance_units": 1,
+      "route_type": "charted_passage",
+      "stability": "unstable"
+    },
+    {
+      "id": "sl-0002",
+      "from_child_id": "alpha",
+      "to_child_id": "beta",
+      "from_system_id": "sys-0024",
+      "to_system_id": "sys-0004",
+      "orientation": "east_west",
+      "distance_units": 1,
+      "route_type": "charted_passage",
+      "stability": "unstable"
+    }
+  ],
+  "manifest": {
+    "segmentum_id": "seg-golden",
+    "generator_name": "sectorforge",
+    "generator_version": "0.1.0",
+    "stitch_seed": "stitch-golden",
+    "stitch_seed_hash": "d9f0725e41490c20aac37d45aefb745a0b38d4bd0459a892d315efa003abf0c0",
+    "settings_digest": "blake3:28c740d7c4ca61be06b9425df77110b14e2d6b41420b132b664a9ba999a70ed2",
+    "faction_mode": "shared",
+    "child_digests": {
+      "alpha": "blake3:4394440eb5879ece3547fd1a4e91f02dcdfa674018ef74b108ec73c2797aa00d",
+      "beta": "blake3:3389488cace25e474f0e6c923bcb202cd940a81cda737bcc90676e11200577a2"
+    },
+    "system_count": 48,
+    "world_count": 187,
+    "route_count": 140,
+    "inter_sector_link_count": 2
+  }
+}

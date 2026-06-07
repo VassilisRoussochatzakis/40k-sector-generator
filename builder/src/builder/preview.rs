@@ -26,6 +26,12 @@ pub enum PreviewJobResult {
     Failed(String),
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for PreviewJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("preview panicked: {message}")))
+    }
+}
+
 /// §G3 debounce window (ms) between a config edit and the worker dispatch.
 pub const DEFAULT_DEBOUNCE_MS: u64 = 200;
 

@@ -1,11 +1,20 @@
 [package]
 name = "sectorforge"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.87"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [workspace]
 members = ["viewer", "gui-core", "builder"]
+
+# Shared package metadata for the root crate + every workspace member. These
+# three fields were identical across all four manifests; hoisting them here
+# makes them a single source of truth (members reference each with
+# `<field>.workspace = true`). Per-crate `name` stays inline.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
 
 # RUST_FIXES.md TF-S-3 / F-X06 dep-hygiene: single source of truth for every
 # dependency shared by ≥2 workspace members. Per-crate manifests pull these in
@@ -79,6 +88,10 @@ dhat-heap = ["dep:dhat"]
 tempfile.workspace = true
 proptest = "1"
 criterion = { workspace = true }
+# #17: integration tests force `run_search` onto a single-thread rayon pool to
+# prove its serialized output (incl. `near_misses`) matches the default parallel
+# run byte-for-byte. Tracks the `rayon = "1"` pin in `[dependencies]`.
+rayon = "1"
 
 # RUST_FIXES.md QW-C-4: opt this crate into the workspace clippy lint levels.
 [lints]
@@ -122,9 +135,13 @@ codegen-units = 1
 panic = "abort"
 strip = "symbols"
 
+# Benchmarks run with release codegen so the numbers reflect shipping builds.
+# Inherit release rather than re-pinning `lto = "fat"` / `codegen-units = 1`
+# (the previous standalone keys, identical to release). `panic` / `strip` from
+# release don't apply to the bench profile, so this is a pure no-divergence
+# consolidation.
 [profile.bench]
-lto = "fat"
-codegen-units = 1
+inherits = "release"
 
 # docs/OPTIMIZE.txt G5: profiling profile inherits release but keeps frame pointers,
 # line-table debug info, and symbols so flamegraph/samply/Instruments resolve.

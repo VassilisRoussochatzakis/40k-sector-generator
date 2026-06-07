@@ -1,7 +1,37 @@
+use std::panic::AssertUnwindSafe;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+/// Lets [`spawn_job`] turn a *worker panic* into a surfaced failure value of the
+/// job's own result type, instead of letting the panic silently drop the sender
+/// (which the receiver would only ever observe as `Disconnected`).
+///
+/// Implement it on a result enum that has a "failed" variant carrying a message
+/// — return `Some(Self::Failed(message))`. Return `None` when the type can't
+/// represent a panic as a value (e.g. a result whose failure variant needs more
+/// context than a string, or a bare smoke-test payload); in that case the worker
+/// thread drops the sender as before and the receiver sees `Disconnected`, with
+/// the panic-hook crash note (see [`crate::diagnostics`]) as the breadcrumb.
+///
+/// Under the release profile (`panic = "abort"`) the `catch_unwind` in
+/// `spawn_job` is a no-op — the process aborts before this runs — so this path
+/// only surfaces failures in debug/unwinding builds; the panic hook is the
+/// release fallback.
+pub trait FromJobPanic: Sized {
+    /// Build a failure value from a worker panic message, or `None` if this type
+    /// can't represent one.
+    fn from_job_panic(message: String) -> Option<Self>;
+}
+
+/// Bare payloads used by smoke tests and trivial jobs can't carry a failure, so
+/// a panic in such a worker falls through to the `Disconnected` path.
+impl FromJobPanic for &'static str {
+    fn from_job_panic(_message: String) -> Option<Self> {
+        None
+    }
+}
 
 /// Handle to a background job.
 pub struct JobHandle<T> {
@@ -43,7 +73,7 @@ pub fn spawn_job<T, F>(
     f: F,
 ) -> JobHandle<T>
 where
-    T: Send + 'static,
+    T: FromJobPanic + Send + 'static,
     F: FnOnce(JobContext) -> T + Send + 'static,
 {
     let (tx, rx) = channel();
@@ -59,8 +89,28 @@ where
     };
 
     thread::spawn(move || {
-        let result = f(job_ctx);
-        let _ = tx.send(result);
+        // A worker panic must not silently drop the sender — the receiver would
+        // then only ever see `Disconnected`, which a caller can't tell apart
+        // from a vanished thread. Catch it and convert it into a surfaced
+        // failure of `T` (when `T` can represent one). `AssertUnwindSafe` is
+        // sound here: on the unwind path we never touch `f`'s captured state
+        // again — we only build a fresh failure value from the panic message.
+        // (Under release `panic = "abort"` this catch is a no-op; the
+        // `diagnostics` panic hook is the fallback there.)
+        let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| f(job_ctx)));
+        match outcome {
+            Ok(result) => {
+                let _ = tx.send(result);
+            }
+            Err(payload) => {
+                let message = panic_message(payload.as_ref());
+                // If `T` can't represent the failure, drop the sender as before;
+                // the receiver then observes `Disconnected`.
+                if let Some(failed) = T::from_job_panic(message) {
+                    let _ = tx.send(failed);
+                }
+            }
+        }
         ctx.request_repaint();
     });
 
@@ -72,6 +122,20 @@ where
         status,
         cancelled,
         receiver: rx,
+    }
+}
+
+/// Extract a human-readable message from a `catch_unwind` payload. Panic
+/// payloads are almost always `&str` (from `panic!("literal")`) or `String`
+/// (from `panic!("{}", x)` / `.expect(format!(...))`); anything else degrades to
+/// a placeholder.
+fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "<non-string panic payload>".to_string()
     }
 }
 
@@ -140,5 +204,58 @@ mod tests {
             handle.receiver.recv_timeout(Duration::from_secs(1)),
             Ok("done")
         );
+    }
+
+    /// A test result type that *can* represent a worker panic — mirrors the
+    /// shape of the real `*JobResult` enums (`Done` / `Failed(String)`).
+    // `Done` is kept for shape-parity with the real enums even though only the
+    // panic path (`Failed`) is exercised here.
+    #[allow(dead_code)]
+    #[derive(Debug, PartialEq, Eq)]
+    enum TestResult {
+        Done(i32),
+        Failed(String),
+    }
+
+    impl FromJobPanic for TestResult {
+        fn from_job_panic(message: String) -> Option<Self> {
+            Some(Self::Failed(message))
+        }
+    }
+
+    #[test]
+    fn worker_panic_becomes_surfaced_failed_result() {
+        let ctx = egui::Context::default();
+        // Silence the default hook's stderr print for this intentional panic;
+        // restore it afterwards so other tests aren't affected.
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let handle: JobHandle<TestResult> =
+            spawn_job("panic-job", 7, "panicker", ctx, |_| panic!("boom in worker"));
+        let got = handle.receiver.recv_timeout(Duration::from_secs(1));
+        std::panic::set_hook(prev);
+
+        match got {
+            Ok(TestResult::Failed(msg)) => assert!(
+                msg.contains("boom in worker"),
+                "failure should carry the panic message, got: {msg}"
+            ),
+            other => panic!("expected surfaced Failed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn worker_panic_on_non_representable_type_disconnects() {
+        let ctx = egui::Context::default();
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        // `&'static str` returns `None` from `from_job_panic`, so a panic drops
+        // the sender and the receiver observes `Disconnected` (unchanged).
+        let handle: JobHandle<&'static str> =
+            spawn_job("panic-str", 1, "panicker", ctx, |_| panic!("boom"));
+        let got = handle.receiver.recv_timeout(Duration::from_secs(1));
+        std::panic::set_hook(prev);
+
+        assert_eq!(got, Err(std::sync::mpsc::RecvTimeoutError::Disconnected));
     }
 }

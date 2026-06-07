@@ -33,6 +33,12 @@ pub enum ComposeJobResult {
     Failed(String),
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for ComposeJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("compose panicked: {message}")))
+    }
+}
+
 /// §SG4 scratch row for the "add inter-sector link" form. Held outside the
 /// composed [`Segmentum`] so the form survives even when no segmentum is
 /// composed yet.

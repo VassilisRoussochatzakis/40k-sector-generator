@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::{emit_report, load_or_regenerate};
+use super::common::{emit_report, resolve_sector_with_cfg};
 
 pub(crate) fn run_missions(
     project: Option<&Utf8PathBuf>,
@@ -13,11 +13,9 @@ pub(crate) fn run_missions(
     json: bool,
     player: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
-    let cfg = sectorforge::missions::MissionsConfig {
-        player_edition: player,
-        ..Default::default()
-    };
+    let (sec, mut cfg) =
+        resolve_sector_with_cfg(project, sector, |input| input.catalogs.missions.clone())?;
+    cfg.player_edition = player;
     let report = sectorforge::derive_missions_with(&sec, &cfg);
     emit_report(
         out,

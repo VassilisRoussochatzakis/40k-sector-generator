@@ -62,6 +62,18 @@ pub enum DerivationJobResult {
     },
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for DerivationJobResult {
+    /// `None`: the `Failed` variant needs the [`DerivationKind`], which is
+    /// resolved at *drain* time from the in-flight map slot, not known to the
+    /// generic spawner. A panicking derivation worker therefore drops its sender
+    /// and the drain's existing `TryRecvError::Disconnected` arm handles it
+    /// (discard the result, leave the kind stale so it re-dispatches) — same as
+    /// a vanished worker. The `diagnostics` panic hook records the crash note.
+    fn from_job_panic(_message: String) -> Option<Self> {
+        None
+    }
+}
+
 /// One in-flight background derivation: the worker handle plus the input
 /// fingerprint captured at dispatch (the LD3 stale-guard).
 pub struct InFlightDerivation {

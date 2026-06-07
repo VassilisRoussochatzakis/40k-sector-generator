@@ -15,9 +15,17 @@ cargo-fuzz = true
 #   cargo +nightly fuzz run worlds_toml_parse
 #   cargo +nightly fuzz run presets_load
 #   cargo +nightly fuzz run map_theme_parse_color
+#   cargo +nightly fuzz run sector_json_parse
+#   cargo +nightly fuzz run factions_toml_parse
 [dependencies]
 libfuzzer-sys = "0.4"
 sectorforge = { path = ".." }
+# Parse-surface deps for the targets below. `toml` backs the *_toml_parse
+# targets (config/worlds/presets/map_theme/factions); `serde_json` backs
+# `sector_json_parse`. Versions track the root workspace pins (toml 0.8,
+# serde_json 1).
+serde_json = "1"
+toml = "0.8"
 
 [[bin]]
 name = "config_parse"
@@ -40,5 +48,17 @@ doc = false
 [[bin]]
 name = "map_theme_parse_color"
 path = "fuzz_targets/map_theme_parse_color.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "sector_json_parse"
+path = "fuzz_targets/sector_json_parse.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "factions_toml_parse"
+path = "fuzz_targets/factions_toml_parse.rs"
 test = false
 doc = false

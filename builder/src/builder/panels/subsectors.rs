@@ -125,7 +125,7 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
     if let Some(cache) = state.map_view.cache.as_ref() {
         return cache.subsectors.clone();
     }
-    let mut subs = match build_subsectors(
+    let mut subs = match catch_build_subsectors(
         &state.sector,
         SubsectorConfig {
             target_systems_per_subsector: state.subsector_target_systems.max(1),
@@ -137,12 +137,49 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
             v
         }
         Err(e) => {
-            state.feedback.last_subsector_error = Some(e.to_string());
+            state.feedback.last_subsector_error = Some(e);
             Vec::new()
         }
     };
     apply_subsector_overrides(&mut subs, state);
     subs
+}
+
+/// Robustness (#25): run [`build_subsectors`] but also catch an engine panic —
+/// a structurally-valid-but-inconsistent loaded sector (e.g. a seed system id
+/// missing from the system index) can trip an `expect` *inside*
+/// `build_subsectors` that the `SubsectorBuildError` `Result` doesn't cover.
+/// Without this, that panic aborts the whole builder when the MAP/SUBSECTORS
+/// derivation runs on a freshly loaded sector. Both the `SubsectorBuildError`
+/// and the panic collapse to a single error string the callers stash in
+/// `feedback.last_subsector_error` (surfaced by the status bar). The
+/// `build_subsectors` signature is left untouched to avoid cross-crate ripple
+/// (`src/export`). Under release `panic = "abort"` `catch_unwind` is a no-op;
+/// the `gui-core` panic-hook crash note (#4) is the fallback there.
+pub(crate) fn catch_build_subsectors(
+    sector: &GeneratedSector,
+    config: SubsectorConfig,
+) -> Result<Vec<Subsector>, String> {
+    let built = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        build_subsectors(sector, config)
+    }));
+    match built {
+        Ok(Ok(subs)) => Ok(subs),
+        Ok(Err(e)) => Err(e.to_string()),
+        Err(payload) => Err(format!("subsectors panicked: {}", panic_msg(payload.as_ref()))),
+    }
+}
+
+/// Best-effort message from a `catch_unwind` payload. Panic payloads are almost
+/// always `&str` or `String`; anything else degrades to a placeholder.
+fn panic_msg(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "<non-string panic payload>".to_string()
+    }
 }
 
 /// §SUB2 / §U6: re-cluster every system with a new target group size. This is a
@@ -801,5 +838,29 @@ mod tests {
         super::clear_all_overrides(&mut state);
         assert_eq!(state.snapshots.len(), 1, "clear-all should snapshot first");
         assert_eq!(state.snapshots[0].name, "auto: clear subsector overrides");
+    }
+
+    // #25: the `catch_build_subsectors` wrapper. A well-formed sector returns
+    // `Ok` (the wrapper is transparent on the happy path)…
+    #[test]
+    fn catch_build_subsectors_ok_on_valid_sector() {
+        let mut state = blank(8, 8);
+        state.sector.add_system(HexCoord { q: 1, r: 1 }, "Alpha").unwrap();
+        state.sector.add_system(HexCoord { q: 4, r: 4 }, "Bravo").unwrap();
+        let out = catch_build_subsectors(&state.sector, SubsectorConfig::default());
+        assert!(out.is_ok(), "valid sector should not error");
+    }
+
+    // …and `panic_msg` extracts a readable string from each common payload
+    // shape, which is what a caught engine `expect` lands in
+    // `last_subsector_error` as.
+    #[test]
+    fn panic_msg_extracts_str_string_and_falls_back() {
+        let s: Box<dyn std::any::Any + Send> = Box::new("missing sys");
+        assert_eq!(panic_msg(s.as_ref()), "missing sys");
+        let owned: Box<dyn std::any::Any + Send> = Box::new(String::from("boom"));
+        assert_eq!(panic_msg(owned.as_ref()), "boom");
+        let other: Box<dyn std::any::Any + Send> = Box::new(7u8);
+        assert_eq!(panic_msg(other.as_ref()), "<non-string panic payload>");
     }
 }

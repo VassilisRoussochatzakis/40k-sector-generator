@@ -1330,7 +1330,7 @@ impl BuilderCommand {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     fn empty() -> GeneratedSector {
@@ -1396,16 +1396,25 @@ mod tests {
         );
     }
 
-    /// D-S1/D3: every variant must classify into a *non-empty* dependency set.
-    /// The exhaustive `match` already forces an arm per variant, but cannot
-    /// catch an arm that returns `&[]` (which would silently skip derivation
-    /// invalidation). Constructing one of each also documents the full command
-    /// surface, and the length tripwire forces this list to grow with the enum.
-    #[test]
-    fn dep_classes_cover_all_variants() {
+    /// #35 / D-S1/D3: build one of every `BuilderCommand` variant against a
+    /// small prepared sector, returning both the sector and the variant list so
+    /// callers can run the commands against the same state the ids reference.
+    ///
+    /// This is the single source of truth for "every variant" — reused by
+    /// [`dep_classes_cover_all_variants`] and by the `apply ∘ revert == identity`
+    /// test in `state/tests.rs`. The prepared sector has: systems `A`@(0,0),
+    /// `B`@(1,0), `C`@(2,0), world `W` on `A` (with a star on `A`), faction `f`,
+    /// route `A↔B`, region `reg-0001`.
+    ///
+    /// #35: the fixture is built so that *every* variant's `apply` precondition
+    /// is satisfied — `A` carries a star (for `SetStarSpectral`), and the
+    /// `AddRoute` variant targets the spare `A↔C` pair (the `A↔B` slot is
+    /// already taken by `rid`, and `add_route` rejects duplicates).
+    pub(crate) fn all_variants() -> (GeneratedSector, Vec<BuilderCommand>) {
         let mut s = empty();
         let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
         let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        let c = s.add_system(HexCoord { q: 2, r: 0 }, "C").unwrap();
         let wid = s.add_world_to_system(&a, "W").unwrap();
         s.add_faction(FactionId::from("f"), "F", "imperial");
         let rid = s
@@ -1417,15 +1426,20 @@ mod tests {
             RegionConditionKind::Blackout,
             HexCoord { q: 0, r: 0 },
         );
-        let world = s.get_world(&wid).unwrap().clone();
-        let system = s.get_system(&a).unwrap().clone();
-        let region = s.regions[0].clone();
         let star = GeneratedStar {
             colour_code: Arc::from("G"),
             colour_name: Arc::from("Yellow"),
             spectral_type: Some(Arc::from("G2V")),
             source_row_index: None,
         };
+        // Give A a star so `SetStarSpectral` (which requires `star.is_some()`)
+        // applies cleanly. Captured into the `system` clone below.
+        if let Some(sys) = s.systems.iter_mut().find(|x| x.id == a) {
+            sys.star = Some(star.clone());
+        }
+        let world = s.get_world(&wid).unwrap().clone();
+        let system = s.get_system(&a).unwrap().clone();
+        let region = s.regions[0].clone();
 
         let all = vec![
             BuilderCommand::AddSystem {
@@ -1469,8 +1483,10 @@ mod tests {
                 parent_position: None,
             },
             BuilderCommand::AddRoute {
+                // #35: target the spare A↔C pair — A↔B is already `rid`, and
+                // `add_route` rejects duplicates, so applying A↔B would error.
                 from: a.clone(),
-                to: b.clone(),
+                to: c.clone(),
                 route_type: RouteType::ChartedPassage,
                 stability: RouteStability::Stable,
                 result_id: None,
@@ -1624,6 +1640,17 @@ mod tests {
                 after: Box::new(crate::builder::CatalogSnapshot::default()),
             },
         ];
+        (s, all)
+    }
+
+    /// D-S1/D3: every variant must classify into a *non-empty* dependency set.
+    /// The exhaustive `match` already forces an arm per variant, but cannot
+    /// catch an arm that returns `&[]` (which would silently skip derivation
+    /// invalidation). Constructing one of each also documents the full command
+    /// surface, and the length tripwire forces this list to grow with the enum.
+    #[test]
+    fn dep_classes_cover_all_variants() {
+        let (_s, all) = all_variants();
         assert_eq!(
             all.len(),
             40,

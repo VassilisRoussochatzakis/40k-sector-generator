@@ -28,6 +28,12 @@ pub enum ExportJobResult {
     Failed(String),
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for ExportJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("export panicked: {message}")))
+    }
+}
+
 /// Per-frame EXPORT state owned by [`crate::builder::BuilderState`]. In-memory
 /// only — never serialised into `sector.json` or the `.sgforge` session.
 ///

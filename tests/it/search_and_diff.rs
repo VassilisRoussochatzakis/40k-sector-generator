@@ -69,6 +69,76 @@ fn search_is_deterministic_for_same_inputs() {
     assert_eq!(aj, bj);
 }
 
+// #17: `run_search` enumerates candidate seeds with rayon's `into_par_iter`
+// (FIX.txt §13). The order-preserving `collect` is supposed to keep the whole
+// serialized `SearchOutcome` — crucially the `near_misses` set, which is filled
+// concurrently across workers and then sorted — byte-identical regardless of how
+// many threads ran. This pins that: the same inputs produce the same serialized
+// output whether the search runs on a forced SINGLE-thread rayon pool or on the
+// default multi-threaded global pool. The constraint is deliberately impossible
+// to satisfy so every candidate becomes a near-miss and the `near_misses`
+// codepath is actually exercised (asserted non-empty below).
+#[test]
+fn search_near_misses_are_byte_identical_single_vs_multi_thread() {
+    let project = fixture_project();
+    // A faction share of >= 0.99 for a single faction is unreachable on the m42
+    // fixture, so no candidate wins and every evaluated candidate lands in
+    // `near_misses` (capped at `report_top`).
+    let wishes = WishesFile {
+        search: SearchConfig {
+            base_seed: Some("near-miss-determinism".into()),
+            budget: 6,
+            report_top: 5,
+        },
+        constraints: vec![Constraint::FactionShareMin {
+            faction_id: "imperial_administration".into(),
+            min: 0.99,
+        }],
+    };
+
+    // (a) Forced single-thread: a 1-thread rayon pool. `into_par_iter` inside
+    // `install` runs on this pool, so the parallel enumeration is serialised.
+    let input_single = sectorforge::load_project(&project).unwrap();
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(1)
+        .build()
+        .unwrap();
+    let single =
+        pool.install(|| sectorforge::run_seed_search(&input_single, &wishes).unwrap());
+
+    // (b) Default parallel: the global rayon pool (multi-threaded on CI/dev).
+    let input_multi = sectorforge::load_project(&project).unwrap();
+    let multi = sectorforge::run_seed_search(&input_multi, &wishes).unwrap();
+
+    // The search must have produced near-misses (no winner for an impossible
+    // constraint) — otherwise this test would be vacuous.
+    assert!(single.winning.is_none(), "impossible constraint must not win");
+    assert!(
+        !single.near_misses.is_empty(),
+        "an impossible constraint must populate near_misses"
+    );
+
+    // Whole-outcome byte equality (serialized), which includes `near_misses`
+    // and their order.
+    let single_json = serde_json::to_string(&single).unwrap();
+    let multi_json = serde_json::to_string(&multi).unwrap();
+    assert_eq!(
+        single_json, multi_json,
+        "run_search output (incl. near_misses) must be byte-identical \
+         single-thread vs parallel"
+    );
+
+    // Belt-and-braces: a second default-pool run is also identical, guarding the
+    // run-to-run determinism the parallel collect promises.
+    let input_multi2 = sectorforge::load_project(&project).unwrap();
+    let multi2 = sectorforge::run_seed_search(&input_multi2, &wishes).unwrap();
+    assert_eq!(
+        multi_json,
+        serde_json::to_string(&multi2).unwrap(),
+        "two default-pool runs must be byte-identical too"
+    );
+}
+
 #[test]
 fn search_with_progress_matches_run_search_and_reports() {
     // §SR2: the progress-reporting variant must produce a byte-identical

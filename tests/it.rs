@@ -14,6 +14,8 @@ mod cli_gui_parity;
 mod cli_smoke;
 #[path = "it/economy_tests.rs"]
 mod economy_tests;
+#[path = "it/export_byte_goldens.rs"]
+mod export_byte_goldens;
 #[path = "it/export_parity_tests.rs"]
 mod export_parity_tests;
 #[path = "it/golden_generation.rs"]

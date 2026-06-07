@@ -61,6 +61,10 @@ fn parse_theme(s: &str) -> Option<Theme> {
 }
 
 fn main() -> ExitCode {
+    // Install the crash-note panic hook before any other work: under release
+    // `panic = "abort"` a panic is an otherwise-silent hard crash, so this drops
+    // a breadcrumb to the OS temp dir first. See `gui-core/src/diagnostics.rs`.
+    sectorforge_gui_core::diagnostics::install_panic_hook("builder");
     let cli = Cli::parse();
     let mut app = if let Some(dir) = cli.project {
         match open_project(&dir) {

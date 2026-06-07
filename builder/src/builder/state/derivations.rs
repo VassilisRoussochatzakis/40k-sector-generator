@@ -121,6 +121,23 @@ impl BuilderState {
         self.derivations.invalidate(classes);
     }
 
+    /// Audit finding #21 — invalidate specific overlay kinds directly. Used by
+    /// a watcher-driven catalog reload to stale the per-kind overlays a catalog
+    /// file feeds when no [`DepClass`] captures that input (`hooks.toml`,
+    /// `sites.toml`, `missions.toml`, `prose.toml`, `personae.toml`,
+    /// `history.toml`, name tables).
+    pub fn invalidate_derivation_kinds(&mut self, kinds: &[DerivationKind]) {
+        self.derivations.invalidate_kinds(kinds);
+    }
+
+    /// Audit finding #21 — stale every already-derived overlay. Used by a
+    /// watcher-driven reload of an input whose footprint is the whole graph
+    /// (`worlds.toml`, `sectorforge.toml`, the name tables) where a precise
+    /// per-kind diff would invalidate everything anyway.
+    pub fn invalidate_all_derivations(&mut self) {
+        self.derivations.invalidate_all();
+    }
+
     /// LD3/LD4 — record that `kind`'s cached value matches the current input.
     /// Panels and the `recompute_*` methods call this after (re)deriving so the
     /// ledger fingerprint tracks the value actually on display.

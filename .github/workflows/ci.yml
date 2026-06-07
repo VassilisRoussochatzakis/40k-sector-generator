@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: clippy + tests (MSRV 1.87)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.87
+        uses: dtolnay/rust-toolchain@1.87
+        with:
+          components: clippy
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace
+
+      - name: Golden output tests
+        run: cargo test --test it -- golden
+
+  fuzz-build:
+    name: fuzz build smoke (nightly)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Build fuzz targets
+        run: cargo +nightly fuzz build

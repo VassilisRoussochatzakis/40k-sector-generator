@@ -1,8 +1,17 @@
 //! Read-only derivations over a generated sector.
 //!
-//! Every submodule here is a pure function of an immutable `GeneratedSector`
-//! (plus optional config) → some `Report` / overlay type. Side-effect-free,
-//! re-runnable, deterministic.
+//! The `derive`-shaped functions here are pure functions of an immutable
+//! `GeneratedSector` (plus optional config) → some `Report` / overlay type:
+//! side-effect-free, re-runnable, deterministic. That guarantee is scoped to
+//! the derive layer.
+//!
+//! Some submodules additionally host IO loaders that read config off disk
+//! (`fs::read_to_string` in `economy`, `relations`, and `search`) and
+//! presentation helpers that render a derived report to Markdown (`economy`,
+//! `relations`, `history`). Those loaders and renderers are *not* covered by
+//! the side-effect-free/deterministic guarantee above — they are co-located
+//! with the pure derive they pair with for locality, not because they share
+//! its purity.
 //!
 //! Note: `economy` and `relations` are grouped here even though they were not
 //! in the original refactor plan's listing — both are pure derivations over
@@ -113,7 +122,7 @@ mod tests {
         // The NaN-as-Equal policy keeps `sort_by` from panicking on a partial
         // order. We assert completion + that the three finite values survive;
         // NaN's final position is intentionally unspecified.
-        let mut v = vec![3.0_f32, f32::NAN, 1.0, 2.0];
+        let mut v = [3.0_f32, f32::NAN, 1.0, 2.0];
         v.sort_by(|a, b| cmp_f32_desc(*a, *b));
         assert_eq!(v.iter().filter(|x| x.is_finite()).count(), 3);
     }

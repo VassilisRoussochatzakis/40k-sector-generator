@@ -30,6 +30,12 @@ pub enum SearchJobResult {
     Failed(String),
 }
 
+impl sectorforge_gui_core::jobs::FromJobPanic for SearchJobResult {
+    fn from_job_panic(message: String) -> Option<Self> {
+        Some(Self::Failed(format!("search panicked: {message}")))
+    }
+}
+
 /// Per-frame SEARCH state owned by [`crate::builder::BuilderState`].
 #[derive(Default)]
 pub struct SearchState {

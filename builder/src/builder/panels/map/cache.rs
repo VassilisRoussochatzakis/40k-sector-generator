@@ -4,7 +4,7 @@
 //! system lookup + region tints) when the underlying sector slice digest
 //! changes. Pure — no UI side effects.
 
-use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
+use sectorforge::subsectors::SubsectorConfig;
 use sectorforge_gui_core::sector_view::SectorMapCache;
 
 use crate::builder::derivation_cache::digest_input;
@@ -24,7 +24,13 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
     if !stale {
         return;
     }
-    let mut subsectors = match build_subsectors(
+    // #25: `catch_build_subsectors` also catches an engine panic from a
+    // structurally-valid-but-inconsistent loaded sector (an `expect` inside
+    // `build_subsectors` the `Result` doesn't cover), surfacing it as the same
+    // `last_subsector_error` string instead of aborting the builder. Under
+    // release `panic = "abort"` the catch is a no-op; the gui-core panic-hook
+    // crash note (#4) is the fallback there.
+    let mut subsectors = match crate::builder::panels::subsectors::catch_build_subsectors(
         &state.sector,
         SubsectorConfig {
             target_systems_per_subsector: state.subsector_target_systems.max(1),
@@ -36,7 +42,7 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
             v
         }
         Err(e) => {
-            state.feedback.last_subsector_error = Some(e.to_string());
+            state.feedback.last_subsector_error = Some(e);
             Vec::new()
         }
     };

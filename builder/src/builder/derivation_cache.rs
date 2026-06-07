@@ -298,6 +298,20 @@ impl DerivationLedger {
         }
     }
 
+    /// Audit finding #21 — invalidate specific overlay *kinds* directly,
+    /// bypassing the [`DepClass`] fan-out. Used by a watcher-driven catalog
+    /// reload to stale exactly the overlays a per-kind catalog file feeds
+    /// (e.g. `hooks.toml` → [`DerivationKind::Hooks`]) when no `DepClass`
+    /// captures that input. Same already-derived guard as [`Self::invalidate`]:
+    /// a never-derived (cold) kind is left cold so `stale ⊆ fingerprints`.
+    pub fn invalidate_kinds(&mut self, kinds: &[DerivationKind]) {
+        for kind in kinds {
+            if self.fingerprints.contains_key(kind) {
+                self.stale.insert(*kind);
+            }
+        }
+    }
+
     /// Mark every already-derived overlay stale — used by full-sector swaps
     /// (apply-preview, partial regen, search-seed apply) where a precise diff
     /// would invalidate everything anyway.

@@ -330,3 +330,62 @@ fn refresh_manifest_counts(sector: &mut sectorforge::sector_model::GeneratedSect
     sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
     sector.manifest.route_count = sector.routes.len();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sectorforge::ids::system_id;
+    use sectorforge::sector_model::{
+        empty_route, empty_sector, empty_system, empty_world, HexCoord, SystemKind,
+    };
+
+    // Gap 221: the SAVE-AS rename rewrites `sector.id` + `manifest.project_id` and
+    // recounts systems/worlds/routes from the live vecs. (Distinct from
+    // `App::refresh_live_manifest_counts`, which does NOT rewrite the id.)
+    #[test]
+    fn refresh_manifest_counts_rewrites_id_and_recounts() {
+        let mut sector = empty_sector("old-id", "Title", "seed", 8, 8);
+        let mut s1 = empty_system(
+            system_id(1),
+            1,
+            "S1".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        s1.worlds.push(empty_world(1, 1, "W1".into()));
+        s1.worlds.push(empty_world(1, 2, "W2".into()));
+        sector.systems.push(s1);
+        sector.systems.push(empty_system(
+            system_id(2),
+            2,
+            "S2".into(),
+            HexCoord { q: 1, r: 0 },
+            SystemKind::Star,
+            None,
+        ));
+        sector
+            .routes
+            .push(empty_route(system_id(1), system_id(2)));
+
+        refresh_manifest_counts(&mut sector, "renamed-project");
+
+        assert_eq!(&*sector.id, "renamed-project");
+        assert_eq!(&*sector.manifest.project_id, "renamed-project");
+        assert_eq!(sector.manifest.system_count, 2);
+        assert_eq!(sector.manifest.world_count, 2); // 2 on s1, 0 on s2
+        assert_eq!(sector.manifest.route_count, 1);
+    }
+
+    // Empty sector → all counts zero, id still rewritten.
+    #[test]
+    fn refresh_manifest_counts_on_empty_sector() {
+        let mut sector = empty_sector("x", "X", "s", 8, 8);
+        refresh_manifest_counts(&mut sector, "fresh");
+        assert_eq!(&*sector.id, "fresh");
+        assert_eq!(&*sector.manifest.project_id, "fresh");
+        assert_eq!(sector.manifest.system_count, 0);
+        assert_eq!(sector.manifest.world_count, 0);
+        assert_eq!(sector.manifest.route_count, 0);
+    }
+}

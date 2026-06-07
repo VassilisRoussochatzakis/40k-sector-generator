@@ -326,4 +326,102 @@ mod tests {
         app.sync_derived_sector();
         assert!(std::ptr::eq(ptr, Arc::as_ptr(app.sector.as_ref().unwrap())));
     }
+
+    // ── Gap 226: sync_derived_sector auto-save ──────────────────────────────
+
+    /// A dependency-free scratch directory under `std::env::temp_dir()`. The viewer
+    /// crate has no `tempfile` dev-dep, so we hand-roll a unique dir (process id +
+    /// atomic counter — no RNG, keeping the determinism invariant intact) and clean
+    /// it up on drop. Used by the auto-save tests, which must write a real file.
+    struct ScratchDir {
+        path: std::path::PathBuf,
+    }
+
+    impl ScratchDir {
+        fn new() -> Self {
+            use std::sync::atomic::{AtomicU64, Ordering};
+            static COUNTER: AtomicU64 = AtomicU64::new(0);
+            let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "sectorforge-viewer-test-{}-{}",
+                std::process::id(),
+                n
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for ScratchDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    /// With `auto_save = true` and a `loaded_from` path, `sync_derived_sector`
+    /// writes the source-of-truth sector to disk on the change frame and clears the
+    /// dirty flag after a successful write; the derived snapshot is re-synced.
+    #[test]
+    fn sync_derived_sector_auto_save_writes_and_clears_dirty() {
+        use sectorforge::ids::system_id;
+        use sectorforge::sector_model::{
+            empty_sector, empty_system, GeneratedSector, HexCoord, SystemKind,
+        };
+
+        let dir = ScratchDir::new();
+        let path = dir.path.join("sector.json");
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        app.editor.loaded_from = Some(path.to_string_lossy().to_string());
+        app.editor.auto_save = true;
+        app.editor.sector.as_mut().unwrap().systems.push(empty_system(
+            system_id(1),
+            1,
+            "S".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        ));
+        app.editor.mark_dirty();
+
+        app.sync_derived_sector();
+
+        assert!(path.exists());
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(serde_json::from_str::<GeneratedSector>(&text).is_ok());
+        // successful write clears dirty; snapshot revision is synced
+        assert!(!app.editor.dirty);
+        assert_eq!(app.synced_revision, app.editor.revision);
+    }
+
+    /// With `auto_save = false`, `sync_derived_sector` re-derives the read snapshot
+    /// but writes NO file and leaves the editor dirty.
+    #[test]
+    fn sync_derived_sector_no_auto_save_does_not_write() {
+        use sectorforge::ids::system_id;
+        use sectorforge::sector_model::{empty_sector, empty_system, HexCoord, SystemKind};
+
+        let dir = ScratchDir::new();
+        let path = dir.path.join("sector.json");
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        app.editor.loaded_from = Some(path.to_string_lossy().to_string());
+        app.editor.auto_save = false;
+        app.editor.sector.as_mut().unwrap().systems.push(empty_system(
+            system_id(1),
+            1,
+            "S".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        ));
+        app.editor.mark_dirty();
+
+        app.sync_derived_sector();
+
+        // no file written, editor stays dirty
+        assert!(!path.exists());
+        assert!(app.editor.dirty);
+        // snapshot still re-derived (revision synced, system visible)
+        assert_eq!(app.synced_revision, app.editor.revision);
+        assert_eq!(app.sector.as_ref().unwrap().systems.len(), 1);
+    }
 }

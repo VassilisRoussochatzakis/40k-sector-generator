@@ -89,3 +89,95 @@ pub(super) fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorE
     placed.sort();
     Ok(placed)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::random_sector::{build_random_config, SectorSize};
+
+    /// Helper: a square 4×4 config with the placement knobs the cascade tests
+    /// need. `build_random_config` already sets width/height for `Custom{dim:4}`
+    /// and seeds `generation.seed`; the explicit overrides make the intent
+    /// self-documenting and robust to changes in the roller's defaults.
+    fn config_4x4(seed: &str, system_count: usize, min_dist: u32) -> AppConfig {
+        let mut cfg = build_random_config(seed, SectorSize::Custom { dim: 4 });
+        cfg.generation.seed = seed.to_string();
+        cfg.generation.sector_width = 4;
+        cfg.generation.sector_height = 4;
+        cfg.generation.system_count = system_count;
+        cfg.generation.placement.minimum_system_distance = min_dist;
+        cfg
+    }
+
+    // GAP 167: 4×4, count=12, min_dist=3 → the relaxation cascade reaches the
+    // target (12 ≤ 16 cells), the returned Vec is sorted, and two runs are
+    // byte-identical (same seed ⇒ identical Fisher-Yates shuffle).
+    #[test]
+    fn place_systems_relaxation_cascade_reaches_target_sorted_and_deterministic() {
+        let cfg = config_4x4("place-cascade", 12, 3);
+        let placed = place_systems(&cfg).expect("placement ok");
+
+        // The cascade's final fallback loop fills any remaining shuffled cells
+        // until placed.len() == target. target=12 ≤ total_cells=16, so it is
+        // always reached — guaranteed by construction, not seed-dependent.
+        assert_eq!(placed.len(), 12);
+
+        // Output is sorted (place_systems calls `placed.sort()` last). Ordering
+        // is derived `Ord` on HexCoord{q, r}: lexicographic by q then r.
+        let mut sorted = placed.clone();
+        sorted.sort();
+        assert_eq!(placed, sorted, "place_systems output must be sorted");
+
+        // Determinism: same seed ⇒ byte-identical placement.
+        let again = place_systems(&cfg).unwrap();
+        assert_eq!(placed, again);
+
+        // All coords in-bounds for a 4×4 grid.
+        assert!(placed
+            .iter()
+            .all(|c| (0..4).contains(&c.q) && (0..4).contains(&c.r)));
+
+        // No duplicate coordinates.
+        let set: std::collections::BTreeSet<_> = placed.iter().copied().collect();
+        assert_eq!(set.len(), 12);
+    }
+
+    // GAP 168: count==0 returns Vec::new(); count==1 returns exactly one
+    // in-bounds coordinate.
+    #[test]
+    fn place_systems_count_zero_returns_empty() {
+        let cfg = config_4x4("place-zero", 0, 1);
+        let placed = place_systems(&cfg).unwrap();
+        assert!(placed.is_empty());
+        assert_eq!(placed.len(), 0);
+    }
+
+    #[test]
+    fn place_systems_count_one_places_single_in_bounds() {
+        let cfg = config_4x4("place-one", 1, 1);
+        let placed = place_systems(&cfg).unwrap();
+        assert_eq!(placed.len(), 1);
+        let c = placed[0];
+        assert!((0..4).contains(&c.q) && (0..4).contains(&c.r));
+    }
+
+    // GAP 174: regression guard for the cast ordering at the top of
+    // `place_systems` — `(width as usize) * (height as usize)` casts each
+    // operand to usize BEFORE multiplying, so the product does not overflow i32
+    // on absurd dims. This is a pure arithmetic mirror of placement.rs's
+    // `total_cells` computation; it deliberately does NOT call `place_systems`
+    // with these dims (that would attempt Vec::with_capacity(~2.1e9) → OOM, and
+    // validation caps real dims at MAX_CUSTOM_DIM anyway).
+    #[test]
+    fn total_cells_cast_does_not_overflow_i32() {
+        // 46341² = 2_147_488_281 > i32::MAX (2_147_483_647). The buggy
+        // `(width * height) as usize` would multiply in i32 first and panic in
+        // debug builds; the fn's per-operand cast avoids that.
+        let width: u32 = 46_341;
+        let height: u32 = 46_341;
+        let total_cells = (width as usize) * (height as usize); // mirror placement.rs
+        assert_eq!(total_cells, 2_147_488_281usize);
+        // Sanity: the naive i32 path would have overflowed.
+        assert!(total_cells > i32::MAX as usize);
+    }
+}

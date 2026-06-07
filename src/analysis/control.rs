@@ -674,8 +674,11 @@ pub fn apply_faction_power(
 mod tests {
     use super::*;
     use crate::sector_model::{
-        DominanceState, FactionInfluence, GeneratedWorld, WorldDto, WorldFactionPresence,
+        ClaimType, DominanceState, FactionInfluence, GeneratedStar, GeneratedSystem, GeneratedWorld,
+        HexCoord, SystemControlSummary, SystemKind, SystemState, WorldControlSummary, WorldDto,
+        WorldFactionPresence,
     };
+    use crate::worlds::Population;
 
     fn empty_world() -> GeneratedWorld {
         GeneratedWorld {
@@ -804,5 +807,409 @@ mod tests {
         let summary = derive_world_control(&world);
         assert!(summary.contested);
         assert_eq!(summary.dominant.as_deref(), Some("a"));
+    }
+
+    // ── A-group shared helpers ─────────────────────────────────────────────────
+
+    /// A presence with the given `faction_id`, `relationship_to_government`, and
+    /// `dimensions`. Everything else is left at a benign default.
+    fn presence(
+        faction_id: &str,
+        relationship: &str,
+        dimensions: PresenceDimensions,
+    ) -> WorldFactionPresence {
+        WorldFactionPresence {
+            faction_id: faction_id.into(),
+            subfaction_id: None,
+            subfaction_name: None,
+            force_id: None,
+            force_name: None,
+            influence: FactionInfluence::Significant,
+            relationship_to_government: relationship.into(),
+            dimensions,
+            dominance: DominanceState::default(),
+            intel_confidence: 100,
+        }
+    }
+
+    /// A presence whose only nonzero dimension is `admin`. Used to clear the
+    /// `derive_world_claims` score gate (`admin = 80` ⇒ score 16 > 0) while
+    /// pinning the `claim_for` result via the faction id / disposition.
+    fn admin_presence(faction_id: &str, relationship: &str, admin: f32) -> WorldFactionPresence {
+        presence(
+            faction_id,
+            relationship,
+            PresenceDimensions {
+                admin,
+                ..Default::default()
+            },
+        )
+    }
+
+    /// A populated system holding `worlds`. Mirrors the economy module's `sys()`
+    /// builder shape; control aggregation reads only `worlds`.
+    fn system_with(id: &str, worlds: Vec<GeneratedWorld>) -> GeneratedSystem {
+        GeneratedSystem {
+            id: id.into(),
+            index: 1,
+            name: id.into(),
+            kind: SystemKind::Star,
+            coord: HexCoord { q: 0, r: 0 },
+            star: Some(GeneratedStar {
+                colour_code: "G".into(),
+                colour_name: "Yellow".into(),
+                spectral_type: None,
+                source_row_index: None,
+            }),
+            worlds,
+            primary_factions: vec![],
+            tags: vec![],
+            notes: vec![],
+            control: SystemControlSummary::default(),
+            stability: Default::default(),
+            orbital_assets: vec![],
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
+        }
+    }
+
+    // ── A1: derive_world_claims — dedup / score gate / sort / clamp ─────────────
+
+    #[test]
+    fn derive_world_claims_skips_zero_score_presence() {
+        let mut w = empty_world();
+        // All dims zero ⇒ local_control_score 0.0 ⇒ round 0 ⇒ 0 <= 0 ⇒ skipped.
+        w.factions
+            .push(presence("ork", "hostile", PresenceDimensions::default()));
+        assert!(derive_world_claims(&w).is_empty());
+    }
+
+    #[test]
+    fn derive_world_claims_dedup_keeps_higher_strength() {
+        let mut w = empty_world();
+        // Two presences both mapping to HuntingGround (id contains "ork"); the
+        // higher-strength one (admin 80 ⇒ score 16) is kept over admin 40 ⇒ 8.
+        w.factions.push(admin_presence("ork", "hostile", 80.0));
+        w.factions.push(admin_presence("ork", "hostile", 40.0));
+        let claims = derive_world_claims(&w);
+        assert_eq!(claims.len(), 1);
+        assert_eq!(claims[0].claim_type, ClaimType::HuntingGround);
+        assert_eq!(claims[0].strength, 16);
+    }
+
+    #[test]
+    fn derive_world_claims_sorts_by_strength_desc_then_id() {
+        let mut w = empty_world();
+        // merchant ⇒ CommercialCharter, admin 50 ⇒ score 10.
+        // ork ⇒ HuntingGround, admin 80 ⇒ score 16.
+        // Distinct ClaimTypes ⇒ two claims, ordered strength-desc: ork before
+        // merchant, which is the OPPOSITE of id-ascending order.
+        w.factions.push(admin_presence("merchant", "opportunistic", 50.0));
+        w.factions.push(admin_presence("ork", "hostile", 80.0));
+        let claims = derive_world_claims(&w);
+        assert_eq!(claims.len(), 2);
+        assert_eq!(claims[0].faction_id.as_str(), "ork");
+        assert_eq!(claims[0].strength, 16);
+        assert_eq!(claims[1].faction_id.as_str(), "merchant");
+        assert_eq!(claims[1].strength, 10);
+    }
+
+    #[test]
+    fn derive_world_claims_clamps_strength_at_100() {
+        let mut w = empty_world();
+        // Every dimension 100.0; the local-control weights sum to exactly 1.00,
+        // so the score is 100.0 ⇒ round 100 ⇒ clamp(0,100) = 100.
+        let all_100 = PresenceDimensions {
+            admin: 100.0,
+            military: 100.0,
+            orbital: 100.0,
+            economic: 100.0,
+            industrial: 100.0,
+            ideological: 100.0,
+            covert: 100.0,
+            logistics: 100.0,
+            legitimacy: 100.0,
+            visibility: 100.0,
+        };
+        w.factions.push(presence("ork", "hostile", all_100));
+        let claims = derive_world_claims(&w);
+        assert_eq!(claims.len(), 1);
+        assert_eq!(claims[0].strength, 100);
+    }
+
+    // ── A4: claim_for ladder (id-substring precedence + disposition fallback) ───
+
+    #[test]
+    fn claim_for_id_and_disposition_ladder() {
+        // (faction_id, relationship_to_government) → expected ClaimType. Each
+        // presence carries admin=80 so it clears the score gate.
+        let cases: &[(&str, &str, ClaimType)] = &[
+            // "inquisition" wins even though the id also contains "guard" and
+            // begins like an imperial arm.
+            ("imperial_inquisition_guard", "lawful", ClaimType::CovertWrit),
+            ("inquisition", "lawful", ClaimType::CovertWrit),
+            ("adepta_sororitas", "lawful", ClaimType::ReligiousMandate),
+            // starts_with "imperial" fires before the lawful disposition fallback.
+            ("imperial", "lawful", ClaimType::ImperialMandate),
+            // No keyword ⇒ disposition fallback.
+            ("freefolk", "lawful", ClaimType::LegalSovereignty),
+            ("freefolk", "insular", ClaimType::TreatyRight),
+        ];
+        for (id, rel, expected) in cases {
+            let mut w = empty_world();
+            w.factions.push(admin_presence(id, rel, 80.0));
+            let claims = derive_world_claims(&w);
+            assert_eq!(claims.len(), 1, "id={id} rel={rel}");
+            assert_eq!(claims[0].claim_type, *expected, "id={id} rel={rel}");
+        }
+    }
+
+    // ── A3: score_then_id tie-break (lex-smaller id wins on equal score) ────────
+
+    #[test]
+    fn score_then_id_breaks_ties_toward_lex_smaller_id() {
+        // Equal scores ⇒ ordering is `b_id.cmp(a_id)`. With a="aaa", b="zzz"
+        // that is "zzz".cmp("aaa") = Greater, so in a `max_by` "aaa" wins.
+        assert_eq!(
+            score_then_id(60.0, &"aaa".into(), 60.0, &"zzz".into()),
+            std::cmp::Ordering::Greater
+        );
+        // Higher first score dominates regardless of id (ascending compare).
+        assert_eq!(
+            score_then_id(70.0, &"zzz".into(), 60.0, &"aaa".into()),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn world_control_resolves_ties_to_lex_smaller_id_and_is_deterministic() {
+        let mut w = empty_world();
+        let mk = |id: &str, score: f32| WorldFactionPresence {
+            faction_id: id.into(),
+            subfaction_id: None,
+            subfaction_name: None,
+            force_id: None,
+            force_name: None,
+            influence: FactionInfluence::Significant,
+            relationship_to_government: "lawful".into(),
+            dimensions: PresenceDimensions {
+                admin: score,
+                military: score,
+                orbital: score * 0.3,
+                economic: score * 0.6,
+                industrial: score * 0.5,
+                ideological: score * 0.5,
+                covert: 5.0,
+                logistics: score * 0.4,
+                legitimacy: score,
+                visibility: 80.0,
+            },
+            dominance: DominanceState::default(),
+            intel_confidence: 100,
+        };
+        // Identical scores; ids differ only lexically.
+        w.factions.push(mk("aaa", 60.0));
+        w.factions.push(mk("zzz", 60.0));
+        let s = derive_world_control(&w);
+        assert_eq!(s.dominant.as_deref(), Some("aaa"));
+        // admin+legitimacy = 120 ≥ 15, military = 60 ≥ 15 ⇒ both resolve via the
+        // score_then_id max_by to the lex-smaller "aaa".
+        assert_eq!(s.sovereign.as_deref(), Some("aaa"));
+        assert_eq!(s.occupier.as_deref(), Some("aaa"));
+        // Re-deriving the same world is byte-identical.
+        let s2 = derive_world_control(&w);
+        assert_eq!(format!("{s:?}"), format!("{s2:?}"));
+    }
+
+    // ── A5: aggregate_faction_power — strategic-value-weighted rollup ───────────
+
+    /// Clone `empty_world()` and override population + tech so `strategic_value`
+    /// is pinned, then attach `factions`.
+    fn world_pop_tech(
+        pop: Population,
+        tech: crate::worlds::TechLevel,
+        factions: Vec<WorldFactionPresence>,
+    ) -> GeneratedWorld {
+        let mut w = empty_world();
+        w.world.population = pop;
+        w.world.tech_level = tech;
+        w.factions = factions;
+        w
+    }
+
+    #[test]
+    fn aggregate_faction_power_sums_presences_with_strategic_value() {
+        use crate::worlds::TechLevel;
+        // sv = 1 + pop(DenselyPopulated=4) + tech(Standard=2) = 7.0.
+        // "a": two presences admin=60 ⇒ administrative = (60+60)*7*0.01 = 8.4.
+        // "b": one presence admin=90 ⇒ administrative = 90*7*0.01 = 6.3.
+        let w = world_pop_tech(
+            Population::DenselyPopulated,
+            TechLevel::Standard,
+            vec![
+                admin_presence("a", "lawful", 60.0),
+                admin_presence("a", "lawful", 60.0),
+                admin_presence("b", "lawful", 90.0),
+            ],
+        );
+        let power = aggregate_faction_power(&[system_with("sys-0001", vec![w])]);
+        let a = power.get("a").expect("faction a present");
+        let b = power.get("b").expect("faction b present");
+        assert!((a.administrative - 8.4).abs() < 1e-3, "a = {}", a.administrative);
+        assert!((b.administrative - 6.3).abs() < 1e-3, "b = {}", b.administrative);
+        assert!(a.administrative > b.administrative);
+    }
+
+    #[test]
+    fn aggregate_faction_power_scales_by_strategic_value() {
+        use crate::worlds::TechLevel;
+        // Dense + Archaeotech ⇒ sv = 1 + 5 + 4 = 10 ⇒ admin 50 → 50*10*0.01 = 5.0.
+        let rich = world_pop_tech(
+            Population::ExtremelyDense,
+            TechLevel::Archaeotech,
+            vec![admin_presence("c", "lawful", 50.0)],
+        );
+        let power_rich = aggregate_faction_power(&[system_with("sys-rich", vec![rich])]);
+        assert!(
+            (power_rich.get("c").unwrap().administrative - 5.0).abs() < 1e-3,
+            "rich = {}",
+            power_rich.get("c").unwrap().administrative
+        );
+        // Minimal + Primitive ⇒ sv = 1 + 1 + 0 = 2 ⇒ admin 50 → 50*2*0.01 = 1.0.
+        let poor = world_pop_tech(
+            Population::Minimal,
+            TechLevel::Primitive,
+            vec![admin_presence("c", "lawful", 50.0)],
+        );
+        let power_poor = aggregate_faction_power(&[system_with("sys-poor", vec![poor])]);
+        assert!(
+            (power_poor.get("c").unwrap().administrative - 1.0).abs() < 1e-3,
+            "poor = {}",
+            power_poor.get("c").unwrap().administrative
+        );
+    }
+
+    #[test]
+    fn aggregate_faction_power_omits_factions_without_presence() {
+        use crate::worlds::TechLevel;
+        let w = world_pop_tech(
+            Population::DenselyPopulated,
+            TechLevel::Standard,
+            vec![admin_presence("a", "lawful", 60.0)],
+        );
+        // The map keys solely off presences — a faction with none is absent even
+        // if it exists in the catalogue elsewhere.
+        let power = aggregate_faction_power(&[system_with("sys-0001", vec![w])]);
+        assert!(power.contains_key("a"));
+        assert!(!power.contains_key("ghost"));
+    }
+
+    // ── A2: classify_system_state — 7-way cascade ──────────────────────────────
+
+    #[test]
+    fn classify_system_state_empty_system_is_uncharted() {
+        let sys = system_with("sys-0001", vec![]);
+        assert_eq!(
+            derive_system_control(&sys).state,
+            Some(SystemState::Uncharted)
+        );
+    }
+
+    #[test]
+    fn classify_system_state_quarantined_beats_warzone() {
+        // World tagged quarantined AND carrying warzone_signal == 2 (war_zone +
+        // daemonic_corruption). Absent quarantine this would classify as Warzone;
+        // quarantine is checked first ⇒ Quarantined wins.
+        let mut w0 = empty_world();
+        w0.tags = vec![
+            "feature:quarantined".into(),
+            "feature:war_zone".into(),
+            "feature:daemonic_corruption".into(),
+        ];
+        w0.factions.push(admin_presence("imp", "lawful", 80.0));
+        let sys = system_with("sys-0001", vec![w0]);
+        assert_eq!(
+            derive_system_control(&sys).state,
+            Some(SystemState::Quarantined)
+        );
+    }
+
+    #[test]
+    fn classify_system_state_two_contested_worlds_is_warzone() {
+        // Two populated, non-quarantined worlds each marked contested ⇒
+        // contested_worlds == 2 ⇒ Warzone.
+        let contested_world = |id: &str| {
+            let mut w = empty_world();
+            w.id = id.into();
+            w.control = WorldControlSummary {
+                contested: true,
+                ..Default::default()
+            };
+            w.factions.push(admin_presence("imp", "lawful", 80.0));
+            w
+        };
+        let sys = system_with(
+            "sys-0001",
+            vec![contested_world("sys-0001-w1"), contested_world("sys-0001-w2")],
+        );
+        assert_eq!(derive_system_control(&sys).state, Some(SystemState::Warzone));
+    }
+
+    #[test]
+    fn classify_system_state_dominant_ne_orbital_is_blockaded() {
+        // Construct the cascade inputs directly so dominant (faction "a") differs
+        // from orbital_controller (faction "b") with no warzone/quarantine signal.
+        let sys = system_with("sys-0001", vec![empty_world()]);
+        let dominant: Option<FactionId> = Some("a".into());
+        let orbital: Option<FactionId> = Some("b".into());
+        let none: Option<FactionId> = None;
+        let state = classify_system_state(SystemStateParams {
+            sys: &sys,
+            populated_worlds: 1,
+            contested_worlds: 0,
+            warzone_signal: 0,
+            quarantined: false,
+            dominant: &dominant,
+            orbital_controller: &orbital,
+            hidden_master: &none,
+        });
+        assert_eq!(state, SystemState::Blockaded);
+    }
+
+    #[test]
+    fn classify_system_state_two_distinct_dominants_is_fragmented() {
+        // Two populated worlds with distinct per-world `control.dominant`, not
+        // contested, no blockade/infiltration trigger ⇒ Fragmented.
+        let dominant_world = |id: &str, dom: &str| {
+            let mut w = empty_world();
+            w.id = id.into();
+            w.control = WorldControlSummary {
+                dominant: Some(dom.into()),
+                ..Default::default()
+            };
+            w.factions.push(admin_presence(dom, "lawful", 80.0));
+            w
+        };
+        let sys = system_with(
+            "sys-0001",
+            vec![
+                dominant_world("sys-0001-w1", "alpha"),
+                dominant_world("sys-0001-w2", "beta"),
+            ],
+        );
+        let none: Option<FactionId> = None;
+        let state = classify_system_state(SystemStateParams {
+            sys: &sys,
+            populated_worlds: 2,
+            contested_worlds: 0,
+            warzone_signal: 0,
+            quarantined: false,
+            dominant: &none,
+            orbital_controller: &none,
+            hidden_master: &none,
+        });
+        assert_eq!(state, SystemState::Fragmented);
     }
 }

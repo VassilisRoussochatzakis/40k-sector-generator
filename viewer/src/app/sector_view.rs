@@ -630,3 +630,203 @@ impl App {
         sector.manifest.route_count = sector.routes.len();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sectorforge::ids::{route_id, system_id, world_id, FactionId};
+    use sectorforge::sector_model::{
+        empty_faction, empty_route, empty_sector, empty_system, empty_world, hex_distance, HexCoord,
+    };
+
+    /// Canonical viewer fixture: two `Star` systems (`sys-0001` at (0,0) with one
+    /// world `sys-0001-w01`, `sys-0002` at (3,0)) and one faction present on both
+    /// `sys-0001` and `sys-0001-w01`. `App::new` seeds the derived snapshot; the
+    /// App-method tests then mutate `editor.sector` (the source of truth) directly
+    /// and assert against it (`app.sector` stays stale until `sync_derived_sector`).
+    fn app_with_two_systems() -> App {
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        let sector = app.editor.sector.as_mut().unwrap();
+        let mut s1 = empty_system(
+            system_id(1),
+            1,
+            "S1".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        s1.worlds.push(empty_world(1, 1, "W1".into()));
+        let s2 = empty_system(
+            system_id(2),
+            2,
+            "S2".into(),
+            HexCoord { q: 3, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        sector.systems.push(s1);
+        sector.systems.push(s2);
+        let mut f = empty_faction(&FactionId::new("imperium"));
+        f.system_presence.push(system_id(1));
+        f.world_presence.push(world_id(1, 1));
+        sector.factions.push(f);
+        app
+    }
+
+    // ── Gap 218: remove_selected_system ─────────────────────────────────────
+
+    /// Removing the selected system cascade-removes routes touching it, scrubs the
+    /// system from every faction's `system_presence` and its worlds from
+    /// `world_presence`, clears the selection, and marks the editor dirty.
+    #[test]
+    fn remove_selected_system_cascades_routes_and_presence() {
+        let mut app = app_with_two_systems();
+        // route between sys-0001 and sys-0002 (touches the system being removed)
+        app.editor
+            .sector
+            .as_mut()
+            .unwrap()
+            .routes
+            .push(empty_route(system_id(1), system_id(2)));
+        app.sector_selected = Some(system_id(1));
+
+        app.remove_selected_system();
+
+        let sector = app.editor.sector.as_ref().unwrap();
+        // sys-0001 gone, sys-0002 remains
+        assert_eq!(sector.systems.len(), 1);
+        assert!(!sector.systems.iter().any(|s| s.id == system_id(1)));
+        // the only route touched sys-0001 → cascade-removed
+        assert!(sector.routes.is_empty());
+        // faction presence scrubbed of sys-0001 and its world
+        assert!(sector.factions[0]
+            .system_presence
+            .iter()
+            .all(|x| *x != system_id(1)));
+        assert!(sector.factions[0].system_presence.is_empty());
+        assert!(sector.factions[0].world_presence.is_empty());
+        // selection cleared, dirty set
+        assert!(app.sector_selected.is_none());
+        assert!(app.editor.dirty);
+    }
+
+    /// With no system selected, `remove_selected_system` is a no-op: it sets a
+    /// status and does NOT mark the editor dirty.
+    #[test]
+    fn remove_selected_system_without_selection_is_noop() {
+        let mut app = app_with_two_systems();
+        app.sector_selected = None;
+
+        app.remove_selected_system();
+
+        assert_eq!(app.export_status, "select a system first");
+        assert!(!app.editor.dirty);
+        assert_eq!(app.editor.sector.as_ref().unwrap().systems.len(), 2);
+    }
+
+    // ── Gap 219: add_route_between ──────────────────────────────────────────
+
+    /// Adding a route selects it, recomputes its distance from endpoint coords
+    /// (not the `empty_route` default of 1), and dedups on the canonical
+    /// `route_id` — including the reversed endpoint pair (route_id sorts).
+    #[test]
+    fn add_route_between_dedups_recomputes_distance_and_selects() {
+        let mut app = app_with_two_systems();
+
+        app.add_route_between(system_id(1), system_id(2));
+
+        {
+            let sector = app.editor.sector.as_ref().unwrap();
+            assert_eq!(sector.routes.len(), 1);
+            let route = &sector.routes[0];
+            assert_eq!(route.id, route_id(&system_id(1), &system_id(2)));
+            assert_eq!(route.id.as_str(), "route-sys-0001-sys-0002");
+            // distance recomputed from coords (0,0)→(3,0), provably not the default 1
+            let d = hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 3, r: 0 });
+            assert_eq!(route.distance, d);
+            assert!(route.distance > 1);
+        }
+        // selects the new route, clears system selection, dirty
+        assert_eq!(
+            app.sector_selected_route,
+            Some(route_id(&system_id(1), &system_id(2)))
+        );
+        assert!(app.sector_selected.is_none());
+        assert!(app.editor.dirty);
+
+        // dedup on the REVERSED pair — route_id sorts endpoints, so the id matches
+        app.editor.dirty = false;
+        app.add_route_between(system_id(2), system_id(1));
+        assert_eq!(app.editor.sector.as_ref().unwrap().routes.len(), 1);
+        assert!(app.export_status.contains("already exists"));
+    }
+
+    // ── Gap 224: mark_live_sector_dirty selection remap ─────────────────────
+
+    /// With `stable_ids_on_rename = false`, the sequential reindex renumbers systems
+    /// by vec order; `mark_live_sector_dirty` follows the rename through both the
+    /// selection and the open `View::System`, and marks the editor dirty.
+    #[test]
+    fn mark_live_sector_dirty_sequential_remaps_selection() {
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        app.editor.stable_ids_on_rename = false;
+        // two systems whose current ids do NOT match their sequential position
+        let a = empty_system(
+            SystemId::new("sys-9990"),
+            99,
+            "A".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        let b = empty_system(
+            SystemId::new("sys-9991"),
+            98,
+            "B".into(),
+            HexCoord { q: 1, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        app.editor.sector.as_mut().unwrap().systems.push(a);
+        app.editor.sector.as_mut().unwrap().systems.push(b);
+        app.sector_selected = Some(SystemId::new("sys-9990"));
+        app.view = View::System {
+            system_id: SystemId::new("sys-9990"),
+            selection: SystemSelection::None,
+        };
+
+        app.mark_live_sector_dirty("edit".into());
+
+        // selection followed the rename: 1st pushed system (vec idx 0) → sys-0001
+        assert_eq!(app.sector_selected, Some(system_id(1)));
+        match &app.view {
+            View::System {
+                system_id: open_id,
+                ..
+            } => assert_eq!(*open_id, system_id(1)),
+            other => panic!("expected View::System, got {other:?}"),
+        }
+        let sector = app.editor.sector.as_ref().unwrap();
+        assert_eq!(sector.systems[0].id, system_id(1));
+        assert_eq!(sector.systems[1].id, system_id(2));
+        assert!(app.editor.dirty);
+    }
+
+    /// In the default stable mode with systems already at valid sequential ids,
+    /// `mark_live_sector_dirty` leaves the selection untouched (the reindex map is
+    /// empty — no id churns) while still marking dirty.
+    #[test]
+    fn mark_live_sector_dirty_stable_leaves_selection_unchanged() {
+        let mut app = app_with_two_systems();
+        assert!(app.editor.stable_ids_on_rename); // default
+        app.sector_selected = Some(system_id(1));
+
+        app.mark_live_sector_dirty("edit".into());
+
+        assert_eq!(app.sector_selected, Some(system_id(1)));
+        let sector = app.editor.sector.as_ref().unwrap();
+        assert_eq!(sector.systems[0].id, system_id(1));
+        assert_eq!(sector.systems[1].id, system_id(2));
+        assert!(app.editor.dirty);
+    }
+}

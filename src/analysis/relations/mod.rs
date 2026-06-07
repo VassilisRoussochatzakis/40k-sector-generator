@@ -259,4 +259,259 @@ mod tests {
         );
         assert_eq!(m.pairs[0].cause, "KFIRST; D1; D2");
     }
+
+    /// A `GeneratedFaction` with a non-default `PowerProfile`. The `faction()`
+    /// builder hardcodes `PowerProfile::default()`; C4 needs asymmetric power so
+    /// directional metrics diverge.
+    fn faction_with_power(
+        id: &str,
+        kind: &str,
+        disposition: &str,
+        power: PowerProfile,
+    ) -> GeneratedFaction {
+        GeneratedFaction {
+            id: id.into(),
+            name: id.into(),
+            kind: kind.into(),
+            disposition: disposition.into(),
+            subfactions: Vec::new(),
+            system_presence: vec![],
+            world_presence: vec![],
+            power,
+        }
+    }
+
+    fn pair_of<'a>(m: &'a RelationsMatrix, a: &str, b: &str) -> &'a FactionRelation {
+        m.pairs
+            .iter()
+            .find(|p| p.a == a && p.b == b)
+            .unwrap_or_else(|| panic!("pair {a}/{b} missing"))
+    }
+
+    // ── C1: pair_override + rich override on the SAME pair ─────────────────────
+
+    /// A `pair_override` pins the base stance, but a matching rich `override`
+    /// still overlays attitudes/metrics/cause on top.
+    #[test]
+    fn pair_override_and_rich_override_compose_on_same_pair() {
+        let mut cfg = RelationsConfig::default();
+        cfg.pair_overrides.push(PairOverride {
+            a: "imp".into(),
+            b: "trader".into(),
+            stance: Stance::Allied,
+            cause: Some("pinned".into()),
+        });
+        cfg.overrides.push(RelationOverride {
+            a: "imp".into(),
+            b: "trader".into(),
+            secret_attitude: Some(RelationAttitude::Hostile),
+            trust: Some(5),
+            reason: Some("rich wins".into()),
+            ..RelationOverride::default()
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("imp", "imperial", "lawful"),
+                faction("trader", "merchant", "opportunistic"),
+            ]),
+            &cfg,
+        );
+        let rel = pair_of(&m, "imp", "trader");
+        // Rich override pins secret attitude (symmetric ⇒ both views Hostile).
+        assert_eq!(rel.secret_attitude, RelationAttitude::Hostile);
+        assert_eq!(rel.stance, Stance::Hostile);
+        // trust set to 5 on both views ⇒ pair mean (5+5)/2 = 5.
+        assert_eq!(rel.metrics.trust, 5);
+        // ov.reason overrides the pair_override's cause.
+        assert_eq!(rel.cause, "rich wins");
+        assert_eq!(rel.a, "imp");
+        assert_eq!(rel.b, "trader");
+    }
+
+    // ── C2: apply_relation_override IF-branch (config a == canonical-lo) ────────
+
+    /// When the override's `a` equals the canonical-LO id, directional attitudes
+    /// map straight through (`a_* → a_to_b`, `b_* → b_to_a`) — the opposite
+    /// wiring from the existing ELSE-branch test.
+    #[test]
+    fn directional_override_if_branch_maps_a_to_a_to_b() {
+        let mut cfg = RelationsConfig::default();
+        cfg.overrides.push(RelationOverride {
+            a: "alpha".into(),
+            b: "zeta".into(),
+            a_secret_attitude: Some(RelationAttitude::Hostile),
+            b_secret_attitude: Some(RelationAttitude::Suspicious),
+            ..RelationOverride::default()
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("alpha", "imperial", "lawful"),
+                faction("zeta", "merchant", "opportunistic"),
+            ]),
+            &cfg,
+        );
+        let rel = &m.pairs[0];
+        assert_eq!(rel.a, "alpha");
+        assert_eq!(rel.b, "zeta");
+        assert_eq!(rel.a_to_b.secret_attitude, RelationAttitude::Hostile);
+        assert_eq!(rel.b_to_a.secret_attitude, RelationAttitude::Suspicious);
+    }
+
+    // ── C3: apply_relation_override metric clamp to 100 ────────────────────────
+
+    #[test]
+    fn rich_override_clamps_metric_at_100_on_both_views_and_pair() {
+        let mut cfg = RelationsConfig::default();
+        cfg.overrides.push(RelationOverride {
+            a: "imp".into(),
+            b: "trader".into(),
+            trust: Some(250),
+            ..RelationOverride::default()
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("imp", "imperial", "lawful"),
+                faction("trader", "merchant", "opportunistic"),
+            ]),
+            &cfg,
+        );
+        let rel = pair_of(&m, "imp", "trader");
+        assert_eq!(rel.a_to_b.metrics.trust, 100);
+        assert_eq!(rel.b_to_a.metrics.trust, 100);
+        // pair-level trust is the mean of the two clamped views ⇒ 100.
+        assert_eq!(rel.metrics.trust, 100);
+    }
+
+    // ── C4: combine_metrics asymmetric mean-vs-max rule ────────────────────────
+
+    /// `combine_metrics` averages `trust` but takes the MAX of every other
+    /// metric. Asymmetric faction power makes the directional `military_pressure`
+    /// values diverge, so the two rules are observably different.
+    #[test]
+    fn combine_metrics_uses_mean_for_trust_and_max_for_the_rest() {
+        let strong = faction_with_power(
+            "strong",
+            "imperial",
+            "lawful",
+            PowerProfile {
+                military: 900.0,
+                ..Default::default()
+            },
+        );
+        let weak = faction_with_power("weak", "imperial", "lawful", PowerProfile::default());
+        let m = derive_with(&sector_with(vec![strong, weak]), &RelationsConfig::default());
+        let rel = pair_of(&m, "strong", "weak");
+        // military_pressure depends on `to.power`, so the two directions diverge
+        // (perturbation only shifts the stance/attitude, not this metric).
+        assert_ne!(
+            rel.a_to_b.metrics.military_pressure,
+            rel.b_to_a.metrics.military_pressure
+        );
+        // The pair-level value is the MAX of the two directional values.
+        assert_eq!(
+            rel.metrics.military_pressure,
+            rel.a_to_b
+                .metrics
+                .military_pressure
+                .max(rel.b_to_a.metrics.military_pressure)
+        );
+        // Trust is the truncated MEAN of the two directional values.
+        let expected_trust =
+            ((u16::from(rel.a_to_b.metrics.trust) + u16::from(rel.b_to_a.metrics.trust)) / 2) as u8;
+        assert_eq!(rel.metrics.trust, expected_trust);
+    }
+
+    // ── C5: treaty_status_of derived branches (pinned stance, no rich override) ─
+
+    /// Pin a base stance with a `pair_override` (no rich override) so the derived
+    /// `treaty_status` is observable and perturbation cannot flip the branch.
+    fn derived_treaty(
+        kind_a: &str,
+        kind_b: &str,
+        stance: Stance,
+    ) -> TreatyStatus {
+        let mut cfg = RelationsConfig::default();
+        cfg.pair_overrides.push(PairOverride {
+            a: "fa".into(),
+            b: "fb".into(),
+            stance,
+            cause: None,
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("fa", kind_a, "lawful"),
+                faction("fb", kind_b, "lawful"),
+            ]),
+            &cfg,
+        );
+        m.pairs[0].treaty_status
+    }
+
+    #[test]
+    fn treaty_status_imperial_merchant_aligned_is_charter() {
+        assert_eq!(
+            derived_treaty("imperial", "merchant", Stance::Aligned),
+            TreatyStatus::Charter
+        );
+    }
+
+    #[test]
+    fn treaty_status_imperial_mechanicus_aligned_is_pact() {
+        // IMPERIAL_KINDS includes "mechanicus", so the MERCHANT cross is false and
+        // the [mechanicus] cross fires ⇒ Pact.
+        assert_eq!(
+            derived_treaty("imperial", "mechanicus", Stance::Aligned),
+            TreatyStatus::Pact
+        );
+    }
+
+    #[test]
+    fn treaty_status_atwar_is_vendetta() {
+        assert_eq!(
+            derived_treaty("imperial", "chaos_space_marine", Stance::AtWar),
+            TreatyStatus::Vendetta
+        );
+    }
+
+    #[test]
+    fn treaty_status_same_kind_hostile_no_warzone_is_nonaggression() {
+        // Two imperial factions pinned Hostile; zero co-occurrence ⇒
+        // active_warzones == 0 ⇒ Nonaggression (checked before the cross_kinds
+        // Charter/Pact branches).
+        assert_eq!(
+            derived_treaty("imperial", "imperial", Stance::Hostile),
+            TreatyStatus::Nonaggression
+        );
+    }
+
+    // ── C6: Stance::shift saturation ───────────────────────────────────────────
+
+    #[test]
+    fn stance_shift_saturates_at_bounds() {
+        // level -2 + -5 = -7 → clamp(-2,3) = -2 → Allied.
+        assert_eq!(Stance::Allied.shift(-5), Stance::Allied);
+        // level 3 + 10 = 13 → clamp = 3 → AtWar.
+        assert_eq!(Stance::AtWar.shift(10), Stance::AtWar);
+        // level 0 + 2 = 2 → Hostile.
+        assert_eq!(Stance::Neutral.shift(2), Stance::Hostile);
+        // boundary sanity.
+        assert_eq!(Stance::Neutral.shift(0), Stance::Neutral);
+        assert_eq!(Stance::Allied.shift(1), Stance::Aligned);
+    }
+
+    // ── derive_with_threshold: empty-presence fallback to all factions ─────────
+
+    /// Synthetic factions have empty world+system presence, so any threshold's
+    /// filter empties the set and the derivation falls back to ALL factions ⇒
+    /// exactly C(n, 2) pairs.
+    #[test]
+    fn derive_with_threshold_empty_presence_falls_back_to_all_pairs() {
+        let sector = sector_with(vec![
+            faction("a", "imperial", "lawful"),
+            faction("b", "mechanicus", "insular"),
+            faction("c", "chaos_space_marine", "hostile"),
+        ]);
+        let m = derive_with_threshold(&sector, &RelationsConfig::default(), 2);
+        assert_eq!(m.pairs.len(), 3);
+    }
 }

@@ -876,6 +876,46 @@ mod tests {
         assert_eq!(p.label(), "Deriving personae");
     }
 
+    // GAP 172 (a): `SectorSize::dims()` on degenerate dims is pure (just
+    // returns `(d, d)`), so it never multiplies, overflows, or panics. 0×0 is
+    // square by construction.
+    #[test]
+    fn sector_size_degenerate_dims() {
+        assert_eq!(SectorSize::Custom { dim: 1 }.dims(), (1, 1));
+        assert_eq!(SectorSize::Custom { dim: 0 }.dims(), (0, 0));
+    }
+
+    // GAP 172 (b): `build_random_config` at the smallest *valid* Custom dim
+    // (dim:2). Exercises the `cells.max(1)` / `div_ceil(4).max(1)` guards and
+    // the `system_count` clamp without tripping the `clamp(4, cells)` panic
+    // that dim:1 (cells=1) hits.
+    #[test]
+    fn build_random_config_smallest_grid_dim2() {
+        let cfg = build_random_config("degenerate-dim", SectorSize::Custom { dim: 2 });
+        assert_eq!(cfg.generation.sector_width, 2);
+        assert_eq!(cfg.generation.sector_height, 2);
+        // cells = 2*2 = 4; density*4 rounds to 1..2 then clamps up to the lower
+        // bound 4 (== cells), so system_count is exactly 4 regardless of the
+        // rolled density.
+        assert_eq!(cfg.generation.system_count, 4);
+        // subsector dims: 2.div_ceil(4) = 1, .max(1) = 1 ⇒ Some(1).
+        assert_eq!(cfg.generation.subsector_width, Some(1));
+        assert_eq!(cfg.generation.subsector_height, Some(1));
+        assert!(
+            cfg.generation.max_worlds_per_system >= cfg.generation.min_worlds_per_system
+        );
+    }
+
+    // GAP 172 (c): regression marker — `Custom{dim:1}` yields cells=1, so
+    // `system_count` does `clamp(4, 1)`, and Rust's `i64::clamp` panics when
+    // `min > max`. This pins the *current* behaviour: if the roller is ever
+    // fixed to clamp the lower bound down to `cells`, this test must be updated.
+    #[test]
+    #[should_panic(expected = "min > max")]
+    fn build_random_config_dim1_panics_today() {
+        let _ = build_random_config("dim1", SectorSize::Custom { dim: 1 });
+    }
+
     #[test]
     fn patch_regions_replaces_only_table_knobs() {
         let src = "[regions]\nenabled = true\ncount = 6\nmean_size = 9\napply_to_routes = true\n\n[[regions.conditions]]\nkind = \"warp_storm\"\nweight = 3.0\n";

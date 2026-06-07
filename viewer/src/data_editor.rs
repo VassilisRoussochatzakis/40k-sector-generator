@@ -99,6 +99,143 @@ fn extract_world_data_dir(toml_text: &str) -> Result<String, DataEditorError> {
     Ok(parsed.inputs.world_data_dir)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    // Scratch directory under the OS temp dir, removed on drop. The viewer crate
+    // has no `tempfile` dev-dependency, so we hand-roll a unique dir from the OS
+    // temp root using a static counter + pid + nanos to avoid collisions across
+    // concurrently-running tests. These data_editor tests use ABSOLUTE paths and
+    // never mutate the process CWD, so they need no serialization guard.
+    struct ScratchDir(PathBuf);
+
+    impl ScratchDir {
+        fn new(tag: &str) -> Self {
+            static COUNTER: AtomicU64 = AtomicU64::new(0);
+            let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+            let nanos = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0);
+            let dir = std::env::temp_dir().join(format!(
+                "sectorforge-viewer-{tag}-{}-{n}-{nanos}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&dir).unwrap();
+            ScratchDir(dir)
+        }
+
+        fn path(&self) -> &Path {
+            &self.0
+        }
+    }
+
+    impl Drop for ScratchDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn write_minimal_project(proj: &Path) {
+        fs::write(
+            proj.join("sectorforge.toml"),
+            "[inputs]\nworld_data_dir = \"data/worlds\"\n",
+        )
+        .unwrap();
+        let wdir = proj.join("data").join("worlds");
+        fs::create_dir_all(&wdir).unwrap();
+        // Empty worlds.toml is valid — WorldsConfig fields are `#[serde(default)]`.
+        fs::write(wdir.join("worlds.toml"), "").unwrap();
+    }
+
+    // Gap 223: load → sets fields, clears dirty, status; path ends with the
+    // resolved worlds.toml location.
+    #[test]
+    fn load_from_project_populates_fields() {
+        let scratch = ScratchDir::new("load");
+        let proj = scratch.path();
+        write_minimal_project(proj);
+
+        let mut ed = DataEditor::default();
+        ed.load_from_project(proj).unwrap();
+
+        assert!(ed.worlds_toml.is_some());
+        assert!(!ed.dirty);
+        assert_eq!(ed.project_dir.as_deref(), Some(proj));
+        assert!(ed
+            .worlds_toml_path
+            .as_ref()
+            .unwrap()
+            .ends_with("data/worlds/worlds.toml"));
+    }
+
+    // Gap 223: mutate → save → reload persists the change; save clears dirty.
+    #[test]
+    fn save_then_reload_persists_generation_rows() {
+        let scratch = ScratchDir::new("save");
+        let proj = scratch.path();
+        write_minimal_project(proj);
+
+        let mut ed = DataEditor::default();
+        ed.load_from_project(proj).unwrap();
+
+        ed.worlds_toml
+            .as_mut()
+            .unwrap()
+            .generation
+            .push(GenerationRow::default());
+        ed.dirty = true;
+        let n = ed.worlds_toml.as_ref().unwrap().generation.len();
+        assert_eq!(n, 1);
+
+        ed.save().unwrap();
+        assert!(!ed.dirty); // save clears dirty
+
+        let mut ed2 = DataEditor::default();
+        ed2.load_from_project(proj).unwrap();
+        assert_eq!(ed2.worlds_toml.as_ref().unwrap().generation.len(), n);
+    }
+
+    // Gap 223: save with nothing loaded → Err(Config "no worlds.toml loaded").
+    #[test]
+    fn save_without_load_errs() {
+        let mut empty = DataEditor::default();
+        let err = empty.save().unwrap_err();
+        assert!(matches!(err, DataEditorError::Config(_)));
+        assert!(err.to_string().contains("no worlds.toml loaded"));
+        // Display prefix from the `#[error("Config file error: {0}")]` attribute.
+        assert_eq!(err.to_string(), "Config file error: no worlds.toml loaded");
+    }
+
+    // Gap 229: extract_world_data_dir — valid key, missing key, garbage, empty.
+    #[test]
+    fn extract_world_data_dir_valid() {
+        let got = extract_world_data_dir("[inputs]\nworld_data_dir = \"data/worlds\"\n").unwrap();
+        assert_eq!(got, "data/worlds");
+    }
+
+    #[test]
+    fn extract_world_data_dir_missing_key_errs() {
+        let err = extract_world_data_dir("[inputs]\n").unwrap_err();
+        assert!(matches!(err, DataEditorError::Toml(_)));
+    }
+
+    #[test]
+    fn extract_world_data_dir_garbage_errs() {
+        let err = extract_world_data_dir("not valid toml ===").unwrap_err();
+        assert!(matches!(err, DataEditorError::Toml(_)));
+    }
+
+    #[test]
+    fn extract_world_data_dir_empty_errs() {
+        // Missing `inputs` table entirely.
+        let err = extract_world_data_dir("").unwrap_err();
+        assert!(matches!(err, DataEditorError::Toml(_)));
+    }
+}
+
 // ── UI ──────────────────────────────────────────────────────────────────────
 
 pub(crate) fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {

@@ -974,3 +974,290 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod route_effect_tests {
+    use super::*;
+    use crate::sector_model::{
+        DominanceState, FactionInfluence, GeneratedStar, GeneratedWorld, PresenceDimensions,
+        RouteType, SystemControlSummary, WorldControlSummary, WorldDto, WorldFactionPresence,
+    };
+
+    // Severity helpers live in `crate::generation` (pub(crate)); they are NOT
+    // reachable via `super::` because this is a sibling module, not a child of
+    // generation. `regions.rs` non-test code already calls them the same way.
+    use crate::generation::{distance_base_level, stability_from_level, stability_level};
+
+    // Minimal valid `GeneratedSystem` — copied from the canonical builder in
+    // `src/gen/hidden_routes.rs` `mod tests` (l.533). `apply_route_effects`
+    // only reads each system's `id` + `coord`, so only those matter here.
+    fn sys(id: &str, coord: (i32, i32)) -> GeneratedSystem {
+        let world = GeneratedWorld {
+            id: crate::ids::WorldId::new(format!("{id}-w1")),
+            index: 1,
+            name: "W".into(),
+            orbit: 1,
+            source_row_index: 0,
+            world: WorldDto {
+                star_colour: crate::worlds::StarColour::White,
+                world_type: crate::worlds::WorldType::AgriWorld,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::DenselyPopulated,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MagistrateCouncil,
+                notable_features: vec![],
+            },
+            factions: vec![WorldFactionPresence {
+                faction_id: "f".into(),
+                subfaction_id: None,
+                subfaction_name: None,
+                force_id: None,
+                force_name: None,
+                influence: FactionInfluence::Significant,
+                relationship_to_government: "secretive".into(),
+                dimensions: PresenceDimensions {
+                    visibility: 30.0,
+                    ..Default::default()
+                },
+                dominance: DominanceState::default(),
+                intel_confidence: 30,
+            }],
+            tags: vec![],
+            notes: vec![],
+            claims: vec![],
+            control: WorldControlSummary::default(),
+            stability: Default::default(),
+            regions: Vec::new(),
+            conflict: Default::default(),
+            intel: Default::default(),
+        };
+        GeneratedSystem {
+            id: id.into(),
+            index: 1,
+            name: id.into(),
+            kind: crate::sector_model::SystemKind::Star,
+            coord: HexCoord {
+                q: coord.0,
+                r: coord.1,
+            },
+            star: Some(GeneratedStar {
+                colour_code: "A".into(),
+                colour_name: "A".into(),
+                spectral_type: None,
+                source_row_index: None,
+            }),
+            worlds: vec![world],
+            primary_factions: vec![],
+            tags: vec![],
+            notes: vec![],
+            control: SystemControlSummary::default(),
+            stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
+        }
+    }
+
+    fn region(id: &str, kind: RegionConditionKind, hexes: &[(i32, i32)]) -> WarpRegion {
+        let hexes: Vec<HexCoord> = hexes.iter().map(|&(q, r)| HexCoord { q, r }).collect();
+        let centre = hexes.first().copied().unwrap_or(HexCoord { q: 0, r: 0 });
+        WarpRegion {
+            id: id.into(),
+            name: id.into(),
+            kind,
+            hexes,
+            centre,
+        }
+    }
+
+    // A route whose from/to ids match `sys(...)` ids (so `apply_route_effects`
+    // can resolve their coords). `distance` drives the CalmCorridor floor; it
+    // is NOT recomputed from coords.
+    fn route(from: &str, to: &str, distance: u32, stability: RouteStability) -> GeneratedRoute {
+        let from_id = crate::ids::SystemId::new(from);
+        let to_id = crate::ids::SystemId::new(to);
+        GeneratedRoute {
+            id: crate::ids::route_id(&from_id, &to_id),
+            from_system_id: from_id,
+            to_system_id: to_id,
+            distance,
+            route_type: RouteType::ChartedPassage,
+            stability,
+            tags: Vec::new(),
+            controls: Vec::new(),
+        }
+    }
+
+    // ── GAP 7: degrade (Turbulence step) ──────────────────────────────────
+
+    #[test]
+    fn degrade_steps_one_tier_and_saturates() {
+        assert_eq!(degrade(RouteStability::Stable), RouteStability::Unstable);
+        assert_eq!(degrade(RouteStability::Unstable), RouteStability::Hazardous);
+        assert_eq!(degrade(RouteStability::Hazardous), RouteStability::Perilous);
+        // Perilous is the floor — it cannot get worse.
+        assert_eq!(degrade(RouteStability::Perilous), RouteStability::Perilous);
+    }
+
+    #[test]
+    fn degrade_is_monotone_non_decreasing() {
+        for s in [
+            RouteStability::Stable,
+            RouteStability::Unstable,
+            RouteStability::Hazardous,
+            RouteStability::Perilous,
+        ] {
+            assert!(stability_level(degrade(s)) >= stability_level(s));
+        }
+    }
+
+    // ── GAP 6: dominant_route_condition + route_precedence ─────────────────
+
+    #[test]
+    fn route_precedence_ladder() {
+        assert_eq!(RegionConditionKind::WarpStorm.route_precedence(), 3);
+        assert_eq!(RegionConditionKind::Turbulence.route_precedence(), 2);
+        assert_eq!(RegionConditionKind::EmpyricBleed.route_precedence(), 2);
+        assert_eq!(RegionConditionKind::CalmCorridor.route_precedence(), 1);
+        assert_eq!(RegionConditionKind::BeaconChain.route_precedence(), 1);
+        assert_eq!(RegionConditionKind::Blackout.route_precedence(), 0);
+        assert_eq!(RegionConditionKind::Anomaly.route_precedence(), 0);
+        assert_eq!(RegionConditionKind::NecropolisDrift.route_precedence(), 0);
+        // The ladder is strict between tiers.
+        assert!(
+            RegionConditionKind::WarpStorm.route_precedence()
+                > RegionConditionKind::Turbulence.route_precedence()
+        );
+        assert!(
+            RegionConditionKind::Turbulence.route_precedence()
+                > RegionConditionKind::CalmCorridor.route_precedence()
+        );
+        assert!(
+            RegionConditionKind::CalmCorridor.route_precedence()
+                > RegionConditionKind::Blackout.route_precedence()
+        );
+    }
+
+    #[test]
+    fn dominant_route_condition_takes_higher_precedence() {
+        let from = HexCoord { q: 0, r: 0 };
+        let to = HexCoord { q: 5, r: 0 };
+
+        // WarpStorm (3) beats CalmCorridor (1).
+        let regions = vec![
+            region("r1", RegionConditionKind::CalmCorridor, &[(0, 0)]),
+            region("r2", RegionConditionKind::WarpStorm, &[(5, 0)]),
+        ];
+        assert_eq!(
+            dominant_route_condition(&regions, from, to),
+            Some(RegionConditionKind::WarpStorm)
+        );
+
+        // Turbulence (2) beats CalmCorridor (1).
+        let regions = vec![
+            region("r1", RegionConditionKind::Turbulence, &[(0, 0)]),
+            region("r2", RegionConditionKind::CalmCorridor, &[(5, 0)]),
+        ];
+        assert_eq!(
+            dominant_route_condition(&regions, from, to),
+            Some(RegionConditionKind::Turbulence)
+        );
+    }
+
+    #[test]
+    fn dominant_route_condition_filters_precedence_zero() {
+        let from = HexCoord { q: 0, r: 0 };
+        let to = HexCoord { q: 5, r: 0 };
+
+        // Blackout (0) + Anomaly (0): the `.filter(>0)` strips both → None.
+        let regions = vec![
+            region("r1", RegionConditionKind::Blackout, &[(0, 0)]),
+            region("r2", RegionConditionKind::Anomaly, &[(5, 0)]),
+        ];
+        assert_eq!(dominant_route_condition(&regions, from, to), None);
+
+        // Single Blackout touching `from` only → still None.
+        let regions = vec![region("r1", RegionConditionKind::Blackout, &[(0, 0)])];
+        assert_eq!(dominant_route_condition(&regions, from, to), None);
+    }
+
+    #[test]
+    fn dominant_route_condition_none_when_no_region_touches_endpoints() {
+        let from = HexCoord { q: 0, r: 0 };
+        let to = HexCoord { q: 5, r: 0 };
+        // Empty slice → None.
+        assert_eq!(dominant_route_condition(&[], from, to), None);
+        // Region exists but its hexes miss both endpoints → None.
+        let regions = vec![region("r1", RegionConditionKind::WarpStorm, &[(9, 9)])];
+        assert_eq!(dominant_route_condition(&regions, from, to), None);
+    }
+
+    // ── GAP 5: apply_route_effects CalmCorridor floor-clamp ────────────────
+
+    #[test]
+    fn calm_corridor_clamps_upgrade_to_distance_floor() {
+        // Four systems, all sitting inside one CalmCorridor region so the
+        // dominant condition fires for both routes.
+        let systems = vec![
+            sys("sys-0000", (0, 0)),
+            sys("sys-0001", (1, 0)),
+            sys("sys-0002", (2, 0)),
+            sys("sys-0003", (3, 0)),
+        ];
+        let calm = region(
+            "calm",
+            RegionConditionKind::CalmCorridor,
+            &[(0, 0), (1, 0), (2, 0), (3, 0)],
+        );
+
+        // Short route: distance=1 → floor=0; Hazardous(2) upgrades to
+        // max(1, 0)=1 → Unstable. Long route: distance=7, max=8 → floor=2;
+        // Hazardous(2) "upgrade" clamps to max(1, 2)=2 → stays Hazardous.
+        let mut routes = vec![
+            route("sys-0000", "sys-0001", 1, RouteStability::Hazardous),
+            route("sys-0002", "sys-0003", 7, RouteStability::Hazardous),
+        ];
+        apply_route_effects(&[calm], &systems, &mut routes, 8);
+
+        assert_eq!(
+            routes[0].stability,
+            RouteStability::Unstable,
+            "short calm Hazardous should upgrade to Unstable"
+        );
+        assert_eq!(
+            routes[1].stability,
+            RouteStability::Hazardous,
+            "long calm Hazardous should stay Hazardous (floor==2)"
+        );
+        // Short is at least as safe as long — the invariant the floor protects.
+        assert!(stability_level(routes[0].stability) <= stability_level(routes[1].stability));
+    }
+
+    #[test]
+    fn calm_corridor_leaves_perilous_unchanged() {
+        let systems = vec![sys("sys-0000", (0, 0)), sys("sys-0001", (1, 0))];
+        let calm = region(
+            "calm",
+            RegionConditionKind::CalmCorridor,
+            &[(0, 0), (1, 0)],
+        );
+        // Perilous routes are explicitly skipped by the CalmCorridor branch.
+        let mut routes = vec![route("sys-0000", "sys-0001", 1, RouteStability::Perilous)];
+        apply_route_effects(&[calm], &systems, &mut routes, 8);
+        assert_eq!(routes[0].stability, RouteStability::Perilous);
+    }
+
+    // Cross-check the exact floor values the CalmCorridor branch relies on, so a
+    // drift in `distance_base_level` banding surfaces here too.
+    #[test]
+    fn calm_corridor_floor_anchors() {
+        assert_eq!(distance_base_level(1, 8), 0);
+        assert_eq!(distance_base_level(7, 8), 2);
+        assert_eq!(stability_from_level(1), RouteStability::Unstable);
+        assert_eq!(stability_from_level(2), RouteStability::Hazardous);
+    }
+}

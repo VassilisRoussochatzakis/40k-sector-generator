@@ -151,3 +151,37 @@ fn short(s: &str, max: usize) -> String {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::short;
+
+    #[test]
+    fn short_keeps_string_at_or_below_max() {
+        // len == max: returned unchanged.
+        assert_eq!(short("hello", 5), "hello");
+        // len < max: also unchanged.
+        assert_eq!(short("hi", 5), "hi");
+    }
+
+    #[test]
+    fn short_truncates_to_take_max_minus_one_plus_dot() {
+        // 5 chars > max 4 → take(3) + '.'.
+        assert_eq!(short("hello", 4), "hel.");
+    }
+
+    #[test]
+    fn short_counts_chars_not_bytes_no_panic() {
+        // "héllo" is 5 chars (é is multibyte) ≤ 6 → unchanged, no panic.
+        assert_eq!(short("héllo", 6), "héllo");
+        // 5 chars > max 3 → take(2) chars = "hé" + '.'. Byte-slicing at 2
+        // would split `é`; char-boundary slicing must not panic.
+        assert_eq!(short("héllo", 3), "hé.");
+    }
+
+    #[test]
+    fn short_max_zero_saturates_without_underflow() {
+        // max.saturating_sub(1) == 0 → take(0) == "" then push '.'.
+        assert_eq!(short("abc", 0), ".");
+    }
+}
+

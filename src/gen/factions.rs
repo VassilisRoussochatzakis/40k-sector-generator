@@ -223,6 +223,37 @@ mod tests {
     }
 
     #[test]
+    fn subfaction_serde_aliases_deserialize() {
+        // Both legacy spellings of the sub-faction id (`sub_faction`,
+        // `subfaction_id`) must land in `.subfaction`; both name spellings
+        // (`sub_faction_name`, `subfaction_name`) must land in
+        // `.subfaction_name`.
+        let toml_a = r#"
+id = "force-1"
+name = "First"
+kind = "imperial_guard"
+weight = 1.0
+sub_faction = "sf-aaa"
+sub_faction_name = "Sub Aaa"
+"#;
+        let f: FactionDef = toml::from_str(toml_a).unwrap();
+        assert_eq!(f.subfaction.as_deref(), Some("sf-aaa"));
+        assert_eq!(f.subfaction_name.as_deref(), Some("Sub Aaa"));
+
+        let toml_b = r#"
+id = "force-2"
+name = "Second"
+kind = "imperial"
+weight = 2.0
+subfaction_id = "sf-bbb"
+subfaction_name = "Sub Bbb"
+"#;
+        let g: FactionDef = toml::from_str(toml_b).unwrap();
+        assert_eq!(g.subfaction.as_deref(), Some("sf-bbb"));
+        assert_eq!(g.subfaction_name.as_deref(), Some("Sub Bbb"));
+    }
+
+    #[test]
     fn optional_style_fields_round_trip() {
         let def = FactionDef {
             faction: None,

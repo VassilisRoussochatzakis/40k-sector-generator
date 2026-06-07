@@ -538,4 +538,45 @@ mod tests {
             .as_str()
             .is_some_and(|hex| hex.starts_with('#') && hex.len() == 7));
     }
+
+    // GAP 144: `render_html` on an EMPTY sector (no systems, no factions). The
+    // faction-palette builder loops over an empty BTreeMap and emits the literal
+    // `{}`, the doctype prefix is present, and the inlined SECTOR JSON is the
+    // sector's own compact serialisation with an empty `systems` array.
+    #[test]
+    fn render_html_empty_sector_has_empty_palette_and_doctype() {
+        let s = GeneratedSector {
+            width: 4,
+            height: 4,
+            ..Default::default()
+        };
+        let cfg = HtmlConfig::default();
+        let html = render_html(&s, &cfg).expect("render_html ok on empty sector");
+
+        assert!(
+            html.starts_with("<!doctype html>"),
+            "doctype prefix missing"
+        );
+        assert!(
+            html.contains("FACTION_PALETTE = {}"),
+            "empty sector should emit an empty faction palette literal"
+        );
+        assert!(html.contains("const SECTOR = "), "SECTOR inline missing");
+
+        // The inlined SECTOR JSON equals the sector's compact serialisation
+        // (default cfg has compact_json: true).
+        let expected_json = serde_json::to_string(&s).unwrap();
+        assert!(
+            html.contains(&expected_json),
+            "inlined SECTOR JSON must match compact serialization"
+        );
+
+        // ...and that JSON has an empty systems array.
+        let v: serde_json::Value = serde_json::from_str(&expected_json).unwrap();
+        assert_eq!(
+            v["systems"].as_array().expect("systems is array").len(),
+            0,
+            "empty sector must serialise an empty systems array"
+        );
+    }
 }

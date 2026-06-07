@@ -103,6 +103,38 @@ fn different_stitch_seed_can_change_links() {
 }
 
 #[test]
+fn segmentum_example_parses_and_children_fit_grid() {
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
+    let path = Utf8PathBuf::from(manifest_dir).join("examples/segmentum_example.toml");
+    let text = std::fs::read_to_string(path.as_std_path())
+        .unwrap_or_else(|e| panic!("read {path}: {e}"));
+    let file: SegmentumFile = toml::from_str(&text).expect("segmentum_example.toml must parse");
+
+    assert!(!file.children.is_empty(), "segmentum example has no children");
+    assert_eq!(file.children.len(), 4, "segmentum example has four children");
+
+    let (cols, rows) = (file.segmentum.columns, file.segmentum.rows);
+    assert_eq!(cols, 2);
+    assert_eq!(rows, 2);
+    for c in &file.children {
+        assert!(
+            c.column < cols,
+            "child {} column {} >= columns {}",
+            c.id,
+            c.column,
+            cols
+        );
+        assert!(
+            c.row < rows,
+            "child {} row {} >= rows {}",
+            c.id,
+            c.row,
+            rows
+        );
+    }
+}
+
+#[test]
 fn duplicate_child_slot_is_rejected() {
     let mut file = base_file();
     file.children[1].column = 0; // collide with alpha

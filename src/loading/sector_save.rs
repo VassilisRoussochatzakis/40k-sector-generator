@@ -231,6 +231,38 @@ mod tests {
     }
 
     #[test]
+    fn sector_save_json_round_trips_and_merge_restores() {
+        let mut s = empty_sector("t1");
+        s.systems[0].primary_factions = vec!["a".into(), "b".into()];
+
+        let save = split(&s);
+        assert_eq!(save.sector_id, "t1");
+        assert_eq!(save.seed, "abc");
+        assert_eq!(save.generator_version, "0.1");
+
+        // JSON idempotence on the SAVE document. The `systems` map is keyed by
+        // `SystemId` (a `#[serde(transparent)]` newtype over a string), so this
+        // also exercises that the map key survives a JSON object-key round-trip.
+        let json = serde_json::to_string(&save).unwrap();
+        let parsed: SectorSave = serde_json::from_str(&json).unwrap();
+        let json2 = serde_json::to_string(&parsed).unwrap();
+        assert_eq!(json, json2, "SectorSave JSON must round-trip byte-identically");
+
+        // The `SystemId` map key survived deserialisation (Borrow<str> lookup).
+        assert!(
+            parsed.systems.contains_key("sys-0001"),
+            "SystemId map key lost across JSON round-trip"
+        );
+        assert_eq!(parsed.sector_id, "t1");
+        assert_eq!(parsed.seed, "abc");
+
+        // Merging the reparsed save onto a fresh catalog restores runtime state.
+        let mut fresh = empty_sector("t1");
+        merge(&mut fresh, parsed).unwrap();
+        assert_eq!(fresh.systems[0].primary_factions, vec!["a", "b"]);
+    }
+
+    #[test]
     fn merge_rejects_id_mismatch() {
         let s = empty_sector("t1");
         let save = split(&s);

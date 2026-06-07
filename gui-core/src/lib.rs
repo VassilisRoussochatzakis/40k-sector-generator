@@ -65,3 +65,35 @@ pub fn human_bytes(n: u64) -> String {
         format!("{n} B")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::human_bytes;
+
+    #[test]
+    fn human_bytes_integer_byte_branch_has_no_decimal() {
+        // < 1024 uses the integer `{n} B` arm: space before `B`, no `.0`.
+        assert_eq!(human_bytes(0), "0 B");
+        assert_eq!(human_bytes(1023), "1023 B");
+    }
+
+    #[test]
+    fn human_bytes_kib_boundary_uses_one_decimal() {
+        // Exactly 1024 crosses into the KiB arm: 1024/1024 = 1.0.
+        assert_eq!(human_bytes(1024), "1.0 KiB");
+    }
+
+    #[test]
+    fn human_bytes_kib_upper_edge_rounds_to_1024() {
+        // 1_048_575 < 1_048_576, so still KiB; 1_048_575 / 1024 = 1023.999…
+        // formatted with `{:.1}` rounds up to "1024.0". This is the
+        // integer-`B`-vs-`{:.1}` split the gap targets.
+        assert_eq!(human_bytes(1_048_575), "1024.0 KiB");
+    }
+
+    #[test]
+    fn human_bytes_mib_and_gib_boundaries() {
+        assert_eq!(human_bytes(1_048_576), "1.0 MiB"); // 1024 * 1024
+        assert_eq!(human_bytes(1_073_741_824), "1.0 GiB"); // 1024 * 1024 * 1024
+    }
+}

@@ -501,4 +501,25 @@ mod tests {
         );
         assert_eq!(pick, SystemPick::Background);
     }
+
+    #[test]
+    fn short_upper_uppercases_at_or_below_max() {
+        // Uppercased, well under max → returned whole.
+        assert_eq!(short_upper("hello", 14), "HELLO");
+        // len == max (after upper, 5 chars) → unchanged.
+        assert_eq!(short_upper("hello", 5), "HELLO");
+    }
+
+    #[test]
+    fn short_upper_truncates_uppercased_string() {
+        // "HELLO WORLD" is 11 chars > 5 → take(4) = "HELL" + '.'.
+        assert_eq!(short_upper("hello world", 5), "HELL.");
+    }
+
+    #[test]
+    fn short_upper_ascii_only_uppercasing_is_multibyte_safe() {
+        // to_ascii_uppercase leaves `é` untouched: h→H, é stays, l→L, l→L, o→O.
+        // Result "HéLLO" is 5 chars ≤ 6 → unchanged, no panic on the multibyte char.
+        assert_eq!(short_upper("héllo", 6), "HéLLO");
+    }
 }

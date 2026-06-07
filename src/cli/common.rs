@@ -647,3 +647,210 @@ fn progress_stride(total: usize) -> usize {
         _ => 100,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sectorforge::heatmap::HeatmapMode;
+    use sectorforge::SectorError;
+
+    // ── resolve_formats (Gap 2) ────────────────────────────────────────────
+
+    /// `--exclude json` is a hard error — json can never be dropped because the
+    /// viewer and segmentum compose load `out/sector.json`.
+    #[test]
+    fn resolve_formats_rejects_excluding_json() {
+        let err = resolve_formats(
+            vec![OutputFormat::Json, OutputFormat::Svg],
+            None,
+            Some(vec!["json".into()]),
+            false,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m) if m.contains("json cannot be excluded")),
+            "expected json-exclusion error"
+        );
+    }
+
+    /// An empty effective set (here `--formats` replaces the base with nothing)
+    /// is an error rather than a silent no-op export.
+    #[test]
+    fn resolve_formats_empty_result_errors() {
+        let err = resolve_formats(vec![OutputFormat::Json], Some(vec![]), None, false).unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m) if m.contains("no output formats remain")),
+            "expected empty-set error"
+        );
+    }
+
+    /// `--light` drops every render artifact, keeping only the machine-readable
+    /// `json` (the only non-render format).
+    #[test]
+    fn resolve_formats_light_keeps_only_json() {
+        let out = resolve_formats(
+            vec![
+                OutputFormat::Json,
+                OutputFormat::Bitmap,
+                OutputFormat::Svg,
+                OutputFormat::Html,
+                OutputFormat::Markdown,
+            ],
+            None,
+            None,
+            true,
+        )
+        .unwrap();
+        assert_eq!(out, vec![OutputFormat::Json]);
+    }
+
+    /// The `png` token aliases to the `Bitmap` variant (the PNG format is named
+    /// `Bitmap`, not `Png`). `--formats` replaces the (empty) base set.
+    #[test]
+    fn resolve_formats_png_token_maps_to_bitmap() {
+        let out = resolve_formats(vec![], Some(vec!["png".into()]), None, false).unwrap();
+        assert_eq!(out, vec![OutputFormat::Bitmap]);
+    }
+
+    /// Duplicate tokens collapse, preserving first-seen order.
+    #[test]
+    fn resolve_formats_dedups_preserving_order() {
+        let out = resolve_formats(
+            vec![],
+            Some(vec!["json".into(), "json".into(), "md".into()]),
+            None,
+            false,
+        )
+        .unwrap();
+        assert_eq!(out, vec![OutputFormat::Json, OutputFormat::Markdown]);
+    }
+
+    /// An unknown token names the originating flag (`--formats` / `--exclude`)
+    /// and echoes the offending token.
+    #[test]
+    fn resolve_formats_unknown_token_names_flag() {
+        let err =
+            resolve_formats(vec![], Some(vec!["bogus".into()]), None, false).unwrap_err();
+        match err {
+            SectorError::InvalidConfig(m) => {
+                assert!(m.contains("--formats"), "message {m:?} missing flag name");
+                assert!(m.contains("bogus"), "message {m:?} missing token");
+            }
+            other => panic!("expected InvalidConfig, got {other:?}"),
+        }
+
+        let err = resolve_formats(
+            vec![OutputFormat::Json, OutputFormat::Svg],
+            None,
+            Some(vec!["bogus".into()]),
+            false,
+        )
+        .unwrap_err();
+        match err {
+            SectorError::InvalidConfig(m) => {
+                assert!(m.contains("--exclude"), "message {m:?} missing flag name");
+                assert!(m.contains("bogus"), "message {m:?} missing token");
+            }
+            other => panic!("expected InvalidConfig, got {other:?}"),
+        }
+    }
+
+    // ── parse_heatmap (Gap 5) ──────────────────────────────────────────────
+
+    #[test]
+    fn parse_heatmap_is_case_insensitive() {
+        assert_eq!(parse_heatmap("OFF").unwrap(), HeatmapMode::Off);
+        assert_eq!(parse_heatmap("Control").unwrap(), HeatmapMode::Control);
+    }
+
+    #[test]
+    fn parse_heatmap_accepts_aliases() {
+        // `industry` is an alias for `industrial`.
+        assert_eq!(parse_heatmap("industry").unwrap(), HeatmapMode::Industrial);
+        // Both `trade-volume` and `tradevol` resolve to the same variant.
+        assert_eq!(
+            parse_heatmap("trade-volume").unwrap(),
+            HeatmapMode::TradeVolume
+        );
+        assert_eq!(parse_heatmap("tradevol").unwrap(), HeatmapMode::TradeVolume);
+    }
+
+    #[test]
+    fn parse_heatmap_unknown_token_errors() {
+        let err = parse_heatmap("nonsense").unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m)
+                if m.contains("nonsense") && m.contains("unknown heatmap mode")),
+            "expected unknown-heatmap error naming the token"
+        );
+    }
+
+    // ── load_or_regenerate + resolve_sector_with_cfg (Gap 8) ───────────────
+
+    /// Marker config: its `Default` is `MarkerCfg(0)`. Used to prove the
+    /// `--sector` arm substitutes `C::default()` and never runs `extract`.
+    #[derive(Debug, Default, PartialEq)]
+    struct MarkerCfg(u32);
+
+    /// Both fns share the "exactly one of --project / --sector" guard; the
+    /// `(None, None)` and `(Some, Some)` arms short-circuit before any I/O.
+    #[test]
+    fn load_or_regenerate_requires_exactly_one_source() {
+        let err = load_or_regenerate(None, None).unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
+            "expected exactly-one error for (None, None)"
+        );
+
+        let err =
+            load_or_regenerate(Some("a".into()), Some("b".into())).unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
+            "expected exactly-one error for (Some, Some)"
+        );
+    }
+
+    #[test]
+    fn resolve_sector_with_cfg_requires_exactly_one_source() {
+        // The closure must never run on these error arms — panic if it does.
+        let err = resolve_sector_with_cfg::<MarkerCfg>(None, None, |_| {
+            panic!("extract must not run when neither source is given")
+        })
+        .unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
+            "expected exactly-one error for (None, None)"
+        );
+
+        let p = Utf8PathBuf::from("p");
+        let err = resolve_sector_with_cfg::<MarkerCfg>(Some(&p), Some(&p), |_| {
+            panic!("extract must not run when both sources are given")
+        })
+        .unwrap_err();
+        assert!(
+            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
+            "expected exactly-one error for (Some, Some)"
+        );
+    }
+
+    /// On the `--sector` arm there is no project config, so `C::default()` is
+    /// substituted and `extract` is *not* called. We prove this by passing a
+    /// closure that panics if invoked and asserting the returned cfg is the
+    /// `MarkerCfg::default()` (== `MarkerCfg(0)`).
+    #[test]
+    fn resolve_sector_with_cfg_sector_arm_uses_default_without_extract() {
+        let proj = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project");
+        let sec = sectorforge::generate_sector(sectorforge::load_project(&proj).unwrap()).unwrap();
+
+        let tmp = tempfile::TempDir::new().unwrap();
+        let json_path =
+            Utf8PathBuf::from_path_buf(tmp.path().join("sector.json")).unwrap();
+        sectorforge::write_sector_json(&json_path, &sec).unwrap();
+
+        let (_sec, cfg) = resolve_sector_with_cfg::<MarkerCfg>(None, Some(&json_path), |_| {
+            panic!("extract must NOT run on the --sector arm")
+        })
+        .unwrap();
+        assert_eq!(cfg, MarkerCfg::default());
+    }
+}

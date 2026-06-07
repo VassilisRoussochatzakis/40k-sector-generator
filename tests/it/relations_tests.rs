@@ -11,7 +11,7 @@
 use proptest::prelude::*;
 use sectorforge::{
     generate_sector, load_project,
-    relations::{self, RelationsConfig, RelationsReport, Stance},
+    relations::{self, load_relations_file, RelationAttitude, RelationsConfig, RelationsReport, Stance},
     GeneratedSector,
 };
 
@@ -146,6 +146,52 @@ fn derive_is_deterministic_for_fixture() {
     let ja = serde_json::to_string(&a).unwrap();
     let jb = serde_json::to_string(&b).unwrap();
     assert_eq!(ja, jb, "relations matrix not deterministic for fixture");
+}
+
+/// D1: `load_relations_file` parses the bundled `relations.toml`, the loaded
+/// config is non-default (knobs are set), and feeding it through
+/// [`relations::derive_with`] moves numbers vs the bare [`relations::derive`] —
+/// while a re-run on the same loaded config stays byte-identical (determinism).
+#[test]
+fn load_relations_file_changes_derivation_deterministically() {
+    let path = fixture_dir().join("data/factions/relations.toml");
+    let cfg = load_relations_file(&path).expect("load relations.toml");
+
+    // 1. Loaded config is genuinely non-default — the file sets these knobs.
+    assert!(cfg.feed_conflict, "feed_conflict not loaded from file");
+    assert!(!cfg.kind_rules.is_empty(), "kind_rules not loaded");
+    assert!(!cfg.overrides.is_empty(), "rich overrides not loaded");
+    assert!(!cfg.pair_overrides.is_empty(), "pair_overrides not loaded");
+
+    let sector = fixture_sector();
+
+    // 2. derive (built-in defaults) differs from derive_with(loaded) — the
+    //    authored kind_rules + overrides change stances/attitudes, so the
+    //    serialized matrix is not byte-identical.
+    let base = serde_json::to_string(&relations::derive(sector)).unwrap();
+    let with = serde_json::to_string(&relations::derive_with(sector, &cfg)).unwrap();
+    assert_ne!(base, with, "loaded config did not change the derived matrix");
+
+    // 3. Re-running derive_with on the same loaded config is byte-identical.
+    let with2 = serde_json::to_string(&relations::derive_with(sector, &cfg)).unwrap();
+    assert_eq!(with, with2, "derive_with not deterministic for loaded config");
+
+    // 4. (Conditional) The file's rich override pins ecclesiarchy×inquisition
+    //    public_attitude = "allied". If those faction ids exist in the m42
+    //    fixture, the derived pair must carry that attitude; canonical order is
+    //    "ecclesiarchy" < "inquisition". Gated so a missing pair is a no-op.
+    let matrix = relations::derive_with(sector, &cfg);
+    if let Some(rel) = matrix
+        .pairs
+        .iter()
+        .find(|p| p.a.as_str() == "ecclesiarchy" && p.b.as_str() == "inquisition")
+    {
+        assert_eq!(
+            rel.public_attitude,
+            RelationAttitude::Allied,
+            "rich override did not pin ecclesiarchy×inquisition public_attitude",
+        );
+    }
 }
 
 proptest! {

@@ -6,12 +6,16 @@ mod shared;
 
 #[path = "it/analytics_and_presets.rs"]
 mod analytics_and_presets;
+#[path = "it/cli_behavior.rs"]
+mod cli_behavior;
 #[path = "it/cli_gui_parity.rs"]
 mod cli_gui_parity;
 #[path = "it/cli_smoke.rs"]
 mod cli_smoke;
 #[path = "it/economy_tests.rs"]
 mod economy_tests;
+#[path = "it/export_parity_tests.rs"]
+mod export_parity_tests;
 #[path = "it/golden_generation.rs"]
 mod golden_generation;
 #[path = "it/golden_png.rs"]
@@ -24,12 +28,16 @@ mod imports_test;
 mod invariants_proptest;
 #[path = "it/invariants_tests.rs"]
 mod invariants_tests;
+#[path = "it/loading_tests.rs"]
+mod loading_tests;
 #[path = "it/personae_tests.rs"]
 mod personae_tests;
 #[path = "it/random_sector_tests.rs"]
 mod random_sector_tests;
 #[path = "it/relations_tests.rs"]
 mod relations_tests;
+#[path = "it/route_monotonicity.rs"]
+mod route_monotonicity;
 #[path = "it/search_and_diff.rs"]
 mod search_and_diff;
 #[path = "it/segmentum_tests.rs"]

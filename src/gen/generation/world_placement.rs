@@ -348,3 +348,78 @@ pub fn regenerate_world_payload(
     let tags = tags_for_world(&world);
     Ok((dto, cand.row_index, tags))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // GAP 173: `tags_for_world` emits one namespaced tag per the 8 component
+    // prefixes plus one `feature:<snake>` per notable feature, sorted. Every
+    // component enum's Display is `{self:?}` (the variant name), then
+    // `taxonomy::to_snake_case` converts CamelCase → snake_case. World has no
+    // Default, so each field is constructed by name (in-crate, so the enums'
+    // `#[non_exhaustive]` does not block construction here).
+    #[test]
+    fn tags_for_world_sorted_namespaced() {
+        use crate::worlds::*;
+        let world = World {
+            star_colour: StarColour::White,
+            world_type: WorldType::HiveWorld,
+            atmosphere: Atmosphere::Breathable,
+            temperature: Temperature::Temperate,
+            biosphere: Biosphere::Thriving,
+            population: Population::Uninhabited,
+            tech_level: TechLevel::Standard,
+            government: Government::None,
+            notable_features: vec![NotableFeature::AncientArchive, NotableFeature::XenoRuins],
+        };
+        let tags: Vec<String> = tags_for_world(&world)
+            .iter()
+            .map(|t| t.to_string())
+            .collect();
+
+        let expected = vec![
+            "atmosphere:breathable".to_string(),
+            "biosphere:thriving".to_string(),
+            "feature:ancient_archive".to_string(),
+            "feature:xeno_ruins".to_string(),
+            "gov:none".to_string(),
+            "population:uninhabited".to_string(),
+            "star:white".to_string(),
+            "tech:standard".to_string(),
+            "temperature:temperate".to_string(),
+            "world_type:hive_world".to_string(),
+        ];
+        assert_eq!(tags, expected);
+
+        // The sorted invariant the gap calls out, explicitly.
+        let mut sorted = tags.clone();
+        sorted.sort();
+        assert_eq!(tags, sorted, "tags must be sorted");
+
+        // 8 base prefixes + 2 feature tags.
+        assert_eq!(tags.len(), 10, "8 base prefixes + 2 features");
+        assert_eq!(
+            tags.iter().filter(|t| t.starts_with("feature:")).count(),
+            2
+        );
+
+        // Each of the 8 base namespaces is present exactly once.
+        for ns in [
+            "world_type:",
+            "atmosphere:",
+            "temperature:",
+            "biosphere:",
+            "population:",
+            "tech:",
+            "gov:",
+            "star:",
+        ] {
+            assert_eq!(
+                tags.iter().filter(|t| t.starts_with(ns)).count(),
+                1,
+                "missing/dup namespace {ns}"
+            );
+        }
+    }
+}

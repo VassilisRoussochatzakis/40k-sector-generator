@@ -306,4 +306,89 @@ mod tests {
             Some("new".to_string())
         );
     }
+
+    // Gap 227: `set_sector` clears dirty, bumps revision (wrapping_add(1)), drops
+    // the map cache, and resets transient editor state (selection/tab/dialog/
+    // route_pick/pending_route_start). `loaded_from` is set from `source_path`.
+    #[test]
+    fn set_sector_clears_dirty_bumps_revision_and_resets_state() {
+        let mut st = EditorState::default();
+        // Dirty it up + set non-default transient state to prove the reset.
+        st.dirty = true;
+        st.revision = 5;
+        st.selection = Selection::System(SystemId::new("sys-0001"));
+        st.tab = Tab::Routes;
+        st.dialog = Dialog::Message("x".into());
+        st.route_pick = Some((0, RouteEndpoint::From));
+        st.pending_route_start = Some(SystemId::new("sys-0001"));
+        st.map_cache = None; // building a real SectorMapCache is heavy; field is set to None unconditionally.
+
+        let before_rev = st.revision;
+        st.set_sector(empty_sector("a", "A", "s", 8, 8), None, Some("path".into()));
+
+        assert!(!st.dirty);
+        assert_eq!(st.revision, before_rev + 1); // wrapping_add(1)
+        assert!(matches!(st.selection, Selection::None));
+        assert!(matches!(st.tab, Tab::Map));
+        assert!(matches!(st.dialog, Dialog::None));
+        assert!(st.route_pick.is_none());
+        assert!(st.pending_route_start.is_none());
+        assert_eq!(st.loaded_from, Some("path".to_string()));
+        assert!(st.sector.is_some());
+        assert!(st.map_cache.is_none());
+    }
+
+    // Gap 227: `mark_dirty` sets dirty, bumps revision, drops the map cache.
+    #[test]
+    fn mark_dirty_sets_dirty_bumps_revision_drops_cache() {
+        let mut st = EditorState::default();
+        st.set_sector(empty_sector("a", "A", "s", 8, 8), None, None); // dirty=false, revision=1
+        assert!(!st.dirty);
+        let r = st.revision;
+        st.mark_dirty();
+        assert!(st.dirty);
+        assert_eq!(st.revision, r + 1);
+        assert!(st.map_cache.is_none());
+    }
+
+    // Gap 232: `next_system_index` = max(system.index) + 1, or 1 when no sector /
+    // zero systems.
+    #[test]
+    fn next_system_index_no_sector_is_one() {
+        assert_eq!(EditorState::default().next_system_index(), 1);
+    }
+
+    #[test]
+    fn next_system_index_uses_max_plus_one() {
+        use sectorforge::ids::system_id;
+        use sectorforge::sector_model::empty_system;
+
+        let mut st = EditorState::default();
+        let mut sec = empty_sector("a", "A", "s", 8, 8);
+        sec.systems.push(empty_system(
+            system_id(1),
+            1,
+            "a".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        ));
+        sec.systems.push(empty_system(
+            system_id(3),
+            3,
+            "b".into(),
+            HexCoord { q: 1, r: 0 },
+            SystemKind::Star,
+            None,
+        ));
+        st.set_sector(sec, None, None);
+        assert_eq!(st.next_system_index(), 4); // max(1, 3) + 1
+    }
+
+    #[test]
+    fn next_system_index_zero_systems_is_one() {
+        let mut st = EditorState::default();
+        st.set_sector(empty_sector("a", "A", "s", 8, 8), None, None);
+        assert_eq!(st.next_system_index(), 1); // max of empty -> unwrap_or(0) -> +1
+    }
 }

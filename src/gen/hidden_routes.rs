@@ -628,7 +628,69 @@ mod tests {
         let n = append_hidden_routes(&systems, &factions, &mut routes);
         assert_eq!(n, 1);
         assert_eq!(routes[0].route_type, RouteType::Webway);
+        // A webway is always Stable regardless of the endpoints' hex distance
+        // (here hex_distance({0,0},{10,10})).
+        assert_eq!(routes[0].stability, RouteStability::Stable);
         assert!(routes[0].tags.iter().any(|t| t.as_ref() == "hidden:webway"));
+    }
+
+    #[test]
+    fn webway_is_always_stable_for_every_distance() {
+        for d in [1u32, 3, 6, 12, 99] {
+            assert_eq!(
+                hidden_route_stability(RouteType::Webway, d),
+                RouteStability::Stable,
+                "webway must be Stable at distance {d}"
+            );
+        }
+    }
+
+    #[test]
+    fn smuggling_lane_runs_one_tier_hot() {
+        // base(1,6)=0 → (0+1).min(3)=1 → Unstable even for a 1-hex run.
+        assert_eq!(
+            hidden_route_stability(RouteType::SmugglingLane, 1),
+            RouteStability::Unstable
+        );
+        // base>=3 → (3+1).min(3)=3 → Perilous once at/over the navigable cap.
+        assert_eq!(
+            hidden_route_stability(RouteType::SmugglingLane, 6),
+            RouteStability::Perilous
+        );
+        assert_eq!(
+            hidden_route_stability(RouteType::SmugglingLane, 12),
+            RouteStability::Perilous
+        );
+        assert_eq!(
+            hidden_route_stability(RouteType::SmugglingLane, 99),
+            RouteStability::Perilous
+        );
+    }
+
+    #[test]
+    fn black_ship_is_never_worse_than_hazardous() {
+        // One tier safer than the raw baseline, capped at Hazardous.
+        for d in [1u32, 3, 5, 6, 12, 99] {
+            assert!(
+                crate::generation::stability_level(hidden_route_stability(RouteType::BlackShip, d))
+                    <= crate::generation::stability_level(RouteStability::Hazardous),
+                "black-ship lane at distance {d} exceeded Hazardous"
+            );
+        }
+        // Concrete anchors: the worst it reaches is Hazardous; a short hop is
+        // Stable (base 0 → saturating_sub(1) → 0).
+        assert_eq!(
+            hidden_route_stability(RouteType::BlackShip, 6),
+            RouteStability::Hazardous
+        );
+        assert_eq!(
+            hidden_route_stability(RouteType::BlackShip, 99),
+            RouteStability::Hazardous
+        );
+        assert_eq!(
+            hidden_route_stability(RouteType::BlackShip, 1),
+            RouteStability::Stable
+        );
     }
 
     #[test]

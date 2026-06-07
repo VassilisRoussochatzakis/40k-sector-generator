@@ -76,3 +76,45 @@ pub(crate) fn cap_per_anchor<T: WeightedAnchored>(items: &mut Vec<T>, cap: u32) 
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cmp_f32_desc_orders_larger_first() {
+        // Descending: the larger value sorts first ⇒ a=2 before b=1 ⇒ Less.
+        assert_eq!(cmp_f32_desc(2.0, 1.0), Ordering::Less);
+        assert_eq!(cmp_f32_desc(1.0, 2.0), Ordering::Greater);
+        assert_eq!(cmp_f32_desc(1.0, 1.0), Ordering::Equal);
+    }
+
+    #[test]
+    fn cmp_f32_asc_orders_smaller_first() {
+        assert_eq!(cmp_f32_asc(2.0, 1.0), Ordering::Greater);
+        assert_eq!(cmp_f32_asc(1.0, 2.0), Ordering::Less);
+        assert_eq!(cmp_f32_asc(1.0, 1.0), Ordering::Equal);
+    }
+
+    #[test]
+    fn nan_compares_equal_in_both_positions_and_directions() {
+        for (a, b) in [
+            (f32::NAN, 1.0),
+            (1.0, f32::NAN),
+            (f32::NAN, f32::NAN),
+        ] {
+            assert_eq!(cmp_f32_desc(a, b), Ordering::Equal, "desc NaN policy");
+            assert_eq!(cmp_f32_asc(a, b), Ordering::Equal, "asc NaN policy");
+        }
+    }
+
+    #[test]
+    fn sort_with_nan_does_not_panic() {
+        // The NaN-as-Equal policy keeps `sort_by` from panicking on a partial
+        // order. We assert completion + that the three finite values survive;
+        // NaN's final position is intentionally unspecified.
+        let mut v = vec![3.0_f32, f32::NAN, 1.0, 2.0];
+        v.sort_by(|a, b| cmp_f32_desc(*a, *b));
+        assert_eq!(v.iter().filter(|x| x.is_finite()).count(), 3);
+    }
+}

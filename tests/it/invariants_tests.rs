@@ -29,6 +29,31 @@ fn sector_round_trips_through_json() {
 }
 
 #[test]
+fn sector_serde_is_idempotent() {
+    // Stronger than `sector_round_trips_through_json`: re-serialising a parse of
+    // the first serialisation must byte-equal the first. This catches a field
+    // silently dropped on load (e.g. a missing `#[serde(default)]`) that the
+    // shallow round-trip would not notice.
+    let sector = fixture_sector();
+    let once = serde_json::to_string(sector).unwrap();
+    let parsed: sectorforge::GeneratedSector = serde_json::from_str(&once).unwrap();
+    let twice = serde_json::to_string(&parsed).unwrap();
+    assert_eq!(once, twice, "GeneratedSector serde must be idempotent");
+
+    // Deep-check that the overlay-bearing fields survive the reload. The m42
+    // fixture enables both economy and history, so these are meaningful.
+    assert_eq!(
+        parsed.economy.enabled, sector.economy.enabled,
+        "economy.enabled must survive reload"
+    );
+    assert_eq!(
+        parsed.chronicle.events.len(),
+        sector.chronicle.events.len(),
+        "chronicle event count must survive reload"
+    );
+}
+
+#[test]
 fn invariants_detect_route_distance_tamper() {
     let mut sector = fixture_sector().clone();
     if let Some(r) = sector.routes.first_mut() {

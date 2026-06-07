@@ -1030,3 +1030,160 @@ pub fn draw_route_line_clipped(
     let painter = ui.painter_at(clip_rect);
     draw_route_line(&painter, a, b, thickness, color, pattern);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sectorforge::route_control::RouteControl;
+    // `GeneratedRoute` and `RouteStability` already arrive via `use super::*;`
+    // (re-exported from this module's own top-level `use`).
+    use sectorforge::sector_model::{GeneratedSector, HexCoord, RouteType};
+
+    // Build a `GeneratedRoute` carrying `controls`. `#[cfg(test)]` may bypass the
+    // command bus to assemble a fixture; the route is fully square (8×8 sector).
+    fn route_with_controls(controls: Vec<RouteControl>) -> GeneratedRoute {
+        let mut s = GeneratedSector::empty("t", "T", "seed", 8, 8);
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        s.add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let mut r = s.routes.into_iter().next().unwrap();
+        r.controls = controls;
+        r
+    }
+
+    // ── Gap 1: top_route_control ──────────────────────────────────────────────
+    // Probes kinds in order [Interdiction, Patrol, Piracy, Toll] with a STRICT
+    // `>` update, so ties resolve to the first-probed kind. Returns the raw max
+    // score with NO 40-threshold filtering (that floor lives in the glyph fn).
+    // `RouteControlKind` has no `PartialEq` — assert variants via `matches!`.
+
+    #[test]
+    fn top_route_control_empty_is_none() {
+        let r = route_with_controls(vec![]);
+        assert!(top_route_control(&r).is_none());
+    }
+
+    #[test]
+    fn top_route_control_single_returns_faction_kind_score() {
+        let r = route_with_controls(vec![RouteControl {
+            faction_id: "fac-1".into(),
+            patrol: 70.0,
+            ..Default::default()
+        }]);
+        let (id, kind, score) = top_route_control(&r).expect("one control yields a result");
+        assert_eq!(id, "fac-1");
+        assert!(matches!(kind, RouteControlKind::Patrol));
+        assert_eq!(score, 70.0);
+    }
+
+    #[test]
+    fn top_route_control_tie_prefers_first_probed_kind() {
+        // Interdiction and Patrol both at 50: Interdiction is probed first and
+        // the update is strict `>`, so Interdiction holds.
+        let r = route_with_controls(vec![RouteControl {
+            faction_id: "f".into(),
+            interdiction: 50.0,
+            patrol: 50.0,
+            ..Default::default()
+        }]);
+        let (_, kind, score) = top_route_control(&r).expect("tie still yields a result");
+        assert!(matches!(kind, RouteControlKind::Interdiction));
+        assert_eq!(score, 50.0);
+    }
+
+    #[test]
+    fn top_route_control_cross_kind_max_wins() {
+        let r = route_with_controls(vec![RouteControl {
+            faction_id: "f".into(),
+            piracy: 90.0,
+            toll: 10.0,
+            ..Default::default()
+        }]);
+        let (_, kind, score) = top_route_control(&r).expect("result");
+        assert!(matches!(kind, RouteControlKind::Piracy));
+        assert_eq!(score, 90.0);
+    }
+
+    #[test]
+    fn top_route_control_returns_raw_score_below_floor() {
+        // Score 5.0 is below ROUTE_CONTROL_MIN_SCORE (40); top_route_control
+        // does NOT apply that floor, so it still returns Some with score 5.0.
+        let r = route_with_controls(vec![RouteControl {
+            faction_id: "f".into(),
+            patrol: 5.0,
+            ..Default::default()
+        }]);
+        let (_, kind, score) = top_route_control(&r).expect("no floor inside top_route_control");
+        assert!(matches!(kind, RouteControlKind::Patrol));
+        assert_eq!(score, 5.0);
+    }
+
+    #[test]
+    fn top_route_control_global_max_across_controls() {
+        // Two factions; the global maximum (faction "b", interdiction 80) wins.
+        let r = route_with_controls(vec![
+            RouteControl {
+                faction_id: "a".into(),
+                patrol: 30.0,
+                ..Default::default()
+            },
+            RouteControl {
+                faction_id: "b".into(),
+                interdiction: 80.0,
+                ..Default::default()
+            },
+        ]);
+        let (id, kind, score) = top_route_control(&r).expect("result");
+        assert_eq!(id, "b");
+        assert!(matches!(kind, RouteControlKind::Interdiction));
+        assert_eq!(score, 80.0);
+    }
+
+    // ── Gap 2: validation_color (errors mask warnings) ────────────────────────
+    // status/chrome colours are process-global statics another test could swap;
+    // assert against the live helpers so the branch logic is proven independent
+    // of any concurrently-installed theme. (Default DARK literals noted inline.)
+    #[test]
+    fn validation_color_clean_is_dim() {
+        // (0,0) -> chrome_text_dim() (default TEXT_DIM = rgb(150,145,165)).
+        assert_eq!(validation_color(0, 0), chrome_text_dim());
+    }
+
+    #[test]
+    fn validation_color_warnings_only_is_warning() {
+        // (0,3) -> warning() (default StatusColors::DARK.warning = rgb(224,145,58)).
+        assert_eq!(validation_color(0, 3), warning());
+    }
+
+    #[test]
+    fn validation_color_errors_take_precedence() {
+        // (2,0) -> danger() (default StatusColors::DARK.danger = rgb(210,96,63)).
+        assert_eq!(validation_color(2, 0), danger());
+        // (2,5) -> danger() as well: any error masks warnings.
+        assert_eq!(validation_color(2, 5), danger());
+    }
+
+    // ── Gap 10: star_color (trim+upper tolerant) vs world_type_color (exact) ──
+    #[test]
+    fn star_color_is_case_and_whitespace_tolerant() {
+        // lowercase folds to "O".
+        assert_eq!(star_color("o"), Color32::from_rgb(255, 150, 70));
+        // surrounding whitespace trimmed, then uppercased to "M".
+        assert_eq!(star_color("  m  "), Color32::from_rgb(200, 60, 70));
+    }
+
+    #[test]
+    fn star_color_unknown_is_grey_fallback() {
+        assert_eq!(star_color("Z"), Color32::from_rgb(180, 180, 180));
+    }
+
+    #[test]
+    fn world_type_color_is_exact_case_sensitive() {
+        assert_eq!(world_type_color("ForgeWorld"), Color32::from_rgb(220, 110, 50));
+        assert_eq!(world_type_color("AgriWorld"), Color32::from_rgb(120, 200, 110));
+        // Case-sensitive miss -> grey (the asymmetry vs star_color).
+        assert_eq!(world_type_color("forgeworld"), Color32::from_rgb(180, 180, 180));
+        assert_eq!(world_type_color("Nonsense"), Color32::from_rgb(180, 180, 180));
+    }
+}

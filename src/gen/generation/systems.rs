@@ -167,3 +167,68 @@ fn spectral_type_fallback(sc: StarColour) -> &'static str {
         StarColour::RedDwarf => "M",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A deterministic, determinism-invariant RNG for the empty-/single-pool
+    /// name tests. Always built via `crate::rng::stage_rng` (stage-keyed via
+    /// blake3) — never `thread_rng`/`seed_from_u64`.
+    fn test_rng() -> ChaCha8Rng {
+        crate::rng::stage_rng("gen-base-name-test", "system", "test")
+    }
+
+    // GAP 169: `deduplicate_name` Roman-suffix behaviour.
+    //   - empty used set → base returned unchanged (no suffix)
+    //   - base already used → first free suffix is "II" (n starts at 2)
+    //   - base + "Cadia II" used → next free is "III"
+    #[test]
+    fn deduplicate_name_cases() {
+        // Empty used set → base returned unchanged.
+        let empty: BTreeSet<String> = BTreeSet::new();
+        assert_eq!(deduplicate_name("Cadia".to_string(), &empty), "Cadia");
+
+        // Base already used → first free Roman suffix is II (n starts at 2).
+        let used: BTreeSet<String> = ["Cadia".to_string()].into_iter().collect();
+        assert_eq!(deduplicate_name("Cadia".to_string(), &used), "Cadia II");
+
+        // Base and "Cadia II" used → next free is III.
+        let used2: BTreeSet<String> = ["Cadia".to_string(), "Cadia II".to_string()]
+            .into_iter()
+            .collect();
+        assert_eq!(deduplicate_name("Cadia".to_string(), &used2), "Cadia III");
+    }
+
+    // GAP 170: `generate_base_name` branch coverage. Single-element pools make
+    // each branch deterministic regardless of the exact RNG draw:
+    // `rng.gen_range(0..1)` is always 0, so the picked element is fixed.
+
+    #[test]
+    fn generate_base_name_empty_pools_fallback() {
+        // Both pools empty ⇒ `format!("System {index}")`.
+        let names = NameTables::default();
+        let mut rng = test_rng();
+        assert_eq!(generate_base_name(&names, 7, &mut rng), "System 7");
+    }
+
+    #[test]
+    fn generate_base_name_singles_only() {
+        let mut names = NameTables::default();
+        names.system_names.single_names = vec!["Solaris".to_string()];
+        let mut rng = test_rng();
+        // have_singles=true, have_pairs=false ⇒ pick single_names[gen_range(0..1)]
+        // = single_names[0] = "Solaris", deterministic for any RNG state.
+        assert_eq!(generate_base_name(&names, 3, &mut rng), "Solaris");
+    }
+
+    #[test]
+    fn generate_base_name_pairs_only() {
+        let mut names = NameTables::default();
+        names.system_names.prefixes = vec!["Alpha".to_string()];
+        names.system_names.suffixes = vec!["Prime".to_string()];
+        let mut rng = test_rng();
+        // have_singles=false, have_pairs=true ⇒ format!("{} {}", prefix[0], suffix[0]).
+        assert_eq!(generate_base_name(&names, 5, &mut rng), "Alpha Prime");
+    }
+}

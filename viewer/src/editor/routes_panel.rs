@@ -168,3 +168,52 @@ fn route_stab_from_str(s: &str) -> Option<RouteStability> {
         _ => return None,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Gap 231: route stability/type key <-> enum round-trips. Stability has four
+    // named variants (`#[non_exhaustive]`); the catch-all `_ => "UNKNOWN"` arm is
+    // never reached by this set, so we don't assert on a hypothetical 5th variant.
+    #[test]
+    fn route_stability_str_round_trips_all_named_variants() {
+        for (s, rs) in [
+            ("stable", RouteStability::Stable),
+            ("unstable", RouteStability::Unstable),
+            ("hazardous", RouteStability::Hazardous),
+            ("perilous", RouteStability::Perilous),
+        ] {
+            assert_eq!(route_stab_from_str(s), Some(rs));
+            assert_eq!(route_stab_str(rs), s);
+        }
+    }
+
+    #[test]
+    fn route_stability_from_str_rejects_unknown() {
+        assert_eq!(route_stab_from_str("garbage"), None);
+        assert_eq!(route_stab_from_str(""), None);
+        assert_eq!(route_stab_from_str("Stable"), None); // case-sensitive
+    }
+
+    // Gap 231: `route_type_str` == `RouteType::key()`, `route_type_from_str` ==
+    // `RouteType::from_key()`. Every canonical key must round-trip; the
+    // `dangerous_passage` alias resolves to `ChartedPassage`.
+    #[test]
+    fn route_type_keys_round_trip_over_all() {
+        for rt in RouteType::ALL {
+            assert_eq!(route_type_from_str(route_type_str(rt)), Some(rt));
+        }
+    }
+
+    #[test]
+    fn route_type_from_str_known_unknown_and_alias() {
+        assert_eq!(route_type_str(RouteType::StableWarpLane), "stable_warp_lane");
+        assert_eq!(route_type_str(RouteType::Webway), "webway");
+        assert_eq!(route_type_from_str("not_a_key"), None);
+        assert_eq!(
+            route_type_from_str("dangerous_passage"),
+            Some(RouteType::ChartedPassage)
+        );
+    }
+}

@@ -9,7 +9,10 @@
 
 use proptest::prelude::*;
 use sectorforge::{
-    economy::{self, EconomyConfig, EconomyReport, RESOURCE_KEYS, STRATEGIC_RESOURCE_KEYS},
+    economy::{
+        self, load_economy_file, EconomyConfig, EconomyFile, EconomyReport, ResourceModelConfig,
+        StrategicOutputRule, RESOURCE_KEYS, STRATEGIC_RESOURCE_KEYS,
+    },
     generate_sector, load_project, GeneratedSector,
 };
 
@@ -151,6 +154,96 @@ fn derive_is_deterministic_for_fixture() {
     let ja = serde_json::to_string(&a).unwrap();
     let jb = serde_json::to_string(&b).unwrap();
     assert_eq!(ja, jb, "economy report not deterministic for fixture");
+}
+
+/// D2: `load_economy_file` parses the bundled `economy.toml`, the loaded config
+/// is non-default (enabled + full tables), and its authored
+/// `by_world_type`/`by_tech_level`/`resources` tables move numbers vs the
+/// built-in defaults (`enabled_cfg()`), while a re-run stays byte-identical.
+#[test]
+fn load_economy_file_changes_derivation_deterministically() {
+    let path = fixture_dir().join("data/worlds/economy.toml");
+    let cfg = load_economy_file(&path).expect("load economy.toml");
+
+    // 1. Loaded config is genuinely non-default — the file sets these knobs.
+    assert!(cfg.enabled, "enabled not loaded from file");
+    assert!(cfg.feed_stability, "feed_stability not loaded from file");
+    assert!(!cfg.by_world_type.is_empty(), "by_world_type not loaded");
+    assert!(!cfg.by_tech_level.is_empty(), "by_tech_level not loaded");
+    assert!(!cfg.resources.is_empty(), "strategic resources not loaded");
+
+    let sector = fixture_sector();
+
+    // 2. The loaded tables differ from the built-in defaults, so the same
+    //    sector derived with each produces different serialized output.
+    //    `enabled_cfg()` is enabled but carries the BUILT-IN tables.
+    let loaded = serde_json::to_string(&economy::derive_with(sector, &cfg)).unwrap();
+    let builtin = serde_json::to_string(&economy::derive_with(sector, &enabled_cfg())).unwrap();
+    assert_ne!(
+        loaded, builtin,
+        "loaded economy tables produced identical output to built-ins",
+    );
+
+    // 3. Re-running derive_with on the same loaded config is byte-identical.
+    let loaded2 = serde_json::to_string(&economy::derive_with(sector, &cfg)).unwrap();
+    assert_eq!(loaded, loaded2, "derive_with not deterministic for loaded config");
+}
+
+/// Build a non-empty [`ResourceModelConfig`] with a single `world_type` entry
+/// (food = 42.0) under `key`, so `is_empty()` is false.
+fn rmc_with(key: &str) -> ResourceModelConfig {
+    let mut world_type = std::collections::BTreeMap::new();
+    world_type.insert(
+        key.to_string(),
+        StrategicOutputRule {
+            food: Some(42.0),
+            ..Default::default()
+        },
+    );
+    ResourceModelConfig {
+        world_type,
+        notable_feature: std::collections::BTreeMap::new(),
+    }
+}
+
+/// Gap 4: `EconomyFile::into_config` overwrites `economy.resources` with the
+/// top-level `[resources]` ONLY when the top-level block is non-empty. When the
+/// top-level is empty (false branch), a nested `economy.resources` survives
+/// untouched.
+#[test]
+fn economy_file_into_config_keeps_nested_resources_when_toplevel_empty() {
+    let mut f = EconomyFile::default();
+    f.economy.resources = rmc_with("hive_world"); // nested populated
+    // f.resources stays default (empty) → the `if` is false → nested survives.
+    let cfg = f.into_config();
+    assert!(
+        cfg.resources.world_type.contains_key("hive_world"),
+        "nested resources were dropped despite empty top-level block",
+    );
+    assert_eq!(
+        cfg.resources.world_type["hive_world"].food,
+        Some(42.0),
+        "nested resource value was not preserved",
+    );
+}
+
+/// Gap 4: when BOTH the nested `economy.resources` and the top-level
+/// `[resources]` are populated, the top-level block clobbers the nested one
+/// (top-level wins).
+#[test]
+fn economy_file_into_config_toplevel_resources_clobber_nested() {
+    let mut f = EconomyFile::default();
+    f.economy.resources = rmc_with("hive_world"); // nested
+    f.resources = rmc_with("forge_world"); // top-level (non-empty)
+    let cfg = f.into_config();
+    assert!(
+        cfg.resources.world_type.contains_key("forge_world"),
+        "top-level resources did not win",
+    );
+    assert!(
+        !cfg.resources.world_type.contains_key("hive_world"),
+        "nested resources were not clobbered by the top-level block",
+    );
 }
 
 proptest! {

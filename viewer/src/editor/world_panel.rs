@@ -239,3 +239,47 @@ fn parse_variant<T: std::fmt::Display + Clone>(variants: &[T], s: &str, fallback
         .cloned()
         .unwrap_or(fallback)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Gap 230: `parse_variant` maps a `Display` string back to its enum variant
+    // and falls back unchanged on a non-match. These enums `Display` via
+    // `write!(f, "{self:?}")`, so the string is the CamelCase variant name. We
+    // exercise the generic over two enums (WorldType, Atmosphere).
+    #[test]
+    fn parse_variant_round_trips_every_world_type() {
+        for v in WorldType::VARIANTS {
+            assert_eq!(
+                parse_variant(WorldType::VARIANTS, &v.to_string(), WorldType::DeadWorld),
+                *v
+            );
+        }
+        // Sanity: Display is the Debug/CamelCase name.
+        assert_eq!(WorldType::HiveWorld.to_string(), "HiveWorld");
+    }
+
+    #[test]
+    fn parse_variant_round_trips_every_atmosphere() {
+        for v in Atmosphere::VARIANTS {
+            assert_eq!(
+                parse_variant(Atmosphere::VARIANTS, &v.to_string(), Atmosphere::Airless),
+                *v
+            );
+        }
+        assert_eq!(Atmosphere::Breathable.to_string(), "Breathable");
+    }
+
+    #[test]
+    fn parse_variant_returns_fallback_on_non_match() {
+        assert_eq!(
+            parse_variant(WorldType::VARIANTS, "NotARealVariant", WorldType::HiveWorld),
+            WorldType::HiveWorld
+        );
+        assert_eq!(
+            parse_variant(Atmosphere::VARIANTS, "", Atmosphere::Toxic),
+            Atmosphere::Toxic
+        );
+    }
+}

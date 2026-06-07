@@ -138,6 +138,31 @@ fn route_ids_sort_with_lower_system_first() {
     }
 }
 
+// GAP 171: when `min_worlds_per_system == max_worlds_per_system`,
+// `generate_worlds_for_system` skips `gen_range` and uses the bound directly,
+// so every placed system gets exactly that many worlds. Driven through the
+// public `generate_sector` entry point because the fn and its `WorldGenParams`
+// are `pub(super)` (not reachable from the integration suite). The m42 fixture
+// is already square (10×10) with `allow_empty_hexes = true`; we clone it and
+// override only min/max so the shared memoized fixture stays untouched.
+#[test]
+fn worlds_per_system_min_equals_max_is_exact() {
+    let mut input = fixture_input().clone();
+    input.config.generation.min_worlds_per_system = 3;
+    input.config.generation.max_worlds_per_system = 3;
+    let sector = sectorforge::generate_sector(input).expect("generate");
+    assert!(!sector.systems.is_empty(), "fixture should place systems");
+    for sys in &sector.systems {
+        assert_eq!(
+            sys.worlds.len(),
+            3,
+            "system {} has {} worlds; min==max==3 must yield exactly 3",
+            sys.id,
+            sys.worlds.len()
+        );
+    }
+}
+
 // ── helpers ─────────────────────────────────────────────────────────────────
 
 fn fixture_input() -> &'static ProjectInput {

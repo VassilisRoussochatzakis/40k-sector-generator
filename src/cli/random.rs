@@ -154,6 +154,89 @@ fn reproduce_hint(size: SectorSize, baseline: &str, seed: &str) -> String {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Match an `Err(InvalidConfig(msg))` whose message contains `needle`.
+    fn assert_invalid(res: Result<SectorSize, SectorError>, needle: &str) {
+        match res {
+            Err(SectorError::InvalidConfig(m)) => assert!(
+                m.contains(needle),
+                "message {m:?} did not contain {needle:?}"
+            ),
+            other => panic!("expected InvalidConfig containing {needle:?}, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_non_square_width_height() {
+        // The square-sector invariant: when both sides are given they must be
+        // equal. 8 != 6 is the deliberate rejection path.
+        assert_invalid(resolve_size(None, Some(8), Some(6)), "must be square");
+    }
+
+    #[test]
+    fn rejects_zero_dimension() {
+        assert_invalid(resolve_size(None, Some(0), None), ">= 1");
+    }
+
+    #[test]
+    fn rejects_dimension_above_max() {
+        // MAX_CUSTOM_DIM == 80, so 81 is the first rejected value (strict `>`).
+        assert_invalid(resolve_size(None, Some(81), None), "<= 80");
+    }
+
+    #[test]
+    fn single_side_becomes_custom() {
+        // Either --width alone or --height alone fills the single square side.
+        assert_eq!(
+            resolve_size(None, Some(20), None).unwrap(),
+            SectorSize::Custom { dim: 20 }
+        );
+        assert_eq!(
+            resolve_size(None, None, Some(20)).unwrap(),
+            SectorSize::Custom { dim: 20 }
+        );
+    }
+
+    #[test]
+    fn equal_width_height_becomes_custom() {
+        assert_eq!(
+            resolve_size(None, Some(16), Some(16)).unwrap(),
+            SectorSize::Custom { dim: 16 }
+        );
+    }
+
+    #[test]
+    fn boundary_dimensions_are_allowed() {
+        // 1 is the smallest allowed (>= 1) and 80 == MAX_CUSTOM_DIM is allowed
+        // (strict `>` rejection means equal-to-max passes).
+        assert_eq!(
+            resolve_size(None, Some(1), None).unwrap(),
+            SectorSize::Custom { dim: 1 }
+        );
+        assert_eq!(
+            resolve_size(None, Some(80), None).unwrap(),
+            SectorSize::Custom { dim: 80 }
+        );
+    }
+
+    #[test]
+    fn no_dims_no_token_defaults_to_medium() {
+        assert_eq!(resolve_size(None, None, None).unwrap(), SectorSize::Medium);
+    }
+
+    #[test]
+    fn size_token_resolves_preset_or_errors() {
+        assert_eq!(
+            resolve_size(Some("large"), None, None).unwrap(),
+            SectorSize::Large
+        );
+        assert_invalid(resolve_size(Some("nope"), None, None), "unknown --size");
+    }
+}
+
 /// Filesystem-safe slug for the default project directory name.
 fn dir_slug(seed: &str) -> String {
     let s: String = seed

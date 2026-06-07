@@ -772,4 +772,164 @@ mod tests {
         );
         assert_eq!(cache.region_for_hex(HexCoord { q: 5, r: 5 }), None);
     }
+
+    // ── Gap 6: blend_heat floor / cap / monotonicity ──────────────────────────
+    // Effective `t` is `0.0` when input `t <= 0.0`, else `(0.20 + t*0.65)`
+    // clamped to `0.85`. Channels mix linearly: `round(from*(1-t) + to*t)`.
+    #[test]
+    fn blend_heat_zero_returns_from_exactly() {
+        // With from == an arbitrary base colour, t=0 leaves it untouched.
+        let from = Color32::from_rgb(28, 26, 38); // palette::HEX_EMPTY
+        let to = Color32::from_rgb(235, 90, 90);
+        assert_eq!(blend_heat(from, to, 0.0), from);
+        // And the clean-arithmetic black->grey case is exactly black.
+        assert_eq!(
+            blend_heat(Color32::from_rgb(0, 0, 0), Color32::from_rgb(100, 100, 100), 0.0),
+            Color32::from_rgb(0, 0, 0)
+        );
+    }
+
+    #[test]
+    fn blend_heat_one_caps_at_85_percent() {
+        // eff t = min(0.20 + 0.65, 0.85) = 0.85; round(100 * 0.85) = 85.
+        assert_eq!(
+            blend_heat(Color32::from_rgb(0, 0, 0), Color32::from_rgb(100, 100, 100), 1.0),
+            Color32::from_rgb(85, 85, 85)
+        );
+    }
+
+    #[test]
+    fn blend_heat_tiny_t_lifts_to_floor() {
+        // Any non-zero t jumps to >= 0.20: eff t = 0.20 + 0.001*0.65 = 0.20065;
+        // round(100 * 0.20065) = round(20.065) = 20.
+        assert_eq!(
+            blend_heat(Color32::from_rgb(0, 0, 0), Color32::from_rgb(100, 100, 100), 0.001),
+            Color32::from_rgb(20, 20, 20)
+        );
+    }
+
+    #[test]
+    fn blend_heat_is_monotone_in_t() {
+        let from = Color32::from_rgb(0, 0, 0);
+        let to = Color32::from_rgb(100, 100, 100);
+        let r = |t: f32| blend_heat(from, to, t).r();
+        // Sweep increasing t -> non-decreasing blended channel.
+        assert!(r(0.001) <= r(0.3));
+        assert!(r(0.3) <= r(0.6));
+        assert!(r(0.6) <= r(1.0));
+        // The floor still sits strictly above the t==0 result.
+        assert!(r(0.0) < r(0.001));
+    }
+
+    // ── Gap 7: SectorGeom::pick_hex / hit_system ──────────────────────────────
+    #[test]
+    fn pick_hex_at_center_returns_that_coord() {
+        let g = geom();
+        let c = g.hex_center(2, 3);
+        assert_eq!(g.pick_hex(c, 8, 8), Some(HexCoord { q: 2, r: 3 }));
+    }
+
+    #[test]
+    fn pick_hex_off_grid_returns_none() {
+        let g = geom();
+        // Far from every hex center (picking radius is hex_size*0.95 = 19.0).
+        assert_eq!(g.pick_hex(Pos2::new(-500.0, -500.0), 8, 8), None);
+        // Just below the whole grid: well past any cell's radius.
+        let c = g.hex_center(7, 7);
+        assert_eq!(g.pick_hex(Pos2::new(c.x, c.y + 1000.0), 8, 8), None);
+    }
+
+    #[test]
+    fn pick_hex_chooses_nearest_when_two_in_range() {
+        let g = geom();
+        // Bias the probe 40% of the way from (2,3) toward (3,3): both centers
+        // are within radius, the nearer one (2,3) must win.
+        let from = g.hex_center(2, 3);
+        let toward = g.hex_center(3, 3);
+        let probe = from + (toward - from) * 0.4;
+        assert_eq!(g.pick_hex(probe, 8, 8), Some(HexCoord { q: 2, r: 3 }));
+    }
+
+    #[test]
+    fn hit_system_at_center_returns_system_id() {
+        let g = geom();
+        // Build a fresh sector so we hold the SystemId returned by add_system.
+        let mut s = GeneratedSector::empty("t", "T", "seed", 8, 8);
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let _b = s.add_system(HexCoord { q: 4, r: 0 }, "B").unwrap();
+        let c = g.hex_center(0, 0);
+        assert_eq!(g.hit_system(&s, c), Some(a));
+    }
+
+    #[test]
+    fn hit_system_off_grid_returns_none() {
+        let g = geom();
+        let sector = sector_with_two_routes();
+        assert!(g.hit_system(&sector, Pos2::new(-500.0, -500.0)).is_none());
+    }
+
+    // ── Gap 8c: region_label_text (ASCII-upper, max 18, take(17) + '.') ────────
+    #[test]
+    fn region_label_text_uppercases_short_names() {
+        assert_eq!(region_label_text("calm corridor"), "CALM CORRIDOR");
+    }
+
+    #[test]
+    fn region_label_text_boundary_at_18_chars() {
+        // Exactly 18 chars -> unchanged (uppercased).
+        assert_eq!(region_label_text("ABCDEFGHIJKLMNOPQR"), "ABCDEFGHIJKLMNOPQR");
+        // 19 chars -> take(17) + '.'.
+        assert_eq!(region_label_text("ABCDEFGHIJKLMNOPQRS"), "ABCDEFGHIJKLMNOPQ.");
+    }
+
+    #[test]
+    fn region_label_text_multibyte_is_panic_safe() {
+        // A long name whose uppercased form exceeds 18 chars and contains a
+        // non-ASCII leading char: truncation slices on char boundaries (never
+        // bytes), so it must not panic and the result is exactly 18 chars.
+        let out = region_label_text("ωvery long region name here");
+        assert_eq!(out.chars().count(), 18);
+        assert!(out.ends_with('.'));
+    }
+
+    // ── Gap 9: distance_to_segment vs point_segment_distance agree ────────────
+    // Two near-identical implementations (a duplication-drift guard). gui-core
+    // has no `proptest` dev-dependency, so this is a deterministic fixed-sample
+    // sweep — no RNG crate, no `thread_rng`.
+    #[test]
+    fn distance_impls_agree_on_fixed_sample() {
+        let pts = [
+            // on the perpendicular through the midpoint
+            (Pos2::new(0.0, 5.0), Pos2::new(-10.0, 0.0), Pos2::new(10.0, 0.0)),
+            // beyond an endpoint -> both clamp to the nearer end
+            (Pos2::new(20.0, 0.0), Pos2::new(-10.0, 0.0), Pos2::new(10.0, 0.0)),
+            // arbitrary diagonal segment, point off to one side
+            (Pos2::new(3.0, -4.0), Pos2::new(1.0, 1.0), Pos2::new(7.0, 9.0)),
+            // point across the other quadrant
+            (Pos2::new(-6.0, 8.0), Pos2::new(-2.0, -3.0), Pos2::new(5.0, 4.0)),
+            // probe coincident with endpoint a
+            (Pos2::new(1.0, 1.0), Pos2::new(1.0, 1.0), Pos2::new(7.0, 9.0)),
+            // steep vertical segment
+            (Pos2::new(12.0, 3.0), Pos2::new(0.0, -50.0), Pos2::new(0.0, 50.0)),
+            // degenerate segment a == b
+            (Pos2::new(5.0, 6.0), Pos2::new(2.0, 2.0), Pos2::new(2.0, 2.0)),
+        ];
+        for (p, a, b) in pts {
+            let d1 = point_segment_distance(p, a, b);
+            let d2 = distance_to_segment(p, a, b);
+            assert!((d1 - d2).abs() < 1e-3, "drift at {p:?}/{a:?}/{b:?}: {d1} vs {d2}");
+        }
+    }
+
+    #[test]
+    fn distance_impls_agree_on_degenerate_segment() {
+        // Both fall back to distance(p, a) when the segment has ~zero length.
+        let a = Pos2::new(2.0, 2.0);
+        let p = Pos2::new(5.0, 6.0); // distance sqrt(9 + 16) = 5.0
+        let d1 = point_segment_distance(p, a, a);
+        let d2 = distance_to_segment(p, a, a);
+        assert!((d1 - 5.0).abs() < 1e-4);
+        assert!((d2 - 5.0).abs() < 1e-4);
+        assert!((d1 - d2).abs() < 1e-4);
+    }
 }

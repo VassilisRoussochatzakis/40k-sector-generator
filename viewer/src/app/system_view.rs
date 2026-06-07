@@ -237,3 +237,236 @@ impl App {
         self.mark_live_sector_dirty(format!("removed planet {}:{}", system_id, world_index));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sectorforge::ids::{system_id, world_id, FactionId};
+    use sectorforge::sector_model::{
+        empty_faction, empty_sector, empty_system, empty_world, GeneratedStar, HexCoord, SystemKind,
+    };
+    use sectorforge::worlds::StarColour;
+
+    /// Two `Star` systems (`sys-0001` at (0,0) with one world `sys-0001-w01`,
+    /// `sys-0002` at (3,0)) plus a faction present on `sys-0001` and its world.
+    /// Tests mutate `editor.sector` (source of truth) and assert against it.
+    fn app_with_two_systems() -> App {
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        let sector = app.editor.sector.as_mut().unwrap();
+        let mut s1 = empty_system(
+            system_id(1),
+            1,
+            "S1".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        s1.worlds.push(empty_world(1, 1, "W1".into()));
+        let s2 = empty_system(
+            system_id(2),
+            2,
+            "S2".into(),
+            HexCoord { q: 3, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        sector.systems.push(s1);
+        sector.systems.push(s2);
+        let mut f = empty_faction(&FactionId::new("imperium"));
+        f.system_presence.push(system_id(1));
+        f.world_presence.push(world_id(1, 1));
+        sector.factions.push(f);
+        app
+    }
+
+    /// A single starless `Star`-kind system at index 1 with no worlds.
+    fn app_with_one_starless_system() -> App {
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        let sys = empty_system(
+            system_id(1),
+            1,
+            "S".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        app.editor.sector.as_mut().unwrap().systems.push(sys);
+        app
+    }
+
+    // ── Gap 220: remove_planet_from_system ──────────────────────────────────
+
+    /// Removing a planet scrubs it from the system's worlds and from every
+    /// faction's `world_presence`, resets the system view selection to `None`, and
+    /// marks the editor dirty.
+    #[test]
+    fn remove_planet_from_system_scrubs_presence_and_marks_dirty() {
+        let mut app = app_with_two_systems();
+
+        app.remove_planet_from_system(&system_id(1), 1);
+
+        let sector = app.editor.sector.as_ref().unwrap();
+        // sys-0001 now has zero worlds
+        assert!(sector
+            .systems
+            .iter()
+            .find(|s| s.id == system_id(1))
+            .unwrap()
+            .worlds
+            .is_empty());
+        // faction world_presence scrubbed of sys-0001-w01
+        assert!(sector.factions[0].world_presence.is_empty());
+        // selection reset to the system view with no sub-selection
+        match &app.view {
+            View::System {
+                system_id: open_id,
+                selection,
+            } => {
+                assert_eq!(*open_id, system_id(1));
+                assert!(matches!(selection, SystemSelection::None));
+            }
+            other => panic!("expected View::System, got {other:?}"),
+        }
+        assert!(app.editor.dirty);
+    }
+
+    /// Removing a non-existent planet index is a no-op: it sets a status and does
+    /// NOT mark the editor dirty, leaving the system's worlds intact.
+    #[test]
+    fn remove_planet_from_system_not_found_is_noop_and_not_dirty() {
+        let mut app = app_with_two_systems();
+        app.editor.dirty = false;
+
+        app.remove_planet_from_system(&system_id(1), 999);
+
+        assert_eq!(app.export_status, "selected planet not found");
+        assert!(!app.editor.dirty);
+        assert_eq!(
+            app.editor
+                .sector
+                .as_ref()
+                .unwrap()
+                .systems
+                .iter()
+                .find(|s| s.id == system_id(1))
+                .unwrap()
+                .worlds
+                .len(),
+            1
+        );
+    }
+
+    // ── Gap 225: add_planet_to_system ───────────────────────────────────────
+
+    /// On a starless system with no worlds, adding a planet returns index 1, names
+    /// it `"Planet 1"`, defaults the star colour to `White`, and marks dirty.
+    #[test]
+    fn add_planet_to_starless_system_defaults_white() {
+        let mut app = app_with_one_starless_system();
+
+        let idx = app.add_planet_to_system(&system_id(1)).unwrap();
+
+        assert_eq!(idx, 1);
+        let sector = app.editor.sector.as_ref().unwrap();
+        let sys = sector.systems.iter().find(|s| s.id == system_id(1)).unwrap();
+        let world = sys.worlds.iter().find(|w| w.index == 1).unwrap();
+        assert_eq!(&*world.name, "Planet 1");
+        assert_eq!(world.index, 1);
+        assert_eq!(world.world.star_colour, StarColour::White);
+        assert!(app.editor.dirty);
+    }
+
+    /// The new planet's index is `max(existing world index) + 1`: with a world at
+    /// index 5 already present, the next planet is index 6 / `"Planet 6"`.
+    #[test]
+    fn add_planet_index_is_max_plus_one() {
+        let mut app = app_with_one_starless_system();
+        app.editor.sector.as_mut().unwrap().systems[0]
+            .worlds
+            .push(empty_world(1, 5, "old".into()));
+
+        let idx = app.add_planet_to_system(&system_id(1)).unwrap();
+
+        assert_eq!(idx, 6);
+        let sector = app.editor.sector.as_ref().unwrap();
+        let world = sector.systems[0]
+            .worlds
+            .iter()
+            .find(|w| w.index == 6)
+            .unwrap();
+        assert_eq!(&*world.name, "Planet 6");
+    }
+
+    /// A new planet inherits the system star's colour when its `colour_code` parses
+    /// (`"K"` → `OrangeDwarf`).
+    #[test]
+    fn add_planet_inherits_parseable_star_colour() {
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        let sys = empty_system(
+            system_id(1),
+            1,
+            "S".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            Some(GeneratedStar {
+                colour_code: "K".into(),
+                colour_name: "orange".into(),
+                spectral_type: None,
+                source_row_index: None,
+            }),
+        );
+        app.editor.sector.as_mut().unwrap().systems.push(sys);
+
+        app.add_planet_to_system(&system_id(1)).unwrap();
+
+        let sector = app.editor.sector.as_ref().unwrap();
+        let world = sector.systems[0].worlds.iter().find(|w| w.index == 1).unwrap();
+        assert_eq!(world.world.star_colour, StarColour::OrangeDwarf);
+    }
+
+    /// An unparseable star `colour_code` (e.g. `"W"`) falls back to `White` — the
+    /// planet is still created (the `None`/status branch is system-not-found only).
+    #[test]
+    fn add_planet_unparseable_star_colour_falls_back_to_white() {
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        let sys = empty_system(
+            system_id(1),
+            1,
+            "S".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            Some(GeneratedStar {
+                colour_code: "W".into(),
+                colour_name: "weird".into(),
+                spectral_type: None,
+                source_row_index: None,
+            }),
+        );
+        app.editor.sector.as_mut().unwrap().systems.push(sys);
+
+        let idx = app.add_planet_to_system(&system_id(1)).unwrap();
+
+        assert_eq!(idx, 1);
+        let sector = app.editor.sector.as_ref().unwrap();
+        let world = sector.systems[0].worlds.iter().find(|w| w.index == 1).unwrap();
+        assert_eq!(world.world.star_colour, StarColour::White);
+    }
+
+    /// Adding a planet to an unknown system id returns `None`, sets the
+    /// `"system not found"` status, and adds no world.
+    #[test]
+    fn add_planet_to_unknown_system_returns_none() {
+        let mut app = app_with_one_starless_system();
+        app.editor.dirty = false;
+
+        let result = app.add_planet_to_system(&SystemId::new("sys-9999"));
+
+        assert!(result.is_none());
+        assert_eq!(app.export_status, "system not found");
+        assert!(!app.editor.dirty);
+        // the existing system gained no world
+        assert!(app.editor.sector.as_ref().unwrap().systems[0]
+            .worlds
+            .is_empty());
+    }
+}

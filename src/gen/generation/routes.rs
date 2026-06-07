@@ -202,35 +202,46 @@ pub(super) fn generate_routes(
     // rebalance (run after the region + hidden layers) then owns the whole
     // public-route stability distribution instead.
     if config.generation.routes.stability_targets.is_none() {
-        let perilous_limit = ((routes.len() as f64) * 0.10).round() as usize;
-        let perilous_count = routes
-            .iter()
-            .filter(|r| r.stability == RouteStability::Perilous)
-            .count();
-        if perilous_count > perilous_limit {
-            let mut excess = perilous_count - perilous_limit;
-            let mut perilous_idx: Vec<usize> = (0..routes.len())
-                .filter(|&k| routes[k].stability == RouteStability::Perilous)
-                .collect();
-            // Shortest distance first; id as a deterministic tie-breaker.
-            perilous_idx.sort_by(|&x, &y| {
-                routes[x]
-                    .distance
-                    .cmp(&routes[y].distance)
-                    .then_with(|| routes[x].id.cmp(&routes[y].id))
-            });
-            for k in perilous_idx {
-                if excess == 0 {
-                    break;
-                }
-                routes[k].stability = RouteStability::Hazardous;
-                excess -= 1;
-            }
-        }
+        cap_perilous_routes(&mut routes);
     }
 
     routes.sort_by(|a, b| a.id.cmp(&b.id));
     routes
+}
+
+/// Legacy 10% perilous-cap: if more than `round(len * 0.10)` routes are
+/// `Perilous`, downgrade the excess to `Hazardous`, shortest-distance first
+/// (route id ascending as a deterministic tie-break). Downgrading the shortest
+/// excess keeps the short-is-safer invariant — a longer route is never left
+/// safer than a shorter one. Extracted verbatim from `generate_routes` (the gate
+/// on `stability_targets.is_none()` stays at the call site) so the algorithm can
+/// be unit-tested directly.
+pub(crate) fn cap_perilous_routes(routes: &mut [GeneratedRoute]) {
+    let perilous_limit = ((routes.len() as f64) * 0.10).round() as usize;
+    let perilous_count = routes
+        .iter()
+        .filter(|r| r.stability == RouteStability::Perilous)
+        .count();
+    if perilous_count > perilous_limit {
+        let mut excess = perilous_count - perilous_limit;
+        let mut perilous_idx: Vec<usize> = (0..routes.len())
+            .filter(|&k| routes[k].stability == RouteStability::Perilous)
+            .collect();
+        // Shortest distance first; id as a deterministic tie-breaker.
+        perilous_idx.sort_by(|&x, &y| {
+            routes[x]
+                .distance
+                .cmp(&routes[y].distance)
+                .then_with(|| routes[x].id.cmp(&routes[y].id))
+        });
+        for k in perilous_idx {
+            if excess == 0 {
+                break;
+            }
+            routes[k].stability = RouteStability::Hazardous;
+            excess -= 1;
+        }
+    }
 }
 
 /// Severity ladder used internally by route classification: `0` = safest.
@@ -585,5 +596,343 @@ mod rebalance_tests {
         assert_eq!(routes[0].stability, RouteStability::Stable);
         assert_ne!(routes[1].stability, RouteStability::Stable);
         assert_eq!(routes[1].stability, RouteStability::Hazardous);
+    }
+
+    // ── §2c: legacy 10% perilous-cap (cap_perilous_routes) ─────────────────
+
+    #[test]
+    fn cap_downgrades_shortest_excess() {
+        // 5 routes, all Perilous, distinct distances 1..=5 (idx ascending so ids
+        // also ascend). perilous_limit = round(5 * 0.10) = round(0.5) = 1, so
+        // excess = 4. Shortest-first downgrade leaves only the dist-5 route
+        // Perilous; the four shorter ones become Hazardous.
+        let mut routes: Vec<GeneratedRoute> = (0..5)
+            .map(|i| {
+                route(
+                    i,
+                    (i as u32) + 1,
+                    RouteType::ChartedPassage,
+                    RouteStability::Perilous,
+                )
+            })
+            .collect();
+        cap_perilous_routes(&mut routes);
+        // routes[i] has distance i+1; the longest (dist 5) is still Perilous.
+        assert_eq!(routes[4].distance, 5);
+        assert_eq!(routes[4].stability, RouteStability::Perilous);
+        for r in &routes[..4] {
+            assert_eq!(
+                r.stability,
+                RouteStability::Hazardous,
+                "shorter dist {} should be downgraded",
+                r.distance
+            );
+        }
+    }
+
+    #[test]
+    fn cap_tie_breaks_on_id() {
+        // 20 routes total → perilous_limit = round(20 * 0.10) = round(2.0) = 2.
+        // Three Perilous routes: a tied pair at the shortest distance (1) and one
+        // longer (dist 5). excess = 3 - 2 = 1, so exactly one route downgrades.
+        // The tied pair sorts first (shortest distance), and the id tie-break
+        // (ascending) picks the smaller-id member — idx 0, whose id
+        // `route-sys-0000-sys-0001` is lexicographically below idx 1's
+        // `route-sys-0002-sys-0003`. So idx 0 downgrades; idx 1 stays Perilous.
+        let mut routes: Vec<GeneratedRoute> = Vec::new();
+        routes.push(route(0, 1, RouteType::ChartedPassage, RouteStability::Perilous));
+        routes.push(route(1, 1, RouteType::ChartedPassage, RouteStability::Perilous));
+        routes.push(route(2, 5, RouteType::ChartedPassage, RouteStability::Perilous));
+        // Pad with non-Perilous routes up to 20 so the limit is exactly 2.
+        for i in 3..20 {
+            routes.push(route(i, 1, RouteType::ChartedPassage, RouteStability::Stable));
+        }
+        // Sanity: idx 0's id sorts below idx 1's (the tie-break direction).
+        assert!(routes[0].id < routes[1].id);
+
+        cap_perilous_routes(&mut routes);
+
+        // Smaller-id member of the tied pair is the one downgraded.
+        assert_eq!(
+            routes[0].stability,
+            RouteStability::Hazardous,
+            "smaller-id tied route should downgrade first"
+        );
+        assert_eq!(
+            routes[1].stability,
+            RouteStability::Perilous,
+            "larger-id tied route should survive"
+        );
+        // The longer Perilous route is untouched (only one excess to downgrade).
+        assert_eq!(routes[2].stability, RouteStability::Perilous);
+    }
+
+    #[test]
+    fn cap_is_noop_under_limit() {
+        // 10 routes, exactly 1 Perilous → perilous_limit = round(1.0) = 1, which
+        // is not exceeded, so cap_perilous_routes leaves everything unchanged.
+        let mut routes: Vec<GeneratedRoute> = (0..10)
+            .map(|i| {
+                let stab = if i == 0 {
+                    RouteStability::Perilous
+                } else {
+                    RouteStability::Stable
+                };
+                route(i, 1 + (i as u32 % 4), RouteType::ChartedPassage, stab)
+            })
+            .collect();
+        let before = routes.clone();
+        cap_perilous_routes(&mut routes);
+        assert_eq!(
+            routes, before,
+            "perilous_count (1) <= perilous_limit (1): no downgrade"
+        );
+    }
+}
+
+#[cfg(test)]
+mod route_classify_tests {
+    use super::*;
+    use crate::ids;
+    use crate::sector_model::{
+        DominanceState, FactionInfluence, GeneratedStar, GeneratedWorld, HexCoord,
+        PresenceDimensions, SystemControlSummary, WorldControlSummary, WorldDto,
+        WorldFactionPresence,
+    };
+    use proptest::prelude::*;
+
+    // Minimal valid `GeneratedSystem` — copied from the canonical builder in
+    // `src/gen/hidden_routes.rs` `mod tests` (l.533). `classify_route` only
+    // reads `worlds[..].tags`, so tests mutate `system.worlds[0].tags` after
+    // construction to inject `feature:*` strings.
+    fn sys(id: &str, coord: (i32, i32), faction: (&str, f32, f32)) -> GeneratedSystem {
+        let (fid, covert, military) = faction;
+        let world = GeneratedWorld {
+            id: ids::WorldId::new(format!("{id}-w1")),
+            index: 1,
+            name: "W".into(),
+            orbit: 1,
+            source_row_index: 0,
+            world: WorldDto {
+                star_colour: crate::worlds::StarColour::White,
+                world_type: crate::worlds::WorldType::AgriWorld,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::DenselyPopulated,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MagistrateCouncil,
+                notable_features: vec![],
+            },
+            factions: vec![WorldFactionPresence {
+                faction_id: fid.into(),
+                subfaction_id: None,
+                subfaction_name: None,
+                force_id: None,
+                force_name: None,
+                influence: FactionInfluence::Significant,
+                relationship_to_government: "secretive".into(),
+                dimensions: PresenceDimensions {
+                    covert,
+                    military,
+                    visibility: 30.0,
+                    ..Default::default()
+                },
+                dominance: DominanceState::default(),
+                intel_confidence: 30,
+            }],
+            tags: vec![],
+            notes: vec![],
+            claims: vec![],
+            control: WorldControlSummary::default(),
+            stability: Default::default(),
+            regions: Vec::new(),
+            conflict: Default::default(),
+            intel: Default::default(),
+        };
+        GeneratedSystem {
+            id: id.into(),
+            index: 1,
+            name: id.into(),
+            kind: crate::sector_model::SystemKind::Star,
+            coord: HexCoord {
+                q: coord.0,
+                r: coord.1,
+            },
+            star: Some(GeneratedStar {
+                colour_code: "A".into(),
+                colour_name: "A".into(),
+                spectral_type: None,
+                source_row_index: None,
+            }),
+            worlds: vec![world],
+            primary_factions: vec![],
+            tags: vec![],
+            notes: vec![],
+            control: SystemControlSummary::default(),
+            stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
+        }
+    }
+
+    /// Build a `(GeneratedSystem, GeneratedSystem)` pair whose combined world
+    /// tags are exactly `tags`. `classify_route` chains `a.worlds.tags` then
+    /// `b.worlds.tags`, so putting every tag on `a` is sufficient.
+    fn pair_with_tags(tags: &[&str]) -> (GeneratedSystem, GeneratedSystem) {
+        let mut a = sys("sys-0000", (0, 0), ("f", 0.0, 0.0));
+        let b = sys("sys-0001", (1, 0), ("f", 0.0, 0.0));
+        a.worlds[0].tags = tags.iter().map(|t| (*t).into()).collect();
+        (a, b)
+    }
+
+    // ── GAP 2: distance_base_level monotonicity + boundaries ──────────────
+
+    proptest! {
+        #[test]
+        fn distance_base_level_monotonic_in_dist(
+            max in 1u32..=12,
+            d1 in 0u32..=20,
+            d2 in 0u32..=20,
+        ) {
+            prop_assume!(d1 <= d2);
+            prop_assert!(distance_base_level(d1, max) <= distance_base_level(d2, max));
+        }
+    }
+
+    #[test]
+    fn distance_base_level_boundaries() {
+        // 3 of 4 → 75% band → Unstable baseline (level 1).
+        assert_eq!(distance_base_level(3, 4), 1);
+        // dist >= max → worst baseline (level 3).
+        assert_eq!(distance_base_level(4, 4), 3);
+        // <= 50% of cap → Stable baseline.
+        assert_eq!(distance_base_level(2, 4), 0);
+        // Small-max anchor: dist == max → worst.
+        assert_eq!(distance_base_level(3, 3), 3);
+    }
+
+    #[test]
+    fn distance_base_level_max_zero_saturates_no_panic() {
+        // max clamps to 1; dist >= max → 3.
+        assert_eq!(distance_base_level(3, 0), 3);
+        // dist <= 2 arm wins before the dist>=max arm.
+        assert_eq!(distance_base_level(0, 0), 0);
+        // dist=1 is <= 2 → Stable even though it also satisfies dist>=max.
+        assert_eq!(distance_base_level(1, 1), 0);
+    }
+
+    // ── GAP 8: stability_from_level / stability_level round-trip ───────────
+
+    #[test]
+    fn stability_level_round_trips_level_to_stab_to_level() {
+        for lvl in 0u8..=3 {
+            assert_eq!(stability_level(stability_from_level(lvl)), lvl);
+        }
+    }
+
+    #[test]
+    fn stability_from_level_round_trips_stab_to_level_to_stab() {
+        for s in [
+            RouteStability::Stable,
+            RouteStability::Unstable,
+            RouteStability::Hazardous,
+            RouteStability::Perilous,
+        ] {
+            assert_eq!(stability_from_level(stability_level(s)), s);
+        }
+    }
+
+    #[test]
+    fn stability_from_level_saturates() {
+        assert_eq!(stability_from_level(4), RouteStability::Perilous);
+        assert_eq!(stability_from_level(255), RouteStability::Perilous);
+    }
+
+    #[test]
+    fn stability_level_is_a_total_order_0_to_3() {
+        // RouteStability has no `Ord`; assert the explicit rank values so the
+        // ordering Stable < Unstable < Hazardous < Perilous is pinned.
+        assert_eq!(stability_level(RouteStability::Stable), 0);
+        assert_eq!(stability_level(RouteStability::Unstable), 1);
+        assert_eq!(stability_level(RouteStability::Hazardous), 2);
+        assert_eq!(stability_level(RouteStability::Perilous), 3);
+    }
+
+    // ── GAP 3: classify_route hazard layering ─────────────────────────────
+
+    #[test]
+    fn classify_route_war_zone_adds_two_tiers() {
+        // baseline 0 (dist=1,max=4) + war_zone(+2) → level 2 → Hazardous.
+        // (A +1 bump would give Unstable; assert Hazardous to prove it is +2.)
+        let (a, b) = pair_with_tags(&["feature:war_zone"]);
+        assert_eq!(
+            classify_route(&a, &b, 1, 4).1,
+            RouteStability::Hazardous,
+            "war_zone must add two tiers, not one"
+        );
+    }
+
+    #[test]
+    fn classify_route_war_zone_saturates_to_perilous() {
+        // baseline 2 (dist=7,max=8) + war_zone(+2) = 4 → .min(3) → Perilous.
+        let (a, b) = pair_with_tags(&["feature:war_zone"]);
+        assert_eq!(classify_route(&a, &b, 7, 8).1, RouteStability::Perilous);
+    }
+
+    #[test]
+    fn classify_route_warp_adds_one_tier() {
+        // baseline 0 (dist=1,max=4) + warp(+1) → level 1 → Unstable.
+        let (a, b) = pair_with_tags(&["feature:warp_phenomena"]);
+        assert_eq!(classify_route(&a, &b, 1, 4).1, RouteStability::Unstable);
+    }
+
+    #[test]
+    fn classify_route_stable_warp_lane_requires_all_four_conditions() {
+        // All four hold: baseline 0 <= 1, no war_zone, no warp, trade_hub tag.
+        let (a, b) = pair_with_tags(&["feature:trade_hub"]);
+        assert_eq!(classify_route(&a, &b, 1, 4).0, RouteType::StableWarpLane);
+
+        // administrative_hub equally yields a StableWarpLane.
+        let (a, b) = pair_with_tags(&["feature:administrative_hub"]);
+        assert_eq!(classify_route(&a, &b, 1, 4).0, RouteType::StableWarpLane);
+
+        // (a) add war_zone → ChartedPassage.
+        let (a, b) = pair_with_tags(&["feature:trade_hub", "feature:war_zone"]);
+        assert_eq!(classify_route(&a, &b, 1, 4).0, RouteType::ChartedPassage);
+
+        // (b) add warp → ChartedPassage.
+        let (a, b) = pair_with_tags(&["feature:trade_hub", "feature:warp_phenomena"]);
+        assert_eq!(classify_route(&a, &b, 1, 4).0, RouteType::ChartedPassage);
+
+        // (c) bump baseline above 1 (dist=7,max=8 → baseline 2), keep trade_hub,
+        //     no hazards → level>1 fails the StableWarpLane gate → ChartedPassage.
+        let (a, b) = pair_with_tags(&["feature:trade_hub"]);
+        assert_eq!(classify_route(&a, &b, 7, 8).0, RouteType::ChartedPassage);
+
+        // (d) remove the hub tag entirely → ChartedPassage.
+        let (a, b) = pair_with_tags(&[]);
+        assert_eq!(classify_route(&a, &b, 1, 4).0, RouteType::ChartedPassage);
+    }
+
+    #[test]
+    fn classify_route_monotone_within_fixed_hazard_set() {
+        // No hazard tags on either system: stability is then purely the
+        // distance baseline, which is non-decreasing in distance.
+        let (a, b) = pair_with_tags(&[]);
+        let max = 10;
+        for d1 in 0u32..=12 {
+            for d2 in d1..=12 {
+                let s1 = stability_level(classify_route(&a, &b, d1, max).1);
+                let s2 = stability_level(classify_route(&a, &b, d2, max).1);
+                assert!(
+                    s1 <= s2,
+                    "dist {d1} (level {s1}) classified less safe than longer dist {d2} (level {s2})"
+                );
+            }
+        }
     }
 }

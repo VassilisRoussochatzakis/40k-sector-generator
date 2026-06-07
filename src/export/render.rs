@@ -6,6 +6,19 @@ use crate::importance::{
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
 use crate::FxMap;
 
+/// Escape a free-text value before emitting it into a GitHub-Flavoured-Markdown
+/// table cell. An unescaped `|` would be parsed as a column separator, splitting
+/// the row into more cells than the header and corrupting the table. Replacing
+/// `|` with `\|` is a no-op for pipe-free input, so committed goldens (whose
+/// names contain no `|`) stay byte-identical.
+fn md_cell(value: &str) -> std::borrow::Cow<'_, str> {
+    if value.contains('|') {
+        std::borrow::Cow::Owned(value.replace('|', "\\|"))
+    } else {
+        std::borrow::Cow::Borrowed(value)
+    }
+}
+
 /// Spec §12: deterministic Markdown overview for a generated sector.
 pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     let mut s = String::new();
@@ -45,7 +58,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
         s.push_str(&format!(
             "| {} | {} | (q={}, r={}) | {} | {} |\n",
             sys.id,
-            sys.name,
+            md_cell(&sys.name),
             sys.coord.q,
             sys.coord.r,
             star_info,
@@ -143,7 +156,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
             s.push_str(&format!(
                 "| {} | {} | {} | {} | {} | {} | {} | {} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
                 f.id,
-                f.name,
+                md_cell(&f.name),
                 f.kind,
                 f.disposition,
                 f.subfactions.len(),
@@ -922,4 +935,177 @@ fn format_world_table(sys: &GeneratedSystem) -> String {
     }
     s.push('\n');
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sector_model::{
+        GeneratedFaction, GeneratedStar, GeneratedSystem, HexCoord, SystemKind,
+    };
+
+    /// One star system with `name`, optional star, at `coord`.
+    fn system(id: &str, name: &str, coord: HexCoord, star: Option<GeneratedStar>) -> GeneratedSystem {
+        GeneratedSystem {
+            id: id.into(),
+            index: 0,
+            name: name.into(),
+            coord,
+            kind: SystemKind::Star,
+            star,
+            worlds: vec![],
+            primary_factions: vec![],
+            tags: vec![],
+            notes: vec![],
+            control: Default::default(),
+            stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
+        }
+    }
+
+    fn faction(id: &str, name: &str, kind: &str, disposition: &str) -> GeneratedFaction {
+        GeneratedFaction {
+            id: id.into(),
+            name: name.into(),
+            kind: kind.into(),
+            disposition: disposition.into(),
+            subfactions: Vec::new(),
+            system_presence: vec![],
+            world_presence: vec![],
+            power: Default::default(),
+        }
+    }
+
+    /// Count the cells in a GFM table row the way a Markdown parser would: split
+    /// on UNescaped `|` only (a `\|` is a literal pipe inside a cell, not a
+    /// column separator), trim, and drop the empty leading/trailing segments
+    /// produced by the bordering pipes. This is the property under test — proper
+    /// escaping means a pipe in a name does NOT add a column.
+    fn cell_count(row: &str) -> usize {
+        let mut cells: Vec<String> = Vec::new();
+        let mut cur = String::new();
+        let mut escaped = false;
+        for c in row.chars() {
+            if escaped {
+                cur.push('\\');
+                cur.push(c);
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == '|' {
+                cells.push(cur.clone());
+                cur.clear();
+            } else {
+                cur.push(c);
+            }
+        }
+        cells.push(cur);
+        cells
+            .iter()
+            .map(|c| c.trim())
+            .filter(|c| !c.is_empty())
+            .count()
+    }
+
+    // GAP 139: a system / faction name containing a raw `|` must not inject an
+    // extra column into the System-index / Factions markdown tables. The cells
+    // are escaped (`|` → `\|`), so each data row has exactly as many cells as
+    // its header.
+    #[test]
+    fn markdown_escapes_pipes_in_table_cells() {
+        let sys = system("s1", "Foo | Bar", HexCoord { q: 1, r: 1 }, None);
+        let sector = GeneratedSector {
+            width: 4,
+            height: 4,
+            systems: vec![sys],
+            factions: vec![faction("imp", "A|B", "imperium", "lawful")],
+            ..Default::default()
+        };
+        let md = render_sector_markdown(&sector);
+
+        // System-index header: `| ID | Name | Coord | Star | Worlds |` -> 5 cells.
+        let sys_header = "| ID | Name | Coord | Star | Worlds |";
+        assert!(md.contains(sys_header), "system-index header missing");
+        let header_cells = cell_count(sys_header);
+        assert_eq!(header_cells, 5, "system-index header should have 5 columns");
+
+        // The data row for "Foo | Bar": find the line carrying both fragments.
+        let sys_row = md
+            .lines()
+            .find(|l| l.contains("Foo") && l.contains("Bar") && l.starts_with("| s1 |"))
+            .expect("system data row present");
+        assert_eq!(
+            cell_count(sys_row),
+            header_cells,
+            "escaped system row must have the same cell count as the header (no injected column)"
+        );
+        // The escape sequence is literally present; no HTML/entity encoding.
+        assert!(
+            sys_row.contains("Foo \\| Bar"),
+            "system name pipe should be backslash-escaped, got: {sys_row}"
+        );
+
+        // Factions header: 13 columns.
+        let fac_header = "| ID | Name | Kind | Disposition | Subfactions | Forces | Systems | Worlds | Projection | Mil | Naval | Econ | Covert |";
+        assert!(md.contains(fac_header), "factions header missing");
+        let fac_header_cells = cell_count(fac_header);
+        assert_eq!(fac_header_cells, 13, "factions header should have 13 columns");
+
+        // The faction data row (escaped "A\|B").
+        let fac_row = md
+            .lines()
+            .find(|l| l.starts_with("| imp |") && l.contains("imperium"))
+            .expect("faction data row present");
+        assert_eq!(
+            cell_count(fac_row),
+            fac_header_cells,
+            "escaped faction row must match the factions header cell count"
+        );
+        assert!(
+            fac_row.contains("A\\|B"),
+            "faction name pipe should be backslash-escaped, got: {fac_row}"
+        );
+
+        // No HTML entity encoding of the pipe sneaked in.
+        assert!(!md.contains("&#124;"), "pipe must not be HTML-entity encoded");
+        assert!(!md.contains("&vert;"), "pipe must not be HTML-entity encoded");
+    }
+
+    // GAP 147: empty-collection literals + the starless ASCII glyph.
+    #[test]
+    fn markdown_empty_collections_and_starless_glyph() {
+        // One starless system at (0,0); zero routes, factions, worlds.
+        let sys = system("s1", "Lone", HexCoord { q: 0, r: 0 }, None);
+        let sector = GeneratedSector {
+            width: 4,
+            height: 4,
+            systems: vec![sys],
+            ..Default::default()
+        };
+        let md = render_sector_markdown(&sector);
+
+        assert!(md.contains("_No routes._"), "missing empty-routes literal");
+        assert!(
+            md.contains("_No factions._"),
+            "missing empty-factions literal"
+        );
+        assert!(md.contains("_No worlds._"), "missing empty-worlds literal");
+
+        // The fenced ASCII sector map renders the starless glyph `X ` for the
+        // (0,0) hex. Scope the search to the map block to avoid false positives.
+        assert!(md.contains("## Sector map"), "missing sector-map heading");
+        let map_block = md
+            .split("## Sector map")
+            .nth(1)
+            .and_then(|rest| rest.split("```").nth(1))
+            .expect("fenced sector-map block present");
+        assert!(
+            map_block.contains("X "),
+            "starless system should render the `X ` glyph in the ASCII map, block was: {map_block:?}"
+        );
+    }
 }

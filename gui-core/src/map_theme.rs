@@ -279,4 +279,114 @@ mod tests {
         // thickness multiplier > 1.0 widens the default per-hex thickness.
         assert!(rt.route_thickness.mul > RenderMapTheme::default().route_thickness.mul);
     }
+
+    // ── Gap 5: from_map_theme `..base` preservation ───────────────────────────
+    // Fields the data layer carries (`bg`, route colours, …) come from the
+    // resolved `MapTheme`; everything else (selection, path glow, the region
+    // overlay palette, `star_radius_mul`, …) is preserved from
+    // `RenderMapTheme::default()` via the `..base` struct-update tail.
+    #[test]
+    fn from_map_theme_carries_bg_from_data() {
+        // print_mono's bg is pure white (255,255,255) — unmistakably different
+        // from the dark default bg, so this proves `bg` is *carried*, not kept.
+        let mt = sectorforge::map_theme::resolve_map_theme(
+            &sectorforge::map_theme::MapThemeConfig::named("print_mono"),
+        )
+        .unwrap();
+        let rt = RenderMapTheme::from_map_theme(&mt);
+        let base = RenderMapTheme::default();
+
+        let [r, g, b, a] = mt.bg.0;
+        assert_eq!(rt.bg, Color32::from_rgba_unmultiplied(r, g, b, a));
+        // print_mono bg is opaque white.
+        assert_eq!(rt.bg, Color32::from_rgb(255, 255, 255));
+        // …and it differs from the preserved default, proving it was carried.
+        assert_ne!(rt.bg, base.bg);
+    }
+
+    #[test]
+    fn from_map_theme_preserves_non_data_fields_from_base() {
+        let mt = sectorforge::map_theme::resolve_map_theme(
+            &sectorforge::map_theme::MapThemeConfig::named("print_mono"),
+        )
+        .unwrap();
+        let rt = RenderMapTheme::from_map_theme(&mt);
+        let base = RenderMapTheme::default();
+
+        // Selection / path-highlight glow colours are not carried by MapTheme;
+        // they fall through `..base`.
+        assert_eq!(rt.selection, base.selection);
+        assert_eq!(rt.path_highlight, base.path_highlight);
+        assert_eq!(rt.path_waypoint, base.path_waypoint);
+        // The entire region-overlay palette is preserved (spot-check both ends).
+        assert_eq!(rt.region_warp_storm, base.region_warp_storm);
+        assert_eq!(rt.region_empyric_bleed, base.region_empyric_bleed);
+        // A preserved scalar sizing token.
+        assert_eq!(rt.star_radius_mul, base.star_radius_mul);
+        assert_eq!(rt.selection_glow_alpha, base.selection_glow_alpha);
+    }
+
+    // ── Gap 11: route_color / region_color / ScaledSize::px ───────────────────
+    #[test]
+    fn route_color_maps_each_tier_to_its_field() {
+        let t = RenderMapTheme::default();
+        assert_eq!(t.route_color(RouteStability::Stable), t.route_stable);
+        assert_eq!(t.route_color(RouteStability::Unstable), t.route_unstable);
+        assert_eq!(t.route_color(RouteStability::Hazardous), t.route_hazardous);
+        assert_eq!(t.route_color(RouteStability::Perilous), t.route_perilous);
+        // Concrete default values (mirror `palette::stability_color`).
+        assert_eq!(t.route_color(RouteStability::Stable), Color32::from_rgb(110, 210, 130));
+        assert_eq!(t.route_color(RouteStability::Unstable), Color32::from_rgb(240, 200, 90));
+        assert_eq!(t.route_color(RouteStability::Hazardous), Color32::from_rgb(235, 90, 90));
+        assert_eq!(t.route_color(RouteStability::Perilous), Color32::from_rgb(165, 100, 215));
+        // `RouteStability` is `#[non_exhaustive]`, so the `_ => route_unstable`
+        // arm is a future-proofing fallback: it cannot be exercised here because
+        // no fifth variant is constructible, but document the mapping it uses.
+        assert_eq!(t.route_color(RouteStability::Unstable), t.route_unstable);
+    }
+
+    #[test]
+    fn region_color_maps_each_overlay_distinctly() {
+        use crate::visual_tokens::MapRegionOverlay;
+        let t = RenderMapTheme::default();
+        assert_eq!(t.region_color(MapRegionOverlay::WarpStorm), Color32::from_rgb(170, 60, 180));
+        assert_eq!(t.region_color(MapRegionOverlay::Turbulence), Color32::from_rgb(140, 100, 200));
+        assert_eq!(t.region_color(MapRegionOverlay::CalmCorridor), Color32::from_rgb(90, 200, 180));
+        assert_eq!(t.region_color(MapRegionOverlay::Blackout), Color32::from_rgb(60, 60, 80));
+        assert_eq!(t.region_color(MapRegionOverlay::Anomaly), Color32::from_rgb(220, 160, 60));
+        assert_eq!(
+            t.region_color(MapRegionOverlay::NecropolisDrift),
+            Color32::from_rgb(100, 130, 140)
+        );
+        assert_eq!(t.region_color(MapRegionOverlay::BeaconChain), Color32::from_rgb(230, 210, 100));
+        assert_eq!(t.region_color(MapRegionOverlay::EmpyricBleed), Color32::from_rgb(190, 70, 160));
+
+        // All eight overlay colours are pairwise distinct.
+        let all = [
+            t.region_color(MapRegionOverlay::WarpStorm),
+            t.region_color(MapRegionOverlay::Turbulence),
+            t.region_color(MapRegionOverlay::CalmCorridor),
+            t.region_color(MapRegionOverlay::Blackout),
+            t.region_color(MapRegionOverlay::Anomaly),
+            t.region_color(MapRegionOverlay::NecropolisDrift),
+            t.region_color(MapRegionOverlay::BeaconChain),
+            t.region_color(MapRegionOverlay::EmpyricBleed),
+        ];
+        for i in 0..all.len() {
+            for j in (i + 1)..all.len() {
+                assert_ne!(all[i], all[j], "overlay colours {i} and {j} collide");
+            }
+        }
+    }
+
+    #[test]
+    fn scaled_size_px_applies_min_floor() {
+        // px = max(hex_size * mul, min).
+        assert_eq!(ScaledSize::new(0.5, 4.0).px(20.0), 10.0); // 10.0 > 4.0 floor
+        assert_eq!(ScaledSize::new(0.5, 4.0).px(2.0), 4.0); // 1.0 < 4.0 -> floor
+        // Default route thickness: mul 0.08, min 2.0.
+        let rt = RenderMapTheme::default().route_thickness;
+        assert_eq!(rt.px(100.0), 8.0); // max(8.0, 2.0)
+        assert_eq!(rt.px(10.0), 2.0); // max(0.8, 2.0) -> floor
+    }
 }

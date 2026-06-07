@@ -8,8 +8,8 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 use sectorforge::random_sector::{
-    build_random_config, generate_random_sector, generate_random_sector_from, RandomReport,
-    SectorSize,
+    build_random_config, generate_random_sector, generate_random_sector_from, mint_seed,
+    RandomReport, SectorSize,
 };
 
 /// The four themed gallery presets, all usable as `random --baseline` sources.
@@ -72,6 +72,29 @@ fn assert_complete(report: &RandomReport, size: SectorSize) {
         !report.prose.system_entries.is_empty(),
         "{tag}: no prose entries"
     );
+}
+
+#[test]
+fn mint_seed_is_16_hex_and_varies() {
+    // `mint_seed` is the ONE intentionally non-deterministic step (RANDOM.md
+    // §5.1): a 16-char lowercase-hex string folded from wall-clock entropy.
+    // BTreeSet (not FxSet) to honour the no-FxSet-iteration invariant.
+    let mut set: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for _ in 0..8 {
+        let s = mint_seed();
+        assert_eq!(s.len(), 16, "seed not 16 chars: {s}");
+        assert!(
+            s.chars().all(|c| c.is_ascii_hexdigit()),
+            "non-hex char in {s}"
+        );
+        assert!(
+            s.chars().all(|c| !c.is_ascii_uppercase()),
+            "uppercase hex in {s}"
+        );
+        set.insert(s);
+    }
+    // `> 1` (not `== 8`) tolerates a vanishingly-unlikely nanos collision.
+    assert!(set.len() > 1, "8 mints all identical — entropy source broken");
 }
 
 #[test]

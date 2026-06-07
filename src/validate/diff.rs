@@ -43,6 +43,12 @@ pub struct DiffConfig {
     /// movements are filtered as noise. Default 1.0.
     #[serde(default = "default_min_delta")]
     pub min_faction_delta: f32,
+    /// Minimum absolute change in a sector economy-resource balance to report.
+    /// Defaults to the same value as `min_faction_delta` (1.0) so existing
+    /// behaviour is unchanged, but lets the economy threshold be tuned
+    /// independently of the faction-projection threshold.
+    #[serde(default = "default_min_delta")]
+    pub min_economy_delta: f32,
     /// Number of top faction deltas listed in the Markdown digest. Default 10.
     #[serde(default = "default_top_n")]
     pub top_faction_deltas: u32,
@@ -54,6 +60,7 @@ impl Default for DiffConfig {
             skip_worlds: false,
             skip_routes: false,
             min_faction_delta: default_min_delta(),
+            min_economy_delta: default_min_delta(),
             top_faction_deltas: default_top_n(),
         }
     }
@@ -374,7 +381,7 @@ fn diff_economy(
             let b = pull(&before.economy);
             let a = pull(&after.economy);
             let d = a - b;
-            if d.abs() >= cfg.min_faction_delta {
+            if d.abs() >= cfg.min_economy_delta {
                 deltas.push(EconomyBalanceChange {
                     resource: (*k).to_string(),
                     before: b,
@@ -812,7 +819,7 @@ fn md_cell(v: impl core::fmt::Display) -> String {
 }
 
 #[must_use]
-pub fn render_markdown(d: &SectorDiff) -> String {
+pub fn render_markdown(d: &SectorDiff, cfg: &DiffConfig) -> String {
     let mut s = String::new();
     wln!(s, "# Sector Diff");
     wln!(
@@ -1003,7 +1010,11 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             "\n| Faction | Δ Projection | Before | After | Worlds Δ | Systems Δ |"
         );
         wln!(s, "|---|---:|---:|---:|---:|---:|");
-        for f in &d.faction_deltas {
+        // §10: the `top_faction_deltas` knob caps the digest. `faction_deltas`
+        // is already sorted by descending `|delta|` (see `compute_faction_deltas`),
+        // so a prefix `take` yields the strongest N movements. The full set is
+        // still serialised into `diff.json`; only this rendered table is trimmed.
+        for f in d.faction_deltas.iter().take(cfg.top_faction_deltas as usize) {
             wln!(
                 s,
                 "| {} (`{}`) | {:+.2} | {:.2} | {:.2} | {:+} | {:+} |",
@@ -1223,16 +1234,39 @@ fn join_ids<T: AsRef<str>>(ids: &[T]) -> String {
 ///
 /// Returns [`SectorError::Io`] if either file cannot be written, and
 /// [`SectorError::ExportFailed`] if the diff cannot be serialised.
-pub fn write_diff(output_dir: &Utf8Path, diff: &SectorDiff) -> Result<(), SectorError> {
-    crate::export::write_md_and_json(output_dir, "diff", &render_markdown(diff), diff)
+pub fn write_diff(
+    output_dir: &Utf8Path,
+    diff: &SectorDiff,
+    cfg: &DiffConfig,
+) -> Result<(), SectorError> {
+    crate::export::write_md_and_json(output_dir, "diff", &render_markdown(diff, cfg), diff)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::sector_model::{
-        GeneratedStar, GeneratedSystem, GenerationManifest, HexCoord, SystemControlSummary,
+        GeneratedFaction, GeneratedStar, GeneratedSystem, GenerationManifest, HexCoord,
+        PowerProfile, SystemControlSummary,
     };
+
+    /// A faction whose `total_projection` is driven solely by `military`, so a
+    /// caller can dial in a precise, distinct delta per faction.
+    fn faction_with_military(idx: usize, military: f32) -> GeneratedFaction {
+        GeneratedFaction {
+            id: format!("f{idx}").as_str().into(),
+            name: format!("F{idx}").as_str().into(),
+            kind: "k".into(),
+            disposition: "d".into(),
+            subfactions: vec![],
+            system_presence: vec![],
+            world_presence: vec![],
+            power: PowerProfile {
+                military,
+                ..PowerProfile::default()
+            },
+        }
+    }
 
     fn empty_sector(id: &str) -> GeneratedSector {
         GeneratedSector {
@@ -1342,5 +1376,78 @@ mod tests {
         let j1 = serde_json::to_string(&d1).unwrap();
         let j2 = serde_json::to_string(&d2).unwrap();
         assert_eq!(j1, j2);
+    }
+
+    /// Count the data rows of the single faction-power Markdown table. Each data
+    /// row carries the faction id in a `` (`id`) `` cell, which neither the
+    /// header (`| Faction | …`) nor the `|---|` separator contains — so matching
+    /// that pattern counts exactly the rendered data rows.
+    fn faction_rows(md: &str) -> usize {
+        md.lines()
+            .filter(|l| l.starts_with("| ") && l.contains("(`"))
+            .count()
+    }
+
+    /// #19: the `top_faction_deltas` knob caps the rendered faction-delta table.
+    #[test]
+    fn top_faction_deltas_caps_rendered_rows() {
+        // `before` has no factions; `after` has 12, each with a distinct,
+        // above-threshold projection — so the diff yields 12 sorted deltas.
+        let before = empty_sector("t1");
+        let mut after = before.clone();
+        let n = 12usize;
+        after.factions = (0..n)
+            .map(|i| faction_with_military(i, (i as f32) + 5.0))
+            .collect();
+
+        let full = diff_sectors(&before, &after);
+        assert_eq!(full.faction_deltas.len(), n, "all deltas computed");
+
+        // A small cap trims the table to exactly N rows…
+        let cfg = DiffConfig {
+            top_faction_deltas: 3,
+            ..DiffConfig::default()
+        };
+        let md = render_markdown(&full, &cfg);
+        assert_eq!(faction_rows(&md), 3, "table limited to top_faction_deltas");
+
+        // …a cap at/above the count renders every row…
+        let cfg_all = DiffConfig {
+            top_faction_deltas: 100,
+            ..DiffConfig::default()
+        };
+        assert_eq!(faction_rows(&render_markdown(&full, &cfg_all)), n);
+
+        // …and the full delta list (and thus diff.json) is never truncated.
+        assert_eq!(full.faction_deltas.len(), n);
+    }
+
+    /// #19: with the cap active the rendered rows are the *strongest* movements,
+    /// because `faction_deltas` is pre-sorted by descending `|delta|`.
+    #[test]
+    fn top_faction_deltas_keeps_strongest() {
+        let before = empty_sector("t1");
+        let mut after = before.clone();
+        // Projections increase with index, so f9 is the strongest.
+        after.factions = (0..10)
+            .map(|i| faction_with_military(i, (i as f32) + 2.0))
+            .collect();
+        let full = diff_sectors(&before, &after);
+        let cfg = DiffConfig {
+            top_faction_deltas: 1,
+            ..DiffConfig::default()
+        };
+        let md = render_markdown(&full, &cfg);
+        assert_eq!(faction_rows(&md), 1);
+        assert!(md.contains("(`f9`)"), "the single row is the strongest delta");
+    }
+
+    /// #38: `min_economy_delta` defaults to the same value as `min_faction_delta`
+    /// so the economy threshold behaviour is unchanged unless tuned.
+    #[test]
+    fn min_economy_delta_defaults_to_faction_delta() {
+        let cfg = DiffConfig::default();
+        assert_eq!(cfg.min_economy_delta, cfg.min_faction_delta);
+        assert_eq!(cfg.min_economy_delta, default_min_delta());
     }
 }

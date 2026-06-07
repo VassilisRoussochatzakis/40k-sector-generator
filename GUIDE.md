@@ -638,6 +638,17 @@ Drukhari / Harlequin / Genestealer / Xenos); the agenda line is bound to
 the actual competing claims on the anchor world so two personae for the
 same faction in different places read differently.
 
+Every faction-kind dispatch (name pools, titles, tier-titles, agenda
+verbs) routes through a single `canonical_kind` normalizer in
+`src/analysis/personae.rs`, which folds the full catalog vocabulary —
+including the specific arms generation stores or a user authors
+(`adeptus_astartes`, `genestealer_cult`, `dark_mechanicum`, `criminal`,
+`leagues_of_votann`, …) and alias spellings (`gsc`, `t'au`, `eldar`,
+`renegade`, …) — onto one of the rich pool keys, so no producible kind
+falls through to the generic placeholder. A coverage test
+(`every_producible_kind_resolves_to_non_placeholder_persona`) asserts this
+for every kind `control.rs`'s `kind_profile` can produce.
+
 ### `sectorforge hooks` (§7 old/DONE.md)
 
 Adventure / plot-hook generator. Scans worlds, systems, and routes for
@@ -3188,7 +3199,7 @@ Phase B §10. The FACTIONS tab in [builder/src/builder/panels/factions.rs](build
 | Piece | Where it lives |
 |---|---|
 | F1 identity inspector | [builder/src/builder/panels/factions.rs](builder/src/builder/panels/factions.rs) — `id`, `name`, `kind`, `default_disposition`, and `weight` editors. `kind` / `default_disposition` use the shared single-input `editable_combo`: a combo whose popup lists the bundled-roster vocabulary (`KNOWN_KINDS` / `KNOWN_DISPOSITIONS`) plus **one** in-popup "custom…" row for non-preset values. There is no longer a loose text box beside the combo, so a property can be changed from exactly one place — a stray click can't silently retype `kind` and (via `top_faction_id()` / `subfaction_id()` falling back to `kind`) conjure a phantom top-faction group in the roster. Custom values are still reachable, but only after opening the popup. Preferred-* fields use searchable pickers driven by `WorldType::VARIANTS`, `Government::VARIANTS`, and `NotableFeature::VARIANTS`. |
-| F2 style override | New optional fields on `FactionDef` (`style_fill`, `style_accent`, `style_glyph`, `style_border`) plus `faction_style::faction_style_rgb_with_overrides` in [src/gen/faction_style.rs](src/gen/faction_style.rs). Each override has a single input: `style_fill` / `style_accent` use `color_override` (swatch picker only — the hex is shown read-only, writes gated on `resp.changed()` so viewing a row no longer materialises an override or breaks §F4), `style_glyph` a one-char text cell, `style_border` a combo. A live preview tile sits above the grid. |
+| F2 style override | New optional fields on `FactionDef` (`style_fill`, `style_accent`, `style_glyph`, `style_border`) plus `faction_style::faction_style_rgb_with_overrides` in [src/gen/faction_style.rs](src/gen/faction_style.rs). Each override has a single input: `style_fill` / `style_accent` use `color_override` (swatch picker only — the hex is shown read-only, writes gated on `resp.changed()` so viewing a row no longer materialises an override or breaks §F4), `style_glyph` a one-char text cell, `style_border` a combo. `style_border` is persisted as a typed `Option<FactionBorder>` (not free text): it serializes to the same lowercase spelling (`clean`/`jagged`/`dotted`/`thin`) so `sector.json` bytes are unchanged, and an unrecognised on-disk spelling loads as `FactionBorder::Unknown` (rendered like `thin`) rather than failing the catalog. A live preview tile sits above the grid. |
 | F3 hierarchy editor | Optional `faction`/`faction_name`/`subfaction`/`subfaction_name` fields are surfaced in the inspector so a force can move between top-faction and subfaction buckets without re-keying `kind`. The roster's `CollapsingHeader` tree mirrors the resolved hierarchy. |
 | F4 recompute style | "§F4 Recompute style from kind" clears all four `style_*` overrides on the current row, reverting to `faction_style_rgb`'s kind-keyed palette. |
 | F5 presence deep-link | Inspector reports current `sector.factions[i].system_presence` / `world_presence` counts and links to the CONTROL tab with the row pre-selected. The §C1..§C8 presence/dominance/control-state editor now lives there (see the §C1–§C8 + §CL1–§CL4 control panel section above). |

@@ -1,5 +1,6 @@
 //! Faction definitions loaded from factions.toml.
 
+use crate::faction_style::FactionBorder;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -56,10 +57,11 @@ pub struct FactionDef {
     /// §F2 builder override: single-character legend glyph.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style_glyph: Option<String>,
-    /// §F2 builder override: border style. One of `"clean"`, `"jagged"`,
-    /// `"dotted"`, `"thin"`.
+    /// §F2 builder override: border style. Serializes to one of `"clean"`,
+    /// `"jagged"`, `"dotted"`, `"thin"`; an unknown on-disk spelling loads as
+    /// [`FactionBorder::Unknown`] rather than failing the catalog.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub style_border: Option<String>,
+    pub style_border: Option<FactionBorder>,
     /// §F7 builder override: when `Some(false)` the legend renderer should hide
     /// this faction (or aggregate it into the kind-group bucket). `None` means
     /// "use default importance logic".
@@ -271,11 +273,42 @@ subfaction_name = "Sub Bbb"
             style_fill: Some("#112233".into()),
             style_accent: Some("#445566".into()),
             style_glyph: Some("X".into()),
-            style_border: Some("jagged".into()),
+            style_border: Some(FactionBorder::Jagged),
             legend_visible: Some(false),
         };
         let s = toml::to_string(&def).unwrap();
+        // Byte-stability: the typed border must serialize to the exact lowercase
+        // spelling the old free-text `Option<String>` stored, so `sector.json`
+        // output is unchanged.
+        assert!(s.contains(r#"style_border = "jagged""#), "{s}");
         let parsed: FactionDef = toml::from_str(&s).unwrap();
         assert_eq!(parsed, def);
+    }
+
+    #[test]
+    fn style_border_variants_serialize_lowercase() {
+        for (border, spelling) in [
+            (FactionBorder::Clean, "clean"),
+            (FactionBorder::Jagged, "jagged"),
+            (FactionBorder::Dotted, "dotted"),
+            (FactionBorder::Thin, "thin"),
+        ] {
+            assert_eq!(toml::Value::try_from(border).unwrap().as_str(), Some(spelling));
+        }
+    }
+
+    #[test]
+    fn style_border_unknown_spelling_is_lenient() {
+        // Forward-compat: an unrecognised on-disk spelling must load as the
+        // `Unknown` sentinel rather than failing the whole catalog parse.
+        let toml_src = r#"
+id = "force-1"
+name = "First"
+kind = "imperial"
+weight = 1.0
+style_border = "scalloped"
+"#;
+        let f: FactionDef = toml::from_str(toml_src).unwrap();
+        assert_eq!(f.style_border, Some(FactionBorder::Unknown));
     }
 }

@@ -386,7 +386,8 @@ fn export(state: &mut BuilderState) {
     let Some(report) = state.diff.report.clone() else {
         return;
     };
-    match sectorforge::write_diff(dir.as_path(), &report) {
+    let cfg = state.diff.config();
+    match sectorforge::write_diff(dir.as_path(), &report, &cfg) {
         Ok(()) => {
             state.feedback.modal = Some(ModalKind::Message(format!(
                 "Wrote diff.md and diff.json to {dir}"

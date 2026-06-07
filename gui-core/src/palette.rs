@@ -372,6 +372,29 @@ pub enum RouteControlKind {
     Piracy,
 }
 
+impl RouteControlKind {
+    /// Every control category, in the order the route-control legend lists
+    /// them. Single source of truth for the legend (see
+    /// [`crate::info_panel`]); iterate this rather than re-spelling the set.
+    pub const ALL: &'static [RouteControlKind] = &[
+        RouteControlKind::Patrol,
+        RouteControlKind::Toll,
+        RouteControlKind::Interdiction,
+        RouteControlKind::Piracy,
+    ];
+
+    /// Uppercase display label used in the legend.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            RouteControlKind::Patrol => "PATROL",
+            RouteControlKind::Toll => "TOLL",
+            RouteControlKind::Interdiction => "INTERDICTION",
+            RouteControlKind::Piracy => "PIRACY",
+        }
+    }
+}
+
 const ROUTE_CONTROL_MIN_SCORE: f32 = 40.0;
 
 #[must_use]

@@ -18,7 +18,7 @@ use std::collections::BTreeSet;
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::faction_style::{
-    faction_style_rgb_with_overrides, parse_border, parse_hex_rgb, rgb_to_hex, FactionBorder,
+    faction_style_rgb_with_overrides, parse_hex_rgb, rgb_to_hex, FactionBorder,
 };
 use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
@@ -892,8 +892,13 @@ fn glyph_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: c
     });
 }
 
-fn border_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: FactionBorder) {
-    let current = slot.as_deref().and_then(parse_border).unwrap_or(derived);
+fn border_override(
+    ui: &mut Ui,
+    salt: &str,
+    slot: &mut Option<FactionBorder>,
+    derived: FactionBorder,
+) {
+    let current = slot.unwrap_or(derived);
     let mut next = current;
     ui.horizontal(|ui| {
         ui_kit::combo(salt, format!("{current:?}")).show_ui(ui, |ui| {
@@ -908,12 +913,7 @@ fn border_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: 
         }
     });
     if next != current {
-        let label = KNOWN_BORDERS
-            .iter()
-            .find(|(_, v)| *v == next)
-            .map(|(l, _)| (*l).to_string())
-            .unwrap_or_else(|| "thin".into());
-        *slot = Some(label);
+        *slot = Some(next);
     }
 }
 
@@ -1231,6 +1231,6 @@ fn resolve_style(draft: &FactionDef) -> sectorforge::faction_style::FactionStyle
         draft.style_fill.as_deref(),
         draft.style_accent.as_deref(),
         draft.style_glyph.as_deref(),
-        draft.style_border.as_deref(),
+        draft.style_border.map(FactionBorder::as_str),
     )
 }

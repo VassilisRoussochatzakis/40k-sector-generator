@@ -94,6 +94,10 @@ impl DiffState {
             skip_worlds: self.skip_worlds,
             skip_routes: self.skip_routes,
             min_faction_delta: self.min_faction_delta,
+            // The panel exposes a single "smallest faction change" knob; mirror
+            // it into the economy threshold so the builder keeps its previous
+            // behaviour (economy resources filtered by the same magnitude).
+            min_economy_delta: self.min_faction_delta,
             top_faction_deltas: self.top_faction_deltas,
         }
     }

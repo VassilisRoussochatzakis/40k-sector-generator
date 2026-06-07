@@ -9,10 +9,7 @@ use sectorforge::worlds::{
 
 use crate::palette;
 
-use super::enums::{
-    ATMOSPHERES, BIOSPHERES, GOVERNMENTS, NOTABLE_FEATURES, POPULATIONS, STAR_COLOUR_CODES,
-    TECH_LEVELS, TEMPERATURES, WORLD_TYPES,
-};
+use super::enums::STAR_COLOUR_CODES;
 use super::state::{EditorState, Selection};
 use super::ui_helpers::{combo_str, dim, label, section, text_field_id};
 
@@ -72,14 +69,9 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "TYPE",
         |ui| {
-            let mut val = w.world.world_type.to_string();
-            if combo_str(ui, "w_type", &mut val, WORLD_TYPES) {
-                w.world.world_type =
-                    parse_variant(WorldType::VARIANTS, &val, w.world.world_type.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(ui, "w_type", &mut w.world.world_type, WorldType::VARIANTS, |v| {
+                v.display_name()
+            })
         },
         &mut dirty,
     );
@@ -90,14 +82,9 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "ATMOSPHERE",
         |ui| {
-            let mut val = w.world.atmosphere.to_string();
-            if combo_str(ui, "w_atm", &mut val, ATMOSPHERES) {
-                w.world.atmosphere =
-                    parse_variant(Atmosphere::VARIANTS, &val, w.world.atmosphere.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(ui, "w_atm", &mut w.world.atmosphere, Atmosphere::VARIANTS, |v| {
+                v.display_name()
+            })
         },
         &mut dirty,
     );
@@ -105,14 +92,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "TEMPERATURE",
         |ui| {
-            let mut val = w.world.temperature.to_string();
-            if combo_str(ui, "w_temp", &mut val, TEMPERATURES) {
-                w.world.temperature =
-                    parse_variant(Temperature::VARIANTS, &val, w.world.temperature.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(
+                ui,
+                "w_temp",
+                &mut w.world.temperature,
+                Temperature::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -120,14 +106,9 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "BIOSPHERE",
         |ui| {
-            let mut val = w.world.biosphere.to_string();
-            if combo_str(ui, "w_bio", &mut val, BIOSPHERES) {
-                w.world.biosphere =
-                    parse_variant(Biosphere::VARIANTS, &val, w.world.biosphere.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(ui, "w_bio", &mut w.world.biosphere, Biosphere::VARIANTS, |v| {
+                v.display_name()
+            })
         },
         &mut dirty,
     );
@@ -138,14 +119,9 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "POPULATION",
         |ui| {
-            let mut val = w.world.population.to_string();
-            if combo_str(ui, "w_pop", &mut val, POPULATIONS) {
-                w.world.population =
-                    parse_variant(Population::VARIANTS, &val, w.world.population.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(ui, "w_pop", &mut w.world.population, Population::VARIANTS, |v| {
+                v.display_name()
+            })
         },
         &mut dirty,
     );
@@ -153,14 +129,9 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "TECH",
         |ui| {
-            let mut val = w.world.tech_level.to_string();
-            if combo_str(ui, "w_tech", &mut val, TECH_LEVELS) {
-                w.world.tech_level =
-                    parse_variant(TechLevel::VARIANTS, &val, w.world.tech_level.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(ui, "w_tech", &mut w.world.tech_level, TechLevel::VARIANTS, |v| {
+                v.display_name()
+            })
         },
         &mut dirty,
     );
@@ -168,14 +139,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "GOVERNMENT",
         |ui| {
-            let mut val = w.world.government.to_string();
-            if combo_str(ui, "w_gov", &mut val, GOVERNMENTS) {
-                w.world.government =
-                    parse_variant(Government::VARIANTS, &val, w.world.government.clone());
-                true
-            } else {
-                false
-            }
+            enum_combo(
+                ui,
+                "w_gov",
+                &mut w.world.government,
+                Government::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -188,9 +158,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let mut remove: Option<usize> = None;
     for (i, feat) in w.world.notable_features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            let mut val = feat.to_string();
-            if combo_str(ui, &format!("w_feat_{i}"), &mut val, NOTABLE_FEATURES) {
-                *feat = parse_variant(NotableFeature::VARIANTS, &val, feat.clone());
+            if enum_combo(
+                ui,
+                ("w_feat", i),
+                feat,
+                NotableFeature::VARIANTS,
+                |v| v.display_name(),
+            ) {
                 dirty = true;
             }
             if ui.small_button(RichText::new("x")).clicked() {
@@ -227,59 +201,64 @@ fn row(ui: &mut Ui, k: &str, mut body: impl FnMut(&mut Ui) -> bool, dirty: &mut 
     });
 }
 
-/// Map a combo-box selection (a CamelCase variant-name string, as produced by
-/// the enum's `Display`) back to the matching `worlds.rs` enum variant. The
-/// dropdown option lists in [`super::enums`] are exactly those variant names, so
-/// the lookup is total in practice; `fallback` (the unchanged current value) is
-/// only returned for a defensive non-match.
-fn parse_variant<T: std::fmt::Display + Clone>(variants: &[T], s: &str, fallback: T) -> T {
-    variants
-        .iter()
-        .find(|v| v.to_string() == s)
-        .cloned()
-        .unwrap_or(fallback)
+/// Enum dropdown over `variants` binding a **required** (non-`Option`) field.
+/// Forwards to the shared [`crate::widgets::enum_combo`] (F2) — the same widget
+/// the `worlds.toml` data editor uses — so the inspector's labels are the
+/// canonical [`display_name`](sectorforge::worlds) form (e.g. `"Agri-World"`)
+/// rather than the old hand-forked CamelCase strings (#33). The data editor
+/// binds `Option<T>` because its `GenerationRow` fields are optional; here the
+/// world always has a value, so we bridge through a temporary `Some` and ignore
+/// the `—` sentinel (a required field can never be unset). No tooltips.
+fn enum_combo<T, F>(
+    ui: &mut egui::Ui,
+    id: impl std::hash::Hash,
+    value: &mut T,
+    variants: &'static [T],
+    label_of: F,
+) -> bool
+where
+    T: Clone + PartialEq,
+    F: Fn(&T) -> &'static str,
+{
+    let mut opt = Some(value.clone());
+    let changed = crate::widgets::enum_combo(ui, id, &mut opt, variants, label_of, |_| None, None);
+    // The `—` sentinel maps to `None`; a required field stays put in that case.
+    if let (true, Some(v)) = (changed, opt) {
+        *value = v;
+        true
+    } else {
+        false
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Gap 230: `parse_variant` maps a `Display` string back to its enum variant
-    // and falls back unchanged on a non-match. These enums `Display` via
-    // `write!(f, "{self:?}")`, so the string is the CamelCase variant name. We
-    // exercise the generic over two enums (WorldType, Atmosphere).
+    // #33: the inspector dropdowns now label variants with the canonical
+    // `display_name()` (the form the `worlds.toml` data editor already shows),
+    // not the old forked CamelCase `Display` string. This guards the user-visible
+    // fix: the two surfaces agree, e.g. both read "Agri-World", not "AgriWorld".
     #[test]
-    fn parse_variant_round_trips_every_world_type() {
-        for v in WorldType::VARIANTS {
-            assert_eq!(
-                parse_variant(WorldType::VARIANTS, &v.to_string(), WorldType::DeadWorld),
-                *v
-            );
-        }
-        // Sanity: Display is the Debug/CamelCase name.
-        assert_eq!(WorldType::HiveWorld.to_string(), "HiveWorld");
+    fn world_type_dropdown_uses_canonical_display_name() {
+        assert_eq!(WorldType::AgriWorld.display_name(), "Agri-World");
+        assert_ne!(
+            WorldType::AgriWorld.display_name(),
+            WorldType::AgriWorld.to_string()
+        );
     }
 
+    // The non-optional adapter writes a picked variant back and leaves the field
+    // unchanged when nothing is selected. Exercised headlessly (no real click, so
+    // the combo reports "unchanged") to prove the required-field semantics: an
+    // unchanged interaction never clears the value.
     #[test]
-    fn parse_variant_round_trips_every_atmosphere() {
-        for v in Atmosphere::VARIANTS {
-            assert_eq!(
-                parse_variant(Atmosphere::VARIANTS, &v.to_string(), Atmosphere::Airless),
-                *v
-            );
-        }
-        assert_eq!(Atmosphere::Breathable.to_string(), "Breathable");
-    }
-
-    #[test]
-    fn parse_variant_returns_fallback_on_non_match() {
-        assert_eq!(
-            parse_variant(WorldType::VARIANTS, "NotARealVariant", WorldType::HiveWorld),
-            WorldType::HiveWorld
-        );
-        assert_eq!(
-            parse_variant(Atmosphere::VARIANTS, "", Atmosphere::Toxic),
-            Atmosphere::Toxic
-        );
+    fn enum_combo_required_keeps_value_when_unchanged() {
+        egui::__run_test_ui(|ui| {
+            let mut wt = WorldType::HiveWorld;
+            let changed = enum_combo(ui, "t", &mut wt, WorldType::VARIANTS, |v| v.display_name());
+            assert!(!changed);
+            assert_eq!(wt, WorldType::HiveWorld);
+        });
     }
 }

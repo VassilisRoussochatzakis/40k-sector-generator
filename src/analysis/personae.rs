@@ -550,52 +550,94 @@ fn build_faction_agenda(
     }
 }
 
+/// Fold a faction-kind string — in any of the spellings the generator / catalog
+/// can produce — to the single canonical key the persona pools below are keyed
+/// on. This is the one place that knows the full alias set, so every dispatch
+/// table (`tier_titles`, `agenda_verb`, `default_title`, `default_pool`) routes
+/// through it and no producible kind falls through to the generic placeholder.
+///
+/// The canonical keys returned here are exactly the rich-pool keys; every one of
+/// them has a non-placeholder arm in *each* table (Finding #20). Inputs that
+/// genuinely aren't a known faction kind return `""`, which deliberately lands
+/// on the placeholder arm.
+fn canonical_kind(kind: &str) -> &'static str {
+    // Normalise apostrophes (T'au / t'au), case, and surrounding whitespace so
+    // the match below only has to enumerate the underscore spellings.
+    let k = kind.trim().to_ascii_lowercase().replace('\'', "");
+    match k.as_str() {
+        // Imperial civil authority + Imperial military / elite arms.
+        "imperial" | "imperial_guard" | "imperial_knight" | "adeptus_astartes" | "deathwatch"
+        | "grey_knights" | "talons_of_the_emperor" | "collegia_titanica" => "imperial",
+        // Militant faith.
+        "adepta_sororitas" | "ecclesiarchy" => "ecclesiarchy",
+        "inquisition" | "inquisitorial" => "inquisition",
+        // Adeptus Mechanicus + its corrupted mirror.
+        "mechanicus" | "dark_mechanicum" => "mechanicus",
+        // Chaos / traitor / warp, including generic and heretic cults.
+        "chaos" | "chaos_space_marine" | "chaos_knight" | "traitor_guard"
+        | "traitor_titan_legion" | "daemon" | "cult" | "heretic" | "renegade" => "chaos",
+        // Genestealer cults (all spellings).
+        "genestealer_cult" | "genestealer" | "gsc" => "genestealer",
+        "tau" => "tau",
+        "aeldari" | "eldar" => "aeldari",
+        "harlequin" => "harlequin",
+        "drukhari" => "drukhari",
+        "ork" | "orks" => "ork",
+        "tyranid" => "tyranid",
+        "necron" => "necron",
+        // Commercial / criminal mercantile powers (incl. rogue-trader dynasties).
+        "merchant" | "mercantile" | "rogue_trader" | "criminal" => "merchant",
+        "rebel" | "separatist" => "rebel",
+        // Other xenos polities with no bespoke pool (incl. the Votann).
+        "xenos" | "minor_xenos" | "leagues_of_votann" => "xenos",
+        _ => "",
+    }
+}
+
 /// Tier-flavored title pools. `Overall` returns sector-supreme titles and
 /// `Force` returns field-command titles; `Subfaction` returns empty so the
 /// caller falls back to the mid-level [`KindPools::titles`]. Empty result for
 /// an unknown kind also falls back.
 fn tier_titles(kind: &str, tier: FactionTier) -> Vec<&'static str> {
-    let k = kind.to_ascii_lowercase();
+    let k = canonical_kind(kind);
     match tier {
         FactionTier::Subfaction => Vec::new(),
-        FactionTier::Overall => match k.as_str() {
+        FactionTier::Overall => match k {
             "imperial" => vec!["Lord Sector", "Lord Commander Militant", "Sector Governor"],
             "mechanicus" => vec!["Fabricator-General", "Archmagos Prime"],
             "ecclesiarchy" => vec!["Cardinal Astral", "Arch-Cardinal"],
-            "inquisition" | "inquisitorial" => {
-                vec!["Lord Inquisitor", "Inquisitorial Representative"]
-            }
-            "rogue_trader" | "merchant" | "mercantile" => {
-                vec!["Warrant-Holder Paramount", "Lord-Captain Dynast"]
-            }
-            "chaos" | "heretic" | "renegade" => vec!["Warmaster", "Dark Apostle Ascendant"],
-            "rebel" | "separatist" => vec!["Liberation Marshal", "Supreme Commander"],
+            "inquisition" => vec!["Lord Inquisitor", "Inquisitorial Representative"],
+            "merchant" => vec!["Warrant-Holder Paramount", "Lord-Captain Dynast"],
+            "chaos" => vec!["Warmaster", "Dark Apostle Ascendant"],
+            "rebel" => vec!["Liberation Marshal", "Supreme Commander"],
             "necron" => vec!["Phaeron", "Supreme Overlord"],
             "tyranid" => vec!["Hive Tyrant Prime", "Norn-Queen Locus"],
-            "ork" | "orks" => vec!["Warlord", "Big Boss of Bosses"],
-            "tau" | "t'au" => vec!["High Ethereal", "Supreme Commander"],
-            "aeldari" | "eldar" => vec!["Autarch Supreme", "High Farseer"],
+            "ork" => vec!["Warlord", "Big Boss of Bosses"],
+            "tau" => vec!["High Ethereal", "Supreme Commander"],
+            "aeldari" => vec!["Autarch Supreme", "High Farseer"],
             "drukhari" => vec!["Supreme Archon"],
             "harlequin" => vec!["Great Harlequin"],
-            "genestealer" | "gsc" => vec!["Patriarch"],
+            "genestealer" => vec!["Patriarch"],
+            "xenos" => vec!["Paramount Warleader", "Supreme Voice"],
             _ => vec!["Paramount Leader", "Sector Warlord"],
         },
-        FactionTier::Force => match k.as_str() {
+        FactionTier::Force => match k {
             "imperial" => vec!["Colonel", "Lord Captain", "Knight Commander"],
             "mechanicus" => vec!["Tech-Priest Dominus", "Myrmidon Secutor"],
             "ecclesiarchy" => vec!["Palatine", "Canoness"],
-            "inquisition" | "inquisitorial" => vec!["Interrogator", "Throne Agent"],
-            "rogue_trader" | "merchant" | "mercantile" => vec!["Captain", "Voidmaster"],
-            "chaos" | "heretic" | "renegade" => vec!["Champion", "Aspiring Lord"],
-            "rebel" | "separatist" => vec!["Field Commander", "Cell Leader"],
+            "inquisition" => vec!["Interrogator", "Throne Agent"],
+            "merchant" => vec!["Captain", "Voidmaster"],
+            "chaos" => vec!["Champion", "Aspiring Lord"],
+            "rebel" => vec!["Field Commander", "Cell Leader"],
             "necron" => vec!["Lord", "Royal Warden"],
             "tyranid" => vec!["Alpha Warrior", "Synapse Node"],
-            "ork" | "orks" => vec!["Nob", "Boss"],
-            "tau" | "t'au" => vec!["Shas'o", "Shas'el"],
-            "aeldari" | "eldar" => vec!["Exarch", "Autarch"],
+            "ork" => vec!["Nob", "Boss"],
+            "tau" => vec!["Shas'o", "Shas'el"],
+            "aeldari" => vec!["Exarch", "Autarch"],
             "drukhari" => vec!["Dracon", "Sybarite"],
             "harlequin" => vec!["Troupe Master"],
-            "genestealer" | "gsc" => vec!["Primus", "Acolyte Iconward"],
+            "genestealer" => vec!["Primus", "Acolyte Iconward"],
+            "xenos" => vec!["Warleader", "Hivespeaker"],
             _ => vec!["Commander", "Captain"],
         },
     }
@@ -853,44 +895,45 @@ fn build_agenda(
 }
 
 fn agenda_verb(kind: &str) -> &'static str {
-    match kind.to_ascii_lowercase().as_str() {
+    match canonical_kind(kind) {
         "imperial" => "enforce Imperial writ",
         "mechanicus" => "expand the cogitator covenant",
         "ecclesiarchy" => "extend the dominion of the Faith",
-        "inquisition" | "inquisitorial" => "hunt heresy in shadow",
-        "rogue_trader" | "merchant" | "mercantile" => "press a commercial advantage",
-        "chaos" | "heretic" | "renegade" => "spread the touch of the Dark Gods",
-        "rebel" | "separatist" => "break Imperial chains",
+        "inquisition" => "hunt heresy in shadow",
+        "merchant" => "press a commercial advantage",
+        "chaos" => "spread the touch of the Dark Gods",
+        "rebel" => "break Imperial chains",
         "xenos" => "press alien interests",
         "necron" => "reclaim ancient dominion",
         "tyranid" => "feed the Hive",
-        "ork" | "orks" => "spread the Waaagh!",
-        "tau" | "t'au" => "expand the Greater Good",
-        "aeldari" | "eldar" => "thread the Skein toward victory",
+        "ork" => "spread the Waaagh!",
+        "tau" => "expand the Greater Good",
+        "aeldari" => "thread the Skein toward victory",
         "drukhari" => "harvest fresh suffering",
         "harlequin" => "play out the Black Library",
-        "genestealer" | "gsc" => "incubate the awakening",
+        "genestealer" => "incubate the awakening",
         _ => "secure faction interests",
     }
 }
 
 fn default_title(kind: &str) -> String {
-    match kind.to_ascii_lowercase().as_str() {
+    match canonical_kind(kind) {
         "imperial" => "Planetary Governor".into(),
         "mechanicus" => "Magos Dominus".into(),
         "ecclesiarchy" => "Cardinal".into(),
-        "inquisition" | "inquisitorial" => "Inquisitor".into(),
-        "rogue_trader" | "merchant" | "mercantile" => "Lord-Captain".into(),
-        "chaos" | "heretic" | "renegade" => "Champion of Ruin".into(),
-        "rebel" | "separatist" => "Rebel Commander".into(),
+        "inquisition" => "Inquisitor".into(),
+        "merchant" => "Lord-Captain".into(),
+        "chaos" => "Champion of Ruin".into(),
+        "rebel" => "Rebel Commander".into(),
         "necron" => "Overlord".into(),
         "tyranid" => "Synapse Beast".into(),
-        "ork" | "orks" => "Warboss".into(),
-        "tau" | "t'au" => "Ethereal".into(),
-        "aeldari" | "eldar" => "Farseer".into(),
+        "ork" => "Warboss".into(),
+        "tau" => "Ethereal".into(),
+        "aeldari" => "Farseer".into(),
         "drukhari" => "Dracon".into(),
         "harlequin" => "Shadowseer".into(),
-        "genestealer" | "gsc" => "Cult Patriarch".into(),
+        "genestealer" => "Cult Patriarch".into(),
+        "xenos" => "Warleader".into(),
         _ => "Faction Lead".into(),
     }
 }
@@ -898,8 +941,18 @@ fn default_title(kind: &str) -> String {
 // ── Built-in pools ─────────────────────────────────────────────────────────────
 
 fn resolve_pools(cfg: &PersonaeConfig, kind: &str) -> KindPools {
+    // Honour a user override under the exact spelling first (backward compat),
+    // then under the canonical key, so e.g. an `adeptus_astartes` faction still
+    // picks up a `[kinds.imperial]` override block. Built-in pools fall back
+    // through `default_pool`, which canonicalises internally.
     if let Some(p) = cfg.kinds.get(kind) {
         return merge_with_defaults(p, kind);
+    }
+    let canon = canonical_kind(kind);
+    if !canon.is_empty() {
+        if let Some(p) = cfg.kinds.get(canon) {
+            return merge_with_defaults(p, kind);
+        }
     }
     default_pool(kind)
 }
@@ -941,7 +994,7 @@ fn merge_with_defaults(user: &KindPools, kind: &str) -> KindPools {
 }
 
 fn default_pool(kind: &str) -> KindPools {
-    match kind.to_ascii_lowercase().as_str() {
+    match canonical_kind(kind) {
         "imperial" => KindPools {
             name_prefixes: svec(&["Lord", "Lady", "High"]),
             name_roots: svec(&[
@@ -1026,7 +1079,7 @@ fn default_pool(kind: &str) -> KindPools {
                 "Vengeful",
             ]),
         },
-        "inquisition" | "inquisitorial" => KindPools {
+        "inquisition" => KindPools {
             name_prefixes: svec(&["Inquisitor", "Interrogator"]),
             name_roots: svec(&[
                 "Eisenhorn",
@@ -1056,7 +1109,7 @@ fn default_pool(kind: &str) -> KindPools {
                 "Patient",
             ]),
         },
-        "rogue_trader" | "merchant" | "mercantile" => KindPools {
+        "merchant" => KindPools {
             name_prefixes: svec(&["Lord-Captain", "Captain", "Dame", "Dynast"]),
             name_roots: svec(&[
                 "Vrede",
@@ -1085,7 +1138,7 @@ fn default_pool(kind: &str) -> KindPools {
                 "Glittering",
             ]),
         },
-        "chaos" | "heretic" | "renegade" => KindPools {
+        "chaos" => KindPools {
             name_prefixes: svec(&["Lord", "Champion", "Sorcerer"]),
             name_roots: svec(&[
                 "Vraxis",
@@ -1119,7 +1172,7 @@ fn default_pool(kind: &str) -> KindPools {
                 "Mad",
             ]),
         },
-        "rebel" | "separatist" => KindPools {
+        "rebel" => KindPools {
             name_prefixes: svec(&["Commander", "Captain", "Speaker", "Headsman"]),
             name_roots: svec(&[
                 "Toran", "Vada", "Selka", "Kosh", "Mira", "Petros", "Yarrick", "Aren",
@@ -1169,7 +1222,7 @@ fn default_pool(kind: &str) -> KindPools {
             titles: svec(&["Hive Tyrant", "Synapse Beast", "Norn-Queen Echo"]),
             traits: svec(&["Hungry", "Adaptive", "Patient", "Implacable"]),
         },
-        "ork" | "orks" => KindPools {
+        "ork" => KindPools {
             name_prefixes: svec(&[]),
             name_roots: svec(&[
                 "Skarsnik",
@@ -1192,7 +1245,7 @@ fn default_pool(kind: &str) -> KindPools {
                 "Reckless",
             ]),
         },
-        "tau" | "t'au" => KindPools {
+        "tau" => KindPools {
             name_prefixes: svec(&["Aun'", "Shas'", "Por'"]),
             name_roots: svec(&["vre", "ui", "el", "o", "la", "su"]),
             name_suffixes: svec(&["Mont'yr", "Tash'var", "Sa'cea", "Bork'an", "Vior'la"]),
@@ -1211,7 +1264,7 @@ fn default_pool(kind: &str) -> KindPools {
                 "Naive",
             ]),
         },
-        "aeldari" | "eldar" => KindPools {
+        "aeldari" => KindPools {
             name_prefixes: svec(&["Farseer", "Autarch", "Spiritseer"]),
             name_roots: svec(&["Eldrad", "Asurmen", "Macha", "Yvraine", "Yriel", "Saerith"]),
             name_suffixes: svec(&["", "the Cold", "Lin'doril"]),
@@ -1235,7 +1288,7 @@ fn default_pool(kind: &str) -> KindPools {
             titles: svec(&["Troupe Master", "Shadowseer", "Death Jester"]),
             traits: svec(&["Theatrical", "Cryptic", "Lethal"]),
         },
-        "genestealer" | "gsc" => KindPools {
+        "genestealer" => KindPools {
             name_prefixes: svec(&["Patriarch", "Magus", "Primus"]),
             name_roots: svec(&["Saint", "First", "Whisper", "Old", "Quiet"]),
             name_suffixes: svec(&["Hraxon", "Velt", "Marek", "Selas"]),
@@ -1549,5 +1602,130 @@ mod tests {
                 .any(|p| matches!(p.anchor, PersonaAnchor::Faction { .. })),
             "faction_leaders=false still emitted org leaders"
         );
+    }
+
+    /// Finding #20: every faction kind the generator / control derivation can
+    /// produce must, after [`canonical_kind`] folding, land on a *real* persona
+    /// entry in each dispatch table — never the generic placeholder. The list
+    /// below is the authoritative producer vocabulary: it mirrors the
+    /// `kind_profile` match arms in `crate::analysis::control` (the canonical set
+    /// of kinds `control.rs` understands) plus every alias spelling personae
+    /// itself accepts. If a new kind is added there, add it here too.
+    #[test]
+    fn every_producible_kind_resolves_to_non_placeholder_persona() {
+        // The placeholder outputs each table emits for an unknown kind. Defining
+        // them via the empty key keeps the test honest if the `_` arms change.
+        let placeholder_pool = default_pool("");
+        let placeholder_verb = agenda_verb("");
+        let placeholder_title = default_title("");
+        let placeholder_overall = tier_titles("", FactionTier::Overall);
+        let placeholder_force = tier_titles("", FactionTier::Force);
+
+        // Authoritative producer set: the `kind_profile` keys in `control.rs`
+        // (what generation stores on `GeneratedFaction.kind`, directly or via
+        // `legacy_top_faction_id`) plus personae's own accepted alias spellings.
+        let producible: &[&str] = &[
+            // control.rs kind_profile arms.
+            "imperial",
+            "adepta_sororitas",
+            "inquisition",
+            "adeptus_astartes",
+            "imperial_guard",
+            "imperial_knight",
+            "collegia_titanica",
+            "deathwatch",
+            "grey_knights",
+            "talons_of_the_emperor",
+            "mechanicus",
+            "dark_mechanicum",
+            "chaos_space_marine",
+            "chaos_knight",
+            "traitor_guard",
+            "traitor_titan_legion",
+            "daemon",
+            "cult",
+            "tau",
+            "aeldari",
+            "drukhari",
+            "harlequin",
+            "leagues_of_votann",
+            "ork",
+            "tyranid",
+            "necron",
+            "minor_xenos",
+            "xenos",
+            "merchant",
+            "criminal",
+            "rebel",
+            "genestealer_cult",
+            // legacy_top_faction_id outputs not otherwise listed.
+            "chaos",
+            // Alias spellings personae accepts.
+            "inquisitorial",
+            "heretic",
+            "renegade",
+            "rogue_trader",
+            "mercantile",
+            "separatist",
+            "orks",
+            "eldar",
+            "t'au",
+            "gsc",
+            "genestealer",
+        ];
+
+        for kind in producible {
+            let canon = canonical_kind(kind);
+            assert!(
+                !canon.is_empty(),
+                "kind {kind:?} folds to the empty canonical key (placeholder)"
+            );
+
+            // Pools, agenda verb, and default title must all differ from the
+            // placeholder the `_` arm would produce.
+            let pool = default_pool(kind);
+            assert_ne!(
+                pool.name_roots, placeholder_pool.name_roots,
+                "kind {kind:?} (canon {canon:?}) falls through to placeholder name pool"
+            );
+            assert_ne!(
+                pool.titles, placeholder_pool.titles,
+                "kind {kind:?} (canon {canon:?}) falls through to placeholder title pool"
+            );
+            assert_ne!(
+                agenda_verb(kind),
+                placeholder_verb,
+                "kind {kind:?} (canon {canon:?}) falls through to placeholder agenda verb"
+            );
+            assert_ne!(
+                default_title(kind),
+                placeholder_title,
+                "kind {kind:?} (canon {canon:?}) falls through to placeholder default title"
+            );
+
+            // Both flavored leadership tiers must resolve too (Subfaction
+            // deliberately returns empty and falls back to KindPools::titles,
+            // so it is exempt).
+            assert_ne!(
+                tier_titles(kind, FactionTier::Overall),
+                placeholder_overall,
+                "kind {kind:?} (canon {canon:?}) falls through to placeholder Overall titles"
+            );
+            assert_ne!(
+                tier_titles(kind, FactionTier::Force),
+                placeholder_force,
+                "kind {kind:?} (canon {canon:?}) falls through to placeholder Force titles"
+            );
+        }
+    }
+
+    /// Genuinely unknown kinds still resolve to the placeholder (the normalizer
+    /// must not accidentally start claiming arbitrary strings).
+    #[test]
+    fn unknown_kind_stays_placeholder() {
+        assert_eq!(canonical_kind("definitely-not-a-faction"), "");
+        assert_eq!(canonical_kind(""), "");
+        assert_eq!(default_title("definitely-not-a-faction"), "Faction Lead");
+        assert_eq!(agenda_verb(""), "secure faction interests");
     }
 }

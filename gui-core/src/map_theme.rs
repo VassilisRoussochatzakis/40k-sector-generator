@@ -76,6 +76,11 @@ pub struct RenderMapTheme {
     pub region_necropolis_drift: Color32,
     pub region_beacon_chain: Color32,
     pub region_empyric_bleed: Color32,
+    /// How strongly a region overlay tints the hexes it covers (0..=1), passed
+    /// as the blend factor into `blend_heat` at the region-fill step. Mirrors
+    /// the data-layer `MapTheme::region_tint_strength` so the live map matches
+    /// the exported PNG; threaded through by [`Self::from_map_theme`].
+    pub region_tint_strength: f32,
     // -- sizing tokens (multiplier · hex_size, floored at min) -------------
     pub star_radius_mul: f32,
     pub route_thickness: ScaledSize,
@@ -122,14 +127,29 @@ impl RenderMapTheme {
 
     /// §35 T1/T4: derive an egui render theme from a resolved data-layer
     /// [`sectorforge::map_theme::MapTheme`] (the kind parsed from a builtin
-    /// name or a custom `map_theme.toml`). Colours the data theme does not
-    /// carry (selection, path glow, region palette, sizing) keep their
-    /// [`RenderMapTheme::default`] values so the live map stays legible.
+    /// name or a custom `map_theme.toml`).
+    ///
+    /// Every colour and strength the data theme carries is threaded through —
+    /// the core palette, the subsector/capital overlay colours, the route
+    /// palette + thickness, the region-label overlay (label/background/outline,
+    /// re-tinted from the theme's text/panel/border tokens), and
+    /// `region_tint_strength`. Tokens the data layer genuinely has no analogue
+    /// for — selection and path-highlight glow, the eight region-condition
+    /// overlay colours, and the sizing tokens — keep their
+    /// [`RenderMapTheme::default`] values via the `..base` tail so the live map
+    /// stays legible. Threading `region_tint_strength` here keeps the live
+    /// region wash in step with the exported PNG (notably on light themes such
+    /// as `print_mono`, whose tint is much lighter than the dark default).
     #[must_use]
     pub fn from_map_theme(mt: &sectorforge::map_theme::MapTheme) -> Self {
         // `mt.*` are `image::Rgba<u8>` whose `.0` is `[r, g, b, a]`; take the
         // array so gui-core needn't name the `image` crate directly.
         fn c([r, g, b, a]: [u8; 4]) -> Color32 {
+            Color32::from_rgba_unmultiplied(r, g, b, a)
+        }
+        // RGB from the data theme, alpha from the default so a translucent
+        // overlay chip keeps its weight while picking up the theme's hue.
+        fn c_alpha([r, g, b, _]: [u8; 4], a: u8) -> Color32 {
             Color32::from_rgba_unmultiplied(r, g, b, a)
         }
         let base = Self::default();
@@ -144,6 +164,13 @@ impl RenderMapTheme {
             subsector_label_bg: c(mt.subsector_label_bg.0),
             capital_marker_fill: c(mt.capital_marker.0),
             capital_marker_outline: c(mt.capital_outline.0),
+            // Region-label overlay: previously dropped, so the dark default
+            // chips bled onto light themes. Re-tint from the nearest data
+            // tokens — dim text for the label, panel bg / subsector border for
+            // the translucent chip + outline — preserving the default alphas.
+            region_label: c(mt.text_dim.0),
+            region_label_bg: c_alpha(mt.panel_bg.0, base.region_label_bg.a()),
+            region_label_outline: c_alpha(mt.subsector_border.0, base.region_label_outline.a()),
             route_stable: c(mt.route_stable.0),
             route_unstable: c(mt.route_unstable.0),
             route_hazardous: c(mt.route_hazardous.0),
@@ -154,6 +181,8 @@ impl RenderMapTheme {
                 base.route_thickness.mul * mt.route_thickness,
                 base.route_thickness.min,
             ),
+            // Carry the theme's region wash strength (was hard-coded 0.5).
+            region_tint_strength: mt.region_tint_strength,
             ..base
         }
     }
@@ -213,6 +242,9 @@ impl Default for RenderMapTheme {
             region_necropolis_drift: Color32::from_rgb(100, 130, 140),
             region_beacon_chain: Color32::from_rgb(230, 210, 100),
             region_empyric_bleed: Color32::from_rgb(190, 70, 160),
+            // Matches the pre-§23 hard-coded region-fill blend factor so the
+            // default render theme (and the map-snapshot suite) is unchanged.
+            region_tint_strength: 0.5,
 
             star_radius_mul: 0.2016,
             route_thickness: ScaledSize::new(0.08, 2.0),

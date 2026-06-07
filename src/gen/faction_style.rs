@@ -8,7 +8,14 @@
 use crate::sector_model::GeneratedFaction;
 
 /// Border behaviour driven by faction disposition (§8).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// Serializes to its lowercase spelling (`"clean"`, `"jagged"`, `"dotted"`,
+/// `"thin"`) — byte-identical to the free-text `style_border` strings this enum
+/// replaced. An unrecognised spelling deserializes to [`FactionBorder::Unknown`]
+/// (forward-compat) rather than failing the whole catalog load; renderers treat
+/// it like [`FactionBorder::Thin`] (see [`border_for`]'s default arm).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum FactionBorder {
     /// Crisp solid line — `lawful`, `insular`.
@@ -19,6 +26,26 @@ pub enum FactionBorder {
     Dotted,
     /// Default thin line.
     Thin,
+    /// Forward-compat sentinel for an unrecognised on-disk spelling. Never
+    /// produced by generation; renderers fall back to the thin-line default.
+    #[serde(other)]
+    Unknown,
+}
+
+impl FactionBorder {
+    /// Canonical lowercase spelling — matches the serialized form and the
+    /// strings accepted by [`parse_border`]. `Unknown` renders as `"thin"`
+    /// (its rendering fallback), so round-tripping through a UI combo stays a
+    /// known value.
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            FactionBorder::Clean => "clean",
+            FactionBorder::Jagged => "jagged",
+            FactionBorder::Dotted => "dotted",
+            FactionBorder::Thin | FactionBorder::Unknown => "thin",
+        }
+    }
 }
 
 /// RGB-flavoured `FactionStyle`. The GUI re-wraps `fill` / `accent` as

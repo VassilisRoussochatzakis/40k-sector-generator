@@ -597,10 +597,12 @@ pub fn diff_sectors_with(
     diff::diff_sectors_with(before, after, cfg)
 }
 
-/// §10 NEW.md: Markdown render of a sector diff.
+/// §10 NEW.md: Markdown render of a sector diff. `cfg` supplies the digest
+/// knobs (e.g. `top_faction_deltas`); pass [`diff::DiffConfig::default`] for the
+/// canonical thresholds.
 #[must_use]
-pub fn render_diff_markdown(d: &diff::SectorDiff) -> String {
-    diff::render_markdown(d)
+pub fn render_diff_markdown(d: &diff::SectorDiff, cfg: &diff::DiffConfig) -> String {
+    diff::render_markdown(d, cfg)
 }
 
 /// §10 NEW.md: write `diff.md` + `diff.json` into a directory.
@@ -612,8 +614,9 @@ pub fn render_diff_markdown(d: &diff::SectorDiff) -> String {
 pub fn write_diff(
     output_dir: impl AsRef<Utf8Path>,
     d: &diff::SectorDiff,
+    cfg: &diff::DiffConfig,
 ) -> Result<(), SectorError> {
-    diff::write_diff(output_dir.as_ref(), d)
+    diff::write_diff(output_dir.as_ref(), d, cfg)
 }
 
 /// §1 NEW.md: deterministic chronicle of in-universe events explaining

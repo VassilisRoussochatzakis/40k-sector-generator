@@ -1,6 +1,8 @@
-//! Fixed option lists for dropdowns. These match the string forms used in
-//! `WorldDto` (`Debug` of the enum in `worlds.rs`), plus star colour codes and
-//! route enums via `serde` rename rules.
+//! Fixed option lists for the editor's non-world dropdowns: star-colour codes
+//! and the route type/stability tables (`serde` keys + editor labels). The
+//! world-classification lists that used to live here were hand-forked CamelCase
+//! arrays; they drifted from `worlds.rs` and are gone — the inspector now reads
+//! `T::VARIANTS` + `display_name()` directly (see the note below + #33).
 
 use sectorforge::sector_model::RouteType;
 
@@ -19,207 +21,16 @@ pub(crate) fn star_colour_name(code: &str) -> &'static str {
     }
 }
 
-pub const WORLD_TYPES: &[&str] = &[
-    "AgriWorld",
-    "Asteroid",
-    "BastionWorld",
-    "DeathWorld",
-    "DeadWorld",
-    "ExtractiveColony",
-    "FeralWorld",
-    "FeudalWorld",
-    "ForgeWorld",
-    "FrontierWorld",
-    "HiveWorld",
-    "ImperialWorld",
-    "IndustrialWorld",
-    "Orbital",
-    "PenalWorld",
-    "PlanetaryDump",
-    "PlanetaryMonument",
-    "PleasureWorld",
-    "ResearchStation",
-    "ShrineWorld",
-    "TombWorld",
-    "WarpLostWorld",
-    "Worldship",
-    "XenosWorld",
-];
-
-pub const ATMOSPHERES: &[&str] = &[
-    "Airless",
-    "Breathable",
-    "Corrosive",
-    "Exotic",
-    "Thin",
-    "Tainted",
-    "Toxic",
-];
-
-pub const TEMPERATURES: &[&str] = &["Freezing", "Cold", "Temperate", "Hot", "Boiling"];
-
-pub const BIOSPHERES: &[&str] = &[
-    "Nonexistent",
-    "Minimal",
-    "Thriving",
-    "Poisoned",
-    "XenoHybrid",
-    "XenoDominance",
-];
-
-pub const POPULATIONS: &[&str] = &[
-    "Uninhabited",
-    "Minimal",
-    "LightlyPopulated",
-    "SoleSettlement",
-    "DenselyPopulated",
-    "ExtremelyDense",
-];
-
-pub const TECH_LEVELS: &[&str] = &[
-    "Primitive",
-    "Low",
-    "Standard",
-    "High",
-    "XenoHybrid",
-    "Archaeotech",
-];
-
-pub const GOVERNMENTS: &[&str] = &[
-    "BalkanizedLocalFactions",
-    "ChaosCult",
-    "ClansTribes",
-    "Communards",
-    "CorruptAristocrats",
-    "Demagogue",
-    "EcclesiarchicalAppointee",
-    "ElitistTyrant",
-    "ExploratorAuthority",
-    "GuildsCombine",
-    "Hereteks",
-    "HereticalImperialCult",
-    "InfractionistGang",
-    "LocalReligiousAuthorities",
-    "LoyalistMassMovement",
-    "MagistrateCouncil",
-    "MechanicusForgeLord",
-    "Megacorporations",
-    "MilitaryGovernor",
-    "None",
-    "PopulistTyrant",
-    "PuppetGovernment",
-    "RevolutionaryJunta",
-    "RogueTraderDynasty",
-    "ShadowyPsykerCabal",
-    "TraditionalOligarchy",
-    "TraditionalistAristocracy",
-    "Warlords",
-    "WarriorAristocracy",
-    "XenosOverlords",
-];
-
-pub const NOTABLE_FEATURES: &[&str] = &[
-    "Abhumans",
-    "AlteredHumans",
-    "AncientArchive",
-    "AncientTombs",
-    "ArchaeotechRuins",
-    "BlindingMists",
-    "CelestialPhenomena",
-    "ChaosCultists",
-    "CivilWar",
-    "ColdWar",
-    "CrumblingArcologies",
-    "DaemonicCorruption",
-    "DangerousWildlife",
-    "DesertWorld",
-    "DeviantReligion",
-    "EugenicCult",
-    "ExtremeEnvironment",
-    "FactionalFragmentation",
-    "FailedParadise",
-    "FlyingCities",
-    "ForbiddenTech",
-    "ForeignControl",
-    "FreakGeology",
-    "FreakWeather",
-    "Freeport",
-    "FriendlyXenos",
-    "FrozenWorld",
-    "GoldRush",
-    "GreatWork",
-    "HeavyIndustry",
-    "HeavyMining",
-    "Hereteks",
-    "HolyWar",
-    "HostileBiosphere",
-    "HostileXenos",
-    "ImpendingDoom",
-    "ImperialKnights",
-    "ImportantShrine",
-    "InquisitionOutpost",
-    "JungleWorld",
-    "Libertines",
-    "LocalSpecialty",
-    "LocalTech",
-    "MajorSpaceyard",
-    "MartialLaw",
-    "MassPanic",
-    "MinimalContact",
-    "Missionaries",
-    "MutantHordes",
-    "NavalBlockade",
-    "NavalOutpost",
-    "NavigatorHouse",
-    "NomadicCities",
-    "NotableLocal",
-    "OceanWorld",
-    "OutOfContact",
-    "Pandemic",
-    "PilgrimageSite",
-    "PocketEmpire",
-    "PoliceState",
-    "PopularUprising",
-    "PowerfulCriminals",
-    "PowerfulNobles",
-    "PrimitiveXenos",
-    "Prosperous",
-    "PsykerAcademy",
-    "PsykerCult",
-    "Quarantined",
-    "Radioactive",
-    "RecentlyRediscovered",
-    "ScholaProgenium",
-    "SeagoingCities",
-    "SealedMenace",
-    "SecretMasters",
-    "Sectarians",
-    "SeismicInstability",
-    "Separatists",
-    "SilicaAnimus",
-    "SoleSuppliers",
-    "SororitasConvent",
-    "SpaceHulks",
-    "StrangeCustoms",
-    "StrangeHatred",
-    "SubsectorHegemon",
-    "TechPriestCult",
-    "TestSite",
-    "TheSilentTrade",
-    "TradeHub",
-    "AdministrativeHub",
-    "UnmappedWastes",
-    "VastFortresses",
-    "VerdantEcology",
-    "WarZone",
-    "WarpPhenomena",
-    "WitchHunt",
-    "XenoRuins",
-    "Xenophiles",
-    "Xenophobes",
-    "XenosInfiltrators",
-    "Zombies",
-];
+// #33: the world-classification option lists (`WORLD_TYPES`, `ATMOSPHERES`,
+// `TEMPERATURES`, `BIOSPHERES`, `POPULATIONS`, `TECH_LEVELS`, `GOVERNMENTS`,
+// `NOTABLE_FEATURES`) used to live here as hand-forked CamelCase string arrays.
+// They drifted from the canonical `worlds.rs` tables — the inspector showed
+// "AgriWorld" while the `worlds.toml` data editor showed "Agri-World". The
+// inspector (`world_panel.rs`) now drives those dropdowns straight off
+// `T::VARIANTS` + `display_name()` via the shared `widgets::enum_combo`, so the
+// forks are deleted and the two surfaces agree. Star-colour codes and the route
+// tuple tables below stay — they are consumed by `system_panel`/`routes_panel`
+// and are not variant-name forks.
 
 pub const ROUTE_TYPES: &[(&str, &str)] = &[
     (

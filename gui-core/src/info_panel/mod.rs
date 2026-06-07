@@ -92,7 +92,8 @@ fn legend_route_row(ui: &mut Ui, color: Color32, pattern: RoutePattern, text: &s
     });
 }
 
-fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
+fn legend_control_row(ui: &mut Ui, kind: palette::RouteControlKind) {
+    use palette::RouteControlKind;
     ui.horizontal(|ui| {
         let (rect, _) = ui.allocate_exact_size(Vec2::new(36.0, 12.0), egui::Sense::hover());
         let center = rect.center();
@@ -102,23 +103,23 @@ fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
         let painter = ui.painter();
 
         match kind {
-            "PATROL" => {
+            RouteControlKind::Patrol => {
                 painter.circle_filled(center, half, color);
             }
-            "TOLL" => {
+            RouteControlKind::Toll => {
                 painter.rect_filled(
                     egui::Rect::from_center_size(center, Vec2::splat(size)),
                     0.0,
                     color,
                 );
             }
-            "INTERDICTION" => {
+            RouteControlKind::Interdiction => {
                 painter.line_segment(
                     [center - Vec2::new(0.0, half), center + Vec2::new(0.0, half)],
                     egui::Stroke::new(2.5, color),
                 );
             }
-            "PIRACY" => {
+            RouteControlKind::Piracy => {
                 painter.line_segment(
                     [
                         center - Vec2::new(half, half),
@@ -134,10 +135,13 @@ fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
                     egui::Stroke::new(2.5, color),
                 );
             }
-            _ => {}
         }
 
-        ui.label(RichText::new(text).color(palette::chrome_text()).size(12.0));
+        ui.label(
+            RichText::new(kind.label())
+                .color(palette::chrome_text())
+                .size(12.0),
+        );
     });
 }
 

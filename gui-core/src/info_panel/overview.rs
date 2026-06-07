@@ -146,10 +146,9 @@ pub fn sector_overview_with_buckets(
 
     if sector.routes.iter().any(|r| !r.controls.is_empty()) {
         section(ui, "ROUTE CONTROL");
-        legend_control_row(ui, "PATROL", "PATROL");
-        legend_control_row(ui, "TOLL", "TOLL");
-        legend_control_row(ui, "INTERDICTION", "INTERDICTION");
-        legend_control_row(ui, "PIRACY", "PIRACY");
+        for &kind in palette::RouteControlKind::ALL {
+            legend_control_row(ui, kind);
+        }
         ui.add_space(8.0);
     }
 

@@ -276,7 +276,7 @@ fn diff_after_ticks_reports_changes_when_conflict_state_evolves() {
     let (diff, before, after) =
         sectorforge::diff::diff_after_ticks(input, 5, &DiffConfig::default()).unwrap();
     // Markdown round-trip crash guard.
-    let md = sectorforge::render_diff_markdown(&diff);
+    let md = sectorforge::render_diff_markdown(&diff, &DiffConfig::default());
     assert!(md.starts_with("# Sector Diff"));
     assert!(md.contains("Catalog compatible"));
     // Meaningful content check: `advance_sector` must actually evolve conflict
@@ -308,7 +308,7 @@ fn diff_writers_emit_both_files() {
     let d = sectorforge::diff_sectors(sector, sector);
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-    sectorforge::write_diff(&dir, &d).unwrap();
+    sectorforge::write_diff(&dir, &d, &DiffConfig::default()).unwrap();
     assert!(dir.join("diff.md").exists());
     assert!(dir.join("diff.json").exists());
 }

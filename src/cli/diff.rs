@@ -46,11 +46,11 @@ pub(crate) fn run_diff(args: DiffArgs) -> Result<ExitCode, sectorforge::SectorEr
         args.json,
         &diff,
         |dir| {
-            sectorforge::write_diff(dir, &diff)?;
+            sectorforge::write_diff(dir, &diff, &cfg)?;
             println!("Wrote {dir}/diff.md and {dir}/diff.json");
             Ok(())
         },
-        || sectorforge::render_diff_markdown(&diff),
+        || sectorforge::render_diff_markdown(&diff, &cfg),
     )?;
     Ok(ExitCode::SUCCESS)
 }

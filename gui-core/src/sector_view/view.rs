@@ -190,7 +190,9 @@ impl<'a> SectorView<'a> {
 
                 let fill = if let Some(cache) = self.cache {
                     match cache.hex_region.get(&(q, r)) {
-                        Some((_, kind)) => blend_heat(base, theme.region_color(*kind), 0.5),
+                        Some((_, kind)) => {
+                            blend_heat(base, theme.region_color(*kind), theme.region_tint_strength)
+                        }
                         None => base,
                     }
                 } else {
@@ -201,7 +203,7 @@ impl<'a> SectorView<'a> {
                             f = blend_heat(
                                 base,
                                 theme.region_color(MapRegionOverlay::from_condition(reg.kind)),
-                                0.5,
+                                theme.region_tint_strength,
                             );
                             break;
                         }

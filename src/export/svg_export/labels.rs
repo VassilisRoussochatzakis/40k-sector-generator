@@ -159,7 +159,16 @@ pub(super) fn draw_subsector_labels(
                 (q as i32, r as i32, dx.mul_add(dx, dy * dy))
             })
             .collect();
-        cands.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
+        cands.sort_by(|a, b| {
+            a.2.partial_cmp(&b.2)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                // Determinism: break distance ties on the stable unique (q, r)
+                // cell key so the order does not depend on the (stable-sort)
+                // input ordering or FMA rounding of the squared distance.
+                // `sub.hex_cells` is already `(q, r)`-sorted upstream, so this
+                // only makes today's ordering explicit.
+                .then_with(|| (a.0, a.1).cmp(&(b.0, b.1)))
+        });
 
         let try_place = |q: i32, r: i32, above: bool, placed: &[Rect]| -> Option<(f32, f32)> {
             if !subsector_label_backed(q, r, above, &cells) {

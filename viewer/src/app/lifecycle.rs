@@ -181,10 +181,16 @@ impl App {
                     // Try to generate it
                     match sectorforge::generate_sector(input.clone()) {
                         Ok(sector) => {
-                            // Ensure out dir exists
+                            // Ensure out dir exists. Surface the mkdir error
+                            // (a doomed write would otherwise mask its cause)
+                            // and skip the write, but still load in-memory.
                             let out_dir = path.join("out");
-                            let _ = std::fs::create_dir_all(&out_dir);
-                            if let Err(e) = sectorforge::write_sector_json(&sector_path, &sector) {
+                            if let Err(e) = std::fs::create_dir_all(&out_dir) {
+                                self.export_status =
+                                    format!("failed to create {out_dir}: {e}");
+                            } else if let Err(e) =
+                                sectorforge::write_sector_json(&sector_path, &sector)
+                            {
                                 self.export_status =
                                     format!("failed to save generated sector: {e}");
                             }

@@ -38,6 +38,8 @@ pub enum MutationError {
     CoordOccupied(HexCoord),
     #[error("duplicate route between {0} and {1}")]
     DuplicateRoute(String, String),
+    #[error("duplicate faction: {0}")]
+    DuplicateFaction(String),
     #[error("route endpoints must differ ({0})")]
     SelfRoute(String),
     #[error("history event index out of range: {0}")]
@@ -379,20 +381,30 @@ impl GeneratedSector {
 
     // ── Faction mutations ───────────────────────────────────────────────────
 
-    pub fn add_faction(&mut self, id: FactionId, name: &str, kind: &str) -> FactionId {
-        if !self.factions.iter().any(|f| f.id == id) {
-            self.factions.push(GeneratedFaction {
-                id: id.clone(),
-                name: name.into(),
-                kind: kind.into(),
-                disposition: "neutral".into(),
-                subfactions: Vec::new(),
-                system_presence: Vec::new(),
-                world_presence: Vec::new(),
-                power: Default::default(),
-            });
+    /// Insert a new faction with the given `id`, `name`, and `kind`. Returns the
+    /// assigned id on success, or [`MutationError::DuplicateFaction`] if a
+    /// faction with that id already exists (so the duplicate case is observable
+    /// rather than a silent no-op).
+    pub fn add_faction(
+        &mut self,
+        id: FactionId,
+        name: &str,
+        kind: &str,
+    ) -> Result<FactionId, MutationError> {
+        if self.factions.iter().any(|f| f.id == id) {
+            return Err(MutationError::DuplicateFaction(id.to_string()));
         }
-        id
+        self.factions.push(GeneratedFaction {
+            id: id.clone(),
+            name: name.into(),
+            kind: kind.into(),
+            disposition: "neutral".into(),
+            subfactions: Vec::new(),
+            system_presence: Vec::new(),
+            world_presence: Vec::new(),
+            power: Default::default(),
+        });
+        Ok(id)
     }
 
     pub fn remove_faction(&mut self, id: &FactionId) -> Result<(), MutationError> {
@@ -891,7 +903,7 @@ mod tests {
             .unwrap();
 
         // a faction present on the removed system + its world, plus on a survivor
-        let f = s.add_faction(FactionId::new("imperium"), "Imperium", "imperial");
+        let f = s.add_faction(FactionId::new("imperium"), "Imperium", "imperial").unwrap();
         {
             let fac = s.factions.iter_mut().find(|x| x.id == f).unwrap();
             fac.system_presence.push(a.clone());

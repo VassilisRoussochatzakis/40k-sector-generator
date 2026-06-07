@@ -630,7 +630,7 @@ impl BuilderCommand {
                 Ok(())
             }
             Self::AddFaction { id, name, kind } => {
-                sector.add_faction(id.clone(), name, kind);
+                sector.add_faction(id.clone(), name, kind)?;
                 Ok(())
             }
             Self::RemoveFaction { id, before } => {
@@ -1416,7 +1416,7 @@ pub(crate) mod tests {
         let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
         let c = s.add_system(HexCoord { q: 2, r: 0 }, "C").unwrap();
         let wid = s.add_world_to_system(&a, "W").unwrap();
-        s.add_faction(FactionId::from("f"), "F", "imperial");
+        s.add_faction(FactionId::from("f"), "F", "imperial").unwrap();
         let rid = s
             .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
             .unwrap();
@@ -1718,7 +1718,7 @@ pub(crate) mod tests {
     #[test]
     fn apply_faction_power_round_trip() {
         let mut s = empty();
-        s.add_faction(FactionId::from("f"), "F", "imperial");
+        s.add_faction(FactionId::from("f"), "F", "imperial").unwrap();
         s.factions[0].power.military = 7.0;
         let mut after = std::collections::BTreeMap::new();
         after.insert(
@@ -2435,7 +2435,7 @@ pub(crate) mod tests {
     #[test]
     fn derive_baseline_intel_round_trip() {
         let mut s = empty();
-        s.add_faction(FactionId::from("imperium"), "Imperium", "imperial");
+        s.add_faction(FactionId::from("imperium"), "Imperium", "imperial").unwrap();
         let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
         let wid = s.add_world_to_system(&sys, "W").unwrap();
         let sys_intel_before_empty = s.get_system(&sys).unwrap().intel.is_empty();

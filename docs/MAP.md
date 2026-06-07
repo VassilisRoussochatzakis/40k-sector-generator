@@ -153,6 +153,7 @@ exist and both backends import them.
 | [src/export/render_core/canvas.rs](../src/export/render_core/canvas.rs) | Backend-neutral `Canvas` drawing surface shared by `bitmap` and `svg_export` |
 | [src/export/render_core/grid.rs](../src/export/render_core/grid.rs) | Shared hex-grid fill + subsector-border drawing (both backends) |
 | [src/export/render_core/routes.rs](../src/export/render_core/routes.rs) | Shared route-line drawing for both PNG and SVG backends |
+| [src/export/render_core/labels.rs](../src/export/render_core/labels.rs) | Backend-neutral label predicates (C4): visibility decisions shared by PNG and SVG renderers |
 | [src/export/bitmap/mod.rs](../src/export/bitmap/mod.rs) | Sector PNG facade: `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, top-level `render()` orchestrator. `RenderOptions` is now a re-export of `super::render_core::RenderOptions`. |
 | [src/export/bitmap/primitives.rs](../src/export/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
 | [src/export/bitmap/geom.rs](../src/export/bitmap/geom.rs) | `Geom`, `MapBounds`, hex centre/vertices, `Rect` collision type |
@@ -194,6 +195,7 @@ exist and both backends import them.
 | [src/cli/common.rs](../src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `load_or_regenerate`, `log_*progress` |
 | [src/cli/exit_code.rs](../src/cli/exit_code.rs) | Maps `SectorError` variants to stable `ExitCode` values |
 | [src/cli/generate.rs](../src/cli/generate.rs) | `generate` + `generate-system` runners (with §15 NEW2 constraint search wiring) |
+| [src/cli/generate_all.rs](../src/cli/generate_all.rs) | `generate-all` runner — batch regenerate all projects in a directory |
 | [src/cli/validate.rs](../src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
 | [src/cli/analyze.rs](../src/cli/analyze.rs) | `analyze` runner |
 | [src/cli/presets.rs](../src/cli/presets.rs) | `new` + `list-presets` runners |
@@ -234,6 +236,7 @@ exist and both backends import them.
 | [gui-core/src/card.rs](../gui-core/src/card.rs) | §BEAUTY `selectable_plate` — hand-painted hover/selection-animated roster + nav row |
 | [gui-core/src/widgets.rs](../gui-core/src/widgets.rs) | §BEAUTY bespoke painted controls — `primary_button` (brass) + `toggle`/`toggle_with_label` (sliding); shared `enum_combo` (F2) — generic `Option<T>` enum dropdown over `ui_kit::combo` with per-caller hover policy (viewer data editor + builder worlds panel) |
 | [gui-core/src/modal.rs](../gui-core/src/modal.rs) | §BEAUTY `scrim(ctx, open)` — fading modal backdrop (dims + inerts page) returning the eased entrance factor |
+| [gui-core/src/diagnostics.rs](../gui-core/src/diagnostics.rs) | Process-level crash diagnostics: panic hook for GUI binaries that writes timestamped crash notes before abort |
 | [gui-core/src/fonts.rs](../gui-core/src/fonts.rs) | §BEAUTY §5.5 custom-font registration (`install`); opt-in `bundled-fonts` feature, `FontData::from_static` from `assets/fonts/` |
 | [gui-core/tests/map_snapshots.rs](../gui-core/tests/map_snapshots.rs) | Snapshot tests for shared map rendering |
 
@@ -326,6 +329,10 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/diff_run.rs](../builder/src/builder/diff_run.rs) | §DF1..§DF5 DIFF runtime: two scratch sector slots + diff/tick |
 | [builder/src/builder/search_run.rs](../builder/src/builder/search_run.rs) | §SR1..§SR5 SEARCH runtime: editable wishes doc + search driver |
 | [builder/src/builder/segmentum_run.rs](../builder/src/builder/segmentum_run.rs) | §SG1..§SG5 SEGMENTUM runtime: editable `segmentum.toml` + off-thread compose job + composed result |
+| [builder/src/builder/derivation_jobs.rs](../builder/src/builder/derivation_jobs.rs) | §39 LD3 off-thread overlay re-derivation: stale overlay dispatcher + drain over background worker |
+| [builder/src/builder/export_run.rs](../builder/src/builder/export_run.rs) | §EX1..§EX8 EXPORT runtime: output folder, standalone-system form, cached markdown preview, last error |
+| [builder/src/builder/random_run.rs](../builder/src/builder/random_run.rs) | RANDOM.md §7.4 random-sector generation runtime: off-thread synthesise-generate-derive job with live progress |
+| [builder/src/builder/smoke_test.rs](../builder/src/builder/smoke_test.rs) | Headless GUI smoke test (T6 / §40): off-screen egui frame per core tab, crash-only verification |
 
 ### Builder state (builder/src/builder/state/)
 
@@ -340,6 +347,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/state/derivations.rs](../builder/src/builder/state/derivations.rs) | Economy / relations / chronicle re-derive, debounced validation pump, `synthesize_project_input`, `health_level`, §CF4/§CF5 `advance_conflict_ticks` driver + tick-log capture |
 | [builder/src/builder/state/regions_ops.rs](../builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region helpers: add/remove/paint/erase/update/next id |
 | [builder/src/builder/state/generation_ops.rs](../builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4: `generate_system_here`, `regenerate_world`, `apply_preview`, `regenerate_partial`, `reroll_seed`, `find_world_indices` |
+| [builder/src/builder/state/catalog_session.rs](../builder/src/builder/state/catalog_session.rs) | Audit #8 catalog-edit undo/redo via command bus: session-coalesced edits to `data_catalogs` mirrors |
 | [builder/src/builder/state/tests.rs](../builder/src/builder/state/tests.rs) | Unit tests for builder state + command bus |
 
 ### Builder panels — MAP tab (split per REFACTOR.txt Task 1)
@@ -354,22 +362,23 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/panels/map/context_menu/render.rs](../builder/src/builder/panels/map/context_menu/render.rs) | §CTX1 interactive schema builders (un-netted): `render_empty_hex_menu` / `render_system_menu` / `render_multi_selection_menu` / `render_route_menu` / `render_region_hex_menu` + `stability_label`. Only transient UI state is touched directly; every document edit forwards to `action::apply_sector_menu_action`. |
 | [builder/src/builder/panels/map/dialogs.rs](../builder/src/builder/panels/map/dialogs.rs) | Transient modal dialogs surfaced from the MAP panel: `show_place_dialog`, `show_rename_dialog`, `show_bulk_rename_dialog`, `show_region_rename_dialog`, `show_collision_dialog`. |
 | [builder/src/builder/panels/map/cache.rs](../builder/src/builder/panels/map/cache.rs) | `refresh_map_cache` + `sector_view_digest` — rebuilds `MapViewCache` (subsector clustering + hex→system lookup + region tints) when the sector slice digest changes. |
+| [builder/src/builder/panels/map/theme.rs](../builder/src/builder/panels/map/theme.rs) | MAP tab — §T1..§T4 THEMES + HEATMAPS controls: built-in/custom theme picker, heatmap selector, legend painter |
 
 ### Builder panels — other tabs
 
 `panels/mod.rs` declares the modules (R10, §41/§N2); `panels/nav.rs` is the
-top-level tab router; `panels/placeholder.rs` is the shared stub-panel
-helper.
+top-level tab router.
 
 | File | Purpose |
 |---|---|
 | [builder/src/builder/panels/mod.rs](../builder/src/builder/panels/mod.rs) | Panel module declarations (R10, §41/§N2) |
 | [builder/src/builder/panels/nav.rs](../builder/src/builder/panels/nav.rs) | Top-level tab router (§N1/§N2). Dispatches the two right-most diagnostics tabs `BuilderTab::Validation` / `Invariants` to `validation::show` / `invariants::show` (XC-1) |
-| [builder/src/builder/panels/placeholder.rs](../builder/src/builder/panels/placeholder.rs) | Shared stub-panel helper (§N2) |
 | [builder/src/builder/panels/text_buf.rs](../builder/src/builder/panels/text_buf.rs) | Persistent-buffer wrappers around `text_edit_singleline`/multiline |
 | [builder/src/builder/panels/presence_widgets.rs](../builder/src/builder/panels/presence_widgets.rs) | Shared claim/presence chip widgets (§E14 `claim_chip_colours`; §E5 `presence_candidates`) |
 | [builder/src/builder/panels/roster.rs](../builder/src/builder/panels/roster.rs) | Shared catalog-roster helpers (§E-S2 `detail_target` + `id_edit_field`; missions/hooks) |
 | [builder/src/builder/panels/shortcuts.rs](../builder/src/builder/panels/shortcuts.rs) | Global keyboard shortcuts (§U2 + §LINK3) |
+| [builder/src/builder/panels/command_palette.rs](../builder/src/builder/panels/command_palette.rs) | §41 (N5) Ctrl-K command palette: centered modal fuzzy-search over actions, tabs, and commands |
+| [builder/src/builder/panels/files.rs](../builder/src/builder/panels/files.rs) | §PF2 / §PF4 / §PF5 raw-TOML editor surface: editable tabs per `.toml` file under project root |
 | [builder/src/builder/panels/project.rs](../builder/src/builder/panels/project.rs) | PROJECT tab (§N1/§N2): composes Phase-A project I/O surfaces |
 | [builder/src/builder/panels/project_tree.rs](../builder/src/builder/panels/project_tree.rs) | §P4 PROJECT tree panel |
 | [builder/src/builder/panels/new_project.rs](../builder/src/builder/panels/new_project.rs) | New-project wizard (§P1) |
@@ -379,6 +388,7 @@ helper.
 | [builder/src/builder/panels/preferences.rs](../builder/src/builder/panels/preferences.rs) | §P6 preferences panel: recent-projects MRU |
 | [builder/src/builder/panels/conflict_resolver.rs](../builder/src/builder/panels/conflict_resolver.rs) | §P5 dialog when the file watcher detects an external change |
 | [builder/src/builder/panels/generation.rs](../builder/src/builder/panels/generation.rs) | §6 generation panel (G1..G6) |
+| [builder/src/builder/panels/worlds_editor.rs](../builder/src/builder/panels/worlds_editor.rs) | §PF3 typed `worlds.toml` editor for the builder: generation rows, enum ComboBox pickers, weight drags |
 | [builder/src/builder/panels/world/](../builder/src/builder/panels/world/) | WORLD tab §W1..§W7 inspector, split (E4) into `mod.rs` (orchestration + `EnumPicker`/`combo_enum` pickers + tests), `identity.rs`, `environment.rs`, `features.rs` (§W5 weighted features), `factions.rs` (presence), `claims.rs` (§W7), `overlays.rs` (control/overlays/chronicle/regen) |
 | [builder/src/builder/panels/routes.rs](../builder/src/builder/panels/routes.rs) | ROUTES tab — Phase B §R1..§R7 route editor |
 | [builder/src/builder/panels/factions.rs](../builder/src/builder/panels/factions.rs) | FACTIONS tab — §F1..§F7 faction roster editor |

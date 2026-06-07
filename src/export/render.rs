@@ -548,6 +548,11 @@ fn format_economy_section(sector: &GeneratedSector) -> String {
         b.volume
             .partial_cmp(&a.volume)
             .unwrap_or(std::cmp::Ordering::Equal)
+            // Determinism: break volume ties on the stable unique route id so the
+            // order does not depend on the (stable-sort) input ordering or FMA
+            // rounding of `volume`. `sector.routes` is already `route_id`-sorted
+            // upstream, so this only makes today's ordering explicit.
+            .then_with(|| a.route_id.cmp(&b.route_id))
     });
     if !top.is_empty() {
         s.push_str("**Top trade lanes:**\n\n");

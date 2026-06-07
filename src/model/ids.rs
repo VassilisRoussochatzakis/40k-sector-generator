@@ -30,7 +30,7 @@ macro_rules! define_id {
             Default,
         )]
         #[serde(transparent)]
-        pub struct $name(pub Arc<str>);
+        pub struct $name(Arc<str>);
 
         impl $name {
             #[must_use]

@@ -165,13 +165,11 @@ pub(crate) fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
         };
     }
     if delete_system {
-        sector.systems.retain(|s| s.id != sys_id);
-        sector
-            .routes
-            .retain(|r| r.from_system_id != sys_id && r.to_system_id != sys_id);
-        for f in &mut sector.factions {
-            f.system_presence.retain(|x| x != &sys_id);
-        }
+        // F11: route the delete through the shared `remove_system`, which also
+        // scrubs the system + its worlds from every faction's
+        // system_presence/world_presence (this hand-rolled path previously pruned
+        // only system_presence — the same orphaned-presence bug as the map panel).
+        let _ = sector.remove_system(&sys_id);
         state.selection = Selection::None;
         state.mark_dirty();
         return;

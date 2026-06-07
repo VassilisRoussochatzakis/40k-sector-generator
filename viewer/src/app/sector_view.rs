@@ -1,10 +1,9 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui};
 
 use sectorforge::ids::SystemId;
-use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
+use sectorforge::sector_model::{GeneratedSector, GeneratedSystem};
 
 use super::{info_panel, palette, App, PendingExport, View};
 use crate::editor::state::SectorEditTool;
@@ -470,6 +469,9 @@ impl App {
             self.export_status = "hex already has a system".into();
             return;
         }
+        // F11: the system insert (index/id assignment, manifest bump) lives once in
+        // `GeneratedSector::add_system`. The display name still mirrors the assigned
+        // index, which `add_system` derives as `max(index)+1` — the same value.
         let index = sector
             .systems
             .iter()
@@ -477,16 +479,13 @@ impl App {
             .max()
             .unwrap_or(0)
             + 1;
-        let id = sectorforge::ids::system_id(index);
-        let sys = sectorforge::sector_model::empty_system(
-            id.clone(),
-            index,
-            format!("System {index}"),
-            coord,
-            SystemKind::Star,
-            None,
-        );
-        sector.systems.push(sys);
+        let id = match sector.add_system(coord, &format!("System {index}")) {
+            Ok(id) => id,
+            Err(e) => {
+                self.export_status = e.to_string();
+                return;
+            }
+        };
         self.sector_selected = Some(id.clone());
         self.sector_selected_route = None;
         self.sector_selected_subsector = None;
@@ -504,25 +503,13 @@ impl App {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let world_ids: HashSet<_> = sector
-            .systems
-            .iter()
-            .find(|s| s.id == id)
-            .map(|s| s.worlds.iter().map(|w| w.id.clone()).collect())
-            .unwrap_or_default();
-        let before = sector.systems.len();
-        sector.systems.retain(|s| s.id != id);
-        if sector.systems.len() == before {
+        // F11: the cascade (drop routes touching the system + scrub it and its
+        // worlds from every faction's system_presence/world_presence + refresh
+        // manifest counts) lives once in `GeneratedSector::remove_system`.
+        if sector.remove_system(&id).is_err() {
             self.export_status = "selected system not found".into();
             self.sector_selected = None;
             return;
-        }
-        sector
-            .routes
-            .retain(|r| r.from_system_id != id && r.to_system_id != id);
-        for faction in &mut sector.factions {
-            faction.system_presence.retain(|x| x != &id);
-            faction.world_presence.retain(|x| !world_ids.contains(x));
         }
         self.sector_selected = None;
         self.sector_selected_route = None;
@@ -563,16 +550,25 @@ impl App {
             self.export_status = format!("route {} already exists", route_id);
             return;
         }
-        let route = sectorforge::sector_model::empty_route(from, to);
+        // F11: route construction (canonical id, endpoint validation, distance from
+        // endpoint coords, manifest bump) lives once in `GeneratedSector::add_route`
+        // — a default StableWarpLane/Stable lane, matching the old `empty_route`.
+        let new_id = match sector.add_route(
+            &from,
+            &to,
+            sectorforge::sector_model::RouteType::StableWarpLane,
+            sectorforge::sector_model::RouteStability::Stable,
+        ) {
+            Ok(id) => id,
+            Err(e) => {
+                self.export_status = e.to_string();
+                return;
+            }
+        };
         self.sector_selected = None;
-        self.sector_selected_route = Some(route.id.clone());
+        self.sector_selected_route = Some(new_id.clone());
         self.sector_selected_subsector = None;
-        let status = format!("added route {}", route.id);
-        sector.routes.push(route);
-        // Shared distance recompute (F7) — both map-edit stacks route through this
-        // instead of each hand-rolling the endpoint hex_distance lookup.
-        sector.recompute_route_distances();
-        self.mark_live_sector_dirty(status);
+        self.mark_live_sector_dirty(format!("added route {}", new_id));
     }
 
     pub(super) fn remove_selected_route(&mut self) {
@@ -584,9 +580,8 @@ impl App {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let before = sector.routes.len();
-        sector.routes.retain(|r| r.id != id);
-        if sector.routes.len() == before {
+        // F11: shared route removal (drops the route + refreshes the manifest count).
+        if sector.remove_route(&id).is_err() {
             self.export_status = "selected route not found".into();
             self.sector_selected_route = None;
             return;
@@ -637,6 +632,7 @@ mod tests {
     use sectorforge::ids::{route_id, system_id, world_id, FactionId};
     use sectorforge::sector_model::{
         empty_faction, empty_route, empty_sector, empty_system, empty_world, hex_distance, HexCoord,
+        SystemKind,
     };
 
     /// Canonical viewer fixture: two `Star` systems (`sys-0001` at (0,0) with one

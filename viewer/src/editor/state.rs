@@ -256,6 +256,7 @@ impl EditorState {
         true
     }
 
+    #[cfg(test)]
     pub(crate) fn next_system_index(&self) -> usize {
         self.sector
             .as_ref()

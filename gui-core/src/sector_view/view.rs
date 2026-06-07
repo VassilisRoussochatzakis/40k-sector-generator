@@ -2,11 +2,16 @@
 //! method. Split verbatim from the former `sector_view.rs` god-file (AREA_F
 //! F3). F-S3: a `SectorView::new(sector)` constructor + `..new(sector)`
 //! struct-update at the call sites means new fields no longer cascade into every
-//! caller; the monolithic `show()` body decomposition stays parked.
+//! caller. The former monolithic `show()` body is decomposed into one
+//! `pub(super)`/private helper per paint phase (Finding #13); all helpers share a
+//! [`RenderCtx`] borrow-struct so the per-frame refs are threaded without
+//! reborrowing or cloning. The decomposition is purely structural — paint order,
+//! every computed value, and the produced pixels are byte-identical (the
+//! `map_snapshots` golden suite stays green unblessed).
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
+use egui::{Align2, Color32, FontId, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
@@ -86,6 +91,45 @@ pub enum SectorClick {
     EmptyHex(HexCoord),
 }
 
+/// Per-frame render state shared by every `show()` phase helper. Bundles the
+/// painter, theme, geometry, viewport rects, the integer cull bounds, and the
+/// derived route/star scalars so each helper takes one `&RenderCtx` instead of a
+/// dozen positional params. All fields are borrows or `Copy` scalars — no
+/// per-frame allocation or clone is introduced versus the former inline body.
+struct RenderCtx<'p> {
+    painter: &'p egui::Painter,
+    theme: &'p RenderMapTheme,
+    g: SectorGeom,
+    origin: Pos2,
+    /// Visible viewport ∩ content rect — everything culls against this. (The
+    /// full content `rect` is used only by `show` itself — bg fill, star dust,
+    /// vignette, chart frame — so it is not carried on the ctx.)
+    cull: Rect,
+    /// Integer hex-coord bounds of the visible viewport (pre-clamp; helpers clamp
+    /// to `[0, width|height)` exactly as the inline body did).
+    min_q: i32,
+    max_q: i32,
+    min_r: i32,
+    max_r: i32,
+    route_thickness: f32,
+    star_r: f32,
+    route_cull_margin: f32,
+}
+
+/// Trim a route segment back from each endpoint by the star radius so the line
+/// stops at the disc edge, returning `None` when the systems are too close to
+/// draw between. Extracted verbatim from the former inline `shorten` closure;
+/// `star_r` was its only capture.
+fn shorten_segment(a: Pos2, b: Pos2, star_r: f32) -> Option<(Pos2, Pos2)> {
+    let delta = b - a;
+    let len = delta.length();
+    if len <= star_r * 2.0 {
+        return None;
+    }
+    let dir = delta / len;
+    Some((a + dir * star_r, b - dir * star_r))
+}
+
 impl<'a> SectorView<'a> {
     /// A `SectorView` over `sector` with every other field at its neutral default
     /// (no selection/overlays/path, `hex_size` 40, `origin` zero, hover-only sense,
@@ -150,14 +194,6 @@ impl<'a> SectorView<'a> {
             paint_star_dust(&painter, rect, self.cache);
         }
 
-        // System-id keyed hex coords for heatmap lookup (still needed if cache not present)
-        let mut hex_system_fallback: HashMap<(i32, i32), &str> = HashMap::new();
-        if self.cache.is_none() {
-            for sys in &self.sector.systems {
-                hex_system_fallback.insert((sys.coord.q, sys.coord.r), sys.id.as_str());
-            }
-        }
-
         let horiz_step = g.hex_size * 3f32.sqrt();
         let vert_step = g.hex_size * 1.5;
 
@@ -169,6 +205,83 @@ impl<'a> SectorView<'a> {
         let min_q =
             ((cull.min.x - origin.x - g.margin - horiz_step * 1.5) / horiz_step).floor() as i32;
         let max_q = ((cull.max.x - origin.x - g.margin + horiz_step) / horiz_step).ceil() as i32;
+
+        let route_thickness = theme.route_thickness.px(g.hex_size);
+        let star_r = g.hex_size * theme.star_radius_mul;
+        let route_cull_margin = (route_thickness * 6.0).max(12.0);
+
+        let ctx = RenderCtx {
+            painter: &painter,
+            theme,
+            g,
+            origin,
+            cull,
+            min_q,
+            max_q,
+            min_r,
+            max_r,
+            route_thickness,
+            star_r,
+            route_cull_margin,
+        };
+
+        // --- Paint passes, in strict z-order (back to front). ---
+        self.paint_hex_fills(&ctx);
+        self.paint_rect_select_tint(&ctx);
+        self.paint_selected_subsector_wash(&ctx);
+        self.paint_subsector_borders(&ctx);
+
+        let centers = self.build_system_centers(&ctx);
+
+        self.paint_routes(&ctx, &centers);
+        self.paint_pending_route_preview(&ctx, &centers);
+        self.paint_path_route_glow(&ctx, &centers);
+        self.paint_selected_route(&ctx, &centers);
+
+        draw_region_labels(&painter, self.sector, origin, &g, cull, self.cache, theme);
+
+        self.paint_systems(&ctx, &centers);
+        self.place_subsector_labels(&ctx, &centers);
+        self.paint_system_labels(&ctx, &centers);
+
+        // §BEAUTY — vignette + gilded chart frame, above the map content but below
+        // the hover-coord tooltip. Live-only (`RenderMapTheme` path; see above).
+        if framed {
+            if dark_map {
+                paint_vignette(&painter, rect);
+            }
+            paint_chart_frame(&painter, rect, accent);
+        }
+
+        self.paint_hover_coord(&ctx, &response);
+
+        let click = self.dispatch_click(&ctx, &centers, &response);
+
+        (response, click)
+    }
+
+    /// Pass 0: the base hex grid — heatmap-blended empty fill, region tint, and
+    /// outline for every cell visible in the viewport.
+    fn paint_hex_fills(&self, ctx: &RenderCtx<'_>) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            origin,
+            min_q,
+            max_q,
+            min_r,
+            max_r,
+            ..
+        } = *ctx;
+
+        // System-id keyed hex coords for heatmap lookup (still needed if cache not present)
+        let mut hex_system_fallback: HashMap<(i32, i32), &str> = HashMap::new();
+        if self.cache.is_none() {
+            for sys in &self.sector.systems {
+                hex_system_fallback.insert((sys.coord.q, sys.coord.r), sys.id.as_str());
+            }
+        }
 
         for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
             for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
@@ -211,31 +324,54 @@ impl<'a> SectorView<'a> {
                     f
                 };
 
-                draw_hex(&painter, c, g.hex_size, fill, theme.hex_outline);
+                draw_hex(painter, c, g.hex_size, fill, theme.hex_outline);
             }
         }
+    }
 
-        // Rect-select tint (builder §S4). Painted before subsector overlays so
-        // it stays visually quiet underneath the route + system layers.
+    /// Rect-select tint (builder §S4). Painted before subsector overlays so
+    /// it stays visually quiet underneath the route + system layers.
+    fn paint_rect_select_tint(&self, ctx: &RenderCtx<'_>) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            origin,
+            min_q,
+            max_q,
+            min_r,
+            max_r,
+            ..
+        } = *ctx;
         if let Some((a, b)) = self.rect_select {
             let (sq, eq) = (a.q.min(b.q), a.q.max(b.q));
             let (sr, er) = (a.r.min(b.r), a.r.max(b.r));
             for r in sr.max(min_r.max(0))..=er.min(max_r.min(self.sector.height as i32 - 1)) {
                 for q in sq.max(min_q.max(0))..=eq.min(max_q.min(self.sector.width as i32 - 1)) {
                     let c = hex_center(q, r, &g) + origin.to_vec2();
-                    draw_hex_fill(&painter, c, g.hex_size, theme.rect_select_tint);
+                    draw_hex_fill(painter, c, g.hex_size, theme.rect_select_tint);
                 }
             }
         }
+    }
 
-        // Selected subsector: faint grey wash over every hex in the cluster.
+    /// Selected subsector: faint grey wash over every hex in the cluster.
+    fn paint_selected_subsector_wash(&self, ctx: &RenderCtx<'_>) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            origin,
+            cull,
+            ..
+        } = *ctx;
         if let Some(sel) = self.selected_subsector {
             if let Some(cache) = self.cache {
                 for (&(q, r), sid) in &cache.hex_subsector {
                     if sid == sel {
                         let c = hex_center(q, r, &g) + origin.to_vec2();
                         if cull.expand(g.hex_size).contains(c) {
-                            draw_hex_fill(&painter, c, g.hex_size, theme.subsector_highlight);
+                            draw_hex_fill(painter, c, g.hex_size, theme.subsector_highlight);
                         }
                     }
                 }
@@ -246,15 +382,28 @@ impl<'a> SectorView<'a> {
                         for &(q, r) in &s.hex_cells {
                             let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
                             if cull.expand(g.hex_size).contains(c) {
-                                draw_hex_fill(&painter, c, g.hex_size, theme.subsector_highlight);
+                                draw_hex_fill(painter, c, g.hex_size, theme.subsector_highlight);
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-        // Subsector tile borders: always visible, solid lines
+    /// Subsector tile borders: always visible, solid lines.
+    fn paint_subsector_borders(&self, ctx: &RenderCtx<'_>) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            origin,
+            min_q,
+            max_q,
+            min_r,
+            max_r,
+            ..
+        } = *ctx;
         if let Some(subs) = self.subsectors {
             if !subs.is_empty() {
                 let border_thick = theme.subsector_border_thickness.px(g.hex_size);
@@ -307,10 +456,19 @@ impl<'a> SectorView<'a> {
                 }
             }
         }
+    }
 
-        let mut centers: std::collections::HashMap<&str, Pos2> =
-            HashMap::with_capacity(self.sector.systems.len());
-        for sys in &self.sector.systems {
+    /// Screen-space center of every system, keyed by id, honouring the active
+    /// drag override. Built once per frame and shared by the route, system,
+    /// label, and click-dispatch phases.
+    fn build_system_centers(&self, ctx: &RenderCtx<'_>) -> HashMap<&'a str, Pos2> {
+        let RenderCtx { g, origin, .. } = *ctx;
+        // Copy the `&'a GeneratedSector` ref out of `self` so the id `&str` keys
+        // borrow for `'a` (the sector's lifetime), not the shorter `&self`
+        // borrow — the returned map outlives this method's `&self`.
+        let sector: &'a GeneratedSector = self.sector;
+        let mut centers: HashMap<&str, Pos2> = HashMap::with_capacity(sector.systems.len());
+        for sys in &sector.systems {
             let mut c = hex_center(sys.coord.q, sys.coord.r, &g) + origin.to_vec2();
             if let Some((drag_id, drag_pos)) = self.drag_override.as_ref() {
                 if drag_id.as_str() == sys.id.as_str() {
@@ -319,19 +477,21 @@ impl<'a> SectorView<'a> {
             }
             centers.insert(sys.id.as_str(), c);
         }
+        centers
+    }
 
-        let route_thickness = theme.route_thickness.px(g.hex_size);
-        let star_r = g.hex_size * theme.star_radius_mul;
-        let route_cull_margin = (route_thickness * 6.0).max(12.0);
-        let shorten = |a: Pos2, b: Pos2| -> Option<(Pos2, Pos2)> {
-            let delta = b - a;
-            let len = delta.length();
-            if len <= star_r * 2.0 {
-                return None;
-            }
-            let dir = delta / len;
-            Some((a + dir * star_r, b - dir * star_r))
-        };
+    /// Base route layer: stability-coloured, type-patterned lines plus the
+    /// faction control glyph, for every route both endpoints of which resolve.
+    fn paint_routes(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            cull,
+            route_thickness,
+            star_r,
+            route_cull_margin,
+            ..
+        } = *ctx;
         for route in &self.sector.routes {
             let (Some(&a), Some(&b)) = (
                 centers.get(route.from_system_id.as_str()),
@@ -340,14 +500,14 @@ impl<'a> SectorView<'a> {
                 continue;
             };
 
-            let Some((a2, b2)) = shorten(a, b) else {
+            let Some((a2, b2)) = shorten_segment(a, b, star_r) else {
                 continue;
             };
             if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
                 continue;
             }
             draw_route_line(
-                &painter,
+                painter,
                 a2,
                 b2,
                 route_thickness,
@@ -355,7 +515,7 @@ impl<'a> SectorView<'a> {
                 MapRouteVisual::from_route_type(route.route_type, self.route_view_mode).pattern(),
             );
             draw_route_control_glyph(
-                &painter,
+                painter,
                 &self.sector.factions,
                 route,
                 a2,
@@ -363,15 +523,23 @@ impl<'a> SectorView<'a> {
                 route_thickness,
             );
         }
+    }
 
-        // Builder ADD-ROUTE preview: dashed amber line from the picked start
-        // system to the cursor (or to nothing if the start is off-screen).
+    /// Builder ADD-ROUTE preview: dashed amber line from the picked start
+    /// system to the cursor (or to nothing if the start is off-screen).
+    fn paint_pending_route_preview(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            route_thickness,
+            ..
+        } = *ctx;
         if let Some((start_id, cursor)) = self.pending_route_preview.as_ref() {
             if let Some(&a) = centers.get(start_id.as_str()) {
                 let preview_thickness = (route_thickness * theme.pending_route_preview_mul)
                     .max(theme.pending_route_preview_min);
                 draw_route_line(
-                    &painter,
+                    painter,
                     a,
                     *cursor,
                     preview_thickness,
@@ -380,7 +548,20 @@ impl<'a> SectorView<'a> {
                 );
             }
         }
+    }
 
+    /// Planned-path glow: a wide translucent under-stroke plus a bright core for
+    /// each route id on the active path.
+    fn paint_path_route_glow(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            cull,
+            route_thickness,
+            star_r,
+            route_cull_margin,
+            ..
+        } = *ctx;
         if let Some(ids) = self.path_route_ids {
             let glow_thick = route_thickness * theme.path_glow_mul;
             let core_thick = route_thickness * theme.path_core_mul;
@@ -400,7 +581,7 @@ impl<'a> SectorView<'a> {
                 ) else {
                     continue;
                 };
-                let Some((a2, b2)) = shorten(a, b) else {
+                let Some((a2, b2)) = shorten_segment(a, b, star_r) else {
                     continue;
                 };
                 if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
@@ -410,7 +591,20 @@ impl<'a> SectorView<'a> {
                 painter.line_segment([a2, b2], Stroke::new(core_thick, theme.path_highlight));
             }
         }
+    }
 
+    /// Selected-route highlight: glow under-stroke + a recoloured, type-patterned
+    /// core for the one selected route.
+    fn paint_selected_route(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            cull,
+            route_thickness,
+            star_r,
+            route_cull_margin,
+            ..
+        } = *ctx;
         if let Some(sel) = self.selected_route {
             for route in &self.sector.routes {
                 if route.id.as_str() != sel {
@@ -422,7 +616,7 @@ impl<'a> SectorView<'a> {
                 ) else {
                     continue;
                 };
-                let Some((a2, b2)) = shorten(a, b) else {
+                let Some((a2, b2)) = shorten_segment(a, b, star_r) else {
                     continue;
                 };
                 if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
@@ -439,7 +633,7 @@ impl<'a> SectorView<'a> {
                     Stroke::new(route_thickness * theme.selection_glow_mul, glow),
                 );
                 draw_route_line(
-                    &painter,
+                    painter,
                     a2,
                     b2,
                     route_thickness * theme.selection_core_mul,
@@ -449,10 +643,19 @@ impl<'a> SectorView<'a> {
                 );
             }
         }
+    }
 
-        draw_region_labels(&painter, self.sector, origin, &g, cull, self.cache, theme);
-
-        // Pass 1: all system hex fills + stars + pips.
+    /// Pass 1: per-system selection/pin/waypoint rings, the star/object glyph,
+    /// the subsector capital diamond, and the world-count pip.
+    fn paint_systems(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            cull,
+            star_r,
+            ..
+        } = *ctx;
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
             if !cull.expand(g.hex_size).contains(c) {
@@ -466,7 +669,7 @@ impl<'a> SectorView<'a> {
             let is_pinned = self.pinned.map(|s| s.contains(&sys.id)).unwrap_or(false);
             if is_pinned {
                 draw_hex_outline_only(
-                    &painter,
+                    painter,
                     c,
                     g.hex_size + theme.pinned_ring_bump,
                     theme.pinned_outline,
@@ -475,7 +678,7 @@ impl<'a> SectorView<'a> {
             }
             if is_sel {
                 draw_hex_outline_only(
-                    &painter,
+                    painter,
                     c,
                     g.hex_size + theme.selection_ring_bump,
                     theme.selection,
@@ -483,7 +686,7 @@ impl<'a> SectorView<'a> {
                 );
             } else if is_multi {
                 draw_hex_outline_only(
-                    &painter,
+                    painter,
                     c,
                     g.hex_size + theme.selection_ring_bump,
                     theme.multi_select_outline,
@@ -496,7 +699,7 @@ impl<'a> SectorView<'a> {
                 .unwrap_or(false)
             {
                 draw_hex_outline_only(
-                    &painter,
+                    painter,
                     c,
                     g.hex_size + theme.waypoint_ring_bump,
                     theme.path_waypoint,
@@ -511,7 +714,7 @@ impl<'a> SectorView<'a> {
             };
 
             draw_system_glyph(
-                &painter,
+                painter,
                 c,
                 star_r,
                 MapSystemGlyph::from_system(sys),
@@ -525,7 +728,7 @@ impl<'a> SectorView<'a> {
                     s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
                 });
                 if is_capital {
-                    draw_capital_marker(&painter, c, g.hex_size, theme);
+                    draw_capital_marker(painter, c, g.hex_size, theme);
                 }
             }
 
@@ -550,13 +753,28 @@ impl<'a> SectorView<'a> {
                 );
             }
         }
+    }
 
-        // Subsector labels: name chip placed inside the subsector, avoiding
-        // system markers, system name labels, other subsector labels, and the
-        // map edges. Uses cluster name ("Subsector Aurelia" -> "AURELIA") rather
-        // than the spreadsheet letter so the map reads politically. Skip
-        // clusters with no member systems so empty frontier regions stay
-        // uncluttered. Hide if zoomed in too far.
+    /// Subsector labels: name chip placed inside the subsector, avoiding
+    /// system markers, system name labels, other subsector labels, and the
+    /// map edges. Uses cluster name ("Subsector Aurelia" -> "AURELIA") rather
+    /// than the spreadsheet letter so the map reads politically. Skip
+    /// clusters with no member systems so empty frontier regions stay
+    /// uncluttered. Hide if zoomed in too far.
+    fn place_subsector_labels(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            origin,
+            cull,
+            min_q,
+            max_q,
+            min_r,
+            max_r,
+            star_r,
+            ..
+        } = *ctx;
         if let Some(subs) = self.subsectors {
             if let Some(sub_label_size) = subsector_label_font_px(theme, g.hex_size) {
                 let font = FontId::monospace(sub_label_size);
@@ -770,9 +988,18 @@ impl<'a> SectorView<'a> {
                 }
             }
         }
+    }
 
-        // Pass 2: labels last, always on top of every hex.
-        if let Some(label_size) = system_label_font_px(theme, g.hex_size) {
+    /// Pass 2: system name labels last, always on top of every hex.
+    fn paint_system_labels(&self, ctx: &RenderCtx<'_>, centers: &HashMap<&str, Pos2>) {
+        let RenderCtx {
+            painter,
+            theme,
+            cull,
+            star_r,
+            ..
+        } = *ctx;
+        if let Some(label_size) = system_label_font_px(theme, ctx.g.hex_size) {
             let font = FontId::monospace(label_size);
             let pad = Vec2::new(3.0, 1.0);
             for sys in &self.sector.systems {
@@ -796,16 +1023,19 @@ impl<'a> SectorView<'a> {
                 painter.galley(pos, galley, theme.text_dim);
             }
         }
+    }
 
-        // §BEAUTY — vignette + gilded chart frame, above the map content but below
-        // the hover-coord tooltip. Live-only (`RenderMapTheme` path; see above).
-        if framed {
-            if dark_map {
-                paint_vignette(&painter, rect);
-            }
-            paint_chart_frame(&painter, rect, accent);
-        }
-
+    /// Hover-coord chip: paints the `(q, r)` of the hovered hex to the side of
+    /// the cursor. Above the map but below nothing else; off for snapshot tests.
+    fn paint_hover_coord(&self, ctx: &RenderCtx<'_>, response: &Response) {
+        let RenderCtx {
+            painter,
+            theme,
+            g,
+            origin,
+            cull,
+            ..
+        } = *ctx;
         if self.show_hover_coord {
             if let Some(pos) = response.hover_pos() {
                 if let Some(HexCoord { q, r }) =
@@ -830,7 +1060,28 @@ impl<'a> SectorView<'a> {
                 }
             }
         }
+    }
 
+    /// Pointer hit-test + click dispatch: system (nearest within 0.95·hex) →
+    /// route (nearest within the route hit radius) → empty hex / region /
+    /// subsector. Returns `None` when dispatch is disabled or nothing was hit.
+    fn dispatch_click(
+        &self,
+        ctx: &RenderCtx<'_>,
+        centers: &HashMap<&str, Pos2>,
+        response: &Response,
+    ) -> Option<SectorClick> {
+        let RenderCtx {
+            g,
+            origin,
+            min_q,
+            max_q,
+            min_r,
+            max_r,
+            route_thickness,
+            star_r,
+            ..
+        } = *ctx;
         let mut click = None;
         if response.clicked() && !self.disable_internal_click_dispatch {
             if let Some(pos) = response.interact_pointer_pos() {
@@ -857,7 +1108,7 @@ impl<'a> SectorView<'a> {
                         ) else {
                             return None;
                         };
-                        let (a2, b2) = shorten(a, b)?;
+                        let (a2, b2) = shorten_segment(a, b, star_r)?;
                         let d = distance_to_segment(pos, a2, b2);
                         let hit_radius = (g.hex_size * 0.16).max(route_thickness * 2.4).max(7.0);
                         (d <= hit_radius).then_some((route, d))
@@ -926,7 +1177,6 @@ impl<'a> SectorView<'a> {
                 }
             }
         }
-
-        (response, click)
+        click
     }
 }

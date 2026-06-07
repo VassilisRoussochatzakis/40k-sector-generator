@@ -12,8 +12,9 @@ use thiserror::Error;
 use crate::ids::{route_id, system_id, world_id, FactionId, RouteId, SystemId, WorldId};
 use crate::regions::{RegionConditionKind, WarpRegion};
 use crate::sector_model::{
-    ClaimType, DominanceState, FactionClaim, GeneratedFaction, GeneratedRoute, GeneratedSystem,
-    GeneratedWorld, HexCoord, RouteStability, RouteType, SystemState, WorldFactionPresence,
+    ClaimType, DominanceState, FactionClaim, GeneratedFaction, GeneratedRoute, GeneratedStar,
+    GeneratedWorld, HexCoord, RouteStability, RouteType, SystemKind, SystemState,
+    WorldFactionPresence,
 };
 
 use super::GeneratedSector;
@@ -46,8 +47,27 @@ pub enum MutationError {
 impl GeneratedSector {
     // ── System mutations ────────────────────────────────────────────────────
 
-    /// Insert a new system at `coord` with `name`. Returns the assigned id.
+    /// Insert a new `SystemKind::Star` system (no star body) at `coord` with
+    /// `name`. Returns the assigned id. Thin wrapper over [`add_system_full`].
     pub fn add_system(&mut self, coord: HexCoord, name: &str) -> Result<SystemId, MutationError> {
+        self.add_system_full(coord, name, SystemKind::Star, None)
+    }
+
+    /// Insert a new system at `coord` with the given `name`, `kind`, and
+    /// optional `star`. Returns the assigned id.
+    ///
+    /// This is the single insertion point all viewer/builder add-system paths
+    /// route through (F11): it performs the bounds + collision checks, assigns
+    /// the next sequential index/id, and refreshes the manifest system count.
+    /// `add_system` is the common `Star`/no-star case; the editor's place-system
+    /// dialog calls this directly to carry the user-chosen kind + star.
+    pub fn add_system_full(
+        &mut self,
+        coord: HexCoord,
+        name: &str,
+        kind: SystemKind,
+        star: Option<GeneratedStar>,
+    ) -> Result<SystemId, MutationError> {
         if coord.q < 0
             || coord.r < 0
             || (coord.q as u32) >= self.width
@@ -64,8 +84,14 @@ impl GeneratedSector {
         }
         let index = self.systems.iter().map(|s| s.index).max().unwrap_or(0) + 1;
         let id = system_id(index);
-        self.systems
-            .push(GeneratedSystem::new_at(id.clone(), index, coord, name));
+        self.systems.push(crate::sector_model::empty_system(
+            id.clone(),
+            index,
+            name.to_string(),
+            coord,
+            kind,
+            star,
+        ));
         self.manifest.system_count = self.systems.len();
         Ok(id)
     }
@@ -820,6 +846,73 @@ mod tests {
         s.remove_system(&a).unwrap();
         assert!(s.routes.is_empty());
         assert_eq!(s.systems.len(), 1);
+    }
+
+    #[test]
+    fn add_system_full_carries_kind_and_star() {
+        let mut s = empty();
+        let star = GeneratedStar {
+            colour_code: "W".into(),
+            colour_name: "white".into(),
+            spectral_type: Some("W".into()),
+            source_row_index: None,
+        };
+        let id = s
+            .add_system_full(
+                HexCoord { q: 1, r: 1 },
+                "Nova",
+                SystemKind::BlackHole,
+                Some(star.clone()),
+            )
+            .unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(sys.kind, SystemKind::BlackHole);
+        assert_eq!(sys.star.as_ref().map(|st| st.colour_code.as_ref()), Some("W"));
+        assert_eq!(&*sys.name, "Nova");
+    }
+
+    /// `remove_system` is the single correct teardown: it drops the system, every
+    /// route touching it, AND scrubs the system + its worlds from every faction's
+    /// `system_presence` / `world_presence` (the cleanup the viewer map-edit
+    /// stacks used to hand-roll divergently — F11).
+    #[test]
+    fn remove_system_prunes_routes_and_faction_presence() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 2, r: 0 }, "B").unwrap();
+        // a world on the system being removed
+        let wa = s.add_world_to_system(&a, "A-I").unwrap();
+        // a route touching the removed system + an unrelated route that must survive
+        let c = s.add_system(HexCoord { q: 4, r: 0 }, "C").unwrap();
+        s.add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let bc = s
+            .add_route(&b, &c, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+
+        // a faction present on the removed system + its world, plus on a survivor
+        let f = s.add_faction(FactionId::new("imperium"), "Imperium", "imperial");
+        {
+            let fac = s.factions.iter_mut().find(|x| x.id == f).unwrap();
+            fac.system_presence.push(a.clone());
+            fac.system_presence.push(b.clone());
+            fac.world_presence.push(wa.clone());
+        }
+
+        s.remove_system(&a).unwrap();
+
+        // system + its routes gone; the unrelated b–c route survives
+        assert!(!s.systems.iter().any(|x| x.id == a));
+        assert_eq!(s.routes.len(), 1);
+        assert_eq!(s.routes[0].id, bc);
+        // faction presence scrubbed of the removed system + its world, survivor kept
+        let fac = s.factions.iter().find(|x| x.id == f).unwrap();
+        assert!(!fac.system_presence.contains(&a));
+        assert!(fac.system_presence.contains(&b));
+        assert!(!fac.world_presence.contains(&wa));
+        // manifest counts refreshed
+        assert_eq!(s.manifest.system_count, s.systems.len());
+        assert_eq!(s.manifest.route_count, s.routes.len());
     }
 
     #[test]

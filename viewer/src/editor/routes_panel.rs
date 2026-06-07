@@ -2,7 +2,7 @@
 
 use egui::{RichText, Ui};
 
-use sectorforge::sector_model::{empty_route, HexCoord, RouteStability, RouteType};
+use sectorforge::sector_model::{RouteStability, RouteType};
 
 use super::enums::{ROUTE_STABILITIES, ROUTE_TYPES};
 use super::state::{EditorState, RouteEndpoint};
@@ -31,12 +31,6 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     let opt_kv: Vec<(&str, &str)> = system_labels
         .iter()
         .map(|(id, name)| (id.as_str(), name.as_str()))
-        .collect();
-
-    let coord_lookup: std::collections::HashMap<SystemId, HexCoord> = sector
-        .systems
-        .iter()
-        .map(|s| (s.id.clone(), s.coord))
         .collect();
 
     let mut dirty = false;
@@ -121,12 +115,14 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     if system_options.len() >= 2 && ui.button(RichText::new("+ ADD ROUTE")).clicked() {
         let from = system_options[0].clone();
         let to = system_options[1].clone();
-        let mut route = empty_route(from.clone(), to.clone());
-        if let (Some(a), Some(b)) = (coord_lookup.get(&from), coord_lookup.get(&to)) {
-            route.distance = sectorforge::sector_model::hex_distance(*a, *b);
+        // F11: shared route construction (canonical id, dedup, distance from
+        // endpoint coords) — a default StableWarpLane/Stable lane.
+        if sector
+            .add_route(&from, &to, RouteType::StableWarpLane, RouteStability::Stable)
+            .is_ok()
+        {
+            dirty = true;
         }
-        sector.routes.push(route);
-        dirty = true;
     }
 
     // Refresh IDs after potential FROM/TO changes so they stay unique-ish.

@@ -286,8 +286,6 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     });
                 });
             if create {
-                let index = state.next_system_index();
-                let id = sectorforge::ids::system_id(index);
                 let star = if has_star {
                     Some(sectorforge::sector_model::GeneratedStar {
                         colour_code: "W".into(),
@@ -298,16 +296,12 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 } else {
                     None
                 };
-                let sys = sectorforge::sector_model::empty_system(
-                    id.clone(),
-                    index,
-                    name.trim().to_string(),
-                    coord,
-                    kind,
-                    star,
-                );
-                if let Some(sec) = state.sector.as_mut() {
-                    sec.systems.push(sys);
+                // F11: index/id assignment + insert lives once in the shared
+                // `add_system_full`, which also carries the chosen kind + star.
+                let new_id = state.sector.as_mut().and_then(|sec| {
+                    sec.add_system_full(coord, name.trim(), kind, star).ok()
+                });
+                if let Some(id) = new_id {
                     state.mark_dirty();
                     state.selection = super::state::Selection::System(id);
                 }

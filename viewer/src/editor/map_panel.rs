@@ -171,13 +171,16 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
 
     if let Some(id) = delete_id {
         if let Some(sector) = state.sector.as_mut() {
-            sector.systems.retain(|s| s.id != id);
-            sector
-                .routes
-                .retain(|r| r.from_system_id != id && r.to_system_id != id);
-            dirty = true;
-            if matches!(&state.selection, Selection::System(sid) if *sid == id) {
-                state.selection = Selection::None;
+            // F11: route the delete through the shared `remove_system`, which (unlike
+            // the old hand-rolled retain here) also scrubs the system + its worlds
+            // from every faction's system_presence/world_presence — closing the
+            // orphaned-presence divergence with the App-side path. The editor still
+            // deliberately does NOT reindex IDs afterward (see the F7 note below).
+            if sector.remove_system(&id).is_ok() {
+                dirty = true;
+                if matches!(&state.selection, Selection::System(sid) if *sid == id) {
+                    state.selection = Selection::None;
+                }
             }
         }
     }
@@ -197,12 +200,18 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
             }
             ClickAction::AddRoute(from, to) => {
                 if let Some(sector) = state.sector.as_mut() {
-                    let route_id = sectorforge::ids::route_id(&from, &to);
-                    if !sector.routes.iter().any(|r| r.id == route_id) {
-                        sector
-                            .routes
-                            .push(sectorforge::sector_model::empty_route(from, to));
-                        sector.recompute_route_distances();
+                    // F11: shared route construction (canonical id, dedup, distance
+                    // from endpoint coords) — a default StableWarpLane/Stable lane,
+                    // matching the old `empty_route` + recompute.
+                    if sector
+                        .add_route(
+                            &from,
+                            &to,
+                            sectorforge::sector_model::RouteType::StableWarpLane,
+                            sectorforge::sector_model::RouteStability::Stable,
+                        )
+                        .is_ok()
+                    {
                         dirty = true;
                     }
                 }

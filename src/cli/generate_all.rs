@@ -32,15 +32,16 @@ pub(crate) fn run_generate_all(
     projects.sort();
 
     if projects.is_empty() {
-        eprintln!("generate-all: no sector projects (sectorforge.toml) found under {dir}");
+        // Finding #29: progress/status diagnostics go through the `log` facade.
+        log::info!("generate-all: no sector projects (sectorforge.toml) found under {dir}");
         return Ok(ExitCode::SUCCESS);
     }
 
-    eprintln!("generate-all: {} project(s) under {dir}", projects.len());
+    log::info!("generate-all: {} project(s) under {dir}", projects.len());
 
     let mut failed: Vec<(Utf8PathBuf, String)> = Vec::new();
     for project in &projects {
-        eprintln!("\n=== generate-all: {project} ===");
+        log::info!("\n=== generate-all: {project} ===");
         // out = None -> each project's <outputs.directory> (its own `out/`),
         // overwriting it. All other knobs default so each project's own
         // sectorforge.toml drives seed and formats.
@@ -59,7 +60,9 @@ pub(crate) fn run_generate_all(
             None,  // exclude
         );
         if let Err(e) = result {
-            eprintln!("generate-all: FAILED {project}: {e}");
+            // A single project's failure is non-fatal (the run continues), so
+            // it is a warning in the progress stream rather than a hard error.
+            log::warn!("generate-all: FAILED {project}: {e}");
             failed.push((project.clone(), e.to_string()));
         }
     }
@@ -71,7 +74,7 @@ pub(crate) fn run_generate_all(
         Ok(ExitCode::SUCCESS)
     } else {
         for (p, msg) in &failed {
-            eprintln!("  failed: {p}: {msg}");
+            log::warn!("  failed: {p}: {msg}");
         }
         Ok(ExitCode::FAILURE)
     }

@@ -114,7 +114,7 @@ pub(crate) fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
     if let Some(seed) = apply_seed {
         if let Some(input) = state.project_input.as_mut() {
             input.config.generation.seed = seed.clone();
-            if let Ok(sec) = sectorforge::generation::generate(input.clone()) {
+            if let Ok(sec) = sectorforge::generate_sector(input.clone()) {
                 state.sector = Some(sec);
                 state.mark_dirty();
             }
@@ -125,7 +125,7 @@ pub(crate) fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
         if let Some(input) = state.project_input.as_mut() {
             let mut preview_input = input.clone();
             preview_input.config.generation.seed = seed;
-            if let Ok(sec) = sectorforge::generation::generate(preview_input) {
+            if let Ok(sec) = sectorforge::generate_sector(preview_input) {
                 state.sector = Some(sec);
                 // VED-4: applying a near-miss preview replaces the working sector, so mark dirty
                 // consistently with the APPLY WINNING SEED path above.

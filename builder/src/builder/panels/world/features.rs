@@ -190,13 +190,13 @@ pub(super) fn feature_weights_for_world(
         );
         return empty;
     };
-    let mut pool = sectorforge::world_pool::build_pool(
+    let mut pool = sectorforge::build_pool(
         &input.catalogs.world_rows,
         &input.catalogs.world_tables,
         &input.config.generation.world_selection,
     );
     if let Some(features) = &input.catalogs.authored_features {
-        sectorforge::world_pool::apply_authored_features(&mut pool, features);
+        sectorforge::apply_authored_features(&mut pool, features);
     }
     let world = &state.sector.systems[sys_idx].worlds[w_idx];
     let wt: Option<WorldType> = Some(world.world.world_type.clone());

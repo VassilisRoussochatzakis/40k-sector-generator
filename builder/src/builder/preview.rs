@@ -2,7 +2,7 @@
 //!
 //! Owns the scratch [`GeneratedSector`] that the generation panel produces from
 //! the active `[generation]` config plus the off-thread job that actually runs
-//! [`sectorforge::generation::generate_with_progress_and_cancel`]. The panel
+//! [`sectorforge::generate_sector_with_progress_and_cancel`]. The panel
 //! schedules a preview via [`PreviewState::schedule`] when any generation field
 //! changes; the host pumps both the debounce timer and the job channel each
 //! frame through [`PreviewState::pump`].
@@ -162,7 +162,7 @@ fn run_preview_worker(
     input: sectorforge::input::ProjectInput,
     job_ctx: sectorforge_gui_core::jobs::JobContext,
 ) -> PreviewJobResult {
-    let result = sectorforge::generation::generate_with_progress_and_cancel(
+    let result = sectorforge::generate_sector_with_progress_and_cancel(
         input,
         |event| job_ctx.set_progress(preview_progress(&event)),
         || job_ctx.is_cancelled(),

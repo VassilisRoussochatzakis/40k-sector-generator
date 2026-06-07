@@ -180,16 +180,16 @@ impl BuilderState {
                 file: "regenerate-world".into(),
                 message: "worlds catalog not loaded".into(),
             })?;
-        let mut pool = sectorforge::world_pool::build_pool(
+        let mut pool = sectorforge::build_pool(
             &input.catalogs.world_rows,
             &input.catalogs.world_tables,
             &input.config.generation.world_selection,
         );
         if let Some(features) = &input.catalogs.authored_features {
-            sectorforge::world_pool::apply_authored_features(&mut pool, features);
+            sectorforge::apply_authored_features(&mut pool, features);
         }
         self.generation.world_reroll_counter = self.generation.world_reroll_counter.wrapping_add(1);
-        let (dto, source_row, tags) = sectorforge::generation::regenerate_world_payload(
+        let (dto, source_row, tags) = sectorforge::regenerate_world_payload(
             &input.config,
             &pool,
             star_colour,
@@ -331,7 +331,7 @@ impl BuilderState {
 
     /// §SR3: apply a seed found by the SEARCH tab. Pins `generation.seed` to
     /// `seed`, runs a full synchronous regenerate via
-    /// [`sectorforge::generation::generate`], and replaces the working sector
+    /// [`sectorforge::generate_sector`], and replaces the working sector
     /// with the result.
     ///
     /// `commit == true` is the "Apply" action — it marks the project dirty and
@@ -349,7 +349,7 @@ impl BuilderState {
                 })?;
         input.config.generation.seed = seed.to_string();
         let sector =
-            sectorforge::generation::generate(input).map_err(|e| BuilderError::ParseFailed {
+            sectorforge::generate_sector(input).map_err(|e| BuilderError::ParseFailed {
                 file: "apply-search-seed".into(),
                 message: e.to_string(),
             })?;

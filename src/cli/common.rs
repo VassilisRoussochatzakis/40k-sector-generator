@@ -283,8 +283,15 @@ pub fn resolve_sector_with_cfg<C: Default>(
     }
 }
 
+/// Finding #29 (observability): CLI progress goes through the `log` facade
+/// rather than a raw `eprintln!`, so `RUST_LOG` can gate it at runtime. The
+/// `[sectorforge]` prefix and the message are kept verbatim, and `main()`
+/// configures env_logger with a bare (level/target/timestamp-free) `info`
+/// format on stderr — so each emitted line is byte-for-byte the old plain
+/// `eprintln!` output and stays visible by default. The whole `log_*_progress`
+/// family funnels through here, so this is the single routing point.
 pub fn log_progress(message: impl std::fmt::Display) {
-    eprintln!("[sectorforge] {message}");
+    log::info!("[sectorforge] {message}");
 }
 
 /// Render export progress to stderr. The `JsonProgress` ticks animate the

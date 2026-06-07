@@ -75,6 +75,11 @@ pub mod validate;
 // aliasing the moved modules back at the crate root. Adding or removing a
 // module under a parent automatically requires touching this list, which is
 // intentional — it makes the parent layout the single source of truth.
+//
+// These re-export whole modules, including pipeline internals. New code should
+// prefer the curated crate-root facade below (`generate_sector*`, `build_pool`,
+// `regenerate_world_payload`, etc.) over reaching through `sectorforge::generation::*`
+// / `sectorforge::world_pool::*` so internal refactors stay caught by the facade.
 
 pub use model::errors;
 pub use model::ids;
@@ -269,6 +274,32 @@ where
     generation::generate_with_progress(project, progress)
 }
 
+/// Deterministic sector generation with progress callbacks and cooperative
+/// cancellation.
+///
+/// Like [`generate_sector_with_progress`], but additionally polls
+/// `should_cancel` before/after major progress events and inside the per-system
+/// loops. This is the sanctioned entry point for the GUI preview workers, which
+/// run generation on a background thread and need to abort it when the user
+/// edits the project again. Generation stays pure; neither callback's output is
+/// part of any generated artifact.
+///
+/// # Errors
+///
+/// Same as [`generate_sector`], plus [`SectorError::GenerationCancelled`] when
+/// `should_cancel` returns `true`.
+pub fn generate_sector_with_progress_and_cancel<F, C>(
+    project: ProjectInput,
+    progress: F,
+    should_cancel: C,
+) -> Result<GeneratedSector, SectorError>
+where
+    F: FnMut(SectorProgress),
+    C: FnMut() -> bool,
+{
+    generation::generate_with_progress_and_cancel(project, progress, should_cancel)
+}
+
 /// Spec §11.11: post-generation invariants check on an already-built sector.
 ///
 /// Never fails — returns an [`InvariantReport`] whose `violations` vector is
@@ -348,6 +379,41 @@ pub fn generate_system_standalone(
     sys = single[0].clone();
     Ok(sys)
 }
+
+// ── Engine generation API: world-pool building + single-world reroll ─────────
+// Sanctioned crate-root surface for the GUIs' in-place editing paths. The
+// builder/viewer rebuild a candidate pool (`build_pool` + `apply_authored_features`,
+// always used as a pair) to drive feature-weight previews, and reroll a single
+// world's payload (`regenerate_world_payload`) on a user click. Routed through
+// the crate root here so a refactor of `gen::world_pool` / `gen::generation`
+// internals is caught by `cargo check` against these names instead of silently
+// breaking two downstream crates. The argument/return types resolve through the
+// existing module aliases above (e.g. `world_pool::WorldCandidatePool`); these
+// re-exports add no new type surface and change no behaviour.
+
+/// §W: build a [`world_pool::WorldCandidatePool`] from raw generation rows.
+///
+/// Strict by default (`WorldSelectionConfig::require_complete_rows`): only fully
+/// resolved rows with positive finite weights become candidates; the rest land
+/// in `excluded_rows`. Almost always paired with [`apply_authored_features`].
+pub use world_pool::build_pool;
+
+/// §W: fold a project's authored feature pool into a [`world_pool::WorldCandidatePool`]
+/// in place. The companion to [`build_pool`] — call it immediately after when
+/// `ProjectCatalogs::authored_features` is present.
+pub use world_pool::apply_authored_features;
+
+/// §W4: re-roll one world's payload (`WorldDto`, source-row index, tags) against
+/// a candidate pool. Pure: a function of the seed plus inputs. The GUIs bump
+/// `seed_discriminator` per click so repeated rerolls of the same world yield
+/// distinct outcomes without disturbing the rest of the sector.
+///
+/// # Errors
+///
+/// Propagates [`SectorError::WeightedSelectionFailed`] when the weighted
+/// candidate draw cannot complete (e.g. the pool is empty for the given star
+/// colour).
+pub use generation::regenerate_world_payload;
 
 /// Spec §12: deterministic Markdown overview for a generated sector.
 #[must_use]

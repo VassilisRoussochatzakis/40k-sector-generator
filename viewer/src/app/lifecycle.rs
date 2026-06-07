@@ -179,7 +179,7 @@ impl App {
                     }
                 } else {
                     // Try to generate it
-                    match sectorforge::generation::generate(input.clone()) {
+                    match sectorforge::generate_sector(input.clone()) {
                         Ok(sector) => {
                             // Ensure out dir exists
                             let out_dir = path.join("out");
@@ -267,7 +267,7 @@ impl App {
                         "Generating preview...",
                         ctx_clone,
                         move |job_ctx| {
-                            let result = sectorforge::generation::generate_with_progress_and_cancel(
+                            let result = sectorforge::generate_sector_with_progress_and_cancel(
                                 input,
                                 |event| job_ctx.set_progress(preview_progress(&event)),
                                 || job_ctx.is_cancelled(),

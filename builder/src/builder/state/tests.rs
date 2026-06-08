@@ -2396,7 +2396,7 @@ mod iterative_gen_session {
         // commits a complete, reopenable project with a non-empty world pool and
         // roster — the panels the user found empty are now populated.
         let base = camino::Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../presets/_base");
-        let (catalogs, inputs) = crate::builder::project_io::load_base_catalogs_from(&base)
+        let (mut catalogs, inputs) = crate::builder::project_io::load_base_catalogs_from(&base)
             .expect("the bundled _base preset must load");
         assert!(catalogs.worlds.is_some(), "_base supplies a world pool");
 
@@ -2406,10 +2406,23 @@ mod iterative_gen_session {
             "a blank builder starts with no worlds catalog (the bug's precondition)"
         );
 
-        // Mirror the panel entry (project.rs): seed the override + inputs from
-        // `_base` because the live builder has no project open.
+        // Mirror the panel entry (project.rs): the `_base` roster becomes the
+        // pick-from palette and the wizard's working roster starts EMPTY; the user
+        // then adds factions one at a time. Simulate adding the first palette entry
+        // so the committed project carries exactly that one faction.
+        let palette = catalogs
+            .factions
+            .take()
+            .map(|f| f.factions)
+            .unwrap_or_default();
+        assert!(!palette.is_empty(), "_base supplies a faction palette");
+        let picked = palette[0].clone();
+        catalogs.factions = Some(sectorforge::factions::FactionsFile {
+            factions: vec![picked.clone()],
+        });
         let mut session = new_session(12);
         session.config.inputs = inputs;
+        session.faction_palette = palette;
         session.catalogs_override = Some(catalogs);
         let dir = tempfile::TempDir::new().unwrap();
         let dest = camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-blank")).unwrap();
@@ -2444,9 +2457,14 @@ mod iterative_gen_session {
             .factions
             .as_ref()
             .expect("the reopened project has a factions catalog");
-        assert!(
-            !factions.factions.is_empty(),
-            "the reopened roster is non-empty"
+        assert_eq!(
+            factions.factions.len(),
+            1,
+            "the reopened roster carries exactly the one faction added in the wizard"
+        );
+        assert_eq!(
+            factions.factions[0].id, picked.id,
+            "the persisted faction is the one picked from the palette"
         );
 
         // A real sector was generated and persisted (preview/commit produce

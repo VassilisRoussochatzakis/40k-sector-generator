@@ -131,20 +131,37 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                     seed,
                     sectorforge::random_sector::SectorSize::Medium,
                 );
-                // A wizard launched with no project open has no world pool in the
-                // live `data_catalogs` (every field is `None`), so preview, re-roll,
-                // and commit would all dead-end on the missing worlds catalog. Seed
-                // the session from the bundled `_base` preset — the same catalog set
-                // the one-shot random generator scaffolds — so the wizard works
-                // standalone. When a project IS open its worlds catalog is `Some`, so
-                // leave the live catalogs in place (the override stays `None`).
-                if state.data_catalogs.worlds.is_none() {
-                    if let Some((catalogs, inputs)) =
-                        crate::builder::project_io::load_base_catalogs()
-                    {
+                // The Factions step builds the roster one faction at a time, so the
+                // wizard's *working* roster starts EMPTY and the full available
+                // roster is stashed as a pick-from `faction_palette`. Both are
+                // installed via the transient `catalogs_override` (invariant #5
+                // carve-out; folded into the new project at commit):
+                //   * blank builder (no world pool in the live `data_catalogs`) —
+                //     seed every catalog from the bundled `_base` preset so the
+                //     wizard has worlds/names/regions/…; the `_base` faction roster
+                //     becomes the palette.
+                //   * project open — clone the live catalogs; the project's own
+                //     roster becomes the palette (the source file is untouched).
+                // Either way the override's `factions` is emptied so the step opens
+                // blank.
+                let seeded = if state.data_catalogs.worlds.is_none() {
+                    crate::builder::project_io::load_base_catalogs().map(|(catalogs, inputs)| {
                         session.config.inputs = inputs;
-                        session.catalogs_override = Some(catalogs);
-                    }
+                        catalogs
+                    })
+                } else {
+                    Some(state.data_catalogs.clone())
+                };
+                if let Some(mut catalogs) = seeded {
+                    session.faction_palette = catalogs
+                        .factions
+                        .take()
+                        .map(|f| f.factions)
+                        .unwrap_or_default();
+                    catalogs.factions = Some(sectorforge::factions::FactionsFile {
+                        factions: Vec::new(),
+                    });
+                    session.catalogs_override = Some(catalogs);
                 }
                 state.iterative_gen = Some(session);
                 state.set_active_tab(crate::builder::state::BuilderTab::IterativeGen);

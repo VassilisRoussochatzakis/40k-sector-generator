@@ -50,6 +50,7 @@ use camino::Utf8PathBuf;
 use std::sync::{Arc, Mutex};
 
 use sectorforge::config::AppConfig;
+use sectorforge::factions::FactionDef;
 use sectorforge::random_sector::{build_random_config, SectorSize, MAX_CUSTOM_DIM};
 use sectorforge::regions::RegionsConfig;
 use sectorforge::sector_model::GeneratedSector;
@@ -259,6 +260,15 @@ pub struct IterativeGenSession {
     ///   boundary (`open_project` + `*self = new_state`), exactly like the
     ///   one-shot random generator's `apply_result`.
     pub catalogs_override: Option<DataCatalogs>,
+    /// The full faction roster available to **pick from** in the Factions step,
+    /// grouped hierarchically (top faction → branch → force) by the picker.
+    /// Seeded once at launch from the source roster — the open project's factions,
+    /// or the bundled `_base` roster for a blank-builder launch — while the
+    /// wizard's *working* roster (`catalogs_override.factions`) starts **empty**.
+    /// The user adds entries from this palette one at a time, or authors custom
+    /// ones. Pure transient session state (invariant #5 carve-out); never written
+    /// to `sector.json`, never on the undo stack.
+    pub faction_palette: Vec<FactionDef>,
     /// The step the user is currently inspecting / tuning.
     pub current_step: GenStep,
     /// Furthest step committed-in-session (advanced by Next). `None` until the
@@ -312,6 +322,7 @@ impl IterativeGenSession {
             nonces: RerollNonces::default(),
             regions_override: None,
             catalogs_override: None,
+            faction_palette: Vec::new(),
             current_step: GenStep::Size,
             accepted_through: None,
             preview: None,

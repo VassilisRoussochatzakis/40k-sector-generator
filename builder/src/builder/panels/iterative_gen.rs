@@ -65,8 +65,10 @@
 
 use egui::{RichText, Sense, Ui};
 
+use std::collections::BTreeMap;
+
 use sectorforge::config::{PlacementMode, WorldSelectionMode};
-use sectorforge::factions::{FactionDef, FactionsFile};
+use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
 use sectorforge::regions::{ConditionEntry, RegionConditionKind};
 use sectorforge::SectorProgress;
@@ -666,55 +668,69 @@ fn show_systems_form(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-/// Factions — an **editable roster** for this wizard, built faction-by-faction.
+/// Factions — a roster the user builds **one faction at a time**, starting empty.
 ///
-/// The roster lives in the data catalogs as a [`FactionsFile`], not as a scalar
-/// config block, so edits here follow the regions-override precedent (§5 /
-/// invariant #5 carve-out): they are written into the session's transient
-/// [`IterativeGenSession::catalogs_override`] — lazily seeded from the live
-/// catalogs on the first edit — and never touch `data_catalogs` / `sector.json`
-/// during preview. Each edit is followed by [`BuilderState::note_config_edit`]
-/// so the prefix re-runs and the new roster is re-assigned to worlds
-/// immediately; [`BuilderState::commit_new_project`] folds the override into the
-/// persisted project. Re-roll re-assigns the current roster without changing it.
-/// Style / colour / glyph / presence-preference fields stay in the richer
-/// FACTIONS tab; this step covers the identity + assignment-weight surface.
+/// The working roster lives in the session's transient
+/// [`IterativeGenSession::catalogs_override`]`.factions` (seeded empty at launch),
+/// not in the live `data_catalogs`. Two ways to add: **Add from catalogue** opens
+/// [`faction_palette_picker`] — a hierarchical pool (top faction → branch →
+/// force) over [`IterativeGenSession::faction_palette`] (the open project's
+/// roster, or the bundled `_base` roster for a blank-builder launch) — or
+/// **Custom faction** appends a blank, fully-editable entry. Every change writes
+/// the working roster back into `catalogs_override` and calls
+/// [`BuilderState::note_config_edit`] so the prefix re-runs and the new roster is
+/// re-assigned to worlds; [`BuilderState::commit_new_project`] folds it into the
+/// persisted project. The source faction file is never mutated. Style / colour /
+/// glyph / presence-preference fields stay in the richer FACTIONS tab; this step
+/// covers the identity + assignment-weight surface.
 fn show_factions_form(ui: &mut Ui, state: &mut BuilderState) {
     ui.colored_label(
         palette::warning(),
-        "Build the faction roster for this sector. Edits are an in-memory patch for this wizard — \
-         assigned to worlds in the preview now and persisted into the new project on Commit; the \
-         source faction file is untouched until then. Colours, glyphs and presence preferences can \
-         be fine-tuned later in the FACTIONS tab.",
+        "Build the faction roster one faction at a time — the list starts empty. “Add from \
+         catalogue” picks from the hierarchical pool; “Custom faction” authors your own. Edits are \
+         an in-memory patch for this wizard: assigned to worlds in the preview now and persisted \
+         into the new project on Commit; the source faction file is untouched until then.",
     );
     ui.add_space(4.0);
 
-    // The *effective* roster the preview is using: the session override patch if
-    // the user has touched it, otherwise the live catalog, otherwise empty. Edits
-    // below operate on this local copy, then commit it wholesale into the session
-    // override (so the rest of the catalog set is preserved into the override +
-    // the eventual commit).
+    // The wizard's working roster is authoritative and lives in the session's
+    // transient `catalogs_override.factions` (started empty at launch). Edit a
+    // local copy, then write it back wholesale on change. NOTE: deliberately no
+    // fall-back to `data_catalogs.factions` — that roster is the *palette* (the
+    // pick-from pool surfaced by the picker), not the working roster.
     let mut file = state
         .iterative_gen
         .as_ref()
         .and_then(|s| s.catalogs_override.as_ref())
         .and_then(|c| c.factions.clone())
-        .or_else(|| state.data_catalogs.factions.clone())
         .unwrap_or_else(|| FactionsFile {
             factions: Vec::new(),
         });
 
     let mut changed = false;
 
+    // Picker open/search state — transient view state in egui temp memory (not
+    // document state; nothing to undo), keyed per wizard.
+    let picker_id = ui.make_persistent_id("iter_faction_picker");
+    let mut picker: FactionPickerUi = ui.data(|d| d.get_temp(picker_id)).unwrap_or_default();
+
     ui.horizontal(|ui| {
         if ui
-            .button("➕  Add faction")
-            .on_hover_text("Append a new faction to the roster")
+            .button("➕  Add from catalogue")
+            .on_hover_text("Pick a faction from the hierarchical pool (faction → branch → force)")
+            .clicked()
+        {
+            picker.open = !picker.open;
+        }
+        if ui
+            .button("✎  Custom faction")
+            .on_hover_text("Add a blank faction and fill in its fields yourself")
             .clicked()
         {
             let id = next_new_faction_id(&file.factions);
             file.factions.push(default_faction(id));
             changed = true;
+            picker.open = false;
         }
         ui.label(
             RichText::new(format!("{} in roster", file.factions.len()))
@@ -722,7 +738,14 @@ fn show_factions_form(ui: &mut Ui, state: &mut BuilderState) {
         );
     });
 
-    if file.factions.is_empty() {
+    if picker.open {
+        changed |= faction_palette_picker(ui, state, &mut picker, &mut file);
+    }
+
+    // Persist the (possibly toggled) picker state for next frame.
+    ui.data_mut(|d| d.insert_temp(picker_id, picker.clone()));
+
+    if file.factions.is_empty() && !picker.open {
         ui.add_space(4.0);
         ui.small(
             "No factions yet — add one above. With an empty roster the sector has no faction \
@@ -956,6 +979,169 @@ fn default_faction(id: FactionId) -> FactionDef {
         style_border: None,
         legend_visible: None,
     }
+}
+
+/// Transient open/search state for the Factions-step "Add from catalogue" picker.
+/// Parked in egui temp memory — pure view state, never document state.
+#[derive(Clone, Default)]
+struct FactionPickerUi {
+    open: bool,
+    search: String,
+}
+
+/// The hierarchical "Add from catalogue" surface. Groups the session's
+/// [`IterativeGenSession::faction_palette`] by `top_faction_id() →
+/// subfaction_id() → force` (mirroring the FACTIONS-tab tree). An empty search
+/// shows the collapsible drill-down; a non-empty search flattens to the matching
+/// forces. Clicking a force appends it to the working roster (`file`) with a
+/// de-duplicated id. Returns whether the roster changed.
+///
+/// `state` is borrowed read-only (only the palette is read); the working roster
+/// `file` is a separate local, so the immutable palette borrow never aliases it.
+fn faction_palette_picker(
+    ui: &mut Ui,
+    state: &BuilderState,
+    picker: &mut FactionPickerUi,
+    file: &mut FactionsFile,
+) -> bool {
+    let mut changed = false;
+    let palette: &[FactionDef] = state
+        .iterative_gen
+        .as_ref()
+        .map(|s| s.faction_palette.as_slice())
+        .unwrap_or(&[]);
+
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Catalogue").strong());
+            ui.add(
+                egui::TextEdit::singleline(&mut picker.search)
+                    .hint_text("filter by name / id / type…")
+                    .desired_width(180.0),
+            );
+            if !picker.search.is_empty()
+                && ui.button("✕").on_hover_text("Clear filter").clicked()
+            {
+                picker.search.clear();
+            }
+            if ui.button("Close").clicked() {
+                picker.open = false;
+            }
+        });
+
+        if palette.is_empty() {
+            ui.small("The catalogue is empty — no source roster was available at launch.");
+            return;
+        }
+
+        let needle = picker.search.trim().to_lowercase();
+        // The palette index the user picked this frame (applied after the loop, so
+        // we don't mutate `file` while still iterating the palette borrow).
+        let mut pick: Option<usize> = None;
+
+        egui::ScrollArea::vertical()
+            .id_salt("iter_faction_palette")
+            .max_height(260.0)
+            .show(ui, |ui| {
+                if needle.is_empty() {
+                    // Drill-down tree: top faction → branch → force.
+                    let mut groups: BTreeMap<String, BTreeMap<String, Vec<usize>>> =
+                        BTreeMap::new();
+                    for (i, f) in palette.iter().enumerate() {
+                        groups
+                            .entry(f.top_faction_id().to_string())
+                            .or_default()
+                            .entry(f.subfaction_id().to_string())
+                            .or_default()
+                            .push(i);
+                    }
+                    for (top_id, subs) in &groups {
+                        let top_name = subs
+                            .values()
+                            .flatten()
+                            .next()
+                            .map(|&i| palette[i].top_faction_name())
+                            .unwrap_or_else(|| display_name_from_id(top_id).into_owned());
+                        ui_kit::collapsing_section(
+                            ui,
+                            ("iter_pal_top", top_id),
+                            &format!("{top_name} ({top_id})"),
+                            false,
+                            |ui| {
+                                for (sub_id, rows) in subs {
+                                    let sub_name = rows
+                                        .first()
+                                        .map(|&i| palette[i].subfaction_name())
+                                        .unwrap_or_else(|| {
+                                            display_name_from_id(sub_id).into_owned()
+                                        });
+                                    ui_kit::collapsing_section(
+                                        ui,
+                                        ("iter_pal_sub", top_id, sub_id),
+                                        &format!("{sub_name} — {} forces", rows.len()),
+                                        false,
+                                        |ui| {
+                                            for &i in rows {
+                                                if ui
+                                                    .button(format!("＋ {}", palette[i].name))
+                                                    .on_hover_text(format!(
+                                                        "id: {} · type: {}",
+                                                        palette[i].id, palette[i].kind
+                                                    ))
+                                                    .clicked()
+                                                {
+                                                    pick = Some(i);
+                                                }
+                                            }
+                                        },
+                                    );
+                                }
+                            },
+                        );
+                    }
+                } else {
+                    // Flat filtered list, labelled "Top › Branch › Force".
+                    let mut shown = 0usize;
+                    for (i, f) in palette.iter().enumerate() {
+                        if !f.id.as_str().to_lowercase().contains(&needle)
+                            && !f.name.to_lowercase().contains(&needle)
+                            && !f.kind.to_lowercase().contains(&needle)
+                        {
+                            continue;
+                        }
+                        shown += 1;
+                        if ui
+                            .button(format!(
+                                "＋ {} › {} › {}",
+                                f.top_faction_name(),
+                                f.subfaction_name(),
+                                f.name
+                            ))
+                            .on_hover_text(format!("id: {} · type: {}", f.id, f.kind))
+                            .clicked()
+                        {
+                            pick = Some(i);
+                        }
+                    }
+                    if shown == 0 {
+                        ui_kit::placeholder(ui, "No factions match your filter.");
+                    }
+                }
+            });
+
+        if let Some(i) = pick {
+            let mut def = palette[i].clone();
+            // Keep ids unique within the working roster so a faction picked twice
+            // (or colliding with a custom entry) doesn't clobber an existing row.
+            if file.factions.iter().any(|f| f.id == def.id) {
+                def.id = duplicate_faction_id(&file.factions, &def.id);
+            }
+            file.factions.push(def);
+            changed = true;
+        }
+    });
+
+    changed
 }
 
 /// Routes — [`sectorforge::config::RouteGenerationConfig`].

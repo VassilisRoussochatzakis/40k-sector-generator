@@ -316,6 +316,77 @@ impl IterativeGenSession {
     }
 }
 
+/// Map a [`SectorProgress`] milestone to a coarse completion fraction in
+/// `[0.0, 1.0)` for the iterative-preview progress bar, relative to the prefix
+/// cutoff `through`. Returns `None` for fine-grained sub-events we don't anchor
+/// the bar on — the worker holds the bar at its last value through those.
+///
+/// Each engine [`Stage`] owns a `1 / (through + 1)` slice of the bar; the long
+/// per-item stages (systems, route controls, system state, influence field,
+/// chronicle scans) interpolate *inside* their slice from their `current/total`
+/// counters, so the bar climbs smoothly instead of stepping once per stage.
+///
+/// UI-only: the fraction never feeds back into generation, so it has no bearing
+/// on determinism or golden output.
+fn preview_progress_fraction(p: &SectorProgress, through: Stage) -> Option<f32> {
+    use SectorProgress as P;
+    let (stage, within): (Stage, f32) = match p {
+        P::WorldPoolBuilt { .. } => (Stage::WorldPool, 1.0),
+        P::SystemsPlaced { .. } => (Stage::Placement, 1.0),
+        P::RegionsBuilt { .. } => (Stage::Regions, 1.0),
+        P::SystemBuilt { current, total, .. } => (Stage::Systems, item_frac(*current, *total)),
+        P::FactionsAssigned { .. } => (Stage::Factions, 0.5),
+        P::FactionsAggregated { .. } => (Stage::Factions, 1.0),
+        P::RoutesGenerated { .. } => (Stage::Routes, 1.0),
+        P::RegionEffectsProgress { current, total, .. } => {
+            (Stage::RegionRouteEffects, item_frac(*current, *total))
+        }
+        P::RegionEffectsApplied { .. } => (Stage::RegionRouteEffects, 1.0),
+        P::HiddenRouteLayerProgress { current, total, .. }
+        | P::HiddenRouteLayerEmitProgress { current, total, .. } => {
+            (Stage::HiddenRoutes, item_frac(*current, *total))
+        }
+        P::HiddenRoutesApplied { .. } => (Stage::HiddenRoutes, 1.0),
+        P::RouteControlsProgress { current, total } => {
+            (Stage::RouteControls, item_frac(*current, *total))
+        }
+        P::RouteControlsDerived { .. } => (Stage::RouteControls, 1.0),
+        P::SystemStateDerived { current, total } => {
+            (Stage::SystemState, item_frac(*current, *total))
+        }
+        P::ManifestBuilt { .. } => (Stage::Manifest, 1.0),
+        P::InfluenceFieldAnchorsProjected { current, total, .. }
+        | P::InfluenceFieldCellsResolved { current, total, .. } => {
+            (Stage::InfluenceField, item_frac(*current, *total))
+        }
+        P::InfluenceFieldComplete { .. } => (Stage::InfluenceField, 1.0),
+        P::ChronicleSystemsScanned { current, total, .. }
+        | P::ChronicleRoutesScanned { current, total, .. } => {
+            (Stage::Chronicle, item_frac(*current, *total))
+        }
+        P::ChronicleComplete { .. } | P::Complete { .. } => (Stage::Chronicle, 1.0),
+        // Stage-boundary / overlay / timing / counter-less events aren't anchored
+        // (StageStarted, OverlayDerived, *Started, StageElapsed, bridge checks,
+        // influence bands), nor are the no-event stages (StabilityRebalance,
+        // Archetypes, PowerProjection, Relations, Economy) — hold the last value.
+        _ => return None,
+    };
+    let denom = (through as usize + 1) as f32;
+    let filled = (stage as usize as f32 + within) / denom;
+    Some(filled.clamp(0.0, 0.999))
+}
+
+/// `current / total` clamped to `[0.0, 1.0]`, treating an empty stage as full so
+/// a zero-item stage still advances the bar to its slice boundary.
+#[inline]
+fn item_frac(current: usize, total: usize) -> f32 {
+    if total == 0 {
+        1.0
+    } else {
+        (current as f32 / total as f32).clamp(0.0, 1.0)
+    }
+}
+
 impl BuilderState {
     /// ITERATIVE_GENERATION.md §S2 — dispatch a background prefix run through
     /// `through`, off the UI thread. Assembles a [`sectorforge::ProjectInput`]
@@ -357,10 +428,19 @@ impl BuilderState {
         self.config = saved_config;
 
         let Some(input) = input else {
-            // No worlds catalog — cannot run. Leave any prior preview in place;
-            // the panel reports the missing catalog.
+            // No worlds catalog — cannot run. Leave any prior preview in place
+            // and surface *why* nothing happened, otherwise the panel just sits
+            // on the empty-state with no explanation (this silent return is
+            // exactly the "nothing happens" the user hit).
+            self.feedback.last_command_error = Some(
+                "Cannot build preview: this project has no worlds catalog loaded.".to_string(),
+            );
             return;
         };
+
+        // A fresh run is dispatching — clear any stale preview-error banner from a
+        // previous failed/aborted attempt so it doesn't shadow this run.
+        self.feedback.last_command_error = None;
 
         let session = self.iterative_gen.as_mut().expect("session present above");
         session.revision = session.revision.wrapping_add(1);
@@ -383,17 +463,26 @@ impl BuilderState {
                 // `set_progress` / `is_cancelled` take `&self`), so capture it by
                 // reference here rather than cloning the private cancel cell.
                 let job_ctx = &job_ctx;
+                // Monotonic [0.0, 1.0) bar fill derived from the per-stage
+                // milestones relative to `through` (see `preview_progress_fraction`).
+                // Kept in a running `max(...)` so a coarse sub-event can never drag
+                // the bar backwards. UI-only — it never feeds back into generation,
+                // so determinism / golden output are untouched. (Was a constant
+                // 0.5, which read as a frozen, half-full bar — the user's "nothing
+                // happens".)
+                let mut bar_frac = 0.0_f32;
                 let result = generate_prefix(
                     input,
                     through,
                     &nonces,
                     |p: SectorProgress| {
+                        if let Some(f) = preview_progress_fraction(&p, through) {
+                            bar_frac = bar_frac.max(f);
+                        }
+                        // Small floor so the bar reads as "started" the instant the
+                        // first event lands, before the first anchored stage.
+                        job_ctx.set_progress(bar_frac.max(0.03));
                         *progress_cell.lock().unwrap() = Some(p);
-                        // Coarse "in-flight" signal so the bar shows motion; the
-                        // worker flips it to 1.0 on completion below. The engine
-                        // emits per-stage events for the detailed line via the
-                        // progress cell.
-                        job_ctx.set_progress(0.5);
                     },
                     || job_ctx.is_cancelled(),
                 );
@@ -750,5 +839,71 @@ impl BuilderState {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod progress_bar_tests {
+    use super::*;
+
+    #[test]
+    fn item_frac_edges() {
+        assert_eq!(item_frac(0, 0), 1.0); // an empty stage reads as already full
+        assert_eq!(item_frac(0, 4), 0.0);
+        assert_eq!(item_frac(2, 4), 0.5);
+        assert_eq!(item_frac(4, 4), 1.0);
+        assert_eq!(item_frac(9, 4), 1.0); // clamped, never over-fills
+    }
+
+    /// The early steps (Placement / Regions) preview through `Stage::Systems`, so
+    /// the bar must climb smoothly across WorldPool → Placement → Regions →
+    /// per-system build and stay inside `[0.0, 1.0)`.
+    #[test]
+    fn fraction_is_monotonic_and_bounded_for_systems_cutoff() {
+        let through = Stage::Systems;
+        let stream = [
+            SectorProgress::WorldPoolBuilt { rows: 100, candidates: 80, excluded: 20 },
+            SectorProgress::SystemsPlaced { total: 40, width: 8, height: 8 },
+            SectorProgress::RegionsBuilt { count: 3 },
+            SectorProgress::SystemBuilt { current: 1, total: 40, worlds: 2 },
+            SectorProgress::SystemBuilt { current: 20, total: 40, worlds: 1 },
+            SectorProgress::SystemBuilt { current: 40, total: 40, worlds: 3 },
+        ];
+        let mut last = 0.0_f32;
+        for ev in &stream {
+            let f = preview_progress_fraction(ev, through).expect("anchored milestone");
+            assert!((0.0..1.0).contains(&f), "fraction {f} out of [0,1) for {ev:?}");
+            assert!(f >= last, "bar went backwards: {last} -> {f} at {ev:?}");
+            last = f;
+        }
+        // WorldPool is the first of four stages (WorldPool..=Systems) ⇒ exactly 1/4.
+        let first = preview_progress_fraction(&stream[0], through).unwrap();
+        assert!((first - 0.25).abs() < 1e-6, "WorldPool should fill 1/4, got {first}");
+        // The final per-system event all but completes the bar.
+        assert!(last > 0.9, "last fraction should be near full, got {last}");
+    }
+
+    /// The same milestone fills *less* of the bar when a longer prefix will run —
+    /// the fill is relative to the cutoff, not absolute.
+    #[test]
+    fn fraction_is_relative_to_cutoff() {
+        let ev = SectorProgress::SystemsPlaced { total: 10, width: 4, height: 4 };
+        let early = preview_progress_fraction(&ev, Stage::Systems).unwrap();
+        let full = preview_progress_fraction(&ev, Stage::Chronicle).unwrap();
+        assert!(full < early, "longer run ⇒ smaller slice: expected {full} < {early}");
+    }
+
+    /// Stage-boundary / timing events carry no completion signal, so they leave
+    /// the bar where it is (`None`) rather than snapping it somewhere wrong.
+    #[test]
+    fn unanchored_events_return_none() {
+        let through = Stage::Chronicle;
+        assert!(preview_progress_fraction(&SectorProgress::StageStarted { name: "x" }, through)
+            .is_none());
+        assert!(preview_progress_fraction(
+            &SectorProgress::StageElapsed { stage: "x", millis: 3 },
+            through
+        )
+        .is_none());
     }
 }

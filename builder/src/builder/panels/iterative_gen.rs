@@ -761,15 +761,18 @@ fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(RichText::new("Preview").strong());
         if let Some(session) = state.iterative_gen.as_ref() {
             if session.is_running() {
+                // Real per-stage fill (was a constant 0.5, so it looked frozen)
+                // plus an inline percentage so it's obvious the engine is working.
                 ui.add(
                     egui::ProgressBar::new(session.fraction())
-                        .desired_width(160.0)
+                        .desired_width(220.0)
+                        .show_percentage()
                         .animate(true),
                 );
                 let detail = session
                     .progress_snapshot()
                     .map(progress_detail)
-                    .unwrap_or_else(|| "Generating…".to_string());
+                    .unwrap_or_else(|| "Starting…".to_string());
                 ui.label(RichText::new(detail).small().color(palette::chrome_text_dim()));
                 // Keep the frame loop spinning so the bar animates + the result
                 // is pumped next frame.
@@ -786,14 +789,25 @@ fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
         .and_then(|s| s.preview.as_ref());
 
     let Some(sector) = preview_sector else {
-        let on_size_step = state
-            .iterative_gen
-            .as_ref()
-            .is_some_and(|s| s.current_step == GenStep::Size);
+        let session = state.iterative_gen.as_ref();
+        // Three distinct empty states — don't show a static "Building…" when
+        // nothing is actually building (the old text lied in the idle/failed case).
+        if session.is_some_and(|s| s.is_running()) {
+            // A run is genuinely in flight but hasn't produced a sector yet: a
+            // live spinner in the central area (the header row carries the bar/%).
+            ui.add_space(6.0);
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label(RichText::new("Building preview…").color(palette::chrome_text_dim()));
+            });
+            ui.ctx().request_repaint();
+            return;
+        }
+        let on_size_step = session.is_some_and(|s| s.current_step == GenStep::Size);
         let msg = if on_size_step {
             "No systems yet — pick a size and seed, then step to System placement to see the grid."
         } else {
-            "Building preview…"
+            "No preview yet — press “▶  Next” or “🎲  Re-roll this step” to build it."
         };
         ui_kit::placeholder(ui, msg);
         return;

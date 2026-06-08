@@ -2206,8 +2206,10 @@ mod off_bus_seam {
 /// (§2.3). These are pure-logic checks — no egui context, no engine run.
 mod iterative_gen_session {
     use super::*;
-    use crate::builder::state::iterative_gen::{GenStep, IterativeGenSession};
-    use sectorforge::random_sector::SectorSize;
+    use crate::builder::state::iterative_gen::{
+        precheck_generatable, GenStep, IterativeGenSession, MAX_GEN_ROUTE_PAIRS,
+    };
+    use sectorforge::random_sector::{SectorSize, MAX_CUSTOM_DIM};
     use sectorforge::Stage;
 
     #[test]
@@ -2519,5 +2521,250 @@ mod iterative_gen_session {
             Some((false, 2)),
             "applying the override must NOT mutate data_catalogs (transient, preview-only)",
         );
+    }
+
+    // ── Phase S pre-flight generation guards (size cap + density cost) ────────
+    //
+    // `precheck_generatable` must reject a session config that is oversized,
+    // structurally invalid, or so dense that a synchronous (uncancellable) commit
+    // would hang / OOM on the routes stage's O(n²) allocation — BEFORE any
+    // generation runs — while never false-rejecting a legitimate config. The
+    // wizard's Size field additionally clamps to `MAX_CUSTOM_DIM` via
+    // `set_grid_dim`. These tests pin both layers and a spread of unusual inputs.
+
+    /// Build a wizard config with explicit size/density knobs for the guard tests
+    /// (starts from a valid rolled baseline, then overrides the fields under test).
+    fn precheck_cfg(dim: u32, system_count: usize) -> sectorforge::config::AppConfig {
+        let mut c = new_session(16).config;
+        c.generation.sector_width = dim;
+        c.generation.sector_height = dim;
+        c.generation.system_count = system_count;
+        c
+    }
+
+    #[test]
+    fn precheck_accepts_normal_configs() {
+        // No false positives: the default rolled session and a mid-range config.
+        assert!(precheck_generatable(&new_session(16).config).is_ok());
+        assert!(precheck_generatable(&precheck_cfg(32, 300)).is_ok());
+    }
+
+    #[test]
+    fn precheck_accepts_the_densest_shipped_preset() {
+        // Huge = 80×80 rolls up to ~2560 systems (~3.3M route pairs); the guard
+        // must admit it, or it would reject a shipped preset size.
+        assert!(
+            precheck_generatable(&precheck_cfg(MAX_CUSTOM_DIM, 2560)).is_ok(),
+            "the densest shipped preset (80×80, 2560 systems) must stay generatable"
+        );
+    }
+
+    #[test]
+    fn precheck_rejects_oversized_dimension() {
+        // One past the cap, and the user's far-oversized ">100" case.
+        let err = precheck_generatable(&precheck_cfg(MAX_CUSTOM_DIM + 1, 100)).unwrap_err();
+        assert!(err.contains("exceeds the maximum"), "unexpected: {err}");
+        assert!(precheck_generatable(&precheck_cfg(200, 100)).is_err());
+    }
+
+    #[test]
+    fn precheck_dimension_boundary_is_inclusive() {
+        assert!(precheck_generatable(&precheck_cfg(MAX_CUSTOM_DIM, 100)).is_ok());
+        assert!(precheck_generatable(&precheck_cfg(MAX_CUSTOM_DIM + 1, 100)).is_err());
+    }
+
+    #[test]
+    fn precheck_rejects_runaway_density() {
+        // The reported case: 80×80 at ~1.0 density ⇒ 6400 systems ⇒ ~20.5M pairs.
+        let dense = (MAX_CUSTOM_DIM * MAX_CUSTOM_DIM) as usize;
+        let err = precheck_generatable(&precheck_cfg(MAX_CUSTOM_DIM, dense)).unwrap_err();
+        assert!(err.contains("too dense"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn precheck_density_uses_effective_system_count() {
+        // A huge `system_count` on a TINY grid must NOT be rejected — placement
+        // caps to the hex capacity, so the real route cost is small. dim=8 ⇒ 64
+        // cells ⇒ ≤64 systems ⇒ ~2k pairs regardless of the absurd request.
+        assert!(
+            precheck_generatable(&precheck_cfg(8, 1_000_000)).is_ok(),
+            "system_count far above the hex capacity must clamp, not reject"
+        );
+    }
+
+    #[test]
+    fn precheck_rejects_inverted_world_range() {
+        // min > max would make the systems stage sample an empty range and panic.
+        let mut c = precheck_cfg(16, 100);
+        c.generation.min_worlds_per_system = 6;
+        c.generation.max_worlds_per_system = 2;
+        let err = precheck_generatable(&c).unwrap_err();
+        assert!(err.contains("inverted"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn precheck_route_pair_budget_boundary() {
+        // Pin the exact O(n²) cost boundary. Largest n with n(n-1)/2 ≤ cap:
+        let cap = MAX_GEN_ROUTE_PAIRS;
+        let max_n = ((1.0 + (1.0 + 8.0 * cap as f64).sqrt()) / 2.0).floor() as u64;
+        // Grid large enough to actually hold them (effective count == requested).
+        let dim = MAX_CUSTOM_DIM;
+        assert!(u64::from(dim) * u64::from(dim) > max_n, "grid must hold max_n+1");
+        assert!(
+            precheck_generatable(&precheck_cfg(dim, max_n as usize)).is_ok(),
+            "n at the budget must pass (pairs ≤ cap)"
+        );
+        assert!(
+            precheck_generatable(&precheck_cfg(dim, (max_n + 1) as usize)).is_err(),
+            "n one past the budget must fail (pairs > cap)"
+        );
+    }
+
+    #[test]
+    fn precheck_allows_degenerate_small_configs() {
+        // 1×1 single system and an empty (0-system) sector are valid, not runaway.
+        assert!(precheck_generatable(&precheck_cfg(1, 1)).is_ok());
+        assert!(precheck_generatable(&precheck_cfg(16, 0)).is_ok());
+    }
+
+    #[test]
+    fn set_grid_dim_clamps_above_max_custom_dim() {
+        // The Size field cannot push the wizard past the supported grid.
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.iterative_gen = Some(new_session(16));
+        let ctx = egui::Context::default();
+        state.set_grid_dim(&ctx, 200);
+        let g = &state.iterative_gen.as_ref().unwrap().config.generation;
+        assert_eq!(g.sector_width, MAX_CUSTOM_DIM);
+        assert_eq!(g.sector_height, MAX_CUSTOM_DIM, "clamp keeps the square invariant");
+    }
+
+    #[test]
+    fn set_grid_dim_clamps_zero_to_one() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.iterative_gen = Some(new_session(16));
+        let ctx = egui::Context::default();
+        state.set_grid_dim(&ctx, 0);
+        let g = &state.iterative_gen.as_ref().unwrap().config.generation;
+        assert_eq!((g.sector_width, g.sector_height), (1, 1));
+    }
+
+    #[test]
+    fn set_grid_dim_keeps_in_range_value_and_exact_cap() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.iterative_gen = Some(new_session(16));
+        let ctx = egui::Context::default();
+        state.set_grid_dim(&ctx, 50);
+        {
+            let g = &state.iterative_gen.as_ref().unwrap().config.generation;
+            assert_eq!((g.sector_width, g.sector_height), (50, 50));
+        }
+        // Exactly at the cap is preserved, not clamped down.
+        state.set_grid_dim(&ctx, MAX_CUSTOM_DIM);
+        let g = &state.iterative_gen.as_ref().unwrap().config.generation;
+        assert_eq!(g.sector_width, MAX_CUSTOM_DIM);
+    }
+
+    #[test]
+    fn commit_rejects_oversized_dimension_and_writes_nothing() {
+        // An out-of-band oversized dim (set_grid_dim would have clamped it) is
+        // refused by the commit guard before any disk write.
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest = camino::Utf8PathBuf::from_path_buf(dir.path().join("too-big")).unwrap();
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let mut session = new_session(16);
+        session.config.generation.sector_width = MAX_CUSTOM_DIM + 40;
+        session.config.generation.sector_height = MAX_CUSTOM_DIM + 40;
+        session.dest = Some(dest.clone());
+        state.iterative_gen = Some(session);
+
+        let err = state.commit_new_project().unwrap_err();
+        assert!(err.contains("exceeds the maximum"), "unexpected: {err}");
+        assert!(state.iterative_gen.is_some(), "session survives the rejection");
+        assert!(!dest.as_std_path().exists(), "no project tree written on rejection");
+    }
+
+    #[test]
+    fn commit_rejects_runaway_density_without_hanging() {
+        // THE reported pathological case: 80×80 at ~1.0 density (every hex a
+        // system). The guard rejects it instantly — the test returning at all is
+        // the proof that the O(n²) routes allocation / uncancellable hang was
+        // never reached.
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest = camino::Utf8PathBuf::from_path_buf(dir.path().join("too-dense")).unwrap();
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let mut session = new_session(16);
+        session.config.generation.sector_width = MAX_CUSTOM_DIM;
+        session.config.generation.sector_height = MAX_CUSTOM_DIM;
+        session.config.generation.system_count = (MAX_CUSTOM_DIM * MAX_CUSTOM_DIM) as usize;
+        session.dest = Some(dest.clone());
+        state.iterative_gen = Some(session);
+
+        let err = state.commit_new_project().unwrap_err();
+        assert!(err.contains("too dense"), "unexpected: {err}");
+        assert!(state.iterative_gen.is_some(), "session survives");
+        assert!(!dest.as_std_path().exists(), "nothing written");
+    }
+
+    #[test]
+    fn commit_rejects_inverted_world_range() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest = camino::Utf8PathBuf::from_path_buf(dir.path().join("inverted")).unwrap();
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let mut session = new_session(16);
+        session.config.generation.min_worlds_per_system = 9;
+        session.config.generation.max_worlds_per_system = 3;
+        session.dest = Some(dest.clone());
+        state.iterative_gen = Some(session);
+
+        let err = state.commit_new_project().unwrap_err();
+        assert!(err.contains("inverted"), "unexpected: {err}");
+        assert!(!dest.as_std_path().exists());
+    }
+
+    #[test]
+    fn preview_rejects_runaway_density_and_sets_feedback() {
+        // The preview path must also refuse a pathological config: no job spawned,
+        // a clear feedback message, preview stays empty (no spinner that never
+        // resolves).
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let mut session = new_session(16);
+        session.config.generation.sector_width = MAX_CUSTOM_DIM;
+        session.config.generation.sector_height = MAX_CUSTOM_DIM;
+        session.config.generation.system_count = (MAX_CUSTOM_DIM * MAX_CUSTOM_DIM) as usize;
+        state.iterative_gen = Some(session);
+
+        let ctx = egui::Context::default();
+        state.spawn_prefix(&ctx, sectorforge::Stage::Systems);
+
+        let s = state.iterative_gen.as_ref().unwrap();
+        assert!(s.job.is_none(), "no background job dispatched for a rejected config");
+        assert!(s.preview.is_none(), "preview stays empty");
+        let err = state
+            .feedback
+            .last_command_error
+            .as_ref()
+            .expect("a feedback reason is surfaced");
+        assert!(err.contains("too dense"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn preview_rejects_oversized_dimension_and_sets_feedback() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let mut session = new_session(16);
+        session.config.generation.sector_width = 150;
+        session.config.generation.sector_height = 150;
+        state.iterative_gen = Some(session);
+
+        let ctx = egui::Context::default();
+        state.spawn_prefix(&ctx, sectorforge::Stage::Systems);
+
+        assert!(state.iterative_gen.as_ref().unwrap().job.is_none());
+        let err = state
+            .feedback
+            .last_command_error
+            .as_ref()
+            .expect("a feedback reason is surfaced");
+        assert!(err.contains("exceeds the maximum"), "unexpected: {err}");
     }
 }

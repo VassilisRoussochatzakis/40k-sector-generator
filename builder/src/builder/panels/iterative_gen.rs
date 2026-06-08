@@ -289,7 +289,7 @@ fn show_size_form(ui: &mut Ui, state: &mut BuilderState) {
          square, so this single field sets both.",
         |ui| {
             dim_changed = ui
-                .add(egui::DragValue::new(&mut dim).range(1..=200))
+                .add(egui::DragValue::new(&mut dim).range(1..=sectorforge::random_sector::MAX_CUSTOM_DIM))
                 .changed();
         },
     );

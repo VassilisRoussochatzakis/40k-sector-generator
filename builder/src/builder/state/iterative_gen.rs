@@ -50,7 +50,7 @@ use camino::Utf8PathBuf;
 use std::sync::{Arc, Mutex};
 
 use sectorforge::config::AppConfig;
-use sectorforge::random_sector::{build_random_config, SectorSize};
+use sectorforge::random_sector::{build_random_config, SectorSize, MAX_CUSTOM_DIM};
 use sectorforge::regions::RegionsConfig;
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::{generate_prefix, RerollNonces, SectorProgress, Stage};
@@ -412,6 +412,71 @@ fn item_frac(current: usize, total: usize) -> f32 {
     }
 }
 
+/// Upper bound on the number of candidate route pairs (~`effective_systems²/2`)
+/// the generator will build. The routes stage materialises this many pairs in a
+/// single O(n²) allocation; past this a synchronous [`BuilderState::commit_new_project`]
+/// run — which is **uncancellable** (it passes `|| false`) — would allocate
+/// hundreds of MB and hang or OOM the process. Sized to admit the densest shipped
+/// preset (`Huge` = 80×80, up to ~2560 systems ⇒ ~3.3M pairs) while rejecting a
+/// runaway near-1.0 density (80×80 ⇒ 6400 systems ⇒ ~20.5M pairs).
+pub(crate) const MAX_GEN_ROUTE_PAIRS: u64 = 5_000_000;
+
+/// Pre-flight sanity gate for a wizard config (ITERATIVE_GENERATION.md Phase S guard):
+/// reject anything structurally invalid or so large/dense that a synchronous full
+/// run would hang or OOM, **before** dispatching a preview or committing. Returns
+/// a human-readable reason on rejection.
+///
+/// Checks, in order: (1) the square-sector dimension against [`MAX_CUSTOM_DIM`] —
+/// the same ergonomic cap the one-shot random generator + CLI enforce; (2) an
+/// inverted worlds-per-system range (`min > max`), which would make the systems
+/// stage sample an empty range and panic; (3) the route-pair cost budget
+/// ([`MAX_GEN_ROUTE_PAIRS`]) using the *effective* system count (placement caps to
+/// the hex capacity, so a huge `system_count` on a tiny grid is not falsely
+/// rejected).
+///
+/// Allocation-free and deterministic — it never draws RNG, so for a config that
+/// passes it has **no effect** on generated output (the nonce-0 / valid path stays
+/// byte-identical, invariants #2/#6).
+pub(crate) fn precheck_generatable(config: &AppConfig) -> Result<(), String> {
+    let g = &config.generation;
+
+    // (1) Square-sector dimension cap — align the wizard with the random
+    // generator + CLI. `set_grid_dim` already clamps the UI field, so this is the
+    // defence-in-depth path that also catches a config loaded/edited out of band.
+    let dim = g.sector_width.max(g.sector_height);
+    if dim > MAX_CUSTOM_DIM {
+        return Err(format!(
+            "Sector size {dim}×{dim} exceeds the maximum supported grid \
+             {MAX_CUSTOM_DIM}×{MAX_CUSTOM_DIM}. Lower the grid dimension on the Size step."
+        ));
+    }
+
+    // (2) Inverted worlds-per-system range — `min > max` panics the systems stage
+    // (`gen_range(min..=max)` on an empty range). Reject with a clear message.
+    if g.min_worlds_per_system > g.max_worlds_per_system {
+        return Err(format!(
+            "Worlds-per-system range is inverted: min ({}) must not exceed max ({}).",
+            g.min_worlds_per_system, g.max_worlds_per_system
+        ));
+    }
+
+    // (3) Route-cost budget — the dominant O(n²) allocation. Use the *effective*
+    // system count: placement caps to the hex capacity, so `system_count` far
+    // above `dim²` costs no more than a full grid and must not be over-rejected.
+    let cells = u64::from(g.sector_width) * u64::from(g.sector_height);
+    let systems = (g.system_count as u64).min(cells);
+    let pairs = systems.saturating_mul(systems.saturating_sub(1)) / 2;
+    if pairs > MAX_GEN_ROUTE_PAIRS {
+        return Err(format!(
+            "This configuration is too dense to generate: {systems} systems on a {dim}×{dim} \
+             grid would build ~{pairs} candidate route pairs, far past what one run can hold. \
+             Lower the system count / world density or shrink the sector."
+        ));
+    }
+
+    Ok(())
+}
+
 impl BuilderState {
     /// ITERATIVE_GENERATION.md §S2 — dispatch a background prefix run through
     /// `through`, off the UI thread. Assembles a [`sectorforge::ProjectInput`]
@@ -431,6 +496,25 @@ impl BuilderState {
     /// byte-identical to the one-shot path. The runner never calls
     /// `rand::thread_rng()`.
     pub fn spawn_prefix(&mut self, ctx: &egui::Context, through: Stage) {
+        // Pre-flight sanity gate (ITERATIVE_GENERATION.md Phase S guard): refuse to
+        // dispatch a run for an oversized / too-dense / structurally invalid config.
+        // Otherwise the off-thread job would build an O(n²) route-pair vector
+        // (hundreds of MB at a near-1.0 density) and the preview would stall —
+        // surface *why*, like the missing-worlds-catalog case below.
+        match self
+            .iterative_gen
+            .as_ref()
+            .map(|s| precheck_generatable(&s.config))
+        {
+            None => return,
+            Some(Err(reason)) => {
+                self.cancel_prefix();
+                self.feedback.last_command_error = Some(format!("Cannot build preview: {reason}"));
+                return;
+            }
+            Some(Ok(())) => {}
+        }
+
         let Some(session) = self.iterative_gen.as_mut() else {
             return;
         };
@@ -655,6 +739,13 @@ impl BuilderState {
             return Err("Choose a destination folder before committing.".to_string());
         };
 
+        // Pre-flight sanity gate (ITERATIVE_GENERATION.md Phase S guard): never start a
+        // full, *uncancellable* run (this path passes `|| false`) for an oversized /
+        // too-dense / structurally invalid config — it would hang or OOM. Reject up
+        // front, leaving the session (and chosen dest) intact for a fixed retry, and
+        // before any disk write so nothing is half-materialised.
+        precheck_generatable(&session.config)?;
+
         // We are about to run the full pipeline ourselves; detach any in-flight
         // preview job so its (now superseded) result is dropped on the next pump.
         self.cancel_prefix();
@@ -816,11 +907,16 @@ impl BuilderState {
     /// route through here rather than touching either width or height directly.
     /// Marks the `Size` step edited and re-runs the preview. No-op without a
     /// session.
+    ///
+    /// `dim` is clamped to `1..=MAX_CUSTOM_DIM` so the wizard cannot exceed the
+    /// largest grid the generator is expected to handle (the same ergonomic cap
+    /// the one-shot random generator + CLI enforce); [`precheck_generatable`]
+    /// is the defence-in-depth gate for configs that arrive out of band.
     pub fn set_grid_dim(&mut self, ctx: &egui::Context, dim: u32) {
         let Some(session) = self.iterative_gen.as_mut() else {
             return;
         };
-        let dim = dim.max(1);
+        let dim = dim.clamp(1, MAX_CUSTOM_DIM);
         session.config.generation.sector_width = dim;
         session.config.generation.sector_height = dim;
         self.note_config_edit(ctx, GenStep::Size);

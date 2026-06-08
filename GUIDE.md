@@ -1190,6 +1190,9 @@ avoid_duplicate_world_type_in_system = false      # prevent repeated world types
 [generation.routes]
 enabled                    = true
 max_route_distance         = 4
+# Convex ease-in (sparse by design): 0.0 = just the (n-1) connectivity backbone;
+# higher adds extra edges scaled in the system count (not the O(n²) pair pool),
+# so 0.3 stays sparse, 0.5 is moderate, 1.0 is dense-but-readable (~3n edges).
 route_density              = 0.30
 ensure_connected_graph     = true
 # Optional. When present, swaps the legacy 10%-perilous cap for a final

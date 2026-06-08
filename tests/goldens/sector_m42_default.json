@@ -17030,7 +17030,7 @@
             "rebellion_risk": 0.0,
             "xenos_threat": 0.0,
             "warp_instability": 0.0,
-            "famine_or_resource_stress": 20.0
+            "famine_or_resource_stress": 0.0
           },
           "regions": [
             {
@@ -17218,7 +17218,7 @@
             "rebellion_risk": 50.0,
             "xenos_threat": 45.0,
             "warp_instability": 0.0,
-            "famine_or_resource_stress": 20.0
+            "famine_or_resource_stress": 0.0
           },
           "regions": [
             {
@@ -20944,56 +20944,6 @@
       ]
     },
     {
-      "id": "route-sys-0012-sys-0014",
-      "from_system_id": "sys-0012",
-      "to_system_id": "sys-0014",
-      "distance": 4,
-      "route_type": "charted_passage",
-      "stability": "perilous",
-      "tags": [
-        "region:warp_storm",
-        "region:perilous_applied"
-      ],
-      "controls": [
-        {
-          "faction_id": "aeldari",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 98.0,
-          "confidence": 17.0
-        },
-        {
-          "faction_id": "chaos",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 49.5,
-          "secrecy": 55.45,
-          "confidence": 44.55
-        },
-        {
-          "faction_id": "drukhari",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 27.125,
-          "secrecy": 100.0,
-          "confidence": 11.9
-        },
-        {
-          "faction_id": "imperial",
-          "patrol": 29.75,
-          "toll": 22.708334,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 31.979164,
-          "confidence": 68.020836
-        }
-      ]
-    },
-    {
       "id": "route-sys-0012-sys-0017",
       "from_system_id": "sys-0012",
       "to_system_id": "sys-0017",
@@ -21031,6 +20981,73 @@
           "piracy": 0.0,
           "secrecy": 18.858337,
           "confidence": 81.14166
+        }
+      ]
+    },
+    {
+      "id": "route-sys-0013-sys-0022",
+      "from_system_id": "sys-0013",
+      "to_system_id": "sys-0022",
+      "distance": 4,
+      "route_type": "charted_passage",
+      "stability": "hazardous",
+      "tags": [
+        "bridge"
+      ],
+      "controls": [
+        {
+          "faction_id": "chaos",
+          "patrol": 0.0,
+          "toll": 0.0,
+          "interdiction": 0.0,
+          "piracy": 65.125,
+          "secrecy": 45.63333,
+          "confidence": 54.36667
+        },
+        {
+          "faction_id": "imperial",
+          "patrol": 42.408333,
+          "toll": 25.2,
+          "interdiction": 0.0,
+          "piracy": 0.0,
+          "secrecy": 32.4,
+          "confidence": 67.6
+        },
+        {
+          "faction_id": "merchant",
+          "patrol": 0.0,
+          "toll": 34.2,
+          "interdiction": 0.0,
+          "piracy": 0.0,
+          "secrecy": 30.0,
+          "confidence": 70.0
+        },
+        {
+          "faction_id": "ork",
+          "patrol": 0.0,
+          "toll": 0.0,
+          "interdiction": 0.0,
+          "piracy": 55.0,
+          "secrecy": 16.0,
+          "confidence": 84.0
+        },
+        {
+          "faction_id": "tyranid",
+          "patrol": 0.0,
+          "toll": 0.0,
+          "interdiction": 0.0,
+          "piracy": 0.0,
+          "secrecy": 100.0,
+          "confidence": 0.0
+        },
+        {
+          "faction_id": "xenos",
+          "patrol": 0.0,
+          "toll": 0.0,
+          "interdiction": 0.0,
+          "piracy": 0.0,
+          "secrecy": 64.9,
+          "confidence": 35.1
         }
       ]
     },
@@ -21286,7 +21303,7 @@
       "to_system_id": "sys-0021",
       "distance": 4,
       "route_type": "charted_passage",
-      "stability": "hazardous",
+      "stability": "perilous",
       "tags": [],
       "controls": [
         {
@@ -21311,56 +21328,6 @@
           "faction_id": "merchant",
           "patrol": 0.0,
           "toll": 73.15,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 30.0,
-          "confidence": 70.0
-        },
-        {
-          "faction_id": "rebel",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 55.0,
-          "secrecy": 41.0,
-          "confidence": 59.0
-        }
-      ]
-    },
-    {
-      "id": "route-sys-0015-sys-0023",
-      "from_system_id": "sys-0015",
-      "to_system_id": "sys-0023",
-      "distance": 4,
-      "route_type": "charted_passage",
-      "stability": "perilous",
-      "tags": [
-        "region:turbulence",
-        "region:perilous_applied"
-      ],
-      "controls": [
-        {
-          "faction_id": "chaos",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 40.625,
-          "secrecy": 71.4,
-          "confidence": 28.599998
-        },
-        {
-          "faction_id": "imperial",
-          "patrol": 28.232143,
-          "toll": 19.809525,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 38.449997,
-          "confidence": 61.550003
-        },
-        {
-          "faction_id": "merchant",
-          "patrol": 0.0,
-          "toll": 76.0,
           "interdiction": 0.0,
           "piracy": 0.0,
           "secrecy": 30.0,
@@ -21682,71 +21649,6 @@
       ]
     },
     {
-      "id": "route-sys-0017-sys-0022",
-      "from_system_id": "sys-0017",
-      "to_system_id": "sys-0022",
-      "distance": 3,
-      "route_type": "charted_passage",
-      "stability": "unstable",
-      "tags": [],
-      "controls": [
-        {
-          "faction_id": "aeldari",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 100.0,
-          "confidence": 5.95
-        },
-        {
-          "faction_id": "chaos",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 62.5,
-          "secrecy": 56.0,
-          "confidence": 44.0
-        },
-        {
-          "faction_id": "imperial",
-          "patrol": 24.9,
-          "toll": 29.929998,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 25.300003,
-          "confidence": 74.7
-        },
-        {
-          "faction_id": "merchant",
-          "patrol": 0.0,
-          "toll": 34.2,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 30.0,
-          "confidence": 70.0
-        },
-        {
-          "faction_id": "ork",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 55.0,
-          "secrecy": 16.0,
-          "confidence": 84.0
-        },
-        {
-          "faction_id": "tyranid",
-          "patrol": 0.0,
-          "toll": 0.0,
-          "interdiction": 0.0,
-          "piracy": 0.0,
-          "secrecy": 100.0,
-          "confidence": 0.0
-        }
-      ]
-    },
-    {
       "id": "route-sys-0017-sys-0024",
       "from_system_id": "sys-0017",
       "to_system_id": "sys-0024",
@@ -22002,14 +21904,14 @@
       ]
     },
     {
-      "id": "route-sys-0018-sys-0023",
+      "id": "route-sys-0018-sys-0023-smuggling",
       "from_system_id": "sys-0018",
       "to_system_id": "sys-0023",
       "distance": 4,
-      "route_type": "charted_passage",
-      "stability": "perilous",
+      "route_type": "smuggling_lane",
+      "stability": "hazardous",
       "tags": [
-        "region:turbulence"
+        "hidden:smuggling"
       ],
       "controls": [
         {
@@ -22337,13 +22239,15 @@
       ]
     },
     {
-      "id": "route-sys-0022-sys-0024",
+      "id": "route-sys-0022-sys-0024-smuggling",
       "from_system_id": "sys-0022",
       "to_system_id": "sys-0024",
       "distance": 2,
-      "route_type": "charted_passage",
-      "stability": "stable",
-      "tags": [],
+      "route_type": "smuggling_lane",
+      "stability": "unstable",
+      "tags": [
+        "hidden:smuggling"
+      ],
       "controls": [
         {
           "faction_id": "aeldari",
@@ -22803,13 +22707,13 @@
       ],
       "power": {
         "administrative": 3.0831249,
-        "military": 6.4973993,
-        "naval": 4.3315997,
-        "economic": 2.4459455,
-        "industrial": 2.9351346,
+        "military": 6.376958,
+        "naval": 4.2513056,
+        "economic": 2.4006054,
+        "industrial": 2.8807266,
         "ideological": 6.825,
         "covert": 10.92,
-        "logistical": 4.2233095,
+        "logistical": 4.145023,
         "legitimacy": 3.6997497
       }
     },
@@ -24083,13 +23987,13 @@
       ],
       "power": {
         "administrative": 12.6315,
-        "military": 95.74982,
-        "naval": 53.400246,
-        "economic": 28.831322,
-        "industrial": 49.95308,
+        "military": 94.77939,
+        "naval": 52.85903,
+        "economic": 28.539114,
+        "industrial": 49.4468,
         "ideological": 53.552498,
         "covert": 56.982002,
-        "logistical": 50.948994,
+        "logistical": 50.43262,
         "legitimacy": 0.35500002
       }
     },
@@ -24524,13 +24428,13 @@
       ],
       "power": {
         "administrative": 0.24499999,
-        "military": 1.3916,
-        "naval": 0.608825,
-        "economic": 0.43487504,
-        "industrial": 0.3479,
+        "military": 1.37445,
+        "naval": 0.6013219,
+        "economic": 0.42951563,
+        "industrial": 0.3436125,
         "ideological": 0.6125,
         "covert": 1.8375,
-        "logistical": 0.52185,
+        "logistical": 0.5154187,
         "legitimacy": 0.0
       }
     },
@@ -28010,13 +27914,13 @@
       ],
       "power": {
         "administrative": 1.9169999,
-        "military": 8.909326,
-        "naval": 4.949625,
-        "economic": 1.2588301,
-        "industrial": 3.147075,
+        "military": 8.709803,
+        "naval": 4.8387794,
+        "economic": 1.2306389,
+        "industrial": 3.076597,
         "ideological": 3.5175,
         "covert": 5.5274997,
-        "logistical": 3.9597,
+        "logistical": 3.8710234,
         "legitimacy": 0.44729996
       }
     },
@@ -28284,13 +28188,13 @@
       ],
       "power": {
         "administrative": 1.435,
-        "military": 20.19658,
-        "naval": 6.7321935,
-        "economic": 3.2536438,
-        "industrial": 7.5918355,
+        "military": 19.177912,
+        "naval": 6.3926373,
+        "economic": 3.0895374,
+        "industrial": 7.2089205,
         "ideological": 8.98,
         "covert": 4.49,
-        "logistical": 6.7321935,
+        "logistical": 6.3926373,
         "legitimacy": 0.0
       }
     },
@@ -28783,13 +28687,13 @@
       ],
       "power": {
         "administrative": 8.616125,
-        "military": 9.837576,
-        "naval": 8.943251,
-        "economic": 9.873537,
-        "industrial": 11.392543,
+        "military": 9.784317,
+        "naval": 8.894834,
+        "economic": 9.820084,
+        "industrial": 11.330866,
         "ideological": 10.2,
         "covert": 5.93,
-        "logistical": 10.910766,
+        "logistical": 10.851697,
         "legitimacy": 6.5015
       }
     },
@@ -29541,13 +29445,13 @@
       ],
       "power": {
         "administrative": 4.803125,
-        "military": 9.309627,
-        "naval": 3.7238503,
-        "economic": 4.3946238,
-        "industrial": 3.5156991,
+        "military": 9.454269,
+        "naval": 3.7817075,
+        "economic": 4.462903,
+        "industrial": 3.5703225,
         "ideological": 6.105,
         "covert": 7.1225,
-        "logistical": 4.6548133,
+        "logistical": 4.7271347,
         "legitimacy": 1.3448749
       }
     }
@@ -29577,7 +29481,7 @@
     "settings_digest": "blake3:9746d183ade93e00219b6d66bf69540fc3b1b7123e05c73b9a4cbc83d4ef0e22",
     "system_count": 24,
     "world_count": 102,
-    "route_count": 67
+    "route_count": 65
   },
   "influence_field": {
     "width": 10,
@@ -31716,7 +31620,7 @@
         "sys-0019": 6.996315,
         "sys-0020": 3.4981575,
         "sys-0021": 17.490788,
-        "sys-0022": 17.490788,
+        "sys-0022": 2.0577397,
         "sys-0023": 6.996315,
         "sys-0024": 34.981575
       },
@@ -31743,7 +31647,7 @@
         "sys-0020": 323.8137,
         "sys-0021": 161.90685,
         "sys-0022": 161.90685,
-        "sys-0023": 161.90685,
+        "sys-0023": 64.76274,
         "sys-0024": 323.8137
       },
       "criminal": {
@@ -31784,7 +31688,7 @@
         "sys-0009": 0.47762752,
         "sys-0010": 0.47762752,
         "sys-0011": 0.95525503,
-        "sys-0012": 2.3881376,
+        "sys-0012": 0.95525503,
         "sys-0013": 0.47762752,
         "sys-0014": 4.776275,
         "sys-0015": 0.95525503,
@@ -31872,8 +31776,8 @@
         "sys-0019": 7.707348,
         "sys-0020": 3.853674,
         "sys-0021": 19.26837,
-        "sys-0022": 7.707348,
-        "sys-0023": 19.26837,
+        "sys-0022": 2.266867,
+        "sys-0023": 7.707348,
         "sys-0024": 19.26837
       },
       "ork": {
@@ -31888,19 +31792,19 @@
         "sys-0009": 31.561478,
         "sys-0010": 31.561478,
         "sys-0011": 12.624591,
-        "sys-0012": 12.624591,
+        "sys-0012": 6.3122954,
         "sys-0013": 31.561478,
         "sys-0014": 12.624591,
         "sys-0015": 31.561478,
         "sys-0016": 12.624591,
-        "sys-0017": 31.561478,
-        "sys-0018": 12.624591,
+        "sys-0017": 6.3122954,
+        "sys-0018": 6.3122954,
         "sys-0019": 12.624591,
         "sys-0020": 6.3122954,
         "sys-0021": 12.624591,
         "sys-0022": 63.122955,
-        "sys-0023": 12.624591,
-        "sys-0024": 31.561478
+        "sys-0023": 6.3122954,
+        "sys-0024": 6.3122954
       },
       "rebel": {
         "sys-0001": 42.579746,
@@ -31951,7 +31855,7 @@
         "sys-0020": 97.05709,
         "sys-0021": 19.411419,
         "sys-0022": 9.705709,
-        "sys-0023": 19.411419,
+        "sys-0023": 9.705709,
         "sys-0024": 9.705709
       },
       "tyranid": {
@@ -31967,7 +31871,7 @@
         "sys-0010": 20.156042,
         "sys-0011": 2.0156043,
         "sys-0012": 10.078021,
-        "sys-0013": 4.0312085,
+        "sys-0013": 10.078021,
         "sys-0014": 10.078021,
         "sys-0015": 4.0312085,
         "sys-0016": 2.0156043,
@@ -31977,7 +31881,7 @@
         "sys-0020": 10.078021,
         "sys-0021": 10.078021,
         "sys-0022": 20.156042,
-        "sys-0023": 10.078021,
+        "sys-0023": 4.0312085,
         "sys-0024": 10.078021
       },
       "xenos": {
@@ -32002,8 +31906,8 @@
         "sys-0019": 8.54385,
         "sys-0020": 4.271925,
         "sys-0021": 8.54385,
-        "sys-0022": 2.512897,
-        "sys-0023": 8.54385,
+        "sys-0022": 21.359625,
+        "sys-0023": 4.271925,
         "sys-0024": 4.271925
       }
     }
@@ -32206,7 +32110,7 @@
             "rivalry": 100,
             "ideological_distance": 90,
             "economic_dependency": 13,
-            "military_pressure": 89,
+            "military_pressure": 90,
             "covert_activity": 100
           }
         },
@@ -32371,8 +32275,8 @@
             "rivalry": 100,
             "ideological_distance": 96,
             "economic_dependency": 22,
-            "military_pressure": 77,
-            "covert_activity": 99
+            "military_pressure": 76,
+            "covert_activity": 100
           }
         },
         "b_to_a": {
@@ -32536,7 +32440,7 @@
             "rivalry": 100,
             "ideological_distance": 100,
             "economic_dependency": 15,
-            "military_pressure": 67,
+            "military_pressure": 68,
             "covert_activity": 100
           }
         },
@@ -32575,7 +32479,7 @@
           "rivalry": 100,
           "ideological_distance": 96,
           "economic_dependency": 18,
-          "military_pressure": 80,
+          "military_pressure": 78,
           "covert_activity": 100
         },
         "a_to_b": {
@@ -32591,7 +32495,7 @@
             "rivalry": 100,
             "ideological_distance": 96,
             "economic_dependency": 18,
-            "military_pressure": 80,
+            "military_pressure": 78,
             "covert_activity": 100
           }
         },
@@ -32608,12 +32512,12 @@
             "rivalry": 100,
             "ideological_distance": 96,
             "economic_dependency": 18,
-            "military_pressure": 49,
+            "military_pressure": 47,
             "covert_activity": 100
           }
         },
         "cause": "Aeldari motives are never trusted",
-        "tension": 96.79367
+        "tension": 93.72067
       },
       {
         "a": "rebel",
@@ -32671,61 +32575,6 @@
         "tension": 93.715004
       },
       {
-        "a": "aeldari",
-        "b": "chaos",
-        "stance": "at_war",
-        "public_stance": "rival",
-        "secret_stance": "at_war",
-        "public_attitude": "suspicious",
-        "secret_attitude": "existential_enemy",
-        "treaty_status": "vendetta",
-        "metrics": {
-          "trust": 0,
-          "fear": 100,
-          "rivalry": 100,
-          "ideological_distance": 100,
-          "economic_dependency": 17,
-          "military_pressure": 83,
-          "covert_activity": 100
-        },
-        "a_to_b": {
-          "from": "aeldari",
-          "to": "chaos",
-          "public_attitude": "suspicious",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "rival",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 100,
-            "rivalry": 100,
-            "ideological_distance": 100,
-            "economic_dependency": 17,
-            "military_pressure": 83,
-            "covert_activity": 100
-          }
-        },
-        "b_to_a": {
-          "from": "chaos",
-          "to": "aeldari",
-          "public_attitude": "suspicious",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "rival",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 100,
-            "rivalry": 100,
-            "ideological_distance": 100,
-            "economic_dependency": 17,
-            "military_pressure": 64,
-            "covert_activity": 100
-          }
-        },
-        "cause": "Aeldari oppose the Dark Gods with prophecy",
-        "tension": 92.14188
-      },
-      {
         "a": "necron",
         "b": "rebel",
         "stance": "at_war",
@@ -32739,7 +32588,7 @@
           "fear": 100,
           "rivalry": 100,
           "ideological_distance": 90,
-          "economic_dependency": 16,
+          "economic_dependency": 15,
           "military_pressure": 78,
           "covert_activity": 100
         },
@@ -32755,7 +32604,7 @@
             "fear": 100,
             "rivalry": 100,
             "ideological_distance": 90,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 78,
             "covert_activity": 100
           }
@@ -32772,7 +32621,7 @@
             "fear": 100,
             "rivalry": 100,
             "ideological_distance": 90,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 72,
             "covert_activity": 100
           }
@@ -32960,8 +32809,8 @@
           "rivalry": 100,
           "ideological_distance": 96,
           "economic_dependency": 20,
-          "military_pressure": 79,
-          "covert_activity": 96
+          "military_pressure": 81,
+          "covert_activity": 99
         },
         "a_to_b": {
           "from": "imperial",
@@ -32976,8 +32825,8 @@
             "rivalry": 100,
             "ideological_distance": 96,
             "economic_dependency": 20,
-            "military_pressure": 50,
-            "covert_activity": 73
+            "military_pressure": 52,
+            "covert_activity": 76
           }
         },
         "b_to_a": {
@@ -32993,12 +32842,67 @@
             "rivalry": 100,
             "ideological_distance": 96,
             "economic_dependency": 20,
-            "military_pressure": 79,
-            "covert_activity": 96
+            "military_pressure": 81,
+            "covert_activity": 99
           }
         },
         "cause": "Imperial Creed: Suffer Not the Alien to Live",
-        "tension": 87.22287
+        "tension": 88.72004
+      },
+      {
+        "a": "aeldari",
+        "b": "chaos",
+        "stance": "at_war",
+        "public_stance": "rival",
+        "secret_stance": "at_war",
+        "public_attitude": "suspicious",
+        "secret_attitude": "existential_enemy",
+        "treaty_status": "vendetta",
+        "metrics": {
+          "trust": 0,
+          "fear": 100,
+          "rivalry": 100,
+          "ideological_distance": 100,
+          "economic_dependency": 17,
+          "military_pressure": 78,
+          "covert_activity": 100
+        },
+        "a_to_b": {
+          "from": "aeldari",
+          "to": "chaos",
+          "public_attitude": "suspicious",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "rival",
+          "secret_stance": "at_war",
+          "metrics": {
+            "trust": 0,
+            "fear": 100,
+            "rivalry": 100,
+            "ideological_distance": 100,
+            "economic_dependency": 17,
+            "military_pressure": 78,
+            "covert_activity": 100
+          }
+        },
+        "b_to_a": {
+          "from": "chaos",
+          "to": "aeldari",
+          "public_attitude": "suspicious",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "rival",
+          "secret_stance": "at_war",
+          "metrics": {
+            "trust": 0,
+            "fear": 100,
+            "rivalry": 100,
+            "ideological_distance": 100,
+            "economic_dependency": 17,
+            "military_pressure": 58,
+            "covert_activity": 100
+          }
+        },
+        "cause": "Aeldari oppose the Dark Gods with prophecy",
+        "tension": 86.80187
       },
       {
         "a": "chaos",
@@ -33053,62 +32957,7 @@
           }
         },
         "cause": "No standing accord",
-        "tension": 81.760635
-      },
-      {
-        "a": "drukhari",
-        "b": "imperial",
-        "stance": "at_war",
-        "public_stance": "rival",
-        "secret_stance": "at_war",
-        "public_attitude": "suspicious",
-        "secret_attitude": "existential_enemy",
-        "treaty_status": "vendetta",
-        "metrics": {
-          "trust": 0,
-          "fear": 100,
-          "rivalry": 100,
-          "ideological_distance": 96,
-          "economic_dependency": 7,
-          "military_pressure": 68,
-          "covert_activity": 100
-        },
-        "a_to_b": {
-          "from": "drukhari",
-          "to": "imperial",
-          "public_attitude": "suspicious",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "rival",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 100,
-            "rivalry": 100,
-            "ideological_distance": 96,
-            "economic_dependency": 7,
-            "military_pressure": 68,
-            "covert_activity": 100
-          }
-        },
-        "b_to_a": {
-          "from": "imperial",
-          "to": "drukhari",
-          "public_attitude": "suspicious",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "rival",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 99,
-            "rivalry": 100,
-            "ideological_distance": 96,
-            "economic_dependency": 7,
-            "military_pressure": 26,
-            "covert_activity": 99
-          }
-        },
-        "cause": "Drukhari slave-raids invite extermination",
-        "tension": 76.74006
+        "tension": 79.80297
       },
       {
         "a": "chaos",
@@ -33141,7 +32990,7 @@
             "rivalry": 90,
             "ideological_distance": 90,
             "economic_dependency": 15,
-            "military_pressure": 62,
+            "military_pressure": 61,
             "covert_activity": 100
           }
         },
@@ -33166,6 +33015,61 @@
         "tension": 76.09363
       },
       {
+        "a": "drukhari",
+        "b": "imperial",
+        "stance": "at_war",
+        "public_stance": "rival",
+        "secret_stance": "at_war",
+        "public_attitude": "suspicious",
+        "secret_attitude": "existential_enemy",
+        "treaty_status": "vendetta",
+        "metrics": {
+          "trust": 0,
+          "fear": 100,
+          "rivalry": 100,
+          "ideological_distance": 96,
+          "economic_dependency": 7,
+          "military_pressure": 67,
+          "covert_activity": 100
+        },
+        "a_to_b": {
+          "from": "drukhari",
+          "to": "imperial",
+          "public_attitude": "suspicious",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "rival",
+          "secret_stance": "at_war",
+          "metrics": {
+            "trust": 0,
+            "fear": 100,
+            "rivalry": 100,
+            "ideological_distance": 96,
+            "economic_dependency": 7,
+            "military_pressure": 67,
+            "covert_activity": 100
+          }
+        },
+        "b_to_a": {
+          "from": "imperial",
+          "to": "drukhari",
+          "public_attitude": "suspicious",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "rival",
+          "secret_stance": "at_war",
+          "metrics": {
+            "trust": 0,
+            "fear": 98,
+            "rivalry": 100,
+            "ideological_distance": 96,
+            "economic_dependency": 7,
+            "military_pressure": 25,
+            "covert_activity": 92
+          }
+        },
+        "cause": "Drukhari slave-raids invite extermination",
+        "tension": 74.87382
+      },
+      {
         "a": "chaos",
         "b": "xenos",
         "stance": "at_war",
@@ -33180,7 +33084,7 @@
           "rivalry": 90,
           "ideological_distance": 96,
           "economic_dependency": 18,
-          "military_pressure": 70,
+          "military_pressure": 73,
           "covert_activity": 100
         },
         "a_to_b": {
@@ -33196,8 +33100,8 @@
             "rivalry": 90,
             "ideological_distance": 96,
             "economic_dependency": 18,
-            "military_pressure": 51,
-            "covert_activity": 92
+            "military_pressure": 54,
+            "covert_activity": 99
           }
         },
         "b_to_a": {
@@ -33213,67 +33117,12 @@
             "rivalry": 90,
             "ideological_distance": 96,
             "economic_dependency": 18,
-            "military_pressure": 70,
+            "military_pressure": 73,
             "covert_activity": 100
           }
         },
         "cause": "Both seek the death of Mankind, but neither suffers a rival; Two scorpions in a bottle",
-        "tension": 69.45794
-      },
-      {
-        "a": "chaos",
-        "b": "drukhari",
-        "stance": "hostile",
-        "public_stance": "rival",
-        "secret_stance": "hostile",
-        "public_attitude": "suspicious",
-        "secret_attitude": "hostile",
-        "treaty_status": "nonaggression",
-        "metrics": {
-          "trust": 0,
-          "fear": 100,
-          "rivalry": 92,
-          "ideological_distance": 100,
-          "economic_dependency": 6,
-          "military_pressure": 60,
-          "covert_activity": 98
-        },
-        "a_to_b": {
-          "from": "chaos",
-          "to": "drukhari",
-          "public_attitude": "suspicious",
-          "secret_attitude": "hostile",
-          "public_stance": "rival",
-          "secret_stance": "hostile",
-          "metrics": {
-            "trust": 0,
-            "fear": 76,
-            "rivalry": 92,
-            "ideological_distance": 100,
-            "economic_dependency": 6,
-            "military_pressure": 29,
-            "covert_activity": 89
-          }
-        },
-        "b_to_a": {
-          "from": "drukhari",
-          "to": "chaos",
-          "public_attitude": "suspicious",
-          "secret_attitude": "hostile",
-          "public_stance": "rival",
-          "secret_stance": "hostile",
-          "metrics": {
-            "trust": 0,
-            "fear": 100,
-            "rivalry": 92,
-            "ideological_distance": 100,
-            "economic_dependency": 6,
-            "military_pressure": 60,
-            "covert_activity": 98
-          }
-        },
-        "cause": "No standing accord; Two scorpions in a bottle",
-        "tension": 67.655
+        "tension": 72.06069
       },
       {
         "a": "ork",
@@ -33345,7 +33194,7 @@
           "rivalry": 90,
           "ideological_distance": 90,
           "economic_dependency": 15,
-          "military_pressure": 54,
+          "military_pressure": 53,
           "covert_activity": 72
         },
         "a_to_b": {
@@ -33361,7 +33210,7 @@
             "rivalry": 90,
             "ideological_distance": 90,
             "economic_dependency": 15,
-            "military_pressure": 54,
+            "military_pressure": 53,
             "covert_activity": 70
           }
         },
@@ -33384,6 +33233,61 @@
         },
         "cause": "Necron protocols reclaim the galaxy; Two scorpions in a bottle",
         "tension": 62.95675
+      },
+      {
+        "a": "chaos",
+        "b": "drukhari",
+        "stance": "hostile",
+        "public_stance": "rival",
+        "secret_stance": "hostile",
+        "public_attitude": "suspicious",
+        "secret_attitude": "hostile",
+        "treaty_status": "nonaggression",
+        "metrics": {
+          "trust": 0,
+          "fear": 100,
+          "rivalry": 89,
+          "ideological_distance": 100,
+          "economic_dependency": 5,
+          "military_pressure": 57,
+          "covert_activity": 91
+        },
+        "a_to_b": {
+          "from": "chaos",
+          "to": "drukhari",
+          "public_attitude": "suspicious",
+          "secret_attitude": "hostile",
+          "public_stance": "rival",
+          "secret_stance": "hostile",
+          "metrics": {
+            "trust": 0,
+            "fear": 74,
+            "rivalry": 89,
+            "ideological_distance": 100,
+            "economic_dependency": 5,
+            "military_pressure": 26,
+            "covert_activity": 82
+          }
+        },
+        "b_to_a": {
+          "from": "drukhari",
+          "to": "chaos",
+          "public_attitude": "suspicious",
+          "secret_attitude": "hostile",
+          "public_stance": "rival",
+          "secret_stance": "hostile",
+          "metrics": {
+            "trust": 0,
+            "fear": 100,
+            "rivalry": 89,
+            "ideological_distance": 100,
+            "economic_dependency": 5,
+            "military_pressure": 57,
+            "covert_activity": 91
+          }
+        },
+        "cause": "No standing accord; Two scorpions in a bottle",
+        "tension": 62.4575
       },
       {
         "a": "necron",
@@ -33606,61 +33510,6 @@
         "tension": 49.867
       },
       {
-        "a": "aeldari",
-        "b": "tyranid",
-        "stance": "at_war",
-        "public_stance": "rival",
-        "secret_stance": "at_war",
-        "public_attitude": "suspicious",
-        "secret_attitude": "existential_enemy",
-        "treaty_status": "vendetta",
-        "metrics": {
-          "trust": 0,
-          "fear": 93,
-          "rivalry": 90,
-          "ideological_distance": 90,
-          "economic_dependency": 12,
-          "military_pressure": 21,
-          "covert_activity": 70
-        },
-        "a_to_b": {
-          "from": "aeldari",
-          "to": "tyranid",
-          "public_attitude": "suspicious",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "rival",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 92,
-            "rivalry": 90,
-            "ideological_distance": 90,
-            "economic_dependency": 12,
-            "military_pressure": 21,
-            "covert_activity": 50
-          }
-        },
-        "b_to_a": {
-          "from": "tyranid",
-          "to": "aeldari",
-          "public_attitude": "suspicious",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "rival",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 93,
-            "rivalry": 90,
-            "ideological_distance": 90,
-            "economic_dependency": 12,
-            "military_pressure": 20,
-            "covert_activity": 70
-          }
-        },
-        "cause": "Tyranid swarm consumes all biomass",
-        "tension": 45.96
-      },
-      {
         "a": "necron",
         "b": "xenos",
         "stance": "at_war",
@@ -33675,7 +33524,7 @@
           "rivalry": 90,
           "ideological_distance": 90,
           "economic_dependency": 15,
-          "military_pressure": 30,
+          "military_pressure": 29,
           "covert_activity": 30
         },
         "a_to_b": {
@@ -33708,7 +33557,7 @@
             "rivalry": 90,
             "ideological_distance": 90,
             "economic_dependency": 15,
-            "military_pressure": 30,
+            "military_pressure": 29,
             "covert_activity": 29
           }
         },
@@ -33716,59 +33565,114 @@
         "tension": 45.731003
       },
       {
-        "a": "aeldari",
-        "b": "drukhari",
-        "stance": "hostile",
-        "public_stance": "rival",
-        "secret_stance": "hostile",
-        "public_attitude": "suspicious",
-        "secret_attitude": "hostile",
-        "treaty_status": "nonaggression",
+        "a": "tyranid",
+        "b": "xenos",
+        "stance": "at_war",
+        "public_stance": "at_war",
+        "secret_stance": "at_war",
+        "public_attitude": "existential_enemy",
+        "secret_attitude": "existential_enemy",
+        "treaty_status": "vendetta",
         "metrics": {
           "trust": 0,
-          "fear": 88,
-          "rivalry": 68,
-          "ideological_distance": 22,
-          "economic_dependency": 6,
-          "military_pressure": 34,
-          "covert_activity": 100
+          "fear": 91,
+          "rivalry": 90,
+          "ideological_distance": 90,
+          "economic_dependency": 12,
+          "military_pressure": 22,
+          "covert_activity": 45
         },
         "a_to_b": {
-          "from": "aeldari",
-          "to": "drukhari",
-          "public_attitude": "suspicious",
-          "secret_attitude": "hostile",
-          "public_stance": "rival",
-          "secret_stance": "hostile",
+          "from": "tyranid",
+          "to": "xenos",
+          "public_attitude": "existential_enemy",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "at_war",
+          "secret_stance": "at_war",
           "metrics": {
             "trust": 0,
-            "fear": 75,
-            "rivalry": 68,
-            "ideological_distance": 22,
-            "economic_dependency": 6,
-            "military_pressure": 23,
-            "covert_activity": 97
+            "fear": 91,
+            "rivalry": 90,
+            "ideological_distance": 90,
+            "economic_dependency": 12,
+            "military_pressure": 22,
+            "covert_activity": 44
           }
         },
         "b_to_a": {
-          "from": "drukhari",
-          "to": "aeldari",
-          "public_attitude": "suspicious",
-          "secret_attitude": "hostile",
-          "public_stance": "rival",
-          "secret_stance": "hostile",
+          "from": "xenos",
+          "to": "tyranid",
+          "public_attitude": "existential_enemy",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "at_war",
+          "secret_stance": "at_war",
           "metrics": {
             "trust": 0,
-            "fear": 88,
-            "rivalry": 68,
-            "ideological_distance": 22,
-            "economic_dependency": 6,
-            "military_pressure": 34,
-            "covert_activity": 100
+            "fear": 91,
+            "rivalry": 90,
+            "ideological_distance": 90,
+            "economic_dependency": 12,
+            "military_pressure": 21,
+            "covert_activity": 45
           }
         },
-        "cause": "Estranged Aeldari kin — old wounds",
-        "tension": 44.95125
+        "cause": "Tyranid swarm consumes all biomass; Two scorpions in a bottle",
+        "tension": 45.104
+      },
+      {
+        "a": "aeldari",
+        "b": "tyranid",
+        "stance": "at_war",
+        "public_stance": "rival",
+        "secret_stance": "at_war",
+        "public_attitude": "suspicious",
+        "secret_attitude": "existential_enemy",
+        "treaty_status": "vendetta",
+        "metrics": {
+          "trust": 0,
+          "fear": 93,
+          "rivalry": 90,
+          "ideological_distance": 90,
+          "economic_dependency": 12,
+          "military_pressure": 21,
+          "covert_activity": 65
+        },
+        "a_to_b": {
+          "from": "aeldari",
+          "to": "tyranid",
+          "public_attitude": "suspicious",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "rival",
+          "secret_stance": "at_war",
+          "metrics": {
+            "trust": 0,
+            "fear": 92,
+            "rivalry": 90,
+            "ideological_distance": 90,
+            "economic_dependency": 12,
+            "military_pressure": 21,
+            "covert_activity": 45
+          }
+        },
+        "b_to_a": {
+          "from": "tyranid",
+          "to": "aeldari",
+          "public_attitude": "suspicious",
+          "secret_attitude": "existential_enemy",
+          "public_stance": "rival",
+          "secret_stance": "at_war",
+          "metrics": {
+            "trust": 0,
+            "fear": 93,
+            "rivalry": 90,
+            "ideological_distance": 90,
+            "economic_dependency": 12,
+            "military_pressure": 20,
+            "covert_activity": 65
+          }
+        },
+        "cause": "Tyranid swarm consumes all biomass",
+        "tension": 44.96
       },
       {
         "a": "tau",
@@ -33826,61 +33730,6 @@
         "tension": 44.815
       },
       {
-        "a": "tyranid",
-        "b": "xenos",
-        "stance": "at_war",
-        "public_stance": "at_war",
-        "secret_stance": "at_war",
-        "public_attitude": "existential_enemy",
-        "secret_attitude": "existential_enemy",
-        "treaty_status": "vendetta",
-        "metrics": {
-          "trust": 0,
-          "fear": 91,
-          "rivalry": 90,
-          "ideological_distance": 90,
-          "economic_dependency": 12,
-          "military_pressure": 22,
-          "covert_activity": 40
-        },
-        "a_to_b": {
-          "from": "tyranid",
-          "to": "xenos",
-          "public_attitude": "existential_enemy",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "at_war",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 91,
-            "rivalry": 90,
-            "ideological_distance": 90,
-            "economic_dependency": 12,
-            "military_pressure": 22,
-            "covert_activity": 39
-          }
-        },
-        "b_to_a": {
-          "from": "xenos",
-          "to": "tyranid",
-          "public_attitude": "existential_enemy",
-          "secret_attitude": "existential_enemy",
-          "public_stance": "at_war",
-          "secret_stance": "at_war",
-          "metrics": {
-            "trust": 0,
-            "fear": 90,
-            "rivalry": 90,
-            "ideological_distance": 90,
-            "economic_dependency": 12,
-            "military_pressure": 21,
-            "covert_activity": 40
-          }
-        },
-        "cause": "Tyranid swarm consumes all biomass; Two scorpions in a bottle",
-        "tension": 44.104
-      },
-      {
         "a": "drukhari",
         "b": "necron",
         "stance": "at_war",
@@ -33894,7 +33743,7 @@
           "fear": 100,
           "rivalry": 90,
           "ideological_distance": 90,
-          "economic_dependency": 6,
+          "economic_dependency": 5,
           "military_pressure": 25,
           "covert_activity": 40
         },
@@ -33910,7 +33759,7 @@
             "fear": 100,
             "rivalry": 90,
             "ideological_distance": 90,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 25,
             "covert_activity": 30
           }
@@ -33927,68 +33776,13 @@
             "fear": 87,
             "rivalry": 90,
             "ideological_distance": 90,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 12,
             "covert_activity": 40
           }
         },
         "cause": "Necron protocols reclaim the galaxy; Two scorpions in a bottle",
         "tension": 44.0275
-      },
-      {
-        "a": "merchant",
-        "b": "rebel",
-        "stance": "allied",
-        "public_stance": "allied",
-        "secret_stance": "allied",
-        "public_attitude": "allied",
-        "secret_attitude": "allied",
-        "treaty_status": "none",
-        "metrics": {
-          "trust": 80,
-          "fear": 50,
-          "rivalry": 0,
-          "ideological_distance": 20,
-          "economic_dependency": 30,
-          "military_pressure": 89,
-          "covert_activity": 100
-        },
-        "a_to_b": {
-          "from": "merchant",
-          "to": "rebel",
-          "public_attitude": "allied",
-          "secret_attitude": "allied",
-          "public_stance": "allied",
-          "secret_stance": "allied",
-          "metrics": {
-            "trust": 80,
-            "fear": 47,
-            "rivalry": 0,
-            "ideological_distance": 20,
-            "economic_dependency": 30,
-            "military_pressure": 86,
-            "covert_activity": 100
-          }
-        },
-        "b_to_a": {
-          "from": "rebel",
-          "to": "merchant",
-          "public_attitude": "allied",
-          "secret_attitude": "allied",
-          "public_stance": "allied",
-          "secret_stance": "allied",
-          "metrics": {
-            "trust": 80,
-            "fear": 50,
-            "rivalry": 0,
-            "ideological_distance": 20,
-            "economic_dependency": 30,
-            "military_pressure": 89,
-            "covert_activity": 100
-          }
-        },
-        "cause": "Rebellion bankrolled by black-market trade",
-        "tension": 44.000256
       },
       {
         "a": "criminal",
@@ -34059,7 +33853,7 @@
           "fear": 100,
           "rivalry": 90,
           "ideological_distance": 90,
-          "economic_dependency": 6,
+          "economic_dependency": 5,
           "military_pressure": 24,
           "covert_activity": 40
         },
@@ -34075,7 +33869,7 @@
             "fear": 100,
             "rivalry": 90,
             "ideological_distance": 90,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 24,
             "covert_activity": 32
           }
@@ -34092,13 +33886,123 @@
             "fear": 87,
             "rivalry": 90,
             "ideological_distance": 90,
-            "economic_dependency": 6,
-            "military_pressure": 12,
+            "economic_dependency": 5,
+            "military_pressure": 11,
             "covert_activity": 40
           }
         },
         "cause": "Tyranid swarm consumes all biomass; Two scorpions in a bottle",
         "tension": 43.6275
+      },
+      {
+        "a": "aeldari",
+        "b": "drukhari",
+        "stance": "hostile",
+        "public_stance": "rival",
+        "secret_stance": "hostile",
+        "public_attitude": "suspicious",
+        "secret_attitude": "hostile",
+        "treaty_status": "nonaggression",
+        "metrics": {
+          "trust": 0,
+          "fear": 87,
+          "rivalry": 68,
+          "ideological_distance": 22,
+          "economic_dependency": 5,
+          "military_pressure": 32,
+          "covert_activity": 100
+        },
+        "a_to_b": {
+          "from": "aeldari",
+          "to": "drukhari",
+          "public_attitude": "suspicious",
+          "secret_attitude": "hostile",
+          "public_stance": "rival",
+          "secret_stance": "hostile",
+          "metrics": {
+            "trust": 0,
+            "fear": 73,
+            "rivalry": 68,
+            "ideological_distance": 22,
+            "economic_dependency": 5,
+            "military_pressure": 21,
+            "covert_activity": 91
+          }
+        },
+        "b_to_a": {
+          "from": "drukhari",
+          "to": "aeldari",
+          "public_attitude": "suspicious",
+          "secret_attitude": "hostile",
+          "public_stance": "rival",
+          "secret_stance": "hostile",
+          "metrics": {
+            "trust": 0,
+            "fear": 87,
+            "rivalry": 68,
+            "ideological_distance": 22,
+            "economic_dependency": 5,
+            "military_pressure": 32,
+            "covert_activity": 100
+          }
+        },
+        "cause": "Estranged Aeldari kin — old wounds",
+        "tension": 43.1375
+      },
+      {
+        "a": "merchant",
+        "b": "rebel",
+        "stance": "allied",
+        "public_stance": "allied",
+        "secret_stance": "allied",
+        "public_attitude": "allied",
+        "secret_attitude": "allied",
+        "treaty_status": "none",
+        "metrics": {
+          "trust": 80,
+          "fear": 49,
+          "rivalry": 0,
+          "ideological_distance": 20,
+          "economic_dependency": 30,
+          "military_pressure": 86,
+          "covert_activity": 100
+        },
+        "a_to_b": {
+          "from": "merchant",
+          "to": "rebel",
+          "public_attitude": "allied",
+          "secret_attitude": "allied",
+          "public_stance": "allied",
+          "secret_stance": "allied",
+          "metrics": {
+            "trust": 80,
+            "fear": 46,
+            "rivalry": 0,
+            "ideological_distance": 20,
+            "economic_dependency": 30,
+            "military_pressure": 83,
+            "covert_activity": 100
+          }
+        },
+        "b_to_a": {
+          "from": "rebel",
+          "to": "merchant",
+          "public_attitude": "allied",
+          "secret_attitude": "allied",
+          "public_stance": "allied",
+          "secret_stance": "allied",
+          "metrics": {
+            "trust": 80,
+            "fear": 49,
+            "rivalry": 0,
+            "ideological_distance": 20,
+            "economic_dependency": 30,
+            "military_pressure": 86,
+            "covert_activity": 100
+          }
+        },
+        "cause": "Rebellion bankrolled by black-market trade",
+        "tension": 41.940258
       },
       {
         "a": "ork",
@@ -34111,12 +34015,12 @@
         "treaty_status": "none",
         "metrics": {
           "trust": 0,
-          "fear": 64,
+          "fear": 65,
           "rivalry": 52,
           "ideological_distance": 65,
           "economic_dependency": 18,
-          "military_pressure": 46,
-          "covert_activity": 75
+          "military_pressure": 48,
+          "covert_activity": 81
         },
         "a_to_b": {
           "from": "ork",
@@ -34127,12 +34031,12 @@
           "secret_stance": "rival",
           "metrics": {
             "trust": 0,
-            "fear": 58,
+            "fear": 60,
             "rivalry": 52,
             "ideological_distance": 65,
             "economic_dependency": 18,
-            "military_pressure": 40,
-            "covert_activity": 75
+            "military_pressure": 43,
+            "covert_activity": 81
           }
         },
         "b_to_a": {
@@ -34144,16 +34048,16 @@
           "secret_stance": "rival",
           "metrics": {
             "trust": 0,
-            "fear": 64,
+            "fear": 65,
             "rivalry": 52,
             "ideological_distance": 65,
             "economic_dependency": 18,
-            "military_pressure": 46,
-            "covert_activity": 72
+            "military_pressure": 48,
+            "covert_activity": 77
           }
         },
         "cause": "No standing accord; Two scorpions in a bottle",
-        "tension": 39.120502
+        "tension": 41.419502
       },
       {
         "a": "merchant",
@@ -34171,7 +34075,7 @@
           "ideological_distance": 65,
           "economic_dependency": 27,
           "military_pressure": 32,
-          "covert_activity": 62
+          "covert_activity": 65
         },
         "a_to_b": {
           "from": "merchant",
@@ -34187,7 +34091,7 @@
             "ideological_distance": 65,
             "economic_dependency": 27,
             "military_pressure": 23,
-            "covert_activity": 55
+            "covert_activity": 58
           }
         },
         "b_to_a": {
@@ -34204,11 +34108,11 @@
             "ideological_distance": 65,
             "economic_dependency": 27,
             "military_pressure": 32,
-            "covert_activity": 62
+            "covert_activity": 65
           }
         },
         "cause": "Profit overrides creed where the auditor cannot see",
-        "tension": 34.99875
+        "tension": 35.64775
       },
       {
         "a": "aeldari",
@@ -34444,7 +34348,7 @@
           "fear": 67,
           "rivalry": 50,
           "ideological_distance": 65,
-          "economic_dependency": 6,
+          "economic_dependency": 5,
           "military_pressure": 34,
           "covert_activity": 49
         },
@@ -34460,7 +34364,7 @@
             "fear": 67,
             "rivalry": 50,
             "ideological_distance": 65,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 34,
             "covert_activity": 49
           }
@@ -34477,7 +34381,7 @@
             "fear": 46,
             "rivalry": 50,
             "ideological_distance": 65,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 15,
             "covert_activity": 49
           }
@@ -34495,11 +34399,11 @@
         "secret_attitude": "transactional",
         "treaty_status": "none",
         "metrics": {
-          "trust": 27,
+          "trust": 26,
           "fear": 54,
           "rivalry": 18,
           "ideological_distance": 45,
-          "economic_dependency": 16,
+          "economic_dependency": 15,
           "military_pressure": 49,
           "covert_activity": 100
         },
@@ -34515,7 +34419,7 @@
             "fear": 54,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 49,
             "covert_activity": 95
           }
@@ -34528,11 +34432,11 @@
           "public_stance": "neutral",
           "secret_stance": "neutral",
           "metrics": {
-            "trust": 27,
+            "trust": 26,
             "fear": 46,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 41,
             "covert_activity": 100
           }
@@ -34665,7 +34569,7 @@
           "rivalry": 42,
           "ideological_distance": 65,
           "economic_dependency": 17,
-          "military_pressure": 27,
+          "military_pressure": 28,
           "covert_activity": 63
         },
         "a_to_b": {
@@ -34681,7 +34585,7 @@
             "rivalry": 42,
             "ideological_distance": 65,
             "economic_dependency": 17,
-            "military_pressure": 27,
+            "military_pressure": 28,
             "covert_activity": 42
           }
         },
@@ -34721,7 +34625,7 @@
           "ideological_distance": 45,
           "economic_dependency": 25,
           "military_pressure": 32,
-          "covert_activity": 91
+          "covert_activity": 86
         },
         "a_to_b": {
           "from": "aeldari",
@@ -34737,7 +34641,7 @@
             "ideological_distance": 45,
             "economic_dependency": 25,
             "military_pressure": 32,
-            "covert_activity": 77
+            "covert_activity": 72
           }
         },
         "b_to_a": {
@@ -34754,11 +34658,11 @@
             "ideological_distance": 45,
             "economic_dependency": 25,
             "military_pressure": 21,
-            "covert_activity": 91
+            "covert_activity": 86
           }
         },
         "cause": "No standing accord; The Cult of Mars guards what merchants would sell",
-        "tension": 18.220001
+        "tension": 17.220001
       },
       {
         "a": "tau",
@@ -34771,11 +34675,11 @@
         "treaty_status": "none",
         "metrics": {
           "trust": 30,
-          "fear": 44,
+          "fear": 43,
           "rivalry": 18,
           "ideological_distance": 45,
           "economic_dependency": 18,
-          "military_pressure": 42,
+          "military_pressure": 41,
           "covert_activity": 54
         },
         "a_to_b": {
@@ -34804,11 +34708,11 @@
           "secret_stance": "neutral",
           "metrics": {
             "trust": 31,
-            "fear": 44,
+            "fear": 43,
             "rivalry": 18,
             "ideological_distance": 45,
             "economic_dependency": 18,
-            "military_pressure": 42,
+            "military_pressure": 41,
             "covert_activity": 53
           }
         },
@@ -34826,7 +34730,7 @@
         "treaty_status": "none",
         "metrics": {
           "trust": 30,
-          "fear": 44,
+          "fear": 43,
           "rivalry": 18,
           "ideological_distance": 45,
           "economic_dependency": 19,
@@ -34859,7 +34763,7 @@
           "secret_stance": "neutral",
           "metrics": {
             "trust": 31,
-            "fear": 44,
+            "fear": 43,
             "rivalry": 18,
             "ideological_distance": 45,
             "economic_dependency": 19,
@@ -34881,10 +34785,10 @@
         "treaty_status": "none",
         "metrics": {
           "trust": 2,
-          "fear": 52,
+          "fear": 51,
           "rivalry": 42,
           "ideological_distance": 65,
-          "economic_dependency": 16,
+          "economic_dependency": 15,
           "military_pressure": 22,
           "covert_activity": 47
         },
@@ -34900,7 +34804,7 @@
             "fear": 47,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 18,
             "covert_activity": 46
           }
@@ -34914,10 +34818,10 @@
           "secret_stance": "rival",
           "metrics": {
             "trust": 2,
-            "fear": 52,
+            "fear": 51,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 22,
             "covert_activity": 47
           }
@@ -34939,7 +34843,7 @@
           "fear": 56,
           "rivalry": 42,
           "ideological_distance": 65,
-          "economic_dependency": 6,
+          "economic_dependency": 5,
           "military_pressure": 23,
           "covert_activity": 34
         },
@@ -34955,7 +34859,7 @@
             "fear": 56,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 23,
             "covert_activity": 25
           }
@@ -34972,7 +34876,7 @@
             "fear": 43,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 10,
             "covert_activity": 34
           }
@@ -34994,7 +34898,7 @@
           "fear": 50,
           "rivalry": 42,
           "ideological_distance": 65,
-          "economic_dependency": 16,
+          "economic_dependency": 15,
           "military_pressure": 26,
           "covert_activity": 45
         },
@@ -35010,7 +34914,7 @@
             "fear": 50,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 26,
             "covert_activity": 22
           }
@@ -35023,11 +34927,11 @@
           "public_stance": "rival",
           "secret_stance": "rival",
           "metrics": {
-            "trust": 3,
+            "trust": 2,
             "fear": 48,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 22,
             "covert_activity": 45
           }
@@ -35046,11 +34950,11 @@
         "treaty_status": "none",
         "metrics": {
           "trust": 3,
-          "fear": 60,
+          "fear": 59,
           "rivalry": 42,
           "ideological_distance": 65,
-          "economic_dependency": 6,
-          "military_pressure": 27,
+          "economic_dependency": 5,
+          "military_pressure": 26,
           "covert_activity": 27
         },
         "a_to_b": {
@@ -35062,11 +34966,11 @@
           "secret_stance": "rival",
           "metrics": {
             "trust": 4,
-            "fear": 60,
+            "fear": 59,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 6,
-            "military_pressure": 27,
+            "economic_dependency": 5,
+            "military_pressure": 26,
             "covert_activity": 15
           }
         },
@@ -35082,7 +34986,7 @@
             "fear": 41,
             "rivalry": 42,
             "ideological_distance": 65,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 9,
             "covert_activity": 27
           }
@@ -35324,7 +35228,7 @@
           "fear": 55,
           "rivalry": 18,
           "ideological_distance": 45,
-          "economic_dependency": 14,
+          "economic_dependency": 13,
           "military_pressure": 36,
           "covert_activity": 53
         },
@@ -35340,7 +35244,7 @@
             "fear": 55,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 14,
+            "economic_dependency": 13,
             "military_pressure": 36,
             "covert_activity": 51
           }
@@ -35357,68 +35261,13 @@
             "fear": 31,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 14,
+            "economic_dependency": 13,
             "military_pressure": 14,
             "covert_activity": 53
           }
         },
         "cause": "No standing accord",
         "tension": 7.2550006
-      },
-      {
-        "a": "aeldari",
-        "b": "ork",
-        "stance": "neutral",
-        "public_stance": "neutral",
-        "secret_stance": "neutral",
-        "public_attitude": "transactional",
-        "secret_attitude": "transactional",
-        "treaty_status": "none",
-        "metrics": {
-          "trust": 31,
-          "fear": 40,
-          "rivalry": 18,
-          "ideological_distance": 45,
-          "economic_dependency": 16,
-          "military_pressure": 32,
-          "covert_activity": 56
-        },
-        "a_to_b": {
-          "from": "aeldari",
-          "to": "ork",
-          "public_attitude": "transactional",
-          "secret_attitude": "transactional",
-          "public_stance": "neutral",
-          "secret_stance": "neutral",
-          "metrics": {
-            "trust": 32,
-            "fear": 40,
-            "rivalry": 18,
-            "ideological_distance": 45,
-            "economic_dependency": 16,
-            "military_pressure": 32,
-            "covert_activity": 31
-          }
-        },
-        "b_to_a": {
-          "from": "ork",
-          "to": "aeldari",
-          "public_attitude": "transactional",
-          "secret_attitude": "transactional",
-          "public_stance": "neutral",
-          "secret_stance": "neutral",
-          "metrics": {
-            "trust": 30,
-            "fear": 35,
-            "rivalry": 18,
-            "ideological_distance": 45,
-            "economic_dependency": 16,
-            "military_pressure": 25,
-            "covert_activity": 56
-          }
-        },
-        "cause": "No standing accord",
-        "tension": 5.3
       },
       {
         "a": "criminal",
@@ -35434,7 +35283,7 @@
           "fear": 37,
           "rivalry": 21,
           "ideological_distance": 45,
-          "economic_dependency": 6,
+          "economic_dependency": 5,
           "military_pressure": 18,
           "covert_activity": 47
         },
@@ -35450,8 +35299,8 @@
             "fear": 28,
             "rivalry": 21,
             "ideological_distance": 45,
-            "economic_dependency": 6,
-            "military_pressure": 11,
+            "economic_dependency": 5,
+            "military_pressure": 10,
             "covert_activity": 34
           }
         },
@@ -35467,13 +35316,68 @@
             "fear": 37,
             "rivalry": 21,
             "ideological_distance": 45,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 18,
             "covert_activity": 47
           }
         },
         "cause": "No standing accord",
         "tension": 4.6875
+      },
+      {
+        "a": "aeldari",
+        "b": "ork",
+        "stance": "neutral",
+        "public_stance": "neutral",
+        "secret_stance": "neutral",
+        "public_attitude": "transactional",
+        "secret_attitude": "transactional",
+        "treaty_status": "none",
+        "metrics": {
+          "trust": 32,
+          "fear": 38,
+          "rivalry": 18,
+          "ideological_distance": 45,
+          "economic_dependency": 15,
+          "military_pressure": 29,
+          "covert_activity": 48
+        },
+        "a_to_b": {
+          "from": "aeldari",
+          "to": "ork",
+          "public_attitude": "transactional",
+          "secret_attitude": "transactional",
+          "public_stance": "neutral",
+          "secret_stance": "neutral",
+          "metrics": {
+            "trust": 33,
+            "fear": 38,
+            "rivalry": 18,
+            "ideological_distance": 45,
+            "economic_dependency": 15,
+            "military_pressure": 29,
+            "covert_activity": 23
+          }
+        },
+        "b_to_a": {
+          "from": "ork",
+          "to": "aeldari",
+          "public_attitude": "transactional",
+          "secret_attitude": "transactional",
+          "public_stance": "neutral",
+          "secret_stance": "neutral",
+          "metrics": {
+            "trust": 31,
+            "fear": 34,
+            "rivalry": 18,
+            "ideological_distance": 45,
+            "economic_dependency": 15,
+            "military_pressure": 23,
+            "covert_activity": 48
+          }
+        },
+        "cause": "No standing accord",
+        "tension": 2.65
       },
       {
         "a": "criminal",
@@ -35540,11 +35444,11 @@
         "secret_attitude": "transactional",
         "treaty_status": "none",
         "metrics": {
-          "trust": 31,
+          "trust": 30,
           "fear": 44,
           "rivalry": 18,
           "ideological_distance": 45,
-          "economic_dependency": 6,
+          "economic_dependency": 5,
           "military_pressure": 26,
           "covert_activity": 34
         },
@@ -35560,7 +35464,7 @@
             "fear": 44,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 26,
             "covert_activity": 24
           }
@@ -35573,11 +35477,11 @@
           "public_stance": "neutral",
           "secret_stance": "neutral",
           "metrics": {
-            "trust": 31,
+            "trust": 30,
             "fear": 28,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 6,
+            "economic_dependency": 5,
             "military_pressure": 11,
             "covert_activity": 34
           }
@@ -35595,11 +35499,11 @@
         "secret_attitude": "transactional",
         "treaty_status": "none",
         "metrics": {
-          "trust": 32,
+          "trust": 31,
           "fear": 32,
           "rivalry": 18,
           "ideological_distance": 45,
-          "economic_dependency": 16,
+          "economic_dependency": 15,
           "military_pressure": 22,
           "covert_activity": 45
         },
@@ -35611,11 +35515,11 @@
           "public_stance": "neutral",
           "secret_stance": "neutral",
           "metrics": {
-            "trust": 33,
+            "trust": 32,
             "fear": 32,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 22,
             "covert_activity": 24
           }
@@ -35632,7 +35536,7 @@
             "fear": 32,
             "rivalry": 18,
             "ideological_distance": 45,
-            "economic_dependency": 16,
+            "economic_dependency": 15,
             "military_pressure": 20,
             "covert_activity": 45
           }
@@ -38743,7 +38647,7 @@
         "supply_risk": "collapsing",
         "strategic_priority": "crusade_level",
         "supply_resilience": 10.0,
-        "stranded": true,
+        "stranded": false,
         "shortages": [
           "ore",
           "foodstuffs"
@@ -38773,10 +38677,10 @@
           "xenos_value": 0.0
         },
         "tithe_status": "falsified",
-        "supply_risk": "collapsing",
+        "supply_risk": "disrupted",
         "strategic_priority": "subsector",
         "supply_resilience": 10.0,
-        "stranded": true,
+        "stranded": false,
         "shortages": [
           "foodstuffs"
         ]
@@ -40048,18 +39952,18 @@
         "friction": 0.35375795
       },
       {
-        "route_id": "route-sys-0012-sys-0014",
-        "from_system_id": "sys-0012",
-        "to_system_id": "sys-0014",
-        "volume": 0.3673768,
-        "friction": 0.08084672
-      },
-      {
         "route_id": "route-sys-0012-sys-0017",
         "from_system_id": "sys-0012",
         "to_system_id": "sys-0017",
         "volume": 8.787232,
         "friction": 0.34849575
+      },
+      {
+        "route_id": "route-sys-0013-sys-0022",
+        "from_system_id": "sys-0013",
+        "to_system_id": "sys-0022",
+        "volume": 7.9679804,
+        "friction": 0.33564273
       },
       {
         "route_id": "route-sys-0014-sys-0015-blackship",
@@ -40093,15 +39997,8 @@
         "route_id": "route-sys-0015-sys-0021",
         "from_system_id": "sys-0015",
         "to_system_id": "sys-0021",
-        "volume": 6.0212817,
-        "friction": 0.35264128
-      },
-      {
-        "route_id": "route-sys-0015-sys-0023",
-        "from_system_id": "sys-0015",
-        "to_system_id": "sys-0023",
-        "volume": 1.7472633,
-        "friction": 0.07761708
+        "volume": 1.3380628,
+        "friction": 0.07836474
       },
       {
         "route_id": "route-sys-0016-sys-0018-smuggling",
@@ -40139,13 +40036,6 @@
         "friction": 0.073833205
       },
       {
-        "route_id": "route-sys-0017-sys-0022",
-        "from_system_id": "sys-0017",
-        "to_system_id": "sys-0022",
-        "volume": 11.028505,
-        "friction": 0.54772264
-      },
-      {
         "route_id": "route-sys-0017-sys-0024",
         "from_system_id": "sys-0017",
         "to_system_id": "sys-0024",
@@ -40174,11 +40064,11 @@
         "friction": 0.26239294
       },
       {
-        "route_id": "route-sys-0018-sys-0023",
+        "route_id": "route-sys-0018-sys-0023-smuggling",
         "from_system_id": "sys-0018",
         "to_system_id": "sys-0023",
-        "volume": 1.2713422,
-        "friction": 0.058384664
+        "volume": 5.7210393,
+        "friction": 0.26273096
       },
       {
         "route_id": "route-sys-0018-sys-0024",
@@ -40216,11 +40106,11 @@
         "friction": 0.074121095
       },
       {
-        "route_id": "route-sys-0022-sys-0024",
+        "route_id": "route-sys-0022-sys-0024-smuggling",
         "from_system_id": "sys-0022",
         "to_system_id": "sys-0024",
-        "volume": 19.906462,
-        "friction": 0.7251406
+        "volume": 14.929847,
+        "friction": 0.5438554
       }
     ],
     "sector_balance": {
@@ -40357,11 +40247,11 @@
         "risk": "vulnerable"
       },
       {
-        "from_system_id": "sys-0022",
+        "from_system_id": "sys-0014",
         "to_system_id": "sys-0024",
         "resource": "food",
-        "route_id": "route-sys-0022-sys-0024",
-        "score": 31.811157,
+        "route_id": "route-sys-0014-sys-0024-webway",
+        "score": 28.632902,
         "risk": "vulnerable"
       }
     ]
@@ -44984,6 +44874,90 @@
         "weight": 45
       },
       {
+        "id": "evt-route-sys-0018-sys-0023-smuggling-discovery-1",
+        "date": "M36.080",
+        "era_id": "age_of_foundation",
+        "era_label": "Age of Foundation",
+        "relative_year": -967,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0018-sys-0023-smuggling",
+          "from_system_id": "sys-0018",
+          "to_system_id": "sys-0023"
+        },
+        "kind": "discovery",
+        "summary": "A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.",
+        "narrative": "A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.",
+        "factions": [],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0018-sys-0023-smuggling",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0018",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0023",
+            "role": "route_endpoint"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "region_recorded",
+            "description": "restricted charts gained a new strategic note",
+            "severity": 35
+          }
+        ],
+        "weight": 20
+      },
+      {
+        "id": "evt-route-sys-0013-sys-0022-discovery-0",
+        "date": "M36.081",
+        "era_id": "age_of_foundation",
+        "era_label": "Age of Foundation",
+        "relative_year": -1184,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0013-sys-0022",
+          "from_system_id": "sys-0013",
+          "to_system_id": "sys-0022"
+        },
+        "kind": "discovery",
+        "summary": "Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.",
+        "narrative": "Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.",
+        "factions": [],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0013-sys-0022",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0013",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0022",
+            "role": "route_endpoint"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "region_recorded",
+            "description": "restricted charts gained a new strategic note",
+            "severity": 35
+          }
+        ],
+        "weight": 45
+      },
+      {
         "id": "evt-route-sys-0008-sys-0020-discovery-0",
         "date": "M36.083",
         "era_id": "age_of_foundation",
@@ -45482,6 +45456,48 @@
         "weight": 30
       },
       {
+        "id": "evt-route-sys-0022-sys-0024-smuggling-discovery-0",
+        "date": "M36.092",
+        "era_id": "age_of_foundation",
+        "era_label": "Age of Foundation",
+        "relative_year": -850,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0022-sys-0024-smuggling",
+          "from_system_id": "sys-0022",
+          "to_system_id": "sys-0024"
+        },
+        "kind": "discovery",
+        "summary": "Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.",
+        "narrative": "Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.",
+        "factions": [],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0022-sys-0024-smuggling",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0022",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0024",
+            "role": "route_endpoint"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "region_recorded",
+            "description": "restricted charts gained a new strategic note",
+            "severity": 35
+          }
+        ],
+        "weight": 30
+      },
+      {
         "id": "evt-route-sys-0007-sys-0009-blackship-discovery-0",
         "date": "M36.093",
         "era_id": "age_of_foundation",
@@ -45522,6 +45538,48 @@
           }
         ],
         "weight": 30
+      },
+      {
+        "id": "evt-route-sys-0018-sys-0023-smuggling-discovery-0",
+        "date": "M36.094",
+        "era_id": "age_of_foundation",
+        "era_label": "Age of Foundation",
+        "relative_year": -1098,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0018-sys-0023-smuggling",
+          "from_system_id": "sys-0018",
+          "to_system_id": "sys-0023"
+        },
+        "kind": "discovery",
+        "summary": "Navigators marked the lane between Lamenta and Nicomedia Pyre as SmugglingLane; later charts record it as Hazardous.",
+        "narrative": "Navigators marked the lane between Lamenta and Nicomedia Pyre as SmugglingLane; later charts record it as Hazardous.",
+        "factions": [],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0018-sys-0023-smuggling",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0018",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0023",
+            "role": "route_endpoint"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "region_recorded",
+            "description": "restricted charts gained a new strategic note",
+            "severity": 35
+          }
+        ],
+        "weight": 45
       },
       {
         "id": "evt-route-sys-0006-sys-0015-discovery-0",
@@ -45648,90 +45706,6 @@
           }
         ],
         "weight": 30
-      },
-      {
-        "id": "evt-route-sys-0017-sys-0022-discovery-0",
-        "date": "M36.097",
-        "era_id": "age_of_foundation",
-        "era_label": "Age of Foundation",
-        "relative_year": -1159,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0017-sys-0022",
-          "from_system_id": "sys-0017",
-          "to_system_id": "sys-0022"
-        },
-        "kind": "discovery",
-        "summary": "Navigators marked the lane between Ossian Exile and Narthax as ChartedPassage; later charts record it as Unstable.",
-        "narrative": "Navigators marked the lane between Ossian Exile and Narthax as ChartedPassage; later charts record it as Unstable.",
-        "factions": [],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0017-sys-0022",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0017",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0022",
-            "role": "route_endpoint"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "region_recorded",
-            "description": "restricted charts gained a new strategic note",
-            "severity": 35
-          }
-        ],
-        "weight": 30
-      },
-      {
-        "id": "evt-route-sys-0015-sys-0021-discovery-0",
-        "date": "M36.098",
-        "era_id": "age_of_foundation",
-        "era_label": "Age of Foundation",
-        "relative_year": -830,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0015-sys-0021",
-          "from_system_id": "sys-0015",
-          "to_system_id": "sys-0021"
-        },
-        "kind": "discovery",
-        "summary": "Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Hazardous.",
-        "narrative": "Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Hazardous.",
-        "factions": [],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0015-sys-0021",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0015",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0021",
-            "role": "route_endpoint"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "region_recorded",
-            "description": "restricted charts gained a new strategic note",
-            "severity": 35
-          }
-        ],
-        "weight": 45
       },
       {
         "id": "evt-route-sys-0018-sys-0019-smuggling-discovery-0",
@@ -54212,48 +54186,6 @@
         "weight": 80
       },
       {
-        "id": "evt-route-sys-0012-sys-0014-warpstorm-0",
-        "date": "M40.714",
-        "era_id": "age_of_wounds",
-        "era_label": "Age of Wounds",
-        "relative_year": -32,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0012-sys-0014",
-          "from_system_id": "sys-0012",
-          "to_system_id": "sys-0014"
-        },
-        "kind": "warp_storm_surge",
-        "summary": "Navigators marked the lane between Heres and Penitent Fires as ChartedPassage; later charts record it as Perilous.",
-        "narrative": "Navigators marked the lane between Heres and Penitent Fires as ChartedPassage; later charts record it as Perilous.",
-        "factions": [],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0012-sys-0014",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0012",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0014",
-            "role": "route_endpoint"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "route_hazard",
-            "description": "navigation risk entered formal route doctrine",
-            "severity": 70
-          }
-        ],
-        "weight": 100
-      },
-      {
         "id": "evt-sys-0004-waaagh-2",
         "date": "M40.715",
         "era_id": "age_of_wounds",
@@ -54344,48 +54276,6 @@
         "weight": 85
       },
       {
-        "id": "evt-route-sys-0018-sys-0023-warpstorm-0",
-        "date": "M40.716",
-        "era_id": "age_of_wounds",
-        "era_label": "Age of Wounds",
-        "relative_year": -16,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0018-sys-0023",
-          "from_system_id": "sys-0018",
-          "to_system_id": "sys-0023"
-        },
-        "kind": "warp_storm_surge",
-        "summary": "Navigators marked the lane between Lamenta and Nicomedia Pyre as ChartedPassage; later charts record it as Perilous.",
-        "narrative": "Navigators marked the lane between Lamenta and Nicomedia Pyre as ChartedPassage; later charts record it as Perilous.",
-        "factions": [],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0018-sys-0023",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0018",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0023",
-            "role": "route_endpoint"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "route_hazard",
-            "description": "navigation risk entered formal route doctrine",
-            "severity": 70
-          }
-        ],
-        "weight": 100
-      },
-      {
         "id": "evt-route-sys-0011-sys-0016-smuggling-warpstorm-1",
         "date": "M40.717",
         "era_id": "age_of_wounds",
@@ -54415,6 +54305,48 @@
           {
             "kind": "system",
             "id": "sys-0016",
+            "role": "route_endpoint"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "route_hazard",
+            "description": "navigation risk entered formal route doctrine",
+            "severity": 70
+          }
+        ],
+        "weight": 100
+      },
+      {
+        "id": "evt-route-sys-0015-sys-0021-warpstorm-0",
+        "date": "M40.717",
+        "era_id": "age_of_wounds",
+        "era_label": "Age of Wounds",
+        "relative_year": -53,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0015-sys-0021",
+          "from_system_id": "sys-0015",
+          "to_system_id": "sys-0021"
+        },
+        "kind": "warp_storm_surge",
+        "summary": "Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Perilous.",
+        "narrative": "Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Perilous.",
+        "factions": [],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0015-sys-0021",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0015",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0021",
             "role": "route_endpoint"
           }
         ],
@@ -55016,48 +54948,6 @@
         "weight": 100
       },
       {
-        "id": "evt-route-sys-0015-sys-0023-warpstorm-0",
-        "date": "M40.739",
-        "era_id": "age_of_wounds",
-        "era_label": "Age of Wounds",
-        "relative_year": -39,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0015-sys-0023",
-          "from_system_id": "sys-0015",
-          "to_system_id": "sys-0023"
-        },
-        "kind": "warp_storm_surge",
-        "summary": "Navigators marked the lane between Benedica and Nicomedia Pyre as ChartedPassage; later charts record it as Perilous.",
-        "narrative": "Navigators marked the lane between Benedica and Nicomedia Pyre as ChartedPassage; later charts record it as Perilous.",
-        "factions": [],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0015-sys-0023",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0015",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0023",
-            "role": "route_endpoint"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "route_hazard",
-            "description": "navigation risk entered formal route doctrine",
-            "severity": 70
-          }
-        ],
-        "weight": 100
-      },
-      {
         "id": "evt-sys-0020-necron-2",
         "date": "M40.747",
         "era_id": "age_of_wounds",
@@ -55186,55 +55076,6 @@
         "weight": 70
       },
       {
-        "id": "evt-route-sys-0022-sys-0024-blockade-0",
-        "date": "M41.847",
-        "era_id": "age_of_wounds",
-        "era_label": "Age of Wounds",
-        "relative_year": -29,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0022-sys-0024",
-          "from_system_id": "sys-0022",
-          "to_system_id": "sys-0024"
-        },
-        "kind": "blockade",
-        "summary": "chaos became the dominant threat along the Narthax-Prosperis II route.",
-        "narrative": "chaos became the dominant threat along the Narthax-Prosperis II route.",
-        "factions": [
-          "chaos"
-        ],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0022-sys-0024",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0022",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0024",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "faction",
-            "id": "chaos",
-            "role": "participant"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "blockade_created",
-            "description": "void-control imbalance shaped later route politics",
-            "severity": 75
-          }
-        ],
-        "weight": 70
-      },
-      {
         "id": "evt-route-sys-0001-sys-0013-blockade-1",
         "date": "M41.848",
         "era_id": "age_of_wounds",
@@ -55333,55 +55174,6 @@
         "weight": 70
       },
       {
-        "id": "evt-route-sys-0017-sys-0022-blockade-1",
-        "date": "M41.851",
-        "era_id": "age_of_wounds",
-        "era_label": "Age of Wounds",
-        "relative_year": -79,
-        "anchor": {
-          "scope": "route",
-          "route_id": "route-sys-0017-sys-0022",
-          "from_system_id": "sys-0017",
-          "to_system_id": "sys-0022"
-        },
-        "kind": "blockade",
-        "summary": "chaos became the dominant threat along the Ossian Exile-Narthax route.",
-        "narrative": "chaos became the dominant threat along the Ossian Exile-Narthax route.",
-        "factions": [
-          "chaos"
-        ],
-        "entities": [
-          {
-            "kind": "route",
-            "id": "route-sys-0017-sys-0022",
-            "role": "anchor"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0017",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "system",
-            "id": "sys-0022",
-            "role": "route_endpoint"
-          },
-          {
-            "kind": "faction",
-            "id": "chaos",
-            "role": "participant"
-          }
-        ],
-        "consequences": [
-          {
-            "kind": "blockade_created",
-            "description": "void-control imbalance shaped later route politics",
-            "severity": 75
-          }
-        ],
-        "weight": 70
-      },
-      {
         "id": "evt-sys-0019-quarantine-1",
         "date": "M41.854",
         "era_id": "age_of_wounds",
@@ -55443,6 +55235,55 @@
           {
             "kind": "system",
             "id": "sys-0014",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "faction",
+            "id": "chaos",
+            "role": "participant"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "blockade_created",
+            "description": "void-control imbalance shaped later route politics",
+            "severity": 75
+          }
+        ],
+        "weight": 70
+      },
+      {
+        "id": "evt-route-sys-0013-sys-0022-blockade-1",
+        "date": "M41.855",
+        "era_id": "age_of_wounds",
+        "era_label": "Age of Wounds",
+        "relative_year": -42,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0013-sys-0022",
+          "from_system_id": "sys-0013",
+          "to_system_id": "sys-0022"
+        },
+        "kind": "blockade",
+        "summary": "chaos became the dominant threat along the Octavia-Narthax route.",
+        "narrative": "chaos became the dominant threat along the Octavia-Narthax route.",
+        "factions": [
+          "chaos"
+        ],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0013-sys-0022",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0013",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0022",
             "role": "route_endpoint"
           },
           {
@@ -56103,6 +55944,55 @@
           {
             "kind": "faction",
             "id": "necron",
+            "role": "participant"
+          }
+        ],
+        "consequences": [
+          {
+            "kind": "blockade_created",
+            "description": "void-control imbalance shaped later route politics",
+            "severity": 75
+          }
+        ],
+        "weight": 70
+      },
+      {
+        "id": "evt-route-sys-0022-sys-0024-smuggling-blockade-1",
+        "date": "M41.868",
+        "era_id": "age_of_wounds",
+        "era_label": "Age of Wounds",
+        "relative_year": -17,
+        "anchor": {
+          "scope": "route",
+          "route_id": "route-sys-0022-sys-0024-smuggling",
+          "from_system_id": "sys-0022",
+          "to_system_id": "sys-0024"
+        },
+        "kind": "blockade",
+        "summary": "chaos became the dominant threat along the Narthax-Prosperis II route.",
+        "narrative": "chaos became the dominant threat along the Narthax-Prosperis II route.",
+        "factions": [
+          "chaos"
+        ],
+        "entities": [
+          {
+            "kind": "route",
+            "id": "route-sys-0022-sys-0024-smuggling",
+            "role": "anchor"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0022",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "system",
+            "id": "sys-0024",
+            "role": "route_endpoint"
+          },
+          {
+            "kind": "faction",
+            "id": "chaos",
             "role": "participant"
           }
         ],

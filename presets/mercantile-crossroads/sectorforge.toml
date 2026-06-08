@@ -61,7 +61,9 @@ avoid_duplicate_world_type_in_system = true
 [generation.routes]
 enabled = true
 max_route_distance = 3
-route_density = 0.55
+# Dense-by-design crossroads: near-max under the convex density curve. The short
+# max_route_distance keeps the dense web local (many short trade hops).
+route_density = 0.85
 ensure_connected_graph = true
 
 [generation.relations]

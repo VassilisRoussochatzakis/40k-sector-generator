@@ -1160,8 +1160,8 @@ fn show_routes_form(ui: &mut Ui, state: &mut BuilderState) {
         labeled(
             ui,
             "Route density",
-            "How many routes to draw, as a fraction of the candidates (schema: \
-             routes.route_density).",
+            "Sparse at low values, dense at high; 0 = connectivity backbone only \
+             (schema: routes.route_density).",
             |ui| {
                 changed |= ui
                     .add(

@@ -23,6 +23,19 @@ fn feature_tag(f: &NotableFeature) -> String {
     format!("feature:{}", taxonomy::to_snake_case(f.as_ref()))
 }
 
+/// Convex exponent applied to the 0..=1 `route_density` slider before it scales
+/// route count. `> 1` biases the low/mid slider toward *fewer* routes (ease-in):
+/// at `2.0`, density `0.3` spends ~9% of the per-node edge budget and `0.5`
+/// spends 25%. Raise for an even sparser mid-range; `1.0` is a linear response.
+const ROUTE_DENSITY_CURVE: f64 = 2.0;
+
+/// Extra warp edges *per system* added at full density (`1.0`), on top of the
+/// `(n - 1)` connectivity backbone. Route count is tied to the system count
+/// rather than the `O(n²)` candidate-pair pool, so the slider stays usable on
+/// large sectors and at high `max_route_distance`. At full density the graph
+/// holds ~`(1 + this) * n` edges (≈ average degree `2 * (1 + this)`).
+const ROUTE_DENSITY_EXTRA_PER_NODE: f64 = 2.0;
+
 pub(super) fn generate_routes(
     config: &AppConfig,
     rules: &RouteRules,
@@ -137,9 +150,20 @@ pub(super) fn generate_routes(
             .then(a.1.cmp(&b.1))
     });
 
-    let total_pairs = candidates.len();
-    let target_count = ((total_pairs as f64) * density).round() as usize;
-    let target_count = target_count.max(systems.len().saturating_sub(1));
+    // Route count skews deliberately sparse. Rather than a flat fraction of the
+    // O(n²) candidate pool — which made mid-slider densities explode and large
+    // sectors / high `max_distance` unusable — `density` adds EXTRA edges on top
+    // of the (n - 1) spanning backbone, scaled linearly in the system count and
+    // bent convexly so the low/mid slider stays sparse: density 0 → backbone
+    // only; density 1 → ~ROUTE_DENSITY_EXTRA_PER_NODE * n extra edges.
+    let backbone = systems.len().saturating_sub(1);
+    let extra = (density.powf(ROUTE_DENSITY_CURVE)
+        * ROUTE_DENSITY_EXTRA_PER_NODE
+        * systems.len() as f64)
+        .round() as usize;
+    // `take` below saturates at `candidates.len()`, so over-targeting a small
+    // candidate pool harmlessly yields every available edge.
+    let target_count = backbone + extra;
 
     let mut chosen: Vec<(usize, usize, u32, Vec<Arc<str>>)> = Vec::with_capacity(target_count);
     let mut chosen_set: BTreeSet<(usize, usize)> = BTreeSet::new();

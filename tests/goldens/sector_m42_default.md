@@ -7,7 +7,7 @@ Generator: sectorforge v0.1.0
 - **Sector size:** 10×10
 - **Systems:** 24
 - **Worlds:** 102
-- **Routes:** 67
+- **Routes:** 65
 - **Factions:** 13
 
 ## Sector map
@@ -35,9 +35,8 @@ Chronicle events: **427**
 | Date | Era | Kind | Event |
 |---|---|---|---|
 | M40.709 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Viridia and Phlegethon Sanctuary as SmugglingLane; later charts record it as Perilous. |
-| M40.714 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Heres and Penitent Fires as ChartedPassage; later charts record it as Perilous. |
-| M40.716 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Lamenta and Nicomedia Pyre as ChartedPassage; later charts record it as Perilous. |
 | M40.717 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Dominicar and Castoria as SmugglingLane; later charts record it as Perilous. |
+| M40.717 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Perilous. |
 | M40.718 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Castoria and Narthax as SmugglingLane; later charts record it as Perilous. |
 | M40.722 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Ophidian Wreath and Prosperis II as ChartedPassage; later charts record it as Perilous. |
 | M40.726 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Ossian Exile and Ophidian Wreath as ChartedPassage; later charts record it as Perilous. |
@@ -46,6 +45,7 @@ Chronicle events: **427**
 | M40.731 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Tantalus Cradle and Phlegethon Sanctuary as ChartedPassage; later charts record it as Perilous. |
 | M40.738 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Phlegethon Sanctuary and Lamenta as SmugglingLane; later charts record it as Perilous. |
 | M40.739 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Caestorum and Castoria as SmugglingLane; later charts record it as Perilous. |
+| M40.711 | Age of Wounds | OrkWaaagh | A Waaagh! gathered momentum across Narthax. |
 
 ## System index
 
@@ -2925,8 +2925,8 @@ Chronicle events: **427**
 - **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Tomb Aquilon Pyre in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
 - **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Silent Leontar Crypt in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
 - **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Sanctified Ursae in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
+- **M36.081** · _Age of Foundation_ (Discovery): Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.
 - **M36.100** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Octavia as ChartedPassage; later charts record it as Hazardous.
-- **M37.157** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Crypt Maccabia Decimus into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -3430,9 +3430,9 @@ Chronicle events: **427**
 - **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Sollemnis in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
 - **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Lacuna in this era; the world was settled as a PlanetaryMonument and registered a LocalReligiousAuthorities.
 - **M36.095** · _Age of Foundation_ (Discovery): Navigators marked the lane between Sorrow Pilgrim and Benedica as StableWarpLane; later charts record it as Unstable.
-- **M36.098** · _Age of Foundation_ (Discovery): Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Hazardous.
 - **M36.100** · _Age of Foundation_ (Discovery): Navigators marked the lane between Penitent Fires and Benedica as BlackShip; later charts record it as Unstable.
 - **M36.106** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Benedica as StableWarpLane; later charts record it as Unstable.
+- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): A concealed passage linking Penitent Fires and Benedica entered restricted charts as BlackShip.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -3966,7 +3966,7 @@ Chronicle events: **427**
 - **M36.039** · _Age of Foundation_ (Foundation): Records place the founding of Orphidia in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
 - **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ossian Exile and Prosperis II as ChartedPassage; later charts record it as Unstable.
 - **M36.076** · _Age of Foundation_ (Discovery): Navigators marked the lane between Penitent Fires and Ossian Exile as StableWarpLane; later charts record it as Unstable.
-- **M36.097** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ossian Exile and Narthax as ChartedPassage; later charts record it as Unstable.
+- **M36.099** · _Age of Foundation_ (Discovery): Navigators marked the lane between Heres and Ossian Exile as ChartedPassage; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -4229,7 +4229,7 @@ Chronicle events: **427**
 - **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Abyssal Numitora Oath in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
 - **M36.072** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Narthax as SmugglingLane; later charts record it as Hazardous.
 - **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Ophidian Wreath as StableWarpLane; later charts record it as Unstable.
-- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Castoria and Lamenta as SmugglingLane; later charts record it as Unstable.
+- **M36.080** · _Age of Foundation_ (Discovery): A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -4881,7 +4881,7 @@ Chronicle events: **427**
 - **M36.077** · _Age of Foundation_ (Discovery): A concealed passage linking Hadar Crag and Ophidian Wreath entered restricted charts as SmugglingLane.
 - **M36.079** · _Age of Foundation_ (Discovery): Navigators marked the lane between Hadar Crag and Ophidian Wreath as SmugglingLane; later charts record it as Unstable.
 - **M36.089** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ophidian Wreath and Nicomedia Pyre as StableWarpLane; later charts record it as Unstable.
-- **M36.098** · _Age of Foundation_ (Discovery): Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Hazardous.
+- **M37.155** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Ursae.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5056,9 +5056,9 @@ Chronicle events: **427**
 - **M36.010** · _Age of Foundation_ (Foundation): Records place the founding of Silver Ataraxia Hollow in this era; the world was settled as an AgriWorld and registered an EcclesiarchicalAppointee.
 - **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Sarumis in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
 - **M36.072** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Narthax as SmugglingLane; later charts record it as Hazardous.
-- **M36.097** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ossian Exile and Narthax as ChartedPassage; later charts record it as Unstable.
+- **M36.081** · _Age of Foundation_ (Discovery): Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.
+- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.
 - **M36.100** · _Age of Foundation_ (Discovery): A concealed passage linking Lamenta and Narthax entered restricted charts as SmugglingLane.
-- **M36.109** · _Age of Foundation_ (Discovery): A concealed passage linking Castoria and Narthax entered restricted charts as SmugglingLane.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5095,7 +5095,7 @@ Chronicle events: **427**
 - Rebellion risk: 0
 - Xenos threat: 0
 - Warp instability: 0
-- Famine / resource stress: 20
+- Famine / resource stress: 0
 
 **Claims:**
 
@@ -5143,7 +5143,7 @@ Chronicle events: **427**
 - Rebellion risk: 50
 - Xenos threat: 45
 - Warp instability: 0
-- Famine / resource stress: 20
+- Famine / resource stress: 0
 
 **Claims:**
 
@@ -5273,12 +5273,12 @@ Chronicle events: **427**
 
 - **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of White Calibryx in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
 - **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Amaraxis in this era; the world was settled as an ExtractiveColony and registered a CorruptAristocrats.
+- **M36.080** · _Age of Foundation_ (Discovery): A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.
 - **M36.087** · _Age of Foundation_ (Discovery): Navigators marked the lane between Hadar Crag and Nicomedia Pyre as SmugglingLane; later charts record it as Unstable.
 - **M36.089** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ophidian Wreath and Nicomedia Pyre as StableWarpLane; later charts record it as Unstable.
+- **M36.094** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Nicomedia Pyre as SmugglingLane; later charts record it as Hazardous.
 - **M36.109** · _Age of Foundation_ (Discovery): A concealed passage linking Hadar Crag and Nicomedia Pyre entered restricted charts as SmugglingLane.
 - **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Amaraxis into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.176** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered White Calibryx into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.457** · _Age of Fracture_ (Secession): Central authority over Nicomedia Pyre collapsed into competing seats.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5406,11 +5406,11 @@ Chronicle events: **427**
 - **M36.018** · _Age of Foundation_ (Foundation): Records place the founding of Lucent Gravenor in this era; the world was settled as a HiveWorld and registered a Megacorporations.
 - **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Allecta Inner in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
 - **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ossian Exile and Prosperis II as ChartedPassage; later charts record it as Unstable.
+- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.
 - **M37.158** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Lucent Gravenor.
 - **M37.177** · _Age of Compliance_ (CommercialCharter): Aeldari concluded a treaty asserting standing rights on Lucent Gravenor.
 - **M38.286** · _Age of Fracture_ (AeldariActivity): A concealed passage linking Penitent Fires and Prosperis II entered restricted charts as Webway.
 - **M38.316** · _Age of Fracture_ (AeldariActivity): Aeldari raiding parties returned to Prosperis II.
-- **M39.441** · _Age of Compliance_ (Annexation): Chaos seized Lucent Gravenor by force of arms.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5556,31 +5556,29 @@ Chronicle events: **427**
 | route-sys-0011-sys-0015-blackship | sys-0011 | sys-0015 | 1 | BlackShip | Stable |
 | route-sys-0011-sys-0016-smuggling | sys-0011 | sys-0016 | 5 | SmugglingLane | Perilous |
 | route-sys-0011-sys-0019-smuggling | sys-0011 | sys-0019 | 4 | SmugglingLane | Hazardous |
-| route-sys-0012-sys-0014 | sys-0012 | sys-0014 | 4 | ChartedPassage | Perilous |
 | route-sys-0012-sys-0017 | sys-0012 | sys-0017 | 4 | ChartedPassage | Hazardous |
+| route-sys-0013-sys-0022 | sys-0013 | sys-0022 | 4 | ChartedPassage | Hazardous |
 | route-sys-0014-sys-0015-blackship | sys-0014 | sys-0015 | 5 | BlackShip | Unstable |
 | route-sys-0014-sys-0017 | sys-0014 | sys-0017 | 3 | StableWarpLane | Unstable |
 | route-sys-0014-sys-0018 | sys-0014 | sys-0018 | 2 | StableWarpLane | Stable |
 | route-sys-0014-sys-0024-webway | sys-0014 | sys-0024 | 6 | Webway | Stable |
-| route-sys-0015-sys-0021 | sys-0015 | sys-0021 | 4 | ChartedPassage | Hazardous |
-| route-sys-0015-sys-0023 | sys-0015 | sys-0023 | 4 | ChartedPassage | Perilous |
+| route-sys-0015-sys-0021 | sys-0015 | sys-0021 | 4 | ChartedPassage | Perilous |
 | route-sys-0016-sys-0018-smuggling | sys-0016 | sys-0018 | 1 | SmugglingLane | Unstable |
 | route-sys-0016-sys-0019-smuggling | sys-0016 | sys-0019 | 2 | SmugglingLane | Unstable |
 | route-sys-0016-sys-0022-smuggling | sys-0016 | sys-0022 | 5 | SmugglingLane | Perilous |
 | route-sys-0017-sys-0018 | sys-0017 | sys-0018 | 1 | StableWarpLane | Stable |
 | route-sys-0017-sys-0021 | sys-0017 | sys-0021 | 4 | ChartedPassage | Perilous |
-| route-sys-0017-sys-0022 | sys-0017 | sys-0022 | 3 | ChartedPassage | Unstable |
 | route-sys-0017-sys-0024 | sys-0017 | sys-0024 | 3 | ChartedPassage | Unstable |
 | route-sys-0018-sys-0019-smuggling | sys-0018 | sys-0019 | 2 | SmugglingLane | Unstable |
 | route-sys-0018-sys-0021 | sys-0018 | sys-0021 | 3 | StableWarpLane | Unstable |
 | route-sys-0018-sys-0022-smuggling | sys-0018 | sys-0022 | 4 | SmugglingLane | Hazardous |
-| route-sys-0018-sys-0023 | sys-0018 | sys-0023 | 4 | ChartedPassage | Perilous |
+| route-sys-0018-sys-0023-smuggling | sys-0018 | sys-0023 | 4 | SmugglingLane | Hazardous |
 | route-sys-0018-sys-0024 | sys-0018 | sys-0024 | 4 | ChartedPassage | Perilous |
 | route-sys-0019-sys-0021-smuggling | sys-0019 | sys-0021 | 2 | SmugglingLane | Unstable |
 | route-sys-0019-sys-0023-smuggling | sys-0019 | sys-0023 | 3 | SmugglingLane | Unstable |
 | route-sys-0021-sys-0023 | sys-0021 | sys-0023 | 1 | StableWarpLane | Unstable |
 | route-sys-0021-sys-0024 | sys-0021 | sys-0024 | 4 | ChartedPassage | Perilous |
-| route-sys-0022-sys-0024 | sys-0022 | sys-0024 | 2 | ChartedPassage | Stable |
+| route-sys-0022-sys-0024-smuggling | sys-0022 | sys-0024 | 2 | SmugglingLane | Unstable |
 
 ### Route control
 
@@ -5793,13 +5791,15 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 | route-sys-0011-sys-0019-smuggling | merchant | 0 | 76 | 0 | 0 | 30 | 70 |
 | route-sys-0011-sys-0019-smuggling | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
 | route-sys-0011-sys-0019-smuggling | tyranid | 0 | 0 | 0 | 0 | 58 | 42 |
-| route-sys-0012-sys-0014 | aeldari | 0 | 0 | 0 | 0 | 98 | 17 |
-| route-sys-0012-sys-0014 | chaos | 0 | 0 | 0 | 50 | 55 | 45 |
-| route-sys-0012-sys-0014 | drukhari | 0 | 0 | 0 | 27 | 100 | 12 |
-| route-sys-0012-sys-0014 | imperial | 30 | 23 | 0 | 0 | 32 | 68 |
 | route-sys-0012-sys-0017 | aeldari | 0 | 0 | 0 | 0 | 100 | 6 |
 | route-sys-0012-sys-0017 | chaos | 0 | 0 | 0 | 56 | 56 | 44 |
 | route-sys-0012-sys-0017 | imperial | 30 | 27 | 0 | 0 | 19 | 81 |
+| route-sys-0013-sys-0022 | chaos | 0 | 0 | 0 | 65 | 46 | 54 |
+| route-sys-0013-sys-0022 | imperial | 42 | 25 | 0 | 0 | 32 | 68 |
+| route-sys-0013-sys-0022 | merchant | 0 | 34 | 0 | 0 | 30 | 70 |
+| route-sys-0013-sys-0022 | ork | 0 | 0 | 0 | 55 | 16 | 84 |
+| route-sys-0013-sys-0022 | tyranid | 0 | 0 | 0 | 0 | 100 | 0 |
+| route-sys-0013-sys-0022 | xenos | 0 | 0 | 0 | 0 | 65 | 35 |
 | route-sys-0014-sys-0015-blackship | aeldari | 0 | 0 | 0 | 0 | 98 | 17 |
 | route-sys-0014-sys-0015-blackship | chaos | 0 | 0 | 0 | 41 | 71 | 29 |
 | route-sys-0014-sys-0015-blackship | drukhari | 0 | 0 | 0 | 27 | 100 | 12 |
@@ -5826,10 +5826,6 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 | route-sys-0015-sys-0021 | imperial | 32 | 16 | 0 | 0 | 50 | 50 |
 | route-sys-0015-sys-0021 | merchant | 0 | 73 | 0 | 0 | 30 | 70 |
 | route-sys-0015-sys-0021 | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
-| route-sys-0015-sys-0023 | chaos | 0 | 0 | 0 | 41 | 71 | 29 |
-| route-sys-0015-sys-0023 | imperial | 28 | 20 | 0 | 0 | 38 | 62 |
-| route-sys-0015-sys-0023 | merchant | 0 | 76 | 0 | 0 | 30 | 70 |
-| route-sys-0015-sys-0023 | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
 | route-sys-0016-sys-0018-smuggling | chaos | 0 | 0 | 0 | 57 | 54 | 46 |
 | route-sys-0016-sys-0018-smuggling | imperial | 31 | 28 | 0 | 0 | 34 | 66 |
 | route-sys-0016-sys-0018-smuggling | merchant | 0 | 27 | 0 | 0 | 76 | 24 |
@@ -5857,12 +5853,6 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 | route-sys-0017-sys-0021 | imperial | 30 | 22 | 0 | 0 | 36 | 64 |
 | route-sys-0017-sys-0021 | merchant | 0 | 70 | 0 | 0 | 30 | 70 |
 | route-sys-0017-sys-0021 | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
-| route-sys-0017-sys-0022 | aeldari | 0 | 0 | 0 | 0 | 100 | 6 |
-| route-sys-0017-sys-0022 | chaos | 0 | 0 | 0 | 62 | 56 | 44 |
-| route-sys-0017-sys-0022 | imperial | 25 | 30 | 0 | 0 | 25 | 75 |
-| route-sys-0017-sys-0022 | merchant | 0 | 34 | 0 | 0 | 30 | 70 |
-| route-sys-0017-sys-0022 | ork | 0 | 0 | 0 | 55 | 16 | 84 |
-| route-sys-0017-sys-0022 | tyranid | 0 | 0 | 0 | 0 | 100 | 0 |
 | route-sys-0017-sys-0024 | aeldari | 0 | 0 | 0 | 0 | 100 | 8 |
 | route-sys-0017-sys-0024 | chaos | 0 | 0 | 0 | 62 | 56 | 44 |
 | route-sys-0017-sys-0024 | imperial | 28 | 31 | 0 | 0 | 16 | 84 |
@@ -5886,11 +5876,11 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 | route-sys-0018-sys-0022-smuggling | ork | 0 | 0 | 0 | 55 | 16 | 84 |
 | route-sys-0018-sys-0022-smuggling | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
 | route-sys-0018-sys-0022-smuggling | tyranid | 0 | 0 | 0 | 0 | 89 | 11 |
-| route-sys-0018-sys-0023 | chaos | 0 | 0 | 0 | 57 | 54 | 46 |
-| route-sys-0018-sys-0023 | imperial | 28 | 25 | 0 | 0 | 32 | 68 |
-| route-sys-0018-sys-0023 | necron | 0 | 0 | 47 | 0 | 75 | 25 |
-| route-sys-0018-sys-0023 | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
-| route-sys-0018-sys-0023 | tyranid | 0 | 0 | 0 | 0 | 78 | 22 |
+| route-sys-0018-sys-0023-smuggling | chaos | 0 | 0 | 0 | 57 | 54 | 46 |
+| route-sys-0018-sys-0023-smuggling | imperial | 28 | 25 | 0 | 0 | 32 | 68 |
+| route-sys-0018-sys-0023-smuggling | necron | 0 | 0 | 47 | 0 | 75 | 25 |
+| route-sys-0018-sys-0023-smuggling | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
+| route-sys-0018-sys-0023-smuggling | tyranid | 0 | 0 | 0 | 0 | 78 | 22 |
 | route-sys-0018-sys-0024 | aeldari | 0 | 0 | 0 | 0 | 100 | 11 |
 | route-sys-0018-sys-0024 | chaos | 0 | 0 | 0 | 60 | 55 | 45 |
 | route-sys-0018-sys-0024 | imperial | 32 | 29 | 0 | 0 | 34 | 66 |
@@ -5915,13 +5905,13 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 | route-sys-0021-sys-0024 | imperial | 31 | 12 | 0 | 0 | 55 | 45 |
 | route-sys-0021-sys-0024 | merchant | 0 | 49 | 0 | 0 | 53 | 47 |
 | route-sys-0021-sys-0024 | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
-| route-sys-0022-sys-0024 | aeldari | 0 | 0 | 0 | 0 | 100 | 11 |
-| route-sys-0022-sys-0024 | chaos | 0 | 0 | 0 | 62 | 56 | 44 |
-| route-sys-0022-sys-0024 | imperial | 22 | 29 | 0 | 0 | 34 | 66 |
-| route-sys-0022-sys-0024 | merchant | 0 | 31 | 0 | 0 | 53 | 47 |
-| route-sys-0022-sys-0024 | ork | 0 | 0 | 0 | 55 | 16 | 84 |
-| route-sys-0022-sys-0024 | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
-| route-sys-0022-sys-0024 | tyranid | 0 | 0 | 0 | 0 | 100 | 0 |
+| route-sys-0022-sys-0024-smuggling | aeldari | 0 | 0 | 0 | 0 | 100 | 11 |
+| route-sys-0022-sys-0024-smuggling | chaos | 0 | 0 | 0 | 62 | 56 | 44 |
+| route-sys-0022-sys-0024-smuggling | imperial | 22 | 29 | 0 | 0 | 34 | 66 |
+| route-sys-0022-sys-0024-smuggling | merchant | 0 | 31 | 0 | 0 | 53 | 47 |
+| route-sys-0022-sys-0024-smuggling | ork | 0 | 0 | 0 | 55 | 16 | 84 |
+| route-sys-0022-sys-0024-smuggling | rebel | 0 | 0 | 0 | 55 | 41 | 59 |
+| route-sys-0022-sys-0024-smuggling | tyranid | 0 | 0 | 0 | 0 | 100 | 0 |
 
 ## Diplomacy digest
 
@@ -5935,25 +5925,25 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 - imperial ↔ rebel — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Sedition; Lex Imperialis answers in fire)
 - imperial ↔ tau — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; T'au Empire expansion borders Imperial space; Lex Imperialis chafes against unfettered profit)
 - imperial ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Tyranid swarm consumes all biomass)
-- aeldari ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 97; Aeldari motives are never trusted)
+- aeldari ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 94; Aeldari motives are never trusted)
 - rebel ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 94; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
-- aeldari ↔ chaos — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 92; Aeldari oppose the Dark Gods with prophecy)
 - necron ↔ rebel — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 91; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
 - imperial ↔ necron — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 91; Necron protocols reclaim the galaxy)
-- imperial ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 87; Imperial Creed: Suffer Not the Alien to Live)
-- drukhari ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 77; Drukhari slave-raids invite extermination)
+- imperial ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 89; Imperial Creed: Suffer Not the Alien to Live)
+- aeldari ↔ chaos — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 87; Aeldari oppose the Dark Gods with prophecy)
 - chaos ↔ necron — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 76; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
-- chaos ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 69; Both seek the death of Mankind, but neither suffers a rival; Two scorpions in a bottle)
+- drukhari ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 75; Drukhari slave-raids invite extermination)
+- chaos ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 72; Both seek the death of Mankind, but neither suffers a rival; Two scorpions in a bottle)
 - ork ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 63; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
 - necron ↔ ork — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 63; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
 - necron ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 59; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
 - merchant ↔ necron — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 55; Necron protocols reclaim the galaxy)
 - merchant ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 52; Tyranid swarm consumes all biomass)
 - necron ↔ tau — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 50; Necron protocols reclaim the galaxy)
-- aeldari ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 46; Tyranid swarm consumes all biomass)
 - necron ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 46; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
+- tyranid ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 45; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- aeldari ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 45; Tyranid swarm consumes all biomass)
 - tau ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 45; Tyranid swarm consumes all biomass)
-- tyranid ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 44; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
 - drukhari ↔ necron — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 44; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
 - criminal ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 44; Tyranid swarm consumes all biomass)
 - drukhari ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 44; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
@@ -5961,8 +5951,8 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 **Hostile:**
 
 - chaos ↔ tau — public Hostile, secret Hostile, treaty Vendetta (tension 90; T'au reject the warp outright)
-- chaos ↔ drukhari — public Suspicious, secret Hostile, treaty Nonaggression (tension 68; No standing accord; Two scorpions in a bottle)
-- aeldari ↔ drukhari — public Suspicious, secret Hostile, treaty Nonaggression (tension 45; Estranged Aeldari kin — old wounds)
+- chaos ↔ drukhari — public Suspicious, secret Hostile, treaty Nonaggression (tension 62; No standing accord; Two scorpions in a bottle)
+- aeldari ↔ drukhari — public Suspicious, secret Hostile, treaty Nonaggression (tension 43; Estranged Aeldari kin — old wounds)
 - aeldari ↔ necron — public Suspicious, secret Hostile, treaty Nonaggression (tension 32; Necron protocols reclaim the galaxy)
 - criminal ↔ necron — public Suspicious, secret Hostile, treaty Nonaggression (tension 32; Necron protocols reclaim the galaxy)
 
@@ -6035,8 +6025,6 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 - `sys-0018-w05` in `sys-0018` — shortages: foodstuffs
 - `sys-0019-w01` in `sys-0019` — shortages: foodstuffs
 - `sys-0020-w03` in `sys-0020` — shortages: foodstuffs, manufactured
-- `sys-0022-w01` in `sys-0022` — shortages: ore, foodstuffs
-- `sys-0022-w02` in `sys-0022` — shortages: foodstuffs
 
 **Top trade lanes:**
 
@@ -6058,26 +6046,26 @@ Ranked by [`display_importance`](src/importance.rs) (total projected power × �
 | Rank | Bucket | Kind / Group | Systems | Worlds | Importance | Members |
 |---:|---|---|---:|---:|---:|---|
 | 1 | Imperium (`imperial`) | imperial | 23 | 77 | 24514 |  |
-| 2 | _Other Factions_ | other | 13 | 21 | 2242 | chaos |
+| 2 | _Other Factions_ | other | 13 | 21 | 2224 | chaos |
 | 3 | _Criminal Networks_ | criminal | 19 | 22 | 1371 | merchant, rebel, criminal |
-| 4 | _Minor Xenos_ | xenos | 21 | 21 | 703 | tau, ork, xenos, tyranid, necron, leagues_of_votann |
-| 5 | _Minor Aeldari_ | aeldari | 4 | 4 | 110 | aeldari, drukhari |
+| 4 | _Minor Xenos_ | xenos | 21 | 21 | 695 | tau, ork, xenos, tyranid, necron, leagues_of_votann |
+| 5 | _Minor Aeldari_ | aeldari | 4 | 4 | 109 | aeldari, drukhari |
 
 ## Factions
 
 | ID | Name | Kind | Disposition | Subfactions | Forces | Systems | Worlds | Projection | Mil | Naval | Econ | Covert |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | aeldari | Aeldari | aeldari | insular | 2 | 66 | 3 | 3 | 38 | 6 | 4 | 2 | 11 |
-| chaos | Chaos | chaos | hostile | 7 | 197 | 13 | 21 | 379 | 96 | 53 | 29 | 57 |
+| chaos | Chaos | chaos | hostile | 7 | 197 | 13 | 21 | 376 | 95 | 53 | 29 | 57 |
 | criminal | Criminal Powers | criminal | opportunistic | 1 | 36 | 2 | 3 | 30 | 2 | 2 | 7 | 10 |
 | drukhari | Drukhari | drukhari | hostile | 1 | 31 | 1 | 1 | 5 | 1 | 1 | 0 | 2 |
 | imperial | Imperium | imperial | lawful | 20 | 351 | 23 | 77 | 2439 | 352 | 212 | 336 | 105 |
 | leagues_of_votann | Leagues of Votann | leagues_of_votann | opportunistic | 1 | 28 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | merchant | Merchant Powers | merchant | opportunistic | 1 | 29 | 9 | 11 | 201 | 9 | 21 | 55 | 17 |
-| necron | Necrons | necron | hostile | 1 | 38 | 3 | 3 | 32 | 9 | 5 | 1 | 6 |
-| ork | Orks | ork | hostile | 1 | 40 | 4 | 4 | 57 | 20 | 7 | 3 | 4 |
+| necron | Necrons | necron | hostile | 1 | 38 | 3 | 3 | 31 | 9 | 5 | 1 | 6 |
+| ork | Orks | ork | hostile | 1 | 40 | 4 | 4 | 55 | 19 | 6 | 3 | 4 |
 | rebel | Rebel Powers | rebel | hostile | 1 | 21 | 8 | 8 | 91 | 26 | 4 | 8 | 19 |
 | tau | T'au Empire | tau | opportunistic | 1 | 42 | 4 | 4 | 73 | 10 | 9 | 10 | 6 |
 | tyranid | Tyranids | tyranid | hostile | 2 | 66 | 5 | 5 | 28 | 8 | 4 | 1 | 8 |
-| xenos | Xenos | xenos | hostile | 2 | 50 | 5 | 5 | 40 | 9 | 4 | 4 | 7 |
+| xenos | Xenos | xenos | hostile | 2 | 50 | 5 | 5 | 41 | 9 | 4 | 4 | 7 |
 

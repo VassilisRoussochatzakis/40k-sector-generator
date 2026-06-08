@@ -41,7 +41,13 @@ fn main() -> ExitCode {
     } else {
         resolve_project_dir(&cli)
     };
-    let path = resolve_sector_path(&cli);
+    let path = match resolve_sector_path(&cli) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
     let (mut app, title) = if let Some(p) = &cli.segmentum {
         match sectorforge_viewer::segmentum_view::load_segmentum_bundle(p) {
             Ok(bundle) => {
@@ -100,17 +106,34 @@ fn main() -> ExitCode {
     }
 }
 
-fn resolve_sector_path(cli: &Cli) -> Option<Utf8PathBuf> {
+/// Resolve the sector.json to load at startup.
+///
+/// - `Ok(None)` — no load argument given; the caller launches an empty editor.
+/// - `Ok(Some(p))` — path to load (positional path is passed through as-is; a
+///   missing file then surfaces as a `load_sector_json` error).
+/// - `Err(msg)` — a `--project` directory was given but holds no
+///   `out/sector.json`; `msg` names the path we tried so the misuse is visible
+///   instead of silently falling back to an empty editor.
+fn resolve_sector_path(cli: &Cli) -> Result<Option<Utf8PathBuf>, String> {
     if let Some(p) = &cli.sector {
-        return Some(p.clone());
+        return Ok(Some(p.clone()));
     }
     if let Some(dir) = &cli.project {
         let p = dir.join("out").join("sector.json");
         if p.exists() {
-            return Some(p);
+            return Ok(Some(p));
         }
+        let mut msg = format!("--project '{dir}': no sector.json found at '{p}'");
+        // Common mistake: passing the sector.json file itself to --project,
+        // which then resolves to '<file>/out/sector.json'.
+        if dir.extension() == Some("json") {
+            msg.push_str(&format!(
+                "\nhint: --project takes a directory; to load that file directly, pass it positionally: sectorforge-viewer '{dir}'"
+            ));
+        }
+        return Err(msg);
     }
-    None
+    Ok(None)
 }
 
 fn resolve_project_dir(cli: &Cli) -> Option<Utf8PathBuf> {

@@ -58,13 +58,17 @@
 //! `data_catalogs` or `sector.json` during preview, so `override == None` stays
 //! byte-identical to the legacy path (invariants #2/#6). Only the new-project
 //! **commit** folds the patch into the persisted regions catalog, at the
-//! `open_project` session boundary. The per-condition weights list is heavier and
-//! shown read-only for v1; the four scalars are the editable surface. Re-rolling
+//! `open_project` session boundary. Both the four scalars *and* the per-condition
+//! phenomenon pool (add / remove conditions, edit each kind + weight + label) are
+//! editable; an empty pool falls back to the engine's built-in conditions. Re-rolling
 //! the step still re-rolls region placement (`Stage::Regions` nonce).
 
 use egui::{RichText, Sense, Ui};
 
 use sectorforge::config::{PlacementMode, WorldSelectionMode};
+use sectorforge::factions::{FactionDef, FactionsFile};
+use sectorforge::ids::FactionId;
+use sectorforge::regions::{ConditionEntry, RegionConditionKind};
 use sectorforge::SectorProgress;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::sector_view::{SectorGeom, SectorView};
@@ -238,7 +242,10 @@ fn step_hint(step: GenStep) -> &'static str {
              preview renders through System contents; re-roll re-rolls placement (and downstream)."
         }
         GenStep::Systems => "Worlds per system, features, and star-colour bias.",
-        GenStep::Factions => "Faction roster and assignment (edited in the FACTIONS tab).",
+        GenStep::Factions => {
+            "Build and edit the faction roster, then assign it to worlds. Re-roll re-assigns the \
+             current roster without changing it."
+        }
         GenStep::Routes => "Warp routes: density, distance, and connectivity.",
         GenStep::Finalize => {
             "Overlays through the chronicle (relations, economy, history). Run the full prefix \
@@ -407,7 +414,9 @@ fn show_placement_form(ui: &mut Ui, state: &mut BuilderState) {
 /// [`BuilderState::note_config_edit`] so Regions + downstream re-derive. The
 /// override never touches `data_catalogs` during preview — it is substituted into
 /// the `ProjectInput` only at run-assembly (`synthesize_project_input_with`). The
-/// per-condition weights list is shown read-only for v1.
+/// per-condition phenomenon pool (kind + weight + label) is fully editable too —
+/// add / remove conditions and tune each; an empty pool falls back to the engine's
+/// built-in conditions, so it stays byte-identical to the legacy path.
 fn show_regions_form(ui: &mut Ui, state: &mut BuilderState) {
     ui.colored_label(
         palette::warning(),
@@ -468,41 +477,98 @@ fn show_regions_form(ui: &mut Ui, state: &mut BuilderState) {
         },
     );
 
-    if changed {
-        // Write the patched config directly to the session (transient — no
-        // command), then re-run the prefix so the preview reflects the new
-        // regions and every downstream stage (invariant #5; §2.3 DAG rule).
-        if let Some(session) = state.iterative_gen.as_mut() {
-            session.regions_override = Some(cfg.clone());
-        }
-        state.note_config_edit(ui.ctx(), GenStep::Regions);
-    }
-
-    // Per-condition weights are heavier to edit; show a labeled read-only summary
-    // for v1 (the list still flows through to the preview + commit verbatim).
+    // Per-condition phenomenon pool — fully editable here on the same transient
+    // override seam as the scalar knobs: add / remove conditions and tune each
+    // kind + weight + optional label. An empty list falls back to the engine's
+    // built-in pool, so "no conditions" stays byte-identical to the legacy path.
     ui.add_space(4.0);
     ui.label(RichText::new("Conditions").strong());
     ui.separator();
     if cfg.conditions.is_empty() {
         ui.small(
-            "Using the built-in condition pool (warp storm / turbulence / calm corridor / \
-             blackout / anomaly). Edit the per-condition weights in the REGIONS tab.",
+            "No explicit conditions — the engine samples its built-in pool (warp storm / \
+             turbulence / calm corridor / blackout / anomaly). Add one below to override the mix.",
         );
-    } else {
-        for entry in &cfg.conditions {
-            let name = entry
-                .label
-                .clone()
-                .unwrap_or_else(|| entry.kind.label().to_string());
-            ui.small(format!("• {name} — weight {:.2}", entry.weight));
-        }
-        ui.add_space(2.0);
-        ui.small("Per-condition weights are read-only here; edit them in the REGIONS tab.");
+    }
+
+    // Defer the structural delete: can't remove from `cfg.conditions` while the
+    // row loop borrows it.
+    let mut remove_idx: Option<usize> = None;
+    for (i, entry) in cfg.conditions.iter_mut().enumerate() {
+        ui.horizontal(|ui| {
+            ui_kit::combo(("iter_region_cfg_kind", i), entry.kind.label()).show_ui(ui, |ui| {
+                for k in RegionConditionKind::ALL {
+                    if ui.selectable_label(entry.kind == *k, k.label()).clicked() {
+                        entry.kind = *k;
+                        changed = true;
+                    }
+                }
+            });
+            ui.label("weight")
+                .on_hover_text("Relative likelihood of this phenomenon (schema: weight).");
+            changed |= ui
+                .add(
+                    egui::DragValue::new(&mut entry.weight)
+                        .range(0.0..=100.0)
+                        .speed(0.1),
+                )
+                .changed();
+            let mut label_buf = entry.label.clone().unwrap_or_default();
+            if ui
+                .add(
+                    egui::TextEdit::singleline(&mut label_buf)
+                        .hint_text("label (optional)")
+                        .desired_width(120.0),
+                )
+                .changed()
+            {
+                entry.label = if label_buf.trim().is_empty() {
+                    None
+                } else {
+                    Some(label_buf)
+                };
+                changed = true;
+            }
+            if ui
+                .button(RichText::new("×").color(palette::danger()))
+                .on_hover_text("Remove this phenomenon")
+                .clicked()
+            {
+                remove_idx = Some(i);
+            }
+        });
+    }
+    if let Some(i) = remove_idx {
+        cfg.conditions.remove(i);
+        changed = true;
+    }
+    if ui
+        .button("➕  Add phenomenon")
+        .on_hover_text("Add another phenomenon to the generation mix")
+        .clicked()
+    {
+        cfg.conditions.push(ConditionEntry {
+            kind: RegionConditionKind::Turbulence,
+            weight: 1.0,
+            label: None,
+        });
+        changed = true;
     }
 
     if !cfg.enabled {
         ui.add_space(4.0);
         ui.small("Regions are disabled — enable them above to grow warp overlays in the preview.");
+    }
+
+    if changed {
+        // Write the patched config (scalars *and* conditions) directly to the
+        // session (transient — no command), then re-run the prefix so the preview
+        // reflects the new regions and every downstream stage (invariant #5;
+        // §2.3 DAG rule).
+        if let Some(session) = state.iterative_gen.as_mut() {
+            session.regions_override = Some(cfg);
+        }
+        state.note_config_edit(ui.ctx(), GenStep::Regions);
     }
 }
 
@@ -600,34 +666,296 @@ fn show_systems_form(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-/// Factions — read-only. The roster is document state in the data catalogs (not
-/// a scalar config block), and ITERATIVE_GENERATION.md §5 frames it that way with
-/// no session-override recipe (unlike the Regions patch). So the wizard inherits
-/// the project roster and only *assigns* from it; editing the roster itself
-/// happens in the FACTIONS tab, through the command bus.
+/// Factions — an **editable roster** for this wizard, built faction-by-faction.
+///
+/// The roster lives in the data catalogs as a [`FactionsFile`], not as a scalar
+/// config block, so edits here follow the regions-override precedent (§5 /
+/// invariant #5 carve-out): they are written into the session's transient
+/// [`IterativeGenSession::catalogs_override`] — lazily seeded from the live
+/// catalogs on the first edit — and never touch `data_catalogs` / `sector.json`
+/// during preview. Each edit is followed by [`BuilderState::note_config_edit`]
+/// so the prefix re-runs and the new roster is re-assigned to worlds
+/// immediately; [`BuilderState::commit_new_project`] folds the override into the
+/// persisted project. Re-roll re-assigns the current roster without changing it.
+/// Style / colour / glyph / presence-preference fields stay in the richer
+/// FACTIONS tab; this step covers the identity + assignment-weight surface.
 fn show_factions_form(ui: &mut Ui, state: &mut BuilderState) {
     ui.colored_label(
         palette::warning(),
-        "The faction roster is project data, edited in the FACTIONS tab — not in this wizard. The \
-         wizard assigns factions from that roster; re-roll re-assigns without changing it.",
-    );
-    ui.add_space(2.0);
-    let n = state
-        .data_catalogs
-        .factions
-        .as_ref()
-        .map(|f| f.factions.len())
-        .unwrap_or(0);
-    labeled(
-        ui,
-        "Roster size",
-        "How many factions are available to assign.",
-        |ui| {
-            ui.label(RichText::new(n.to_string()).monospace());
-        },
+        "Build the faction roster for this sector. Edits are an in-memory patch for this wizard — \
+         assigned to worlds in the preview now and persisted into the new project on Commit; the \
+         source faction file is untouched until then. Colours, glyphs and presence preferences can \
+         be fine-tuned later in the FACTIONS tab.",
     );
     ui.add_space(4.0);
-    ui.small("Re-roll this step to re-assign factions to worlds without changing the roster.");
+
+    // The *effective* roster the preview is using: the session override patch if
+    // the user has touched it, otherwise the live catalog, otherwise empty. Edits
+    // below operate on this local copy, then commit it wholesale into the session
+    // override (so the rest of the catalog set is preserved into the override +
+    // the eventual commit).
+    let mut file = state
+        .iterative_gen
+        .as_ref()
+        .and_then(|s| s.catalogs_override.as_ref())
+        .and_then(|c| c.factions.clone())
+        .or_else(|| state.data_catalogs.factions.clone())
+        .unwrap_or_else(|| FactionsFile {
+            factions: Vec::new(),
+        });
+
+    let mut changed = false;
+
+    ui.horizontal(|ui| {
+        if ui
+            .button("➕  Add faction")
+            .on_hover_text("Append a new faction to the roster")
+            .clicked()
+        {
+            let id = next_new_faction_id(&file.factions);
+            file.factions.push(default_faction(id));
+            changed = true;
+        }
+        ui.label(
+            RichText::new(format!("{} in roster", file.factions.len()))
+                .color(palette::chrome_text_dim()),
+        );
+    });
+
+    if file.factions.is_empty() {
+        ui.add_space(4.0);
+        ui.small(
+            "No factions yet — add one above. With an empty roster the sector has no faction \
+             presence.",
+        );
+    }
+    ui.add_space(4.0);
+
+    // Structural edits can't run while `file.factions` is borrowed by the loop, so
+    // record one deferred op and apply it after the scroll area returns.
+    enum RowOp {
+        Remove(usize),
+        Duplicate(usize),
+    }
+    let mut op: Option<RowOp> = None;
+    // Auto-expand each card while the roster is small; collapse once it grows so
+    // the list (and the preview below it) stays navigable.
+    let auto_open = file.factions.len() <= 4;
+
+    egui::ScrollArea::vertical()
+        .id_salt("iter_faction_roster")
+        .max_height(300.0)
+        .show(ui, |ui| {
+            for (idx, fac) in file.factions.iter_mut().enumerate() {
+                let header = if fac.name.trim().is_empty() {
+                    format!("#{}", idx + 1)
+                } else {
+                    format!("{}  ·  {}", fac.name, fac.kind)
+                };
+                egui::CollapsingHeader::new(header)
+                    .id_salt(idx)
+                    .default_open(auto_open)
+                    .show(ui, |ui| {
+                        changed |= faction_card(ui, idx, fac);
+                        ui.add_space(2.0);
+                        ui.horizontal(|ui| {
+                            if ui
+                                .button("⧉  Duplicate")
+                                .on_hover_text("Copy this faction with a new id")
+                                .clicked()
+                            {
+                                op = Some(RowOp::Duplicate(idx));
+                            }
+                            if ui
+                                .button(RichText::new("🗑  Remove").color(palette::danger()))
+                                .on_hover_text("Delete this faction from the roster")
+                                .clicked()
+                            {
+                                op = Some(RowOp::Remove(idx));
+                            }
+                        });
+                    });
+            }
+        });
+
+    match op {
+        Some(RowOp::Remove(idx)) if idx < file.factions.len() => {
+            file.factions.remove(idx);
+            changed = true;
+        }
+        Some(RowOp::Duplicate(idx)) => {
+            if let Some(mut copy) = file.factions.get(idx).cloned() {
+                copy.id = duplicate_faction_id(&file.factions, &copy.id);
+                file.factions.insert(idx + 1, copy);
+                changed = true;
+            }
+        }
+        _ => {}
+    }
+
+    if changed {
+        // Seed the override from the live catalogs on the first edit (cloning the
+        // rest of the catalog set so it is preserved into the preview + commit),
+        // then store the patched roster. Transient — no command (invariant #5
+        // carve-out), mirroring `regions_override`.
+        let seed = state
+            .iterative_gen
+            .as_ref()
+            .is_some_and(|s| s.catalogs_override.is_none())
+            .then(|| state.data_catalogs.clone());
+        if let Some(session) = state.iterative_gen.as_mut() {
+            let catalogs = match seed {
+                Some(live) => session.catalogs_override.insert(live),
+                None => session
+                    .catalogs_override
+                    .as_mut()
+                    .expect("override is present when no seed was taken"),
+            };
+            catalogs.factions = Some(file);
+        }
+        state.note_config_edit(ui.ctx(), GenStep::Factions);
+    }
+}
+
+/// Disposition presets offered by the wizard's faction editor (mirrors the
+/// FACTIONS tab's `KNOWN_DISPOSITIONS`); the combo also accepts a custom value.
+const ITER_DISPOSITIONS: &[&str] = &[
+    "lawful",
+    "insular",
+    "secretive",
+    "opportunistic",
+    "hostile",
+    "zealous",
+];
+
+/// Per-faction field editor. Covers the identity + assignment-weight surface
+/// (`name` / `id` / `kind` / `default_disposition` / `weight`); returns whether
+/// any field changed this frame. `idx` salts the disposition combo so each card's
+/// dropdown has a distinct id.
+fn faction_card(ui: &mut Ui, idx: usize, fac: &mut FactionDef) -> bool {
+    let mut changed = false;
+    labeled(ui, "Name", "Display name of the faction.", |ui| {
+        changed |= ui
+            .add(egui::TextEdit::singleline(&mut fac.name).hint_text("faction name"))
+            .changed();
+    });
+    labeled(
+        ui,
+        "ID",
+        "Unique id — lowercase, no spaces. Used by presence, routes, and saved files.",
+        |ui| {
+            let mut id_buf = fac.id.to_string();
+            if ui
+                .add(egui::TextEdit::singleline(&mut id_buf).hint_text("faction_id"))
+                .changed()
+            {
+                fac.id = FactionId::new(id_buf.trim());
+                changed = true;
+            }
+        },
+    );
+    labeled(
+        ui,
+        "Type",
+        "Faction kind (e.g. imperial, ork, chaos, tau). Drives presence heuristics and the default \
+         top-faction grouping.",
+        |ui| {
+            changed |= ui
+                .add(egui::TextEdit::singleline(&mut fac.kind).hint_text("imperial"))
+                .changed();
+        },
+    );
+    labeled(
+        ui,
+        "Disposition",
+        "Default stance toward sector authority (schema: default_disposition).",
+        |ui| {
+            let before = fac.default_disposition.clone();
+            let label = if fac.default_disposition.is_empty() {
+                "(unset)".to_owned()
+            } else {
+                fac.default_disposition.clone()
+            };
+            ui_kit::combo(("iter_disp", idx), label).show_ui(ui, |ui| {
+                for preset in ITER_DISPOSITIONS {
+                    if ui
+                        .selectable_label(fac.default_disposition == *preset, *preset)
+                        .clicked()
+                    {
+                        fac.default_disposition = (*preset).into();
+                    }
+                }
+                ui.separator();
+                ui.add(
+                    egui::TextEdit::singleline(&mut fac.default_disposition)
+                        .hint_text("custom disposition"),
+                );
+            });
+            changed |= fac.default_disposition != before;
+        },
+    );
+    labeled(
+        ui,
+        "Spawn weight",
+        "Relative likelihood of being assigned to worlds (schema: weight).",
+        |ui| {
+            changed |= ui
+                .add(
+                    egui::DragValue::new(&mut fac.weight)
+                        .speed(0.1)
+                        .range(0.0..=100.0),
+                )
+                .changed();
+        },
+    );
+    changed
+}
+
+/// Mint the next unused `new_faction_N` id (mirrors the FACTIONS tab add path).
+fn next_new_faction_id(factions: &[FactionDef]) -> FactionId {
+    let mut suffix = 1u32;
+    let mut id = format!("new_faction_{suffix}");
+    while factions.iter().any(|f| f.id.as_str() == id) {
+        suffix += 1;
+        id = format!("new_faction_{suffix}");
+    }
+    FactionId::new(id)
+}
+
+/// Derive a unique `<base>_copyN` id for a duplicated faction.
+fn duplicate_faction_id(factions: &[FactionDef], base: &FactionId) -> FactionId {
+    let base = base.to_string();
+    let mut n = 2u32;
+    loop {
+        let candidate = format!("{base}_copy{n}");
+        if !factions.iter().any(|f| f.id.as_str() == candidate) {
+            return FactionId::new(candidate);
+        }
+        n += 1;
+    }
+}
+
+/// A blank force-level faction carrying the FACTIONS-tab defaults.
+fn default_faction(id: FactionId) -> FactionDef {
+    FactionDef {
+        faction: None,
+        faction_name: None,
+        subfaction: None,
+        subfaction_name: None,
+        id,
+        name: "New faction".into(),
+        kind: "imperial".into(),
+        weight: 1.0,
+        default_disposition: "lawful".into(),
+        preferred_world_types: Vec::new(),
+        preferred_governments: Vec::new(),
+        preferred_notable_features: Vec::new(),
+        style_fill: None,
+        style_accent: None,
+        style_glyph: None,
+        style_border: None,
+        legend_visible: None,
+    }
 }
 
 /// Routes — [`sectorforge::config::RouteGenerationConfig`].

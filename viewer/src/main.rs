@@ -8,7 +8,7 @@
 
 use std::process::ExitCode;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 
 use sectorforge_viewer::App;
@@ -22,7 +22,7 @@ struct Cli {
     /// Path to a generated sector.json file.
     #[arg(conflicts_with = "segmentum")]
     sector: Option<Utf8PathBuf>,
-    /// Project directory (loads <dir>/out/sector.json).
+    /// Project dir, its out/ dir, or a sector.json file (first that exists).
     #[arg(long, conflicts_with = "segmentum")]
     project: Option<Utf8PathBuf>,
     /// Path to a composed segmentum.json file.
@@ -36,17 +36,20 @@ fn main() -> ExitCode {
     // a breadcrumb to the OS temp dir first. See `gui-core/src/diagnostics.rs`.
     sectorforge_gui_core::diagnostics::install_panic_hook("viewer");
     let cli = Cli::parse();
-    let project_dir = if cli.segmentum.is_some() {
-        None
-    } else {
-        resolve_project_dir(&cli)
-    };
     let path = match resolve_sector_path(&cli) {
         Ok(p) => p,
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(2);
         }
+    };
+    // When --project is used, the editor's project root is the parent of the
+    // `out/` dir holding sector.json — not the (dir / out-dir / file) path the
+    // user typed. Matches the auto-detect in app/lifecycle.rs.
+    let project_dir = if cli.project.is_some() {
+        path.as_deref().and_then(infer_project_dir)
+    } else {
+        None
     };
     let (mut app, title) = if let Some(p) = &cli.segmentum {
         match sectorforge_viewer::segmentum_view::load_segmentum_bundle(p) {
@@ -109,36 +112,155 @@ fn main() -> ExitCode {
 /// Resolve the sector.json to load at startup.
 ///
 /// - `Ok(None)` — no load argument given; the caller launches an empty editor.
-/// - `Ok(Some(p))` — path to load (positional path is passed through as-is; a
-///   missing file then surfaces as a `load_sector_json` error).
-/// - `Err(msg)` — a `--project` directory was given but holds no
-///   `out/sector.json`; `msg` names the path we tried so the misuse is visible
-///   instead of silently falling back to an empty editor.
+/// - `Ok(Some(p))` — path to load. The positional arg is passed through as-is
+///   (a missing file then surfaces as a `load_sector_json` error). `--project`
+///   accepts the project dir, its `out/` dir, or the `sector.json` file itself
+///   and resolves to the first candidate that exists.
+/// - `Err(msg)` — `--project` was given but none of its candidates exist; `msg`
+///   lists every path tried so the misuse is visible instead of silently
+///   falling back to an empty editor.
 fn resolve_sector_path(cli: &Cli) -> Result<Option<Utf8PathBuf>, String> {
     if let Some(p) = &cli.sector {
         return Ok(Some(p.clone()));
     }
     if let Some(dir) = &cli.project {
-        let p = dir.join("out").join("sector.json");
-        if p.exists() {
-            return Ok(Some(p));
+        // Accept any of: the sector.json file itself, a project dir
+        // (`<dir>/out/sector.json`), or its out dir (`<dir>/sector.json`).
+        // First existing file wins.
+        let candidates = [
+            dir.clone(),
+            dir.join("out").join("sector.json"),
+            dir.join("sector.json"),
+        ];
+        if let Some(hit) = candidates.iter().find(|c| c.is_file()) {
+            return Ok(Some(hit.clone()));
         }
-        let mut msg = format!("--project '{dir}': no sector.json found at '{p}'");
-        // Common mistake: passing the sector.json file itself to --project,
-        // which then resolves to '<file>/out/sector.json'.
-        if dir.extension() == Some("json") {
-            msg.push_str(&format!(
-                "\nhint: --project takes a directory; to load that file directly, pass it positionally: sectorforge-viewer '{dir}'"
-            ));
-        }
-        return Err(msg);
+        let tried = candidates
+            .iter()
+            .map(|c| c.as_str())
+            .collect::<Vec<_>>()
+            .join("\n  ");
+        return Err(format!(
+            "--project '{dir}': no sector.json found. tried:\n  {tried}"
+        ));
     }
     Ok(None)
 }
 
-fn resolve_project_dir(cli: &Cli) -> Option<Utf8PathBuf> {
-    if let Some(dir) = &cli.project {
-        return Some(dir.clone());
+/// Infer the editor's project root from a resolved sector.json path: when the
+/// file sits in an `out/` dir (`<root>/out/sector.json`), the root is its
+/// grandparent; otherwise there is no inferable project root. Mirrors the
+/// auto-detect in app/lifecycle.rs so all three `--project` input forms
+/// (project dir, out dir, file) collapse to the same root.
+fn infer_project_dir(sector: &Utf8Path) -> Option<Utf8PathBuf> {
+    let parent = sector.parent()?;
+    if parent.file_name() == Some("out") {
+        Some(parent.parent()?.to_path_buf())
+    } else {
+        None
     }
-    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cli(sector: Option<&str>, project: Option<&str>) -> Cli {
+        Cli {
+            sector: sector.map(Utf8PathBuf::from),
+            project: project.map(Utf8PathBuf::from),
+            segmentum: None,
+        }
+    }
+
+    fn touch(p: &std::path::Path) {
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, "{}").unwrap();
+    }
+
+    fn utf8(p: std::path::PathBuf) -> Utf8PathBuf {
+        Utf8PathBuf::from_path_buf(p).unwrap()
+    }
+
+    #[test]
+    fn no_load_arg_resolves_to_none() {
+        assert_eq!(resolve_sector_path(&cli(None, None)), Ok(None));
+    }
+
+    #[test]
+    fn positional_passes_through_unchecked() {
+        // A missing positional file is fine here — the caller surfaces it as a
+        // load error, so resolution just forwards it verbatim.
+        let got = resolve_sector_path(&cli(Some("/nope/sector.json"), None));
+        assert_eq!(got, Ok(Some(Utf8PathBuf::from("/nope/sector.json"))));
+    }
+
+    #[test]
+    fn project_accepts_project_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        touch(&tmp.path().join("out").join("sector.json"));
+        let dir = utf8(tmp.path().to_path_buf());
+        assert_eq!(
+            resolve_sector_path(&cli(None, Some(dir.as_str()))),
+            Ok(Some(dir.join("out").join("sector.json")))
+        );
+    }
+
+    #[test]
+    fn project_accepts_out_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let out = utf8(tmp.path().join("out"));
+        touch(out.join("sector.json").as_std_path());
+        assert_eq!(
+            resolve_sector_path(&cli(None, Some(out.as_str()))),
+            Ok(Some(out.join("sector.json")))
+        );
+    }
+
+    #[test]
+    fn project_accepts_sector_json_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let file = utf8(tmp.path().join("out").join("sector.json"));
+        touch(file.as_std_path());
+        assert_eq!(
+            resolve_sector_path(&cli(None, Some(file.as_str()))),
+            Ok(Some(file))
+        );
+    }
+
+    #[test]
+    fn project_prefers_out_sector_over_bare_sector() {
+        let tmp = tempfile::tempdir().unwrap();
+        touch(&tmp.path().join("out").join("sector.json"));
+        touch(&tmp.path().join("sector.json"));
+        let dir = utf8(tmp.path().to_path_buf());
+        // Generator layout wins: <dir>/out/sector.json, not <dir>/sector.json.
+        assert_eq!(
+            resolve_sector_path(&cli(None, Some(dir.as_str()))),
+            Ok(Some(dir.join("out").join("sector.json")))
+        );
+    }
+
+    #[test]
+    fn project_with_no_sector_errors_and_lists_paths() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = utf8(tmp.path().to_path_buf());
+        let err = resolve_sector_path(&cli(None, Some(dir.as_str()))).unwrap_err();
+        assert!(err.contains("no sector.json found"), "{err}");
+        assert!(err.contains("out/sector.json"), "{err}");
+    }
+
+    #[test]
+    fn infer_project_dir_from_out_layout() {
+        // All three input forms resolve to <root>/out/sector.json, so the
+        // project root is always the grandparent.
+        let p = Utf8PathBuf::from("/x/proj/out/sector.json");
+        assert_eq!(infer_project_dir(&p), Some(Utf8PathBuf::from("/x/proj")));
+    }
+
+    #[test]
+    fn infer_project_dir_none_outside_out_layout() {
+        let p = Utf8PathBuf::from("/x/proj/sector.json");
+        assert_eq!(infer_project_dir(&p), None);
+    }
 }

@@ -24,6 +24,9 @@ rfd.workspace = true
 # `default_fonts`. Build with `--no-default-features` to fall back to stock egui.
 default = ["sectorforge-gui-core/bundled-fonts"]
 
+[dev-dependencies]
+tempfile.workspace = true
+
 # RUST_FIXES.md QW-C-4: disallowed-types/methods level comes from the workspace;
 # the per-path ban list lives in this crate's `clippy.toml` (paint primitives
 # belong in gui-core).

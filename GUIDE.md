@@ -2419,7 +2419,7 @@ Several `s*` aliases are registered in [.cargo/config.toml](.cargo/config.toml):
   `cargo run` feature set and forces a full rebuild on first launch.
 
 ```bash
-# From a project DIRECTORY (loads <dir>/out/sector.json)
+# --project accepts the project dir, its out/ dir, or the sector.json file
 cargo sview --project examples/m42_project
 
 # Direct path to a sector.json
@@ -2441,11 +2441,13 @@ cargo sg examples/m42_project --seed 42 --light --out /tmp/run
 ```
 
 With no args, the GUI launches an empty editor. To load the default example,
-use: `cargo sview --project examples/m42_project`. Note `--project` takes a
-*directory*; pointing it at a `sector.json` file (or any dir with no
-`out/sector.json`) now exits non-zero with the path it tried — it no longer
-falls back silently to an empty editor. To load a file directly, pass it
-positionally instead.
+use: `cargo sview --project examples/m42_project`. `--project` is flexible: it
+accepts the project dir (`examples/m42_project`), its `out/` dir, or the
+`sector.json` file itself — the first existing of `<arg>`,
+`<arg>/out/sector.json`, `<arg>/sector.json` wins, and the editor's project root
+is resolved to the parent of `out/` regardless of which form you passed. If none
+resolve, it exits non-zero listing the paths it tried rather than silently
+opening an empty editor.
 
 **Note:** The GUI requires a graphical display (X11/Wayland on Linux, native on macOS/Windows).
 It will not run on headless servers. For CLI-only workflows, use `sectorforge generate`

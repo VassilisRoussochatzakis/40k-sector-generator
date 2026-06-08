@@ -77,6 +77,7 @@ pub struct FeatureWeightsCacheValue {
 pub mod catalog_session;
 pub mod derivations;
 pub mod generation_ops;
+pub mod iterative_gen;
 pub mod nav;
 pub mod panel_state;
 pub mod regions_ops;
@@ -87,6 +88,7 @@ pub mod undo;
 #[cfg(test)]
 mod tests;
 
+pub use iterative_gen::{GenStep, IterativeGenSession, IterativeJobResult};
 pub use nav::EntityRef;
 pub(crate) use panel_state::{
     BriefingPanelState, ConflictPanelState, DragPendingState, EconomyPanelState, FeedbackState,
@@ -432,6 +434,14 @@ pub struct BuilderState {
     /// RANDOM.md §7.4: off-thread random-sector generation runtime (job +
     /// live progress snapshot) backing the §7.3 wizard's progress popup.
     pub(crate) random_gen: RandomGenState,
+    /// ITERATIVE_GENERATION.md Phase S: the stage-by-stage random-generation
+    /// wizard session — working config knobs, root seed, per-stage re-roll
+    /// nonces, current step, cached preview sector, dest folder, and the
+    /// off-thread prefix-run job. `None` unless the wizard is open. **Transient
+    /// view/session state** (§V2 / invariant #5 carve-out): never serialised
+    /// into `sector.json`, never on the undo stack, written **directly** (not
+    /// through the command bus). See [`iterative_gen`].
+    pub iterative_gen: Option<IterativeGenSession>,
     /// §EX1..§EX8: EXPORT tab runtime — the chosen output folder, the
     /// standalone-system export form, the cached markdown preview, and the
     /// last export error. The per-format / bitmap / HTML knobs live on
@@ -554,6 +564,7 @@ impl BuilderState {
             analytics: AnalyticsState::new(),
             segmentum: SegmentumState::default(),
             random_gen: RandomGenState::default(),
+            iterative_gen: None,
             export: ExportState::new(),
         }
     }

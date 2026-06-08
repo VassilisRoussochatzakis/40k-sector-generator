@@ -111,6 +111,28 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                     baseline: "_full".to_string(),
                 });
             }
+            // ITERATIVE_GENERATION.md Phase P — open the stage-by-stage wizard.
+            // Mirrors the random launcher but, instead of a one-shot modal,
+            // installs a transient `IterativeGenSession` (never document state)
+            // and switches to the ITERATIVE tab. The session adopts the current
+            // project's config as its baseline and rolls fresh generation knobs
+            // from a freshly-minted seed at the default Medium (square) size.
+            if ui
+                .button("🧭  Iterative sector…")
+                .on_hover_text(
+                    "Build a random sector one step at a time — tune and re-roll each stage \
+                     (size, placement, regions, contents, factions, routes), then commit",
+                )
+                .clicked()
+            {
+                let seed = sectorforge::random_sector::mint_seed();
+                state.iterative_gen = Some(crate::builder::state::IterativeGenSession::new(
+                    state.config.clone(),
+                    seed,
+                    sectorforge::random_sector::SectorSize::Medium,
+                ));
+                state.set_active_tab(crate::builder::state::BuilderTab::IterativeGen);
+            }
             save_project::show(ui, state);
             // Single "Save all" — flush every dirty editor buffer, then run the
             // full project save.

@@ -23,7 +23,11 @@ pub(super) fn build_event(
     let mut rng = stage_rng(
         &ctx.sector.seed,
         "history-event",
-        &format!("{}:{kind:?}:{ordinal}", super::anchor_key(&anchor)),
+        &format!(
+            "{}:{kind:?}:{ordinal}{}",
+            super::anchor_key(&anchor),
+            ctx.reroll_suffix,
+        ),
     );
     let date = synthesise_date(&mut rng, ctx.cfg, kind, ordinal);
     let (era_id, era_label, relative_year) = synthesise_era(&mut rng, ctx.cfg, kind);

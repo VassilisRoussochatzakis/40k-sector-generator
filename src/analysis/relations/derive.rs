@@ -48,6 +48,21 @@ pub fn derive_with_threshold(
     cfg: &RelationsConfig,
     min_world_presence: usize,
 ) -> RelationsMatrix {
+    derive_with_threshold_reroll(sector, cfg, min_world_presence, "")
+}
+
+/// Like [`derive_with_threshold`] but folds a re-roll suffix into the per-pair
+/// `("relations","<a>:<b>")` RNG discriminator. An empty suffix reproduces the
+/// legacy key byte-for-byte (golden-safe, invariant #2); a `":r{n}"` suffix
+/// yields a deterministically different perturbation set. Used by the iterative
+/// generation seam ([`crate::generation::generate_prefix`]).
+#[must_use]
+pub fn derive_with_threshold_reroll(
+    sector: &GeneratedSector,
+    cfg: &RelationsConfig,
+    min_world_presence: usize,
+    reroll_suffix: &str,
+) -> RelationsMatrix {
     let all_facs: &[GeneratedFaction] = &sector.factions;
     if all_facs.len() < 2 {
         return RelationsMatrix::default();
@@ -96,7 +111,16 @@ pub fn derive_with_threshold(
             let (lo_id, _hi_id) = canonical_pair(&a.id, &b.id);
             let (lo, hi) = if lo_id == a.id { (a, b) } else { (b, a) };
 
-            let rel = compute_pair(&sector.seed, lo, hi, cfg, &rules, &cooccur, &idx);
+            let rel = compute_pair(
+                &sector.seed,
+                lo,
+                hi,
+                cfg,
+                &rules,
+                &cooccur,
+                &idx,
+                reroll_suffix,
+            );
             pairs.push(rel);
         }
     }
@@ -186,6 +210,7 @@ impl<'c> RuleIndex<'c> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compute_pair(
     seed: &str,
     a: &GeneratedFaction,
@@ -194,6 +219,7 @@ fn compute_pair(
     rules: &RuleIndex,
     cooccur: &BTreeMap<(u32, u32), CooccurStats>,
     idx: &FxMap<&str, u32>,
+    reroll_suffix: &str,
 ) -> FactionRelation {
     // 1) Explicit pair override (id-based) wins outright.
     for ov in &cfg.pair_overrides {
@@ -241,7 +267,7 @@ fn compute_pair(
     }
 
     // 4) Deterministic perturbation derived from the pair.
-    let discriminator = format!("{}:{}", a.id, b.id);
+    let discriminator = format!("{}:{}{reroll_suffix}", a.id, b.id);
     let mut rng = stage_rng(seed, "relations", &discriminator);
     // 25% chance to shift by ±1 — breaks symmetric ties so two same-kind/
     // same-disposition pairs are not always identical.

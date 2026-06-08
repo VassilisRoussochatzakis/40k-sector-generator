@@ -7,7 +7,16 @@ use crate::errors::SectorError;
 use crate::rng;
 use crate::sector_model::{hex_distance, HexCoord};
 
-pub(super) fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
+/// Deterministic system placement on the sector hex grid.
+///
+/// `reroll_suffix` is folded into the RNG discriminator: an empty suffix
+/// reproduces the legacy `("placement","sector")` key exactly (byte-identical);
+/// a `":r{n}"` suffix yields a deterministic distinct layout. The one-shot path
+/// passes `""` via [`super::generate_with_progress_and_cancel`].
+pub(super) fn place_systems_reroll(
+    config: &AppConfig,
+    reroll_suffix: &str,
+) -> Result<Vec<HexCoord>, SectorError> {
     let g = &config.generation;
     let width = g.sector_width as i32;
     let height = g.sector_height as i32;
@@ -34,7 +43,7 @@ pub(super) fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorE
         }
     }
 
-    let mut rng = rng::stage_rng(&g.seed, "placement", "sector");
+    let mut rng = rng::stage_rng(&g.seed, "placement", &format!("sector{reroll_suffix}"));
     // Fisher-Yates with rng.gen_range — deterministic given seed.
     for i in (1..all.len()).rev() {
         let j = rng.gen_range(0..=i);
@@ -88,6 +97,14 @@ pub(super) fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorE
     // Sort so output ordering is deterministic regardless of shuffle order.
     placed.sort();
     Ok(placed)
+}
+
+/// Legacy (no-reroll) placement — equivalent to `place_systems_reroll(config,
+/// "")`. Retained for the byte-contract tests below; the pipeline always calls
+/// the reroll-aware variant directly.
+#[cfg(test)]
+fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
+    place_systems_reroll(config, "")
 }
 
 #[cfg(test)]

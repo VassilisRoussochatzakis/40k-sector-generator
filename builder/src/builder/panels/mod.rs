@@ -63,6 +63,7 @@ pub mod history;
 pub mod hooks;
 pub mod intel;
 pub mod interestingness;
+pub mod iterative_gen;
 pub mod map;
 pub mod missions;
 pub mod nav;

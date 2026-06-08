@@ -274,6 +274,22 @@ pub fn load_regions_file(path: &Utf8Path) -> Result<RegionsConfig, SectorError> 
 /// root seed and the grid dimensions.
 #[must_use]
 pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -> Vec<WarpRegion> {
+    build_regions_reroll(seed, width, height, cfg, "")
+}
+
+/// Like [`build_regions`] but folds a re-roll suffix into the RNG discriminator.
+/// An empty suffix reproduces the legacy `("regions","sector")` key exactly
+/// (byte-identical); a `":r{n}"` suffix yields a deterministic distinct region
+/// layout. Regions **draws** RNG (grid shuffle + weighted condition picks), so
+/// the suffix matters here.
+#[must_use]
+pub fn build_regions_reroll(
+    seed: &str,
+    width: u32,
+    height: u32,
+    cfg: &RegionsConfig,
+    reroll_suffix: &str,
+) -> Vec<WarpRegion> {
     if !cfg.enabled || cfg.count == 0 || width == 0 || height == 0 {
         return Vec::new();
     }
@@ -285,7 +301,7 @@ pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -
     let target = (cfg.count as usize).min(total_cells / 2);
     let mean_size = cfg.mean_size.max(1) as usize;
 
-    let mut rng = stage_rng(seed, "regions", "sector");
+    let mut rng = stage_rng(seed, "regions", &format!("sector{reroll_suffix}"));
     let mut all: Vec<HexCoord> = Vec::with_capacity(total_cells);
     for r in 0..height as i32 {
         for q in 0..width as i32 {

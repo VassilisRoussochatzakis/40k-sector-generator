@@ -159,12 +159,15 @@ fn default_map_tool_is_select() {
 
 #[test]
 fn builder_tab_all_is_full_n1_set() {
-    // §N1 lists 24 working tabs (PROJECT..EXPORT) plus the two XC-1 diagnostics
-    // tabs (VALIDATION, INVARIANTS) appended at the right edge → 26 total.
-    assert_eq!(BuilderTab::ALL.len(), 26);
+    // §N1 working tabs (PROJECT..EXPORT) — now including the
+    // ITERATIVE_GENERATION.md Phase P IterativeGen tab slotted just before EXPORT
+    // — plus the two XC-1 diagnostics tabs (VALIDATION, INVARIANTS) appended at
+    // the right edge → 27 total.
+    assert_eq!(BuilderTab::ALL.len(), 27);
     assert_eq!(BuilderTab::ALL[0], BuilderTab::Project);
     assert_eq!(BuilderTab::ALL[1], BuilderTab::Map);
-    assert_eq!(BuilderTab::ALL[23], BuilderTab::Export);
+    assert_eq!(BuilderTab::ALL[23], BuilderTab::IterativeGen);
+    assert_eq!(BuilderTab::ALL[24], BuilderTab::Export);
     assert_eq!(*BuilderTab::ALL.last().unwrap(), BuilderTab::Invariants);
 }
 
@@ -2194,6 +2197,249 @@ mod off_bus_seam {
         assert!(
             s.index.systems.contains_key(&sentinel),
             "#46: undo of a Regions-only command must skip the index rebuild"
+        );
+    }
+}
+
+/// ITERATIVE_GENERATION.md Phase S: `GenStep` ↔ `Stage` mapping, the square-grid
+/// invariant on session construction (#4), and the DAG step/invalidation logic
+/// (§2.3). These are pure-logic checks — no egui context, no engine run.
+mod iterative_gen_session {
+    use super::*;
+    use crate::builder::state::iterative_gen::{GenStep, IterativeGenSession};
+    use sectorforge::random_sector::SectorSize;
+    use sectorforge::Stage;
+
+    #[test]
+    fn genstep_stage_matches_section_2_3_table() {
+        assert_eq!(GenStep::Size.stage(), None);
+        assert_eq!(GenStep::Placement.stage(), Some(Stage::Placement));
+        assert_eq!(GenStep::Regions.stage(), Some(Stage::Regions));
+        assert_eq!(GenStep::Systems.stage(), Some(Stage::Systems));
+        assert_eq!(GenStep::Factions.stage(), Some(Stage::Factions));
+        // Routes covers Routes..RouteControls — cutoff is RouteControls.
+        assert_eq!(GenStep::Routes.stage(), Some(Stage::RouteControls));
+        // Finalize runs the whole pipeline.
+        assert_eq!(GenStep::Finalize.stage(), Some(Stage::Chronicle));
+        assert_eq!(GenStep::Finalize.stage(), Some(Stage::LAST));
+    }
+
+    #[test]
+    fn early_steps_preview_through_systems_so_systems_render() {
+        // The documented v1 nuance: Placement/Regions render through Systems so
+        // placed systems are visible, even though their *own* re-roll stage is
+        // earlier.
+        assert_eq!(GenStep::Size.preview_through(), None);
+        assert_eq!(GenStep::Placement.preview_through(), Some(Stage::Systems));
+        assert_eq!(GenStep::Regions.preview_through(), Some(Stage::Systems));
+        // From Systems onward, preview cutoff == owned stage.
+        assert_eq!(GenStep::Systems.preview_through(), GenStep::Systems.stage());
+        assert_eq!(GenStep::Routes.preview_through(), GenStep::Routes.stage());
+        assert_eq!(
+            GenStep::Finalize.preview_through(),
+            GenStep::Finalize.stage()
+        );
+    }
+
+    #[test]
+    fn genstep_navigation_is_a_total_order_over_all() {
+        assert_eq!(GenStep::ALL.len(), 7);
+        assert_eq!(GenStep::Size.prev(), None);
+        assert_eq!(GenStep::Finalize.next(), None);
+        // Round-trip every adjacent pair.
+        for w in GenStep::ALL.windows(2) {
+            assert_eq!(w[0].next(), Some(w[1]));
+            assert_eq!(w[1].prev(), Some(w[0]));
+            assert!(w[0] < w[1], "ALL must be in ascending Ord order");
+        }
+    }
+
+    fn new_session(dim: u32) -> IterativeGenSession {
+        let baseline = BuilderState::new_blank("t", "T", "ignored", dim, dim);
+        IterativeGenSession::new(
+            baseline.config.clone(),
+            "iter-seed".to_string(),
+            SectorSize::Custom { dim },
+        )
+    }
+
+    #[test]
+    fn new_session_is_square_and_seeded_from_roller() {
+        // Invariant #4: width == height == the picked dimension.
+        let s = new_session(24);
+        assert_eq!(s.config.generation.sector_width, 24);
+        assert_eq!(s.config.generation.sector_height, 24);
+        assert_eq!(
+            s.config.generation.sector_width,
+            s.config.generation.sector_height
+        );
+        // The session adopts the caller's seed and starts with no re-rolls
+        // (nonce-0 ⇒ byte-identical to one-shot, invariant #2) on the Size step.
+        assert_eq!(s.root_seed, "iter-seed");
+        assert_eq!(s.config.generation.seed, "iter-seed");
+        assert_eq!(s.current_step, GenStep::Size);
+        assert_eq!(s.accepted_through, None);
+        assert!(s.preview.is_none());
+        assert!(s.dest.is_none());
+        assert!(!s.is_running());
+        // Generation knobs match the byte-deterministic roller for (seed, size).
+        let rolled = sectorforge::random_sector::build_random_config(
+            "iter-seed",
+            SectorSize::Custom { dim: 24 },
+        );
+        assert_eq!(
+            s.config.generation.system_count,
+            rolled.generation.system_count
+        );
+    }
+
+    #[test]
+    fn new_session_default_nonces_are_byte_identical_suffix() {
+        // RerollNonces::default() ⇒ "" for every stage (invariant #2).
+        let s = new_session(16);
+        for step in GenStep::ALL {
+            if let Some(stage) = step.stage() {
+                assert_eq!(
+                    s.nonces.suffix(stage),
+                    "",
+                    "fresh session must produce the legacy (empty) suffix for {stage:?}"
+                );
+            }
+        }
+    }
+
+    // ── Phase C1 commit guards ──────────────────────────────────────────────
+    //
+    // The full happy-path (commit == one-shot, byte-for-byte) is covered by the
+    // Phase T equivalence + golden suites; here we pin the deterministic error
+    // paths of `commit_new_project`, each of which must leave the wizard intact
+    // so the user can fix the problem and retry (no half-applied session
+    // boundary).
+
+    #[test]
+    fn commit_without_session_is_an_error() {
+        // No active wizard ⇒ nothing to commit; reported as an error, no panic.
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert!(state.iterative_gen.is_none());
+        let err = state.commit_new_project().unwrap_err();
+        assert!(
+            err.contains("No iterative session"),
+            "unexpected message: {err}"
+        );
+    }
+
+    #[test]
+    fn commit_without_dest_is_an_error_and_keeps_session() {
+        // A session with no chosen folder cannot write anything; the wizard must
+        // survive so the panel can prompt for a destination and retry.
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.iterative_gen = Some(new_session(8));
+        assert!(state.iterative_gen.as_ref().unwrap().dest.is_none());
+        let err = state.commit_new_project().unwrap_err();
+        assert!(
+            err.contains("destination"),
+            "unexpected message: {err}"
+        );
+        assert!(
+            state.iterative_gen.is_some(),
+            "commit must not clear the session when it errors"
+        );
+    }
+
+    #[test]
+    fn commit_without_worlds_catalog_is_an_error_and_keeps_session() {
+        // `new_blank` has no worlds catalog, so `synthesize_project_input`
+        // returns None and the full run cannot start. With a dest set we get
+        // past the dest guard and hit the missing-catalog guard; the session
+        // (and the chosen dest) survive for a retry.
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest =
+            camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-seed")).unwrap();
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let mut session = new_session(8);
+        session.dest = Some(dest.clone());
+        state.iterative_gen = Some(session);
+
+        let err = state.commit_new_project().unwrap_err();
+        assert!(
+            err.contains("worlds catalog"),
+            "unexpected message: {err}"
+        );
+        assert!(state.iterative_gen.is_some(), "session survives the error");
+        assert_eq!(
+            state.iterative_gen.as_ref().unwrap().dest.as_ref(),
+            Some(&dest),
+            "the chosen destination is preserved for a retry"
+        );
+        // Nothing was written to disk on the failed run.
+        assert!(!dest.as_std_path().exists(), "no project tree on a failed commit");
+    }
+
+    // ── §5 transient regions-override seam ───────────────────────────────────
+    //
+    // The override is applied *only* when assembling the `ProjectInput` for a
+    // run (`synthesize_project_input_with`), never written into `data_catalogs`
+    // (invariant #5). `None` must reproduce the verbatim catalog assembly
+    // byte-for-byte (invariants #2/#6); `Some` must substitute the patch.
+
+    #[test]
+    fn regions_override_substitutes_only_in_assembled_input() {
+        use sectorforge::regions::RegionsConfig;
+
+        // A `BuilderState` with a worlds catalog (so `synthesize_*` returns Some)
+        // and a *disabled* regions catalog standing in for the project's file.
+        // (`#[cfg(test)]` may write catalogs directly to build the fixture.)
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.data_catalogs.worlds = Some(sectorforge::worlds_toml::WorldsConfig::default());
+        state.data_catalogs.regions = Some(RegionsConfig {
+            enabled: false,
+            count: 2,
+            ..RegionsConfig::default()
+        });
+
+        // No override ⇒ the assembled input carries the catalog verbatim, and is
+        // byte-identical to the plain `synthesize_project_input` (the legacy
+        // path) — invariants #2/#6.
+        let base = state
+            .synthesize_project_input()
+            .expect("worlds catalog present");
+        let none = state
+            .synthesize_project_input_with(None)
+            .expect("worlds catalog present");
+        assert_eq!(
+            serde_json::to_string(&base.catalogs.regions).unwrap(),
+            serde_json::to_string(&none.catalogs.regions).unwrap(),
+            "override=None must assemble the regions catalog verbatim (byte-identical)",
+        );
+        assert!(
+            !none.catalogs.regions.enabled && none.catalogs.regions.count == 2,
+            "override=None must use the project catalog's regions config",
+        );
+
+        // Some(patch) ⇒ the assembled input carries the patch instead of the
+        // catalog, but `data_catalogs.regions` is NOT mutated (invariant #5:
+        // preview substitution only, never a document write).
+        let patch = RegionsConfig {
+            enabled: true,
+            count: 7,
+            mean_size: 9,
+            apply_to_routes: false,
+            ..RegionsConfig::default()
+        };
+        let patched = state
+            .synthesize_project_input_with(Some(&patch))
+            .expect("worlds catalog present");
+        assert!(
+            patched.catalogs.regions.enabled
+                && patched.catalogs.regions.count == 7
+                && patched.catalogs.regions.mean_size == 9
+                && !patched.catalogs.regions.apply_to_routes,
+            "override=Some must substitute the patch into the assembled input",
+        );
+        assert_eq!(
+            state.data_catalogs.regions.as_ref().map(|r| (r.enabled, r.count)),
+            Some((false, 2)),
+            "applying the override must NOT mutate data_catalogs (transient, preview-only)",
         );
     }
 }

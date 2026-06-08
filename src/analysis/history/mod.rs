@@ -58,6 +58,20 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
 pub fn derive_with_progress(
     sector: &GeneratedSector,
     cfg: &HistoryConfig,
+    progress: impl FnMut(HistoryProgress),
+) -> HistoryReport {
+    derive_with_progress_reroll(sector, cfg, "", progress)
+}
+
+/// Like [`derive_with_progress`] but folds a re-roll suffix into the per-event
+/// `("history-event",…)` RNG discriminator. An empty suffix reproduces the
+/// legacy key byte-for-byte (golden-safe, invariant #2); a `":r{n}"` suffix
+/// yields a deterministically distinct chronicle. Used by the iterative
+/// generation seam ([`crate::generation::generate_prefix`]).
+pub fn derive_with_progress_reroll(
+    sector: &GeneratedSector,
+    cfg: &HistoryConfig,
+    reroll_suffix: &str,
     mut progress: impl FnMut(HistoryProgress),
 ) -> HistoryReport {
     if !cfg.enabled {
@@ -92,6 +106,7 @@ pub fn derive_with_progress(
         sector,
         faction_names: &faction_names,
         system_names: &system_names,
+        reroll_suffix,
     };
 
     let mut events: Vec<HistoryEvent> = Vec::new();

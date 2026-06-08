@@ -17,11 +17,13 @@ use crate::sector_model::{GeneratedRoute, GeneratedSector, GeneratedSystem, Gene
 
 mod factions;
 mod placement;
+mod reroll;
 mod routes;
 mod systems;
 mod world_placement;
 
 pub use factions::assign_factions_for_systems;
+pub use reroll::{RerollNonces, Stage};
 pub(crate) use routes::{distance_base_level, stability_from_level, stability_level};
 pub use systems::{build_system, build_system_with_bias};
 pub use world_placement::regenerate_world_payload;
@@ -246,6 +248,67 @@ where
 /// `should_cancel` returns `true`.
 pub fn generate_with_progress_and_cancel<F, C>(
     project: ProjectInput,
+    progress: F,
+    should_cancel: C,
+) -> Result<GeneratedSector, SectorError>
+where
+    F: FnMut(SectorProgress),
+    C: FnMut() -> bool,
+{
+    generate_prefix(
+        project,
+        Stage::LAST,
+        &RerollNonces::default(),
+        progress,
+        should_cancel,
+    )
+}
+
+/// Deterministic **prefix** generation: run the pipeline up to and including
+/// `through`, returning the partial [`GeneratedSector`] populated as far as the
+/// cutoff reached (overlays past the cutoff are left at their `Default`/empty
+/// values). This is the engine seam behind the builder's iterative
+/// (step-by-step) generation mode (`ITERATIVE_GENERATION.md` Phase E).
+///
+/// `nonces` folds a per-[`Stage`] re-roll counter into that stage's RNG
+/// discriminator (see [`RerollNonces`]). With the default (empty) `nonces`,
+/// `generate_prefix(project, Stage::LAST, ..)` is **byte-identical** to the
+/// legacy one-shot orchestrator — which is exactly what
+/// [`generate_with_progress_and_cancel`] now is.
+///
+/// # Determinism guarantee (the linchpin — `ITERATIVE_GENERATION.md` §2.2)
+///
+/// Every stage seeds a *fresh* `ChaCha8Rng` from
+/// `blake3("sectorforge:{root_seed}:{stage}:{disc}")` (`src/model/rng.rs`).
+/// Stages share **no** RNG stream: the entropy a stage draws is a pure function
+/// of `(root_seed, stage, discriminator)` and is independent of which other
+/// stages ran before it. Therefore, for the same `(config, seed, nonces)`, the
+/// stages `<= through` of a prefix run are **byte-for-byte** the same as the
+/// corresponding stages of a full run — the cutoff cannot perturb earlier
+/// stages because nothing downstream feeds entropy upstream. A nonce of `0`
+/// (the default) leaves every discriminator unchanged, so the golden suite
+/// stays green and "step straight through == one-shot" holds.
+///
+/// # Partial assembly
+///
+/// Stages 1–11 only read scratch (pool, placements, anomaly hexes); they do not
+/// mutate the sector. The sort + manifest + struct construction (stage
+/// [`Stage::Manifest`]) is pure and RNG-free, so it always runs to produce a
+/// *valid* [`GeneratedSector`] from whatever was built before the cutoff
+/// (empty `systems`/`routes`/`factions`/`regions` if those stages were skipped).
+/// Overlay stages 13–18 are each gated on `through`. An early cutoff therefore
+/// yields a renderable partial sector, never an empty/garbage one.
+///
+/// # Errors
+///
+/// Same as [`generate_with_progress_and_cancel`], plus
+/// [`SectorError::GenerationCancelled`] when `should_cancel` returns `true`.
+/// [`SectorError::NoWorldCandidates`] is only raised when the [`Stage::WorldPool`]
+/// stage actually runs (i.e. `Stage::WorldPool <= through`).
+pub fn generate_prefix<F, C>(
+    project: ProjectInput,
+    through: Stage,
+    nonces: &RerollNonces,
     mut progress: F,
     mut should_cancel: C,
 ) -> Result<GeneratedSector, SectorError>
@@ -304,114 +367,152 @@ where
         };
     }
 
-    let source_rows = world_rows.len();
-    let t_pool = Instant::now();
-    let mut pool =
-        crate::world_pool::build_pool(world_rows, world_tables, &config.generation.world_selection);
-    if let Some(features) = &authored_features {
-        crate::world_pool::apply_authored_features(&mut pool, features);
-    }
-    emit!(SectorProgress::WorldPoolBuilt {
-        rows: source_rows,
-        candidates: pool.candidates.len(),
-        excluded: pool.excluded_rows.len(),
-    });
-    time_stage!("world_pool", t_pool);
-    if pool.candidates.is_empty() {
-        return Err(SectorError::NoWorldCandidates);
+    // ── Stage 1: WorldPool ───────────────────────────────────────────────────
+    // Scratch shared with later stages. `pool` is consumed by Systems (stage 4).
+    let mut pool = crate::world_pool::WorldCandidatePool::default();
+    if Stage::WorldPool <= through {
+        let source_rows = world_rows.len();
+        let t_pool = Instant::now();
+        pool = crate::world_pool::build_pool(
+            world_rows,
+            world_tables,
+            &config.generation.world_selection,
+        );
+        if let Some(features) = &authored_features {
+            crate::world_pool::apply_authored_features(&mut pool, features);
+        }
+        emit!(SectorProgress::WorldPoolBuilt {
+            rows: source_rows,
+            candidates: pool.candidates.len(),
+            excluded: pool.excluded_rows.len(),
+        });
+        time_stage!("world_pool", t_pool);
+        if pool.candidates.is_empty() {
+            return Err(SectorError::NoWorldCandidates);
+        }
     }
 
-    let t_place = Instant::now();
-    let placements = placement::place_systems(&config)?;
-    emit!(SectorProgress::SystemsPlaced {
-        total: placements.len(),
-        width: config.generation.sector_width,
-        height: config.generation.sector_height,
-    });
-    time_stage!("placements", t_place);
+    // ── Stage 2: Placement ─────────────────────────────────────────────────────
+    let mut placements: Vec<crate::sector_model::HexCoord> = Vec::new();
+    if Stage::Placement <= through {
+        let t_place = Instant::now();
+        placements = placement::place_systems_reroll(&config, &nonces.suffix(Stage::Placement))?;
+        emit!(SectorProgress::SystemsPlaced {
+            total: placements.len(),
+            width: config.generation.sector_width,
+            height: config.generation.sector_height,
+        });
+        time_stage!("placements", t_place);
+    }
     let mut systems: Vec<GeneratedSystem> = Vec::with_capacity(placements.len());
     let mut used_names: BTreeSet<String> = BTreeSet::new();
 
+    // ── Stage 3: Regions ───────────────────────────────────────────────────────
     // §5 NEW.md: regions stage runs BEFORE world generation so the `Anomaly`
     // condition can reweight the per-system candidate pool toward
     // warp-phenomena / ancient-ruins candidates without changing other stages.
-    let t_regions = Instant::now();
-    let warp_regions = crate::regions::build_regions(
-        &config.generation.seed,
-        config.generation.sector_width,
-        config.generation.sector_height,
-        regions_cfg,
-    );
-    let anomaly_hexes: BTreeSet<(i32, i32)> = warp_regions
-        .iter()
-        .filter(|r| matches!(r.kind, crate::regions::RegionConditionKind::Anomaly))
-        .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
-        .collect();
-    emit!(SectorProgress::RegionsBuilt {
-        count: warp_regions.len(),
-    });
-    time_stage!("regions", t_regions);
-
-    let t_systems = Instant::now();
-    for (idx, coord) in placements.iter().enumerate() {
-        check_cancelled!();
-        let system_index = idx + 1;
-        let anomaly_bias = anomaly_hexes.contains(&(coord.q, coord.r));
-        let system = systems::build_system_with_bias(
-            &config,
-            &pool,
-            names,
-            system_index,
-            *coord,
-            &mut used_names,
-            anomaly_bias,
-        )?;
-        let worlds = system.worlds.len();
-        systems.push(system);
-        emit!(SectorProgress::SystemBuilt {
-            current: system_index,
-            total: placements.len(),
-            worlds,
+    let mut warp_regions: Vec<crate::regions::WarpRegion> = Vec::new();
+    let mut anomaly_hexes: BTreeSet<(i32, i32)> = BTreeSet::new();
+    if Stage::Regions <= through {
+        let t_regions = Instant::now();
+        warp_regions = crate::regions::build_regions_reroll(
+            &config.generation.seed,
+            config.generation.sector_width,
+            config.generation.sector_height,
+            regions_cfg,
+            &nonces.suffix(Stage::Regions),
+        );
+        anomaly_hexes = warp_regions
+            .iter()
+            .filter(|r| matches!(r.kind, crate::regions::RegionConditionKind::Anomaly))
+            .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
+            .collect();
+        emit!(SectorProgress::RegionsBuilt {
+            count: warp_regions.len(),
         });
-    }
-    time_stage!("systems_build", t_systems);
-
-    // ── Factions ────────────────────────────────────────────────────────────
-    let t_factions = Instant::now();
-    if !factions.is_empty() {
-        let mut faction_rng = rng::stage_rng(&config.generation.seed, "factions", "sector");
-        factions::assign_factions(&mut systems, factions, &mut faction_rng);
-        emit!(SectorProgress::FactionsAssigned {
-            catalog_rows: factions.len(),
-        });
+        time_stage!("regions", t_regions);
     }
 
-    let generated_factions = factions::aggregate_factions(&systems, factions);
-    emit!(SectorProgress::FactionsAggregated {
-        factions: generated_factions.len(),
-    });
-    time_stage!("factions", t_factions);
+    // ── Stage 4: Systems (+ Worlds sub-stage) ──────────────────────────────────
+    if Stage::Systems <= through {
+        let t_systems = Instant::now();
+        let systems_suffix = nonces.suffix(Stage::Systems);
+        for (idx, coord) in placements.iter().enumerate() {
+            check_cancelled!();
+            let system_index = idx + 1;
+            let anomaly_bias = anomaly_hexes.contains(&(coord.q, coord.r));
+            let system = systems::build_system_with_bias_reroll(
+                &config,
+                &pool,
+                names,
+                system_index,
+                *coord,
+                &mut used_names,
+                anomaly_bias,
+                &systems_suffix,
+            )?;
+            let worlds = system.worlds.len();
+            systems.push(system);
+            emit!(SectorProgress::SystemBuilt {
+                current: system_index,
+                total: placements.len(),
+                worlds,
+            });
+        }
+        time_stage!("systems_build", t_systems);
+    }
 
-    // ── Routes ──────────────────────────────────────────────────────────────
-    let t_routes = Instant::now();
-    let mut routes = if config.generation.routes.enabled {
-        emit!(SectorProgress::StageStarted {
-            name: "public routes",
+    // ── Stage 5: Factions ──────────────────────────────────────────────────────
+    let mut generated_factions: Vec<crate::sector_model::GeneratedFaction> = Vec::new();
+    if Stage::Factions <= through {
+        let t_factions = Instant::now();
+        if !factions.is_empty() {
+            let mut faction_rng = rng::stage_rng(
+                &config.generation.seed,
+                "factions",
+                &format!("sector{}", nonces.suffix(Stage::Factions)),
+            );
+            factions::assign_factions(&mut systems, factions, &mut faction_rng);
+            emit!(SectorProgress::FactionsAssigned {
+                catalog_rows: factions.len(),
+            });
+        }
+
+        generated_factions = factions::aggregate_factions(&systems, factions);
+        emit!(SectorProgress::FactionsAggregated {
+            factions: generated_factions.len(),
         });
-        let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
-        routes::generate_routes(&config, route_rules, &systems, &mut route_rng)
-    } else {
-        Vec::new()
-    };
-    emit!(SectorProgress::RoutesGenerated {
-        routes: routes.len(),
-    });
-    time_stage!("public_routes", t_routes);
+        time_stage!("factions", t_factions);
+    }
 
+    // ── Stage 6: Routes (public) ───────────────────────────────────────────────
+    // RNG key is reserved/unused today (`routes.rs` `let _ = rng;`); the stage is
+    // gated so step 6 can stop here, but its discriminator is left UNCHANGED (no
+    // nonce suffix) per `ITERATIVE_GENERATION.md` §3 / §9.
+    let mut routes: Vec<GeneratedRoute> = Vec::new();
+    if Stage::Routes <= through {
+        let t_routes = Instant::now();
+        routes = if config.generation.routes.enabled {
+            emit!(SectorProgress::StageStarted {
+                name: "public routes",
+            });
+            let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
+            routes::generate_routes(&config, route_rules, &systems, &mut route_rng)
+        } else {
+            Vec::new()
+        };
+        emit!(SectorProgress::RoutesGenerated {
+            routes: routes.len(),
+        });
+        time_stage!("public_routes", t_routes);
+    }
+
+    // ── Stage 7: RegionRouteEffects ────────────────────────────────────────────
     // §5 NEW.md: apply region effects to routes (storm → perilous, turbulence
     // → one tier worse, calm corridor → one tier better up to the perilous
-    // ceiling). Idempotent.
-    if regions_cfg.apply_to_routes && !warp_regions.is_empty() {
+    // ceiling). Idempotent. No RNG.
+    if Stage::RegionRouteEffects <= through && regions_cfg.apply_to_routes && !warp_regions.is_empty()
+    {
         emit!(SectorProgress::StageStarted {
             name: "region route effects",
         });
@@ -472,11 +573,11 @@ where
         });
     }
 
+    // ── Stage 8: HiddenRoutes ──────────────────────────────────────────────────
     // §3 NEXT: append hidden route layers (webway / black-ship / smuggling)
     // before per-route control derivation so they receive the same control
-    // treatment as public lanes.
-    let mut generated_factions = generated_factions;
-    if !generated_factions.is_empty() {
+    // treatment as public lanes. No RNG.
+    if Stage::HiddenRoutes <= through && !generated_factions.is_empty() {
         emit!(SectorProgress::StageStarted {
             name: "hidden routes",
         });
@@ -529,19 +630,24 @@ where
         });
     }
 
+    // ── Stage 9: StabilityRebalance ────────────────────────────────────────────
     // §route-rebalance: with `stability_targets` configured, re-bucket public
     // route stabilities to the target mix now that every layer is in place
     // (public generation, region effects, hidden lanes). This replaces the
     // legacy early perilous-cap — skipped in `generate_routes` when targets are
     // set — so a storm-heavy sector still keeps a guaranteed Stable backbone.
-    if let Some(targets) = config.generation.routes.stability_targets {
-        routes::rebalance_public_stability(&mut routes, targets);
+    // No RNG.
+    if Stage::StabilityRebalance <= through {
+        if let Some(targets) = config.generation.routes.stability_targets {
+            routes::rebalance_public_stability(&mut routes, targets);
+        }
     }
 
+    // ── Stage 10: RouteControls ────────────────────────────────────────────────
     // §3 per-route per-faction control. Derived after routes are built and
-    // factions assigned, so endpoint presence reflects final state.
+    // factions assigned, so endpoint presence reflects final state. No RNG.
     let t_route_ctl = Instant::now();
-    if !routes.is_empty() && !generated_factions.is_empty() {
+    if Stage::RouteControls <= through && !routes.is_empty() && !generated_factions.is_empty() {
         emit!(SectorProgress::StageStarted {
             name: "route controls",
         });
@@ -563,6 +669,7 @@ where
         time_stage!("route_controls", t_route_ctl);
     }
 
+    // ── Stage 11: SystemState ──────────────────────────────────────────────────
     // §1 NEXT: per-world surface regions.
     // §2 NEXT: per-system orbital assets + blockade detection.
     // §5 NEXT: per-world + per-system initial conflict state.
@@ -570,34 +677,44 @@ where
     // factions with at least one presence IN THIS SYSTEM. The rumor-based
     // view for distant observers is reconstructible on demand from the raw
     // system state, so persisting it everywhere would O(F·S) and bloat
-    // sector.json by tens of MB on large sectors with many factions.
-    let t_sys_state = Instant::now();
-    let system_total = systems.len();
-    for (idx, sys) in systems.iter_mut().enumerate() {
-        check_cancelled!();
-        for w in sys.worlds.iter_mut() {
-            w.regions = crate::surface_region::derive_regions(w);
-            w.conflict = crate::conflict::derive_world_conflict(w);
-        }
-        let (assets, blockade) = crate::orbital_assets::derive_orbital_assets(sys);
-        sys.orbital_assets = assets;
-        sys.blockade = blockade;
-        sys.conflict = crate::conflict::derive_system_conflict(sys);
-        let mut per_sys: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
-        for w in &sys.worlds {
-            for p in &w.factions {
-                per_sys.insert(p.faction_id.as_str());
+    // sector.json by tens of MB on large sectors with many factions. No RNG.
+    if Stage::SystemState <= through {
+        let t_sys_state = Instant::now();
+        let system_total = systems.len();
+        for (idx, sys) in systems.iter_mut().enumerate() {
+            check_cancelled!();
+            for w in sys.worlds.iter_mut() {
+                w.regions = crate::surface_region::derive_regions(w);
+                w.conflict = crate::conflict::derive_world_conflict(w);
             }
+            let (assets, blockade) = crate::orbital_assets::derive_orbital_assets(sys);
+            sys.orbital_assets = assets;
+            sys.blockade = blockade;
+            sys.conflict = crate::conflict::derive_system_conflict(sys);
+            let mut per_sys: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+            for w in &sys.worlds {
+                for p in &w.factions {
+                    per_sys.insert(p.faction_id.as_str());
+                }
+            }
+            let obs_refs: Vec<&str> = per_sys.into_iter().collect();
+            sys.intel = crate::intel::derive_system_intel(sys, &obs_refs);
+            emit!(SectorProgress::SystemStateDerived {
+                current: idx + 1,
+                total: system_total,
+            });
         }
-        let obs_refs: Vec<&str> = per_sys.into_iter().collect();
-        sys.intel = crate::intel::derive_system_intel(sys, &obs_refs);
-        emit!(SectorProgress::SystemStateDerived {
-            current: idx + 1,
-            total: system_total,
-        });
+        time_stage!("system_state", t_sys_state);
     }
-    time_stage!("system_state", t_sys_state);
 
+    // ── Stage 12: Manifest + GeneratedSector construction ───────────────────────
+    // PARTIAL ASSEMBLY (`ITERATIVE_GENERATION.md` partial-assembly requirement):
+    // this stage is pure and RNG-free, so it ALWAYS runs — even for an early
+    // cutoff — to produce a *valid*, renderable `GeneratedSector` from whatever
+    // earlier stages built (empty `systems`/`routes`/`factions`/`regions` if
+    // those stages were skipped). Overlays past the cutoff stay at `Default`.
+    // The deterministic sort below mirrors a full run, so the prefix sector is
+    // byte-identical to the full run's state at the same cutoff.
     // Sort everything for stable serialization.
     let mut sorted_systems = systems;
     sorted_systems.sort_by(|a, b| a.id.cmp(&b.id));
@@ -633,31 +750,39 @@ where
         id_history: Default::default(),
     };
 
-    // §11 NEXT: archetype rules.
-    let t_arch = Instant::now();
-    emit!(SectorProgress::StageStarted {
-        name: "archetypes overlay",
-    });
-    crate::archetypes::apply_all(&mut sector);
-    emit!(SectorProgress::OverlayDerived { name: "archetypes" });
-    time_stage!("archetypes", t_arch);
-    // §4 NEXT: power projection over routes (decays + doctrine).
-    let t_pp = Instant::now();
-    emit!(SectorProgress::StageStarted {
-        name: "power projection overlay",
-    });
-    sector.power_projection = crate::power_projection::project_sector(&sector).into();
-    crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
-    emit!(SectorProgress::OverlayDerived {
-        name: "power_projection",
-    });
-    time_stage!("power_projection", t_pp);
-    // §9 NEXT: continuous area layers.
-    let t_if = Instant::now();
-    emit!(SectorProgress::StageStarted {
-        name: "influence field overlay",
-    });
-    sector.influence_field =
+    // ── Stage 13: Archetypes ───────────────────────────────────────────────────
+    // §11 NEXT: archetype rules. No RNG.
+    if Stage::Archetypes <= through {
+        let t_arch = Instant::now();
+        emit!(SectorProgress::StageStarted {
+            name: "archetypes overlay",
+        });
+        crate::archetypes::apply_all(&mut sector);
+        emit!(SectorProgress::OverlayDerived { name: "archetypes" });
+        time_stage!("archetypes", t_arch);
+    }
+    // ── Stage 14: PowerProjection ──────────────────────────────────────────────
+    // §4 NEXT: power projection over routes (decays + doctrine). No RNG.
+    if Stage::PowerProjection <= through {
+        let t_pp = Instant::now();
+        emit!(SectorProgress::StageStarted {
+            name: "power projection overlay",
+        });
+        sector.power_projection = crate::power_projection::project_sector(&sector).into();
+        crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
+        emit!(SectorProgress::OverlayDerived {
+            name: "power_projection",
+        });
+        time_stage!("power_projection", t_pp);
+    }
+    // ── Stage 15: InfluenceField ───────────────────────────────────────────────
+    // §9 NEXT: continuous area layers. No RNG.
+    if Stage::InfluenceField <= through {
+        let t_if = Instant::now();
+        emit!(SectorProgress::StageStarted {
+            name: "influence field overlay",
+        });
+        sector.influence_field =
         crate::influence_field::build_with_progress(&sector, |event| match event {
             crate::influence_field::InfluenceFieldProgress::Started {
                 systems,
@@ -700,52 +825,69 @@ where
             }
         })
         .into();
-    emit!(SectorProgress::OverlayDerived {
-        name: "influence_field",
-    });
-    time_stage!("influence_field", t_if);
+        emit!(SectorProgress::OverlayDerived {
+            name: "influence_field",
+        });
+        time_stage!("influence_field", t_if);
+    }
 
+    // ── Stage 16: Relations ────────────────────────────────────────────────────
     // §5 NEW2.md: derive inter-faction relationship matrix once factions are
     // finalised. Pure derivation, no extra RNG draws affect prior stages.
     // `[generation.relations].min_world_presence` controls how aggressively
-    // the canonical faction list is filtered before the C(n,2) loop.
-    let t_rel = Instant::now();
-    emit!(SectorProgress::StageStarted {
-        name: "relations overlay",
-    });
-    sector.relations = crate::relations::derive_with_threshold(
-        &sector,
-        relations_cfg,
-        config.generation.relations.min_world_presence,
-    )
-    .into();
-    emit!(SectorProgress::OverlayDerived { name: "relations" });
-    time_stage!("relations", t_rel);
+    // the canonical faction list is filtered before the C(n,2) loop. The per-pair
+    // RNG discriminator gets the `Stage::Relations` nonce suffix (empty by
+    // default → unchanged legacy discriminator → byte-identical).
+    if Stage::Relations <= through {
+        let t_rel = Instant::now();
+        emit!(SectorProgress::StageStarted {
+            name: "relations overlay",
+        });
+        sector.relations = crate::relations::derive_with_threshold_reroll(
+            &sector,
+            relations_cfg,
+            config.generation.relations.min_world_presence,
+            &nonces.suffix(Stage::Relations),
+        )
+        .into();
+        emit!(SectorProgress::OverlayDerived { name: "relations" });
+        time_stage!("relations", t_rel);
+    }
 
+    // ── Stage 17: Economy ──────────────────────────────────────────────────────
     // §12 NEW.md: derive the economy snapshot last so it can read final
     // route stability + control records. Optional `feed_stability` nudge
-    // applies after the snapshot is built.
-    let t_econ = Instant::now();
-    emit!(SectorProgress::StageStarted {
-        name: "economy overlay",
-    });
-    sector.economy = crate::economy::derive_with(&sector, economy_cfg).into();
-    if economy_cfg.feed_stability && sector.economy.enabled {
-        let snap = sector.economy.clone();
-        crate::economy::apply_stability_nudge(&snap, &mut sector);
+    // applies after the snapshot is built. No RNG.
+    if Stage::Economy <= through {
+        let t_econ = Instant::now();
+        emit!(SectorProgress::StageStarted {
+            name: "economy overlay",
+        });
+        sector.economy = crate::economy::derive_with(&sector, economy_cfg).into();
+        if economy_cfg.feed_stability && sector.economy.enabled {
+            let snap = sector.economy.clone();
+            crate::economy::apply_stability_nudge(&snap, &mut sector);
+        }
+        emit!(SectorProgress::OverlayDerived { name: "economy" });
+        time_stage!("economy", t_econ);
     }
-    emit!(SectorProgress::OverlayDerived { name: "economy" });
-    time_stage!("economy", t_econ);
 
+    // ── Stage 18: Chronicle ────────────────────────────────────────────────────
     // §1 NEW2.md: timeline / chronicle derives after all structural and
     // overlay state is final so events can reference routes, regions,
-    // subsectors, claims, control, and present conflicts.
-    let t_chron = Instant::now();
-    emit!(SectorProgress::StageStarted {
-        name: "chronicle overlay",
-    });
-    sector.chronicle =
-        crate::history::derive_with_progress(&sector, history_cfg, |event| match event {
+    // subsectors, claims, control, and present conflicts. The per-event RNG
+    // discriminator gets the `Stage::Chronicle` nonce suffix (empty by default →
+    // unchanged legacy discriminator → byte-identical).
+    if Stage::Chronicle <= through {
+        let t_chron = Instant::now();
+        emit!(SectorProgress::StageStarted {
+            name: "chronicle overlay",
+        });
+        sector.chronicle = crate::history::derive_with_progress_reroll(
+            &sector,
+            history_cfg,
+            &nonces.suffix(Stage::Chronicle),
+            |event| match event {
             crate::history::HistoryProgress::Started {
                 systems,
                 worlds,
@@ -796,9 +938,12 @@ where
             crate::history::HistoryProgress::Complete { events } => {
                 progress(SectorProgress::ChronicleComplete { events });
             }
-        });
-    emit!(SectorProgress::OverlayDerived { name: "chronicle" });
-    time_stage!("chronicle", t_chron);
+            },
+        );
+        emit!(SectorProgress::OverlayDerived { name: "chronicle" });
+        time_stage!("chronicle", t_chron);
+    }
+
     emit!(SectorProgress::Complete {
         systems: sector.manifest.system_count,
         worlds: sector.manifest.world_count,

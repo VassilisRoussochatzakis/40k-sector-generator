@@ -869,7 +869,32 @@ impl BuilderState {
     /// [`sectorforge::validation::validate`] can run without touching disk.
     /// Returns `None` when the worlds catalog is missing — validation needs at
     /// minimum a workbook to walk.
+    ///
+    /// This is the document-faithful assembly: every catalog is taken verbatim
+    /// from `self.data_catalogs`. The iterative-gen wizard's transient
+    /// regions-override patch is applied via
+    /// [`Self::synthesize_project_input_with`] instead (this method delegates to
+    /// it with no override, so the two are byte-identical when no patch is set).
     pub fn synthesize_project_input(&self) -> Option<ProjectInput> {
+        self.synthesize_project_input_with(None)
+    }
+
+    /// ITERATIVE_GENERATION.md §5 — same as [`Self::synthesize_project_input`]
+    /// but with an optional **transient regions-override patch** substituted for
+    /// the regions catalog. This is the single seam through which the iterative
+    /// wizard's in-memory `RegionsConfig` edit reaches a prefix/commit run
+    /// **without** mutating `self.data_catalogs` (invariant #5: the override is
+    /// session state, applied only when assembling the `ProjectInput`).
+    ///
+    /// `regions_override == None` is **byte-identical** to the legacy assembly —
+    /// the regions catalog is taken verbatim from `data_catalogs.regions`
+    /// exactly as before — so the nonce-0 / override-absent path stays
+    /// golden-stable (invariants #2 / #6). Returns `None` when the worlds
+    /// catalog is missing.
+    pub fn synthesize_project_input_with(
+        &self,
+        regions_override: Option<&sectorforge::regions::RegionsConfig>,
+    ) -> Option<ProjectInput> {
         let worlds = self.data_catalogs.worlds.as_ref()?;
         let (world_tables, world_rows) = worlds.to_loader_inputs();
         let authored_features = worlds.resolved_features().ok();
@@ -893,7 +918,14 @@ impl BuilderState {
                     .unwrap_or_default(),
                 route_rules: self.data_catalogs.route_rules.clone().unwrap_or_default(),
                 relations: self.data_catalogs.relations.clone().unwrap_or_default(),
-                regions: self.data_catalogs.regions.clone().unwrap_or_default(),
+                // §5 / invariant #5: the transient override (if any) substitutes
+                // for the regions catalog here, at ProjectInput-assembly time —
+                // `data_catalogs.regions` is left untouched. `None` ⇒ verbatim
+                // catalog ⇒ byte-identical to the legacy path (invariants #2/#6).
+                regions: regions_override
+                    .cloned()
+                    .or_else(|| self.data_catalogs.regions.clone())
+                    .unwrap_or_default(),
                 economy: self.data_catalogs.economy.clone().unwrap_or_default(),
                 history: self.data_catalogs.history.clone().unwrap_or_default(),
                 personae: self.data_catalogs.personae.clone().unwrap_or_default(),

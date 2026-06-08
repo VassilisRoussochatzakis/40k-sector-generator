@@ -195,6 +195,10 @@ pub enum BuilderTab {
     Diff,
     Briefing,
     Segmentum,
+    /// ITERATIVE_GENERATION.md Phase P — the stage-by-stage random-generation
+    /// wizard. Renders [`crate::builder::panels::iterative_gen::show`]; backed by
+    /// the transient [`super::IterativeGenSession`] (never document state).
+    IterativeGen,
     Export,
     /// §V1 pre-generation diagnostics surface (XC-1). Renders
     /// [`crate::builder::panels::validation::show`].
@@ -251,6 +255,7 @@ impl BuilderTab {
             Self::Diff => "DIFF",
             Self::Briefing => "BRIEFING",
             Self::Segmentum => "SEGMENTUM",
+            Self::IterativeGen => "ITERATIVE",
             Self::Export => "EXPORT",
             Self::Validation => "VALIDATION",
             Self::Invariants => "INVARIANTS",
@@ -282,6 +287,7 @@ impl BuilderTab {
         Self::Diff,
         Self::Briefing,
         Self::Segmentum,
+        Self::IterativeGen,
         Self::Export,
         Self::Validation,
         Self::Invariants,

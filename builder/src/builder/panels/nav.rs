@@ -24,8 +24,8 @@ use sectorforge_gui_core::ui_kit;
 
 use super::{
     analytics, briefing, control, diff, economy, export, factions, history, hooks, interestingness,
-    invariants as invariants_panel, map, missions, personae, project, prose, regions, relations,
-    routes, search, segmentum, sites, subsectors, system, validation, world,
+    invariants as invariants_panel, iterative_gen, map, missions, personae, project, prose, regions,
+    relations, routes, search, segmentum, sites, subsectors, system, validation, world,
 };
 
 /// §UO6 P2: the top tab strip grouped into labeled clusters. Every
@@ -81,7 +81,14 @@ const TAB_CLUSTERS: &[(&str, &[BuilderTab])] = &[
             BuilderTab::Diff,
         ],
     ),
-    ("OUTPUT", &[BuilderTab::Segmentum, BuilderTab::Export]),
+    (
+        "OUTPUT",
+        &[
+            BuilderTab::Segmentum,
+            BuilderTab::IterativeGen,
+            BuilderTab::Export,
+        ],
+    ),
     ("CHECK", &[BuilderTab::Validation, BuilderTab::Invariants]),
 ];
 
@@ -270,6 +277,7 @@ pub fn show_active_panel(ui: &mut egui::Ui, state: &mut BuilderState) {
         BuilderTab::Diff => diff::show(ui, state),
         BuilderTab::Briefing => briefing::show(ui, state),
         BuilderTab::Segmentum => segmentum::show(ui, state),
+        BuilderTab::IterativeGen => iterative_gen::show(ui, state),
         BuilderTab::Export => export::show(ui, state),
         // XC-1: §V1 / §V2 diagnostics are first-class tabs (the two right-most
         // entries in `BuilderTab::ALL`) so the per-error / per-violation focus

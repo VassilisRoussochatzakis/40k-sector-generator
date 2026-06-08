@@ -155,6 +155,7 @@ pub use economy::{
 pub use errors::SectorError;
 pub use export::ExportProgress;
 pub use generation::SectorProgress;
+pub use generation::{generate_prefix, RerollNonces, Stage};
 pub use history::{
     HistoryConfig, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind, HistoryEntityRef,
     HistoryEra, HistoryEvent, HistoryEventRule, HistoryFile, HistoryReport, SectorChronicle,

@@ -48,8 +48,40 @@ pub fn build_system_with_bias(
     used_system_names: &mut BTreeSet<String>,
     anomaly_bias: bool,
 ) -> Result<GeneratedSystem, SectorError> {
+    build_system_with_bias_reroll(
+        config,
+        pool,
+        names,
+        system_index,
+        coord,
+        used_system_names,
+        anomaly_bias,
+        "",
+    )
+}
+
+/// Like [`build_system_with_bias`] but folds a re-roll suffix into both the
+/// per-system `("system",<sys_id>)` and per-world `("world",<world_id>)` RNG
+/// discriminators (worlds are folded under `Stage::Systems` for v1). An empty
+/// suffix reproduces the legacy keys byte-for-byte; `":r{n}"` yields a
+/// deterministic distinct system + world payload.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn build_system_with_bias_reroll(
+    config: &AppConfig,
+    pool: &WorldCandidatePool,
+    names: &NameTables,
+    system_index: usize,
+    coord: HexCoord,
+    used_system_names: &mut BTreeSet<String>,
+    anomaly_bias: bool,
+    reroll_suffix: &str,
+) -> Result<GeneratedSystem, SectorError> {
     let sys_id = ids::system_id(system_index);
-    let mut sys_rng = rng::stage_rng(&config.generation.seed, "system", &sys_id);
+    let mut sys_rng = rng::stage_rng(
+        &config.generation.seed,
+        "system",
+        &format!("{sys_id}{reroll_suffix}"),
+    );
 
     let star_colour = choose_system_star_colour(pool, &mut sys_rng)?;
     let name = pick_system_name(names, system_index, &mut sys_rng, used_system_names);
@@ -65,6 +97,7 @@ pub fn build_system_with_bias(
         sys_rng: &mut sys_rng,
         root_seed: &config.generation.seed,
         anomaly_bias,
+        reroll_suffix,
     })?;
 
     Ok(GeneratedSystem {

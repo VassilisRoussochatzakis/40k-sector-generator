@@ -31,6 +31,12 @@ pub(super) struct WorldGenParams<'a> {
     pub sys_rng: &'a mut ChaCha8Rng,
     pub root_seed: &'a str,
     pub anomaly_bias: bool,
+    /// Re-roll suffix folded into the per-world `("world",<world_id>)` RNG
+    /// discriminator. Empty (the default) reproduces the legacy key
+    /// byte-for-byte; `":r{n}"` yields a deterministic distinct world payload.
+    /// Worlds are folded under `Stage::Systems` for v1, so this carries the
+    /// `Stage::Systems` suffix.
+    pub reroll_suffix: &'a str,
 }
 
 pub(super) fn generate_worlds_for_system(
@@ -46,6 +52,7 @@ pub(super) fn generate_worlds_for_system(
         sys_rng,
         root_seed,
         anomaly_bias,
+        reroll_suffix,
     } = params;
     let min_w = config.generation.min_worlds_per_system;
     let max_w = config.generation.max_worlds_per_system;
@@ -60,7 +67,7 @@ pub(super) fn generate_worlds_for_system(
 
     for w_idx in 1..=world_count {
         let world_id = ids::world_id(system_index, w_idx);
-        let mut w_rng = rng::stage_rng(root_seed, "world", &world_id);
+        let mut w_rng = rng::stage_rng(root_seed, "world", &format!("{world_id}{reroll_suffix}"));
 
         let cand = choose_world_candidate(
             pool,

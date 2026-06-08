@@ -1604,6 +1604,46 @@ poll a cancellation flag, deliver via `mpsc::Sender`, reject stale
 results on receive, and implement `FromJobPanic` for the result type so a
 worker panic surfaces as a failure rather than a dead channel.
 
+### 4.2 Prefix-run seam — running the pipeline up to a stage
+
+(The engine half of the builder's iterative / step-by-step generation mode.
+Full design: [ITERATIVE_GENERATION.md](ITERATIVE_GENERATION.md) §2.)
+
+Generation is exposed as a **prefix run**: run the deterministic pipeline up to
+and including a chosen stage and return the partial sector built so far. Three
+public items in [src/gen/generation/reroll.rs](src/gen/generation/reroll.rs) and
+[src/gen/generation/mod.rs](src/gen/generation/mod.rs) make this up:
+
+- **`sectorforge::Stage`** — an 18-variant, pipeline-ordered enum naming every
+  stage (`WorldPool`, `Placement`, `Regions`, `Systems`, `Factions`, `Routes`, …
+  through `Chronicle`). Declaration order *is* pipeline order, so the derived
+  `Ord` lets a caller gate each stage with `stage <= through`. `Stage::LAST ==
+  Stage::Chronicle` is the final stage. (`Worlds` is folded under `Systems` —
+  one "system contents" step — so it is not a separate variant.)
+- **`sectorforge::RerollNonces`** — a per-`Stage` re-roll counter (`BTreeMap<Stage,
+  u64>`) folded into that stage's RNG discriminator via `suffix(stage)`: nonce
+  `0`/absent yields `""` (the *unchanged* legacy discriminator ⇒ byte-identical
+  output), nonce `n > 0` yields `":r{n}"` (a deterministic, distinct re-roll).
+  Existing stage keys are never reordered; the suffix is strictly appended.
+- **`sectorforge::generate_prefix(project, through, nonces, progress, should_cancel)`**
+  — runs the pipeline through `through` and returns a partial `GeneratedSector`
+  (overlays past the cutoff left at their `Default`/empty values). The
+  manifest/construction stage is RNG-free and always runs, so an early cutoff
+  yields a *renderable* partial sector, never an empty/garbage one. The old
+  `generate_with_progress_and_cancel` is now a thin wrapper —
+  `generate_prefix(project, Stage::LAST, &RerollNonces::default(), progress,
+  should_cancel)`.
+
+**The determinism guarantee (§2.2 — the linchpin).** Every stage seeds a *fresh*
+keyed RNG from `blake3("sectorforge:{seed}:{stage}:{disc}")` (§4 above); stages
+share no stream, so the entropy a stage draws is a pure function of `(seed,
+stage, discriminator)` and is independent of which other stages ran before it.
+Therefore, for the same `(config, seed, nonces)`, the stages `<= through` of a
+prefix run are **byte-for-byte** the corresponding stages of a full run — the
+cutoff cannot perturb earlier stages because nothing downstream feeds entropy
+upstream. A nonce of `0` (the default) leaves every discriminator unchanged, so
+the golden suite stays green and "step straight through == one-shot" holds.
+
 ---
 
 ## 5. World data files
@@ -3404,6 +3444,26 @@ itself ships in Phase D §M1..§M5 — see [MISSIONS tab — §M1..§M5](#missio
 | Alt+← / ⌥+← | Navigate back through cross-tab link history (§LINK3). |
 | Alt+→ / ⌥+→ | Navigate forward through cross-tab link history (§LINK3). |
 
+### ITERATIVE tab — step-by-step generation
+
+The 24th tab ([ITERATIVE_GENERATION.md](ITERATIVE_GENERATION.md) Phase P; `BuilderTab::IterativeGen`, label "ITERATIVE", `BuilderTab::ALL[23]`). It walks the random generator one stage at a time instead of producing a whole sector at once. Started from the PROJECT tab ([panels/project.rs](builder/src/builder/panels/project.rs)), it sets the active tab and seeds an `IterativeGenSession`; dispatch is `BuilderTab::IterativeGen => iterative_gen::show` in [panels/nav.rs](builder/src/builder/panels/nav.rs), UI in [panels/iterative_gen.rs](builder/src/builder/panels/iterative_gen.rs), state + ops in [builder/src/builder/state/iterative_gen.rs](builder/src/builder/state/iterative_gen.rs). It is the in-app face of the §4.2 prefix-run seam: the *only* generator is the engine — a knob edit, re-roll, or step change re-runs [`sectorforge::generate_prefix`](src/lib.rs) off-thread (via a `gui-core` job, like SEARCH / SEGMENTUM) and re-rolls flow through per-stage [`sectorforge::RerollNonces`](src/lib.rs); nothing in the panel draws entropy.
+
+The wizard is a **7-step** rail (`GenStep::ALL`): Size & seed · System placement · Warp regions · System contents · Factions · Routes · Finalize & overlays. Each step maps to the engine `Stage` whose re-roll nonce it owns (Size owns none — config only; Routes owns `Stage::RouteControls`; Finalize owns `Stage::Chronicle`). Editing or re-rolling a step invalidates it and every later step (the DAG rule); the preview always re-runs the prefix through the current step. The early structural steps (Placement / Regions) render the preview through `Stage::Systems` so placed systems are visible even though a re-roll still bumps the step's *own* nonce (`GenStep::preview_through`).
+
+| Piece | Where it lives |
+|---|---|
+| Step rail | [panels/iterative_gen.rs](builder/src/builder/panels/iterative_gen.rs) — left `SidePanel` walking `GenStep::ALL`: current step highlighted, accepted steps checked, downstream steps disabled until reached. |
+| Per-step knob form | The central form reads/writes `session.config.*` (and the regions override) **directly** (transient); each edit is followed by `note_config_edit` / `set_grid_dim` so the DAG invalidates and the preview re-runs. The `Size` step exposes a **single** square grid-dimension field bound to both width and height via `set_grid_dim` (geometry invariant — `GEN_SECTOR_NOT_SQUARE` can never trip). |
+| Live preview | The shared `SectorView` widget fed from `session.preview` — the partial `GeneratedSector` produced by the off-thread prefix runner (`spawn_prefix` → `pump_prefix`, `IterativeJobResult`, stale revisions dropped). |
+| Action bar | Bottom `TopBottomPanel`: re-roll · back · next · commit · cancel. Re-roll bumps the current step's stage nonce (the `Size` re-roll is the sole fresh-entropy point — it mints a new root seed in `reroll_step`); Back/Next walk the rail; Cancel clears the session. |
+| Commit (new project) | `commit_new_project` runs the full pipeline synchronously (`generate_prefix(.., Stage::LAST, &nonces, ..)`), writes the project tree via `save_project_as`, then `open_project` reads it back (`*self = new_state`). This is a **session boundary**, not a `BuilderCommand` — exactly like the `random` worker's `apply_result`; the reopened state has `iterative_gen == None`, so the wizard clears itself. |
+
+`BuilderState` gains one field, `iterative_gen: Option<IterativeGenSession>`, holding the working `AppConfig`, root seed, `RerollNonces`, current step, cached `preview`, destination folder, the transient `regions_override`, and the background job handle. The whole session is **transient** (the §V2 / command-bus carve-out): it is written directly, never through the bus, never serialised into `sector.json`, and never on the undo stack.
+
+**Current v1 limits.** The **Regions** step is editable via the transient `regions_override` — the four scalar knobs (`enabled` / `count` / `mean_size` / `apply_to_routes`), lazily seeded from the effective catalog config and substituted only when assembling the `ProjectInput` for a prefix run (via `synthesize_project_input_with`); per-condition weights are read-only here (edit them in the REGIONS tab). The override is folded into the persisted regions catalog only at the new-project commit boundary, so `override == None` stays byte-identical to the legacy path. The **Factions** step is read-only in v1 (re-roll re-assigns from the project roster; edit the roster in the FACTIONS tab through the command bus). **In-session regenerate** into an already-open project (ITERATIVE_GENERATION.md "C2", a `BuilderCommand::ReplaceSectorFromGeneration`) is deferred.
+
+---
+
 ### Conflict + stability editor
 
 BUILDER_REQS §28 (CF1..CF6). Per-world conflict + stability editor mounted under the WORLD tab; per-system aggregate view + override + advance + tick log + heatmap toggle mounted under the SYSTEM tab. Mutations route through the command bus so the §U1/§U2 undo/redo rails fire.
@@ -3652,6 +3712,7 @@ Public surface:
 | `validate_project(&input)` | Pre-generation validation, returns `ValidationReport` |
 | `generate_sector(input)` | Deterministic sector generation, returns `GeneratedSector` |
 | `generate_sector_with_progress(input, cb)` | Same generation, emitting `SectorProgress` callback events |
+| `generate_prefix(input, through, nonces, cb, cancel)` | §4.2 — run the pipeline through `Stage` `through`, returning a partial `GeneratedSector` (re-roll counters via `RerollNonces`). `generate_with_progress_and_cancel` is a thin wrapper over this at `Stage::LAST` + default nonces |
 | `generate_system_standalone(input, index, coord)` | Deterministic single-system generation, returns `GeneratedSystem` |
 | `validate_sector(&sector)` | Post-generation invariant check (spec §11.11), returns `InvariantReport` |
 | `compose_segmentum(&file, base_dir, out)` | Generate child sectors and compose a `Segmentum` |
@@ -3679,7 +3740,8 @@ Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `ProjectCatalogs`
 `MapTheme`, `MapThemeConfig`, `LabelDensity`, `LegendStyle`,
 `RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`,
 `HistoryConfig`, `SectorChronicle`, `HistoryEvent`, `SectorProgress`,
-`Segmentum`, and `SegmentumProgress`.
+`Segmentum`, `SegmentumProgress`, `Stage`, and `RerollNonces` (the last two
+are the §4.2 prefix-run seam).
 
 ### Typed identifiers
 

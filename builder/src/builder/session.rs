@@ -136,6 +136,7 @@ impl SessionFile {
             route_bulk: super::state::RouteBulkState::default(),
             hidden_routes: super::state::HiddenRoutesState::default(),
             random_gen: super::random_run::RandomGenState::default(),
+            iterative_gen: None,
             dominance_locked: std::collections::BTreeSet::new(),
             primary_factions_locked: std::collections::BTreeSet::new(),
             region_grow: super::state::RegionGrowState::default(),

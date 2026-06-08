@@ -35,7 +35,9 @@ pub use config::{
     RelationMetrics, RelationOverride, RelationsConfig, RelationsFile, RelationsMatrix,
     RelationsReport, Stance, TreatyStatus,
 };
-pub use derive::{derive, derive_with, derive_with_threshold, load_relations_file};
+pub use derive::{
+    derive, derive_with, derive_with_threshold, derive_with_threshold_reroll, load_relations_file,
+};
 pub use render::{render_markdown, write_report};
 
 #[cfg(test)]

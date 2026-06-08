@@ -57,6 +57,8 @@ use sectorforge::{generate_prefix, RerollNonces, SectorProgress, Stage};
 
 use sectorforge_gui_core::jobs::{spawn_job, FromJobPanic, JobHandle};
 
+use crate::builder::data_catalogs::DataCatalogs;
+
 use super::BuilderState;
 
 /// The seven user-facing steps of the iterative wizard (ITERATIVE_GENERATION.md
@@ -233,6 +235,28 @@ pub struct IterativeGenSession {
     /// Lazily initialised by the panel from the *effective* catalog config on
     /// the first Regions-step edit.
     pub regions_override: Option<RegionsConfig>,
+    /// Transient, session-level **data-catalog override** for a wizard launched
+    /// from a builder with **no project open** (so `data_catalogs.worlds` is
+    /// `None` and no prefix/commit run could otherwise assemble a
+    /// [`sectorforge::ProjectInput`] — the user's "nothing works"). When `Some`,
+    /// this full catalog set (seeded from the bundled `_base` preset at launch —
+    /// worlds, factions, names, regions, route rules, …) is substituted for
+    /// [`super::BuilderState::data_catalogs`] **only while assembling the
+    /// `ProjectInput`** for a prefix preview ([`BuilderState::spawn_prefix`]) and
+    /// the final full run, then installed into the freshly written project at
+    /// **commit** ([`BuilderState::commit_new_project`]) so worlds.toml /
+    /// factions.toml / … are written and survive the reopen.
+    ///
+    /// - `None` ⇒ the builder already has a project loaded; the prefix run uses
+    ///   the live `data_catalogs` exactly as before (byte-identical to the
+    ///   project-open path).
+    /// - `Some(catalogs)` ⇒ blank-builder launch; the override supplies the world
+    ///   pool the wizard needs. Like [`Self::regions_override`] it is pure
+    ///   transient session state (no `BuilderCommand`, §V2 / invariant #5
+    ///   carve-out); it touches document state only at the commit session
+    ///   boundary (`open_project` + `*self = new_state`), exactly like the
+    ///   one-shot random generator's `apply_result`.
+    pub catalogs_override: Option<DataCatalogs>,
     /// The step the user is currently inspecting / tuning.
     pub current_step: GenStep,
     /// Furthest step committed-in-session (advanced by Next). `None` until the
@@ -285,6 +309,7 @@ impl IterativeGenSession {
             root_seed: seed,
             nonces: RerollNonces::default(),
             regions_override: None,
+            catalogs_override: None,
             current_step: GenStep::Size,
             accepted_through: None,
             preview: None,
@@ -423,8 +448,19 @@ impl BuilderState {
         // byte-identical to the legacy path (invariants #2/#6).
         let session_config = session.config.clone();
         let regions_override = session.regions_override.clone();
+        let catalogs_override = session.catalogs_override.clone();
         let saved_config = std::mem::replace(&mut self.config, session_config);
+        // Blank-builder launch: the session carries a `_base`-seeded catalog set
+        // because the live `data_catalogs` has no world pool. Swap it in for the
+        // read-only assembly, then restore — the preview never persistently
+        // mutates the live document (invariant #5). `None` ⇒ a project is open ⇒
+        // use the live catalogs exactly as before.
+        let saved_catalogs =
+            catalogs_override.map(|c| std::mem::replace(&mut self.data_catalogs, c));
         let input = self.synthesize_project_input_with(regions_override.as_ref());
+        if let Some(saved) = saved_catalogs {
+            self.data_catalogs = saved;
+        }
         self.config = saved_config;
 
         let Some(input) = input else {
@@ -649,8 +685,23 @@ impl BuilderState {
             .expect("session present above")
             .regions_override
             .clone();
+        // Blank-builder launch: the `_base`-seeded catalog set the preview ran on
+        // (see `spawn_prefix`). Fold it into the full run too, then persist it into
+        // the new project below so the reopened sector has its world/faction pools.
+        let catalogs_override = self
+            .iterative_gen
+            .as_ref()
+            .expect("session present above")
+            .catalogs_override
+            .clone();
         let saved_config = std::mem::replace(&mut self.config, session_config.clone());
+        let saved_catalogs = catalogs_override
+            .clone()
+            .map(|c| std::mem::replace(&mut self.data_catalogs, c));
         let input = self.synthesize_project_input_with(regions_override.as_ref());
+        if let Some(saved) = saved_catalogs {
+            self.data_catalogs = saved;
+        }
         self.config = saved_config;
 
         let Some(input) = input else {
@@ -672,6 +723,17 @@ impl BuilderState {
         //    carve-out (invariant #5: this is the commit boundary, no command).
         self.config = session_config;
         self.sector = sector.into();
+        // Blank-builder launch: persist the wizard's `_base`-seeded catalogs into
+        // the new project so worlds.toml / factions.toml / names / … are written
+        // (`save_project_as` only writes a catalog that is present in
+        // `data_catalogs`), and so the reopened roster is not empty. This is the
+        // commit session boundary (`open_project` + `*self = new_state` below
+        // replace the whole document), so the direct write needs no command
+        // (invariant #5) — exactly like the regions sync that follows. The session
+        // config installed above already carries the matching `[inputs]` paths.
+        if let Some(catalogs) = catalogs_override {
+            self.data_catalogs = catalogs;
+        }
         // §5: persist the transient regions-override into the new project's
         // regions catalog so the reopened sector matches the preview. This is the
         // *only* point the override touches catalog state, and it does so at the

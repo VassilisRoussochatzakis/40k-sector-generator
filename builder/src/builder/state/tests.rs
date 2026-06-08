@@ -2375,6 +2375,84 @@ mod iterative_gen_session {
         assert!(!dest.as_std_path().exists(), "no project tree on a failed commit");
     }
 
+    #[test]
+    fn blank_builder_commit_seeded_from_base_writes_full_project() {
+        // Regression (the user's report): launching the iterative wizard with NO
+        // project open used to dead-end — `data_catalogs.worlds` is `None`, so the
+        // preview never ran, "re-roll this step" had no visible effect, and commit
+        // failed with "No worlds catalog is loaded". The panel entry now seeds the
+        // session's `catalogs_override` (+ matching `[inputs]`) from the bundled
+        // `_base` preset, exactly like the one-shot random generator scaffolds it.
+        // This pins the end-to-end happy path of that seeding: a blank builder
+        // commits a complete, reopenable project with a non-empty world pool and
+        // roster — the panels the user found empty are now populated.
+        let base = camino::Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../presets/_base");
+        let (catalogs, inputs) = crate::builder::project_io::load_base_catalogs_from(&base)
+            .expect("the bundled _base preset must load");
+        assert!(catalogs.worlds.is_some(), "_base supplies a world pool");
+
+        let mut state = BuilderState::new_blank("blank", "Blank", "seed-x", 12, 12);
+        assert!(
+            state.data_catalogs.worlds.is_none(),
+            "a blank builder starts with no worlds catalog (the bug's precondition)"
+        );
+
+        // Mirror the panel entry (project.rs): seed the override + inputs from
+        // `_base` because the live builder has no project open.
+        let mut session = new_session(12);
+        session.config.inputs = inputs;
+        session.catalogs_override = Some(catalogs);
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest =
+            camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-blank")).unwrap();
+        session.dest = Some(dest.clone());
+        state.iterative_gen = Some(session);
+
+        state
+            .commit_new_project()
+            .expect("commit must succeed once the wizard is seeded from _base");
+
+        // The commit is a session boundary: the wizard is cleared and the freshly
+        // written project is reopened in place.
+        assert!(state.iterative_gen.is_none(), "wizard cleared at the commit boundary");
+        assert_eq!(
+            state.project_path.as_ref(),
+            Some(&dest),
+            "the reopened project points at the committed destination"
+        );
+
+        // The reopened project carries the seeded catalogs (the fix), so the
+        // builder's world editor and faction roster are populated — not the empty
+        // panels the user hit.
+        assert!(
+            state.data_catalogs.worlds.is_some(),
+            "the reopened project has a worlds catalog"
+        );
+        let factions = state
+            .data_catalogs
+            .factions
+            .as_ref()
+            .expect("the reopened project has a factions catalog");
+        assert!(!factions.factions.is_empty(), "the reopened roster is non-empty");
+
+        // A real sector was generated and persisted (preview/commit produce
+        // systems from the seeded world pool, not the blank starting grid).
+        assert!(!state.sector.systems.is_empty(), "the committed sector has systems");
+
+        // The catalog + sector files actually landed on disk so the reopen above
+        // found a real project tree.
+        let out_rel = state.config.outputs.directory.trim_end_matches('/');
+        assert!(
+            dest.join(out_rel).join("sector.json").as_std_path().exists(),
+            "sector.json was written under the outputs directory"
+        );
+        let worlds_dir = state.config.inputs.world_data_dir.trim_end_matches('/');
+        assert!(
+            dest.join(worlds_dir).join("worlds.toml").as_std_path().exists(),
+            "worlds.toml was written so the reopen finds a world pool"
+        );
+    }
+
     // ── §5 transient regions-override seam ───────────────────────────────────
     //
     // The override is applied *only* when assembling the `ProjectInput` for a

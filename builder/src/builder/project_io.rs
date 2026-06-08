@@ -697,6 +697,34 @@ fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {
     }
 }
 
+/// Load the bundled `_base` preset's full data-catalog set (worlds, factions,
+/// names, regions, route rules, …) together with its `[inputs]` path block, for
+/// seeding a generator launched with **no project open** (so the live
+/// `data_catalogs` has no world pool and a prefix/commit run would dead-end on
+/// the missing worlds catalog). Returns `None` when `_base` can't be located /
+/// parsed (e.g. an install with no `presets/` dir) — the caller then leaves the
+/// session uninitialised and the panel surfaces the missing-catalog message.
+///
+/// This is the in-memory analogue of what the one-shot random generator gets by
+/// scaffolding `_base` to disk and `load_project`-ing it, so the wizard preview
+/// / commit run on exactly the same world pool as a one-shot roll.
+#[must_use]
+pub fn load_base_catalogs() -> Option<(DataCatalogs, sectorforge::config::InputConfig)> {
+    load_base_catalogs_from(&sectorforge::presets::default_presets_dir().join("_base"))
+}
+
+/// Inner form of [`load_base_catalogs`] taking an explicit `_base` directory, so
+/// tests can point at the workspace preset regardless of the process CWD (the
+/// public form resolves it CWD-relative via [`sectorforge::presets::default_presets_dir`]).
+#[must_use]
+pub(crate) fn load_base_catalogs_from(
+    base: &Utf8Path,
+) -> Option<(DataCatalogs, sectorforge::config::InputConfig)> {
+    let input = sectorforge::load_project(base).ok()?;
+    let catalogs = catalogs_from_input(&input);
+    Some((catalogs, input.config.inputs))
+}
+
 fn load_or_blank_sector(input: &ProjectInput) -> Result<GeneratedSector, BuilderError> {
     let candidate = input
         .root_dir

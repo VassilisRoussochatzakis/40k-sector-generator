@@ -126,11 +126,27 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .clicked()
             {
                 let seed = sectorforge::random_sector::mint_seed();
-                state.iterative_gen = Some(crate::builder::state::IterativeGenSession::new(
+                let mut session = crate::builder::state::IterativeGenSession::new(
                     state.config.clone(),
                     seed,
                     sectorforge::random_sector::SectorSize::Medium,
-                ));
+                );
+                // A wizard launched with no project open has no world pool in the
+                // live `data_catalogs` (every field is `None`), so preview, re-roll,
+                // and commit would all dead-end on the missing worlds catalog. Seed
+                // the session from the bundled `_base` preset — the same catalog set
+                // the one-shot random generator scaffolds — so the wizard works
+                // standalone. When a project IS open its worlds catalog is `Some`, so
+                // leave the live catalogs in place (the override stays `None`).
+                if state.data_catalogs.worlds.is_none() {
+                    if let Some((catalogs, inputs)) =
+                        crate::builder::project_io::load_base_catalogs()
+                    {
+                        session.config.inputs = inputs;
+                        session.catalogs_override = Some(catalogs);
+                    }
+                }
+                state.iterative_gen = Some(session);
                 state.set_active_tab(crate::builder::state::BuilderTab::IterativeGen);
             }
             save_project::show(ui, state);

@@ -246,7 +246,10 @@ mod tests {
         let json = serde_json::to_string(&save).unwrap();
         let parsed: SectorSave = serde_json::from_str(&json).unwrap();
         let json2 = serde_json::to_string(&parsed).unwrap();
-        assert_eq!(json, json2, "SectorSave JSON must round-trip byte-identically");
+        assert_eq!(
+            json, json2,
+            "SectorSave JSON must round-trip byte-identically"
+        );
 
         // The `SystemId` map key survived deserialisation (Borrow<str> lookup).
         assert!(

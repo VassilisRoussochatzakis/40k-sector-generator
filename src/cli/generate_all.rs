@@ -47,8 +47,8 @@ pub(crate) fn run_generate_all(
         // sectorforge.toml drives seed and formats.
         let result = run_generate(
             project.clone(),
-            None,  // seed
-            None,  // out
+            None, // seed
+            None, // out
             allow_warnings,
             None,  // heatmap
             false, // no_faction_fill

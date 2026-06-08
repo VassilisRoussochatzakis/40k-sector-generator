@@ -99,7 +99,6 @@ impl HeatmapMode {
             _ => (28, 26, 38),
         }
     }
-
 }
 
 enum_slug!(HeatmapMode {

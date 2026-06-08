@@ -1270,8 +1270,7 @@ pub fn run_search_with_progress(
     };
 
     near_misses.sort_by(|a, b| {
-        crate::analysis::cmp_f32_asc(a.total_miss, b.total_miss)
-            .then_with(|| a.n.cmp(&b.n))
+        crate::analysis::cmp_f32_asc(a.total_miss, b.total_miss).then_with(|| a.n.cmp(&b.n))
     });
 
     Ok(SearchOutcome {

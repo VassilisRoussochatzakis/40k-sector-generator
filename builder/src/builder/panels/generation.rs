@@ -17,7 +17,11 @@ use egui::{RichText, Ui};
 
 use sectorforge::config::{PlacementMode, WorldSelectionMode};
 use sectorforge::sector_model::HexCoord;
-use sectorforge_gui_core::{palette, ui_kit::{self, labeled}, widgets};
+use sectorforge_gui_core::{
+    palette,
+    ui_kit::{self, labeled},
+    widgets,
+};
 
 use crate::builder::project_io::{new_project, NewProjectOptions};
 use crate::builder::state::PartialRegenRect;
@@ -40,7 +44,11 @@ fn subhead(ui: &mut Ui, text: &str) {
 /// state onto it. Hosts that have not yet adopted [`BuilderWorkspace`] can
 /// pass `None` and the §G6 button will scaffold but report that no host
 /// workspace is available.
-pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState, workspace: Option<&mut BuilderWorkspace>) {
+pub(crate) fn show(
+    ui: &mut Ui,
+    state: &mut BuilderState,
+    workspace: Option<&mut BuilderWorkspace>,
+) {
     show_g1_parameters(ui, state);
     ui.add_space(6.0);
     show_g2_seed_lock(ui, state);
@@ -426,8 +434,11 @@ fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
                 ui_kit::placeholder(ui, "locked — re-roll keeps this seed");
             } else {
                 ui.label(
-                    RichText::new(format!("re-rolls so far: {}", state.generation.seed_reroll_counter))
-                        .color(palette::chrome_text_dim()),
+                    RichText::new(format!(
+                        "re-rolls so far: {}",
+                        state.generation.seed_reroll_counter
+                    ))
+                    .color(palette::chrome_text_dim()),
                 );
             }
         });
@@ -469,7 +480,10 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
         // Build the project input up front so the closure handed to
         // `pump` does not borrow `state` while `state.generation.preview` is held.
         let pending_input = state.synthesize_project_input();
-        let new_result = state.generation.preview.pump(ui.ctx(), now, move || pending_input);
+        let new_result = state
+            .generation
+            .preview
+            .pump(ui.ctx(), now, move || pending_input);
         if new_result {
             ui.ctx().request_repaint();
         }
@@ -558,12 +572,15 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 ui.separator();
             }
-            let mut rect = state.map_view.partial_regen_rect.unwrap_or(PartialRegenRect {
-                min_q: 0,
-                min_r: 0,
-                max_q: 0,
-                max_r: 0,
-            });
+            let mut rect = state
+                .map_view
+                .partial_regen_rect
+                .unwrap_or(PartialRegenRect {
+                    min_q: 0,
+                    min_r: 0,
+                    max_q: 0,
+                    max_r: 0,
+                });
             ui.label(
                 RichText::new("Box to rebuild (hex coordinates):")
                     .color(palette::chrome_text_dim()),
@@ -760,7 +777,8 @@ fn show_g6_new_from_preset(
                 });
                 // Persist edits back to the modal state for the next frame.
                 if persist_modal
-                    && (matches!(state.feedback.modal, Some(ModalKind::NewFromPreset { .. })) || modal.3)
+                    && (matches!(state.feedback.modal, Some(ModalKind::NewFromPreset { .. }))
+                        || modal.3)
                 {
                     state.feedback.modal = Some(ModalKind::NewFromPreset {
                         preset_id: modal.0,

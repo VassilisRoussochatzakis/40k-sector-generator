@@ -1014,7 +1014,11 @@ pub fn render_markdown(d: &SectorDiff, cfg: &DiffConfig) -> String {
         // is already sorted by descending `|delta|` (see `compute_faction_deltas`),
         // so a prefix `take` yields the strongest N movements. The full set is
         // still serialised into `diff.json`; only this rendered table is trimmed.
-        for f in d.faction_deltas.iter().take(cfg.top_faction_deltas as usize) {
+        for f in d
+            .faction_deltas
+            .iter()
+            .take(cfg.top_faction_deltas as usize)
+        {
             wln!(
                 s,
                 "| {} (`{}`) | {:+.2} | {:.2} | {:.2} | {:+} | {:+} |",
@@ -1439,7 +1443,10 @@ mod tests {
         };
         let md = render_markdown(&full, &cfg);
         assert_eq!(faction_rows(&md), 1);
-        assert!(md.contains("(`f9`)"), "the single row is the strongest delta");
+        assert!(
+            md.contains("(`f9`)"),
+            "the single row is the strongest delta"
+        );
     }
 
     /// #38: `min_economy_delta` defaults to the same value as `min_faction_delta`

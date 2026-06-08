@@ -39,7 +39,12 @@ pub(crate) fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[
 
 /// Dropdown over `(value, label)` tuples. `current` holds the value string;
 /// label is what user sees.
-pub(crate) fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &str)]) -> bool {
+pub(crate) fn combo_kv(
+    ui: &mut Ui,
+    id: &str,
+    current: &mut String,
+    options: &[(&str, &str)],
+) -> bool {
     let mut changed = false;
     let shown: &str = options
         .iter()
@@ -92,7 +97,12 @@ where
     changed
 }
 
-pub(crate) fn combo_kv_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[(&str, &str)]) -> bool
+pub(crate) fn combo_kv_id<T>(
+    ui: &mut Ui,
+    id: &str,
+    current: &mut T,
+    options: &[(&str, &str)],
+) -> bool
 where
     T: AsRef<str> + From<String>,
 {

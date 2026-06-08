@@ -1216,11 +1216,16 @@ mod ld3_background_tests {
         state.dispatch_background_derivations(&ctx);
 
         assert!(
-            state.derivations.deriving.contains(&DerivationKind::Relations),
+            state
+                .derivations
+                .deriving
+                .contains(&DerivationKind::Relations),
             "dispatch must flag the off-tab kind deriving"
         );
         assert!(
-            state.derivation_jobs.has_in_flight(DerivationKind::Relations),
+            state
+                .derivation_jobs
+                .has_in_flight(DerivationKind::Relations),
             "dispatch must store an in-flight job for the kind"
         );
 
@@ -1269,8 +1274,13 @@ mod ld3_background_tests {
         );
         // Both freshness flags cleared by `mark_derivation_fresh`.
         assert!(!state.derivations.is_stale(DerivationKind::Relations));
-        assert!(!state.derivations.deriving.contains(&DerivationKind::Relations));
-        assert!(!state.derivation_jobs.has_in_flight(DerivationKind::Relations));
+        assert!(!state
+            .derivations
+            .deriving
+            .contains(&DerivationKind::Relations));
+        assert!(!state
+            .derivation_jobs
+            .has_in_flight(DerivationKind::Relations));
         assert_eq!(
             state.derivation_status(DerivationKind::Relations),
             DerivationStatus::Fresh
@@ -1296,7 +1306,9 @@ mod ld3_background_tests {
         state.derivations.invalidate(&[DepClass::Factions]);
 
         state.dispatch_background_derivations(&ctx);
-        assert!(state.derivation_jobs.has_in_flight(DerivationKind::Relations));
+        assert!(state
+            .derivation_jobs
+            .has_in_flight(DerivationKind::Relations));
 
         // Drift the inputs *now*, before the result can be drained — this makes
         // the captured dispatch-time fingerprint stale for certain.
@@ -1319,7 +1331,10 @@ mod ld3_background_tests {
         // Drain until the worker finishes and the guard fires (bounded poll).
         for _ in 0..200 {
             state.pump_derivation_jobs();
-            if !state.derivation_jobs.has_in_flight(DerivationKind::Relations) {
+            if !state
+                .derivation_jobs
+                .has_in_flight(DerivationKind::Relations)
+            {
                 break;
             }
             std::thread::sleep(Duration::from_millis(5));
@@ -1338,7 +1353,12 @@ mod ld3_background_tests {
             state.derivations.is_stale(DerivationKind::Relations),
             "the kind stays stale so it re-dispatches against fresh inputs"
         );
-        assert!(!state.derivation_jobs.has_in_flight(DerivationKind::Relations));
-        assert!(!state.derivations.deriving.contains(&DerivationKind::Relations));
+        assert!(!state
+            .derivation_jobs
+            .has_in_flight(DerivationKind::Relations));
+        assert!(!state
+            .derivations
+            .deriving
+            .contains(&DerivationKind::Relations));
     }
 }

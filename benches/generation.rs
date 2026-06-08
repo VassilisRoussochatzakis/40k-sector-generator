@@ -12,7 +12,8 @@ use camino::Utf8PathBuf;
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
 use sectorforge::{
     bitmap::{encode_png_bytes, render_sector_image, RenderOptions},
-    generate_sector, load_project, validate_project, validate_sector, GeneratedSector, ProjectInput,
+    generate_sector, load_project, validate_project, validate_sector, GeneratedSector,
+    ProjectInput,
 };
 
 fn project_dir() -> Utf8PathBuf {

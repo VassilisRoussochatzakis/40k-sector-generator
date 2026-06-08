@@ -142,7 +142,11 @@ mod tests {
             Stage::Relations,
             Stage::Chronicle,
         ] {
-            assert_eq!(n.suffix(s), "", "default suffix must be empty (byte-compat)");
+            assert_eq!(
+                n.suffix(s),
+                "",
+                "default suffix must be empty (byte-compat)"
+            );
             assert_eq!(n.get(s), 0);
         }
     }

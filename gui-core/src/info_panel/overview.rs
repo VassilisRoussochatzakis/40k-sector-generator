@@ -5,19 +5,15 @@ use std::sync::Arc;
 
 use egui::{Color32, Ui};
 
-use sectorforge::sector_model::{
-    GeneratedSector, RoutePattern,
-};
+use sectorforge::sector_model::{GeneratedSector, RoutePattern};
 
-use crate::palette::{
-    self, faction_style_by_id, stability_color, PATH_HIGHLIGHT,
-};
+use crate::palette::{self, faction_style_by_id, stability_color, PATH_HIGHLIGHT};
 use crate::sector_view::SectorMapCache;
 use sectorforge::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
 };
 
-use super::{dim, legend_control_row, legend_row, legend_route_row, section, short, title};
+use super::{dim, legend_control_row, legend_route_row, legend_row, section, short, title};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct SectorOverviewCacheKey {

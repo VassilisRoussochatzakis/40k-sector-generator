@@ -910,9 +910,7 @@ mod tests {
         // subsector dims: 2.div_ceil(4) = 1, .max(1) = 1 ⇒ Some(1).
         assert_eq!(cfg.generation.subsector_width, Some(1));
         assert_eq!(cfg.generation.subsector_height, Some(1));
-        assert!(
-            cfg.generation.max_worlds_per_system >= cfg.generation.min_worlds_per_system
-        );
+        assert!(cfg.generation.max_worlds_per_system >= cfg.generation.min_worlds_per_system);
     }
 
     // GAP 172 (c): regression marker — `Custom{dim:1}` yields cells=1, so

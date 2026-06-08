@@ -1203,10 +1203,22 @@ mod tests {
 
     #[test]
     fn world_type_color_is_exact_case_sensitive() {
-        assert_eq!(world_type_color("ForgeWorld"), Color32::from_rgb(220, 110, 50));
-        assert_eq!(world_type_color("AgriWorld"), Color32::from_rgb(120, 200, 110));
+        assert_eq!(
+            world_type_color("ForgeWorld"),
+            Color32::from_rgb(220, 110, 50)
+        );
+        assert_eq!(
+            world_type_color("AgriWorld"),
+            Color32::from_rgb(120, 200, 110)
+        );
         // Case-sensitive miss -> grey (the asymmetry vs star_color).
-        assert_eq!(world_type_color("forgeworld"), Color32::from_rgb(180, 180, 180));
-        assert_eq!(world_type_color("Nonsense"), Color32::from_rgb(180, 180, 180));
+        assert_eq!(
+            world_type_color("forgeworld"),
+            Color32::from_rgb(180, 180, 180)
+        );
+        assert_eq!(
+            world_type_color("Nonsense"),
+            Color32::from_rgb(180, 180, 180)
+        );
     }
 }

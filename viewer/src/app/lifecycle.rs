@@ -39,7 +39,10 @@ impl App {
             Ok(Err(e)) => (Vec::new(), Some(format!("subsectors: {e}"))),
             Err(payload) => (
                 Vec::new(),
-                Some(format!("subsectors panicked: {}", panic_msg(payload.as_ref()))),
+                Some(format!(
+                    "subsectors panicked: {}",
+                    panic_msg(payload.as_ref())
+                )),
             ),
         }
     }
@@ -186,8 +189,7 @@ impl App {
                             // and skip the write, but still load in-memory.
                             let out_dir = path.join("out");
                             if let Err(e) = std::fs::create_dir_all(&out_dir) {
-                                self.export_status =
-                                    format!("failed to create {out_dir}: {e}");
+                                self.export_status = format!("failed to create {out_dir}: {e}");
                             } else if let Err(e) =
                                 sectorforge::write_sector_json(&sector_path, &sector)
                             {

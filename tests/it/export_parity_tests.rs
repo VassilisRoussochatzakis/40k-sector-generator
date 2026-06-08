@@ -32,10 +32,7 @@ fn write_html_matches_render_html_and_is_path_stable() {
     // On-disk bytes == in-memory render.
     let on_disk = std::fs::read_to_string(p.as_std_path()).unwrap();
     let in_mem = sectorforge::html_export::render_html(sector, &cfg).unwrap();
-    assert_eq!(
-        on_disk, in_mem,
-        "file bytes must equal render_html output"
-    );
+    assert_eq!(on_disk, in_mem, "file bytes must equal render_html output");
 
     // write_html_to twice (to two distinct paths) yields identical bytes.
     let p1 = out_dir.join("a.html");

@@ -236,9 +236,7 @@ where
             }
             continue;
         }
-        top.sort_by(|a, b| {
-            crate::analysis::cmp_f32_desc(a.1, b.1).then(a.0.cmp(&b.0))
-        });
+        top.sort_by(|a, b| crate::analysis::cmp_f32_desc(a.1, b.1).then(a.0.cmp(&b.0)));
         let max = top[0].1;
         // Normalise the top score against an arbitrary ceiling of 100
         // (single Dominant-level presence + distance 0). Higher values

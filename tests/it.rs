@@ -28,10 +28,10 @@ mod hooks_tests;
 mod imports_test;
 #[path = "it/invariants_proptest.rs"]
 mod invariants_proptest;
-#[path = "it/iterative_gen_tests.rs"]
-mod iterative_gen_tests;
 #[path = "it/invariants_tests.rs"]
 mod invariants_tests;
+#[path = "it/iterative_gen_tests.rs"]
+mod iterative_gen_tests;
 #[path = "it/loading_tests.rs"]
 mod loading_tests;
 #[path = "it/personae_tests.rs"]

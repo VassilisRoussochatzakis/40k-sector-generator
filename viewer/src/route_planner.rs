@@ -130,7 +130,12 @@ impl RoutePlannerState {
 }
 
 /// Compute a route between two systems, or `None` if no path exists.
-pub(crate) fn plan_route(sector: &GeneratedSector, from: &str, to: &str, metric: Metric) -> Option<Plan> {
+pub(crate) fn plan_route(
+    sector: &GeneratedSector,
+    from: &str,
+    to: &str,
+    metric: Metric,
+) -> Option<Plan> {
     if from == to {
         return None;
     }

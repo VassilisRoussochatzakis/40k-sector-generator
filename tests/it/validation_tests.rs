@@ -393,7 +393,10 @@ fn relations_pair_unknown_faction_is_error() {
     assert!(!report.ok);
     assert!(has_err(&report, "RELATIONS_PAIR_UNKNOWN_FACTION"));
     let issue = find(&report, "RELATIONS_PAIR_UNKNOWN_FACTION").unwrap();
-    assert_eq!(issue.path, Some("relations.pair_overrides[0].a".to_string()));
+    assert_eq!(
+        issue.path,
+        Some("relations.pair_overrides[0].a".to_string())
+    );
     // Slot `b` is a known id; it must NOT be flagged.
     assert!(
         !report
@@ -491,10 +494,12 @@ fn route_bad_multiplier_is_error() {
         let mut input = m42();
         let c = std::sync::Arc::make_mut(&mut input.catalogs);
         c.route_rules.modifiers.clear();
-        c.route_rules.modifiers.push(sectorforge::routes::RouteModifier {
-            when: sectorforge::routes::RouteCondition::default(),
-            multiplier: m,
-        });
+        c.route_rules
+            .modifiers
+            .push(sectorforge::routes::RouteModifier {
+                when: sectorforge::routes::RouteCondition::default(),
+                multiplier: m,
+            });
         let report = sectorforge::validate_project(&input).unwrap();
         assert!(
             has_err(&report, "ROUTE_BAD_MULTIPLIER"),
@@ -887,10 +892,12 @@ fn route_condition_unknown_refs_are_warnings() {
         government: Some("no_gov".into()),
         route_type: Some("no_rt".into()),
     };
-    c.route_rules.modifiers.push(sectorforge::routes::RouteModifier {
-        when: cond,
-        multiplier: 1.0,
-    });
+    c.route_rules
+        .modifiers
+        .push(sectorforge::routes::RouteModifier {
+            when: cond,
+            multiplier: 1.0,
+        });
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(report.ok);
     assert_eq!(
@@ -921,10 +928,12 @@ fn route_condition_valid_route_type_has_no_warning() {
         route_type: Some("Webway".into()),
         ..Default::default()
     };
-    c.route_rules.modifiers.push(sectorforge::routes::RouteModifier {
-        when: cond,
-        multiplier: 1.0,
-    });
+    c.route_rules
+        .modifiers
+        .push(sectorforge::routes::RouteModifier {
+            when: cond,
+            multiplier: 1.0,
+        });
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(!has_warn(&report, "ROUTE_UNKNOWN_ROUTE_TYPE"));
 }
@@ -1049,16 +1058,20 @@ fn regions_condition_bad_weight_only_negative_flagged() {
     let c = std::sync::Arc::make_mut(&mut input.catalogs);
     c.regions.enabled = true;
     c.regions.conditions.clear();
-    c.regions.conditions.push(sectorforge::regions::ConditionEntry {
-        kind: sectorforge::regions::RegionConditionKind::WarpStorm,
-        weight: 0.0,
-        label: None,
-    });
-    c.regions.conditions.push(sectorforge::regions::ConditionEntry {
-        kind: sectorforge::regions::RegionConditionKind::Turbulence,
-        weight: -1.0,
-        label: None,
-    });
+    c.regions
+        .conditions
+        .push(sectorforge::regions::ConditionEntry {
+            kind: sectorforge::regions::RegionConditionKind::WarpStorm,
+            weight: 0.0,
+            label: None,
+        });
+    c.regions
+        .conditions
+        .push(sectorforge::regions::ConditionEntry {
+            kind: sectorforge::regions::RegionConditionKind::Turbulence,
+            weight: -1.0,
+            label: None,
+        });
     let report = sectorforge::validate_project(&input).unwrap();
     let bad: Vec<_> = report
         .errors
@@ -1082,11 +1095,13 @@ fn regions_condition_nan_weight_is_flagged() {
     let c = std::sync::Arc::make_mut(&mut input.catalogs);
     c.regions.enabled = true;
     c.regions.conditions.clear();
-    c.regions.conditions.push(sectorforge::regions::ConditionEntry {
-        kind: sectorforge::regions::RegionConditionKind::WarpStorm,
-        weight: f64::NAN,
-        label: None,
-    });
+    c.regions
+        .conditions
+        .push(sectorforge::regions::ConditionEntry {
+            kind: sectorforge::regions::RegionConditionKind::WarpStorm,
+            weight: f64::NAN,
+            label: None,
+        });
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(has_err(&report, "REGIONS_CONDITION_BAD_WEIGHT"));
 }

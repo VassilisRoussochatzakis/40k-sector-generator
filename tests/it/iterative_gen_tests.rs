@@ -69,7 +69,12 @@ fn prefix_stages_match_full_run_prefix() {
     let full = fixture_sector();
     let full_world_count: usize = full.systems.iter().map(|s| s.worlds.len()).sum();
 
-    for cutoff in [Stage::Systems, Stage::Factions, Stage::RouteControls, Stage::LAST] {
+    for cutoff in [
+        Stage::Systems,
+        Stage::Factions,
+        Stage::RouteControls,
+        Stage::LAST,
+    ] {
         let run_a = generate_prefix(
             fixture_input(),
             cutoff,
@@ -116,7 +121,10 @@ fn prefix_stages_match_full_run_prefix() {
 
         // Overlays strictly after the cutoff stay empty/default.
         if cutoff < Stage::Routes {
-            assert!(run_a.routes.is_empty(), "routes leaked before Routes cutoff");
+            assert!(
+                run_a.routes.is_empty(),
+                "routes leaked before Routes cutoff"
+            );
         }
         if cutoff < Stage::Relations {
             assert!(

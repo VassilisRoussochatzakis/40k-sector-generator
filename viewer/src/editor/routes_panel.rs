@@ -118,7 +118,12 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
         // F11: shared route construction (canonical id, dedup, distance from
         // endpoint coords) — a default StableWarpLane/Stable lane.
         if sector
-            .add_route(&from, &to, RouteType::StableWarpLane, RouteStability::Stable)
+            .add_route(
+                &from,
+                &to,
+                RouteType::StableWarpLane,
+                RouteStability::Stable,
+            )
             .is_ok()
         {
             dirty = true;
@@ -204,7 +209,10 @@ mod tests {
 
     #[test]
     fn route_type_from_str_known_unknown_and_alias() {
-        assert_eq!(route_type_str(RouteType::StableWarpLane), "stable_warp_lane");
+        assert_eq!(
+            route_type_str(RouteType::StableWarpLane),
+            "stable_warp_lane"
+        );
         assert_eq!(route_type_str(RouteType::Webway), "webway");
         assert_eq!(route_type_from_str("not_a_key"), None);
         assert_eq!(

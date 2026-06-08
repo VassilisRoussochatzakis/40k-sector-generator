@@ -13,10 +13,10 @@ use crate::sector_model::{GeneratedRoute, GeneratedSector, GeneratedWorld, Route
 
 use super::config::{
     DependencyEdge, EconomyConfig, EconomyFile, EconomyReport, ResourceVector, RouteEconomy,
-    StrategicOutput, StrategicPriority, SupplyRisk, SystemEconomy, TitheStatus, RESOURCE_KEYS,
-    ROUTE_INTERDICTION_DIVISOR, ROUTE_INTERDICTION_MAX_MALUS, ROUTE_PATROL_DIVISOR,
+    StrategicOutput, StrategicPriority, SupplyRisk, SystemEconomy, TitheStatus, WorldEconomy,
+    RESOURCE_KEYS, ROUTE_INTERDICTION_DIVISOR, ROUTE_INTERDICTION_MAX_MALUS, ROUTE_PATROL_DIVISOR,
     ROUTE_PATROL_MAX_BONUS, ROUTE_PIRACY_DIVISOR, ROUTE_PIRACY_MAX_MALUS, SELF_SUFFICIENCY_OUTPUT,
-    STRATEGIC_RESOURCE_KEYS, WorldEconomy,
+    STRATEGIC_RESOURCE_KEYS,
 };
 use super::risk::{
     import_risk, system_supply_risk, system_tithe_status, world_supply_risk, world_tithe_status,
@@ -485,7 +485,8 @@ fn friction_for(r: &GeneratedRoute) -> f32 {
         .fold(0.0_f32, f32::max);
     let max_patrol: f32 = r.controls.iter().map(|c| c.patrol).fold(0.0_f32, f32::max);
     f *= 1.0 - (max_piracy / ROUTE_PIRACY_DIVISOR).clamp(0.0, ROUTE_PIRACY_MAX_MALUS);
-    f *= 1.0 - (max_interdiction / ROUTE_INTERDICTION_DIVISOR).clamp(0.0, ROUTE_INTERDICTION_MAX_MALUS);
+    f *= 1.0
+        - (max_interdiction / ROUTE_INTERDICTION_DIVISOR).clamp(0.0, ROUTE_INTERDICTION_MAX_MALUS);
     f *= 1.0 + (max_patrol / ROUTE_PATROL_DIVISOR).clamp(0.0, ROUTE_PATROL_MAX_BONUS);
     f.clamp(0.0, 1.5)
 }

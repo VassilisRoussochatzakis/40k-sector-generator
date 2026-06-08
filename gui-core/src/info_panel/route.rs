@@ -1,19 +1,14 @@
 //! Route detail render (`route_summary`) + endpoint-label helper. Split
 //! verbatim from `info_panel.rs` (AREA_F F8, by section).
 
-
 use egui::Ui;
 
-use sectorforge::sector_model::{
-    GeneratedRoute, GeneratedSector,
-};
+use sectorforge::sector_model::{GeneratedRoute, GeneratedSector};
 
-use crate::palette::{
-    faction_style_by_id, stability_color,
-};
+use crate::palette::{faction_style_by_id, stability_color};
 use crate::sector_view::SectorMapCache;
 
-use super::{dim, kv, legend_row, legend_route_row, section, short, title};
+use super::{dim, kv, legend_route_row, legend_row, section, short, title};
 
 pub fn route_summary(
     ui: &mut Ui,
@@ -104,4 +99,3 @@ fn route_endpoint_label(sector: &GeneratedSector, id: &sectorforge::ids::SystemI
         })
         .unwrap_or_else(|| id.to_uppercase())
 }
-

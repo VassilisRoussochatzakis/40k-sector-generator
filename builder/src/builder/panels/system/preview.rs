@@ -10,7 +10,7 @@ use sectorforge_gui_core::{palette, ui_kit};
 use crate::builder::state::SystemBitmapPreview;
 use crate::builder::BuilderState;
 
-use super::{SYS_STAR_GRID_ANCHOR, SYSTEM_VIEW_SIDE_MAX, SYSTEM_VIEW_SIDE_MIN};
+use super::{SYSTEM_VIEW_SIDE_MAX, SYSTEM_VIEW_SIDE_MIN, SYS_STAR_GRID_ANCHOR};
 
 // ── §CTX0 in-system map (Phase 0 of docs/CONTEXT_MENU.txt) ─────────────────
 
@@ -64,7 +64,8 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
         });
         let layout = state.system_view.layout;
         let side = state
-            .system_view.side
+            .system_view
+            .side
             .clamp(SYSTEM_VIEW_SIDE_MIN, SYSTEM_VIEW_SIDE_MAX);
         // 3:1 aspect — preview spans the panel width but only a third as
         // tall so the in-system map doesn't dominate the SYSTEM tab.
@@ -118,7 +119,11 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
 /// Side-effect-free routing of a [`SystemClick`] to the corresponding builder
 /// state mutation. Extracted so unit tests can exercise the wiring without
 /// spinning up an egui context.
-pub(super) fn handle_system_view_click(state: &mut BuilderState, sys_idx: usize, click: SystemClick) {
+pub(super) fn handle_system_view_click(
+    state: &mut BuilderState,
+    sys_idx: usize,
+    click: SystemClick,
+) {
     match click {
         SystemClick::Star => {
             state.selection.scroll_target = Some(SYS_STAR_GRID_ANCHOR);

@@ -90,10 +90,7 @@ pub(crate) fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
                 apply_seed = Some(win.seed.clone());
             }
         } else {
-            ui.colored_label(
-                crate::palette::warning(),
-                "No perfect match found.",
-            );
+            ui.colored_label(crate::palette::warning(), "No perfect match found.");
         }
 
         ui.add_space(8.0);

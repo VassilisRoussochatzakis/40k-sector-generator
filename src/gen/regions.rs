@@ -120,7 +120,6 @@ impl RegionConditionKind {
             _ => 0,
         }
     }
-
 }
 
 enum_slug!(RegionConditionKind {
@@ -1256,11 +1255,7 @@ mod route_effect_tests {
     #[test]
     fn calm_corridor_leaves_perilous_unchanged() {
         let systems = vec![sys("sys-0000", (0, 0)), sys("sys-0001", (1, 0))];
-        let calm = region(
-            "calm",
-            RegionConditionKind::CalmCorridor,
-            &[(0, 0), (1, 0)],
-        );
+        let calm = region("calm", RegionConditionKind::CalmCorridor, &[(0, 0), (1, 0)]);
         // Perilous routes are explicitly skipped by the CalmCorridor branch.
         let mut routes = vec![route("sys-0000", "sys-0001", 1, RouteStability::Perilous)];
         apply_route_effects(&[calm], &systems, &mut routes, 8);

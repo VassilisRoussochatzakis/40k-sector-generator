@@ -122,10 +122,11 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         {
             state.recompute_relations();
         }
-        ui.checkbox(&mut state.relations_panel.auto_recompute, "Auto-rebuild on edit")
-            .on_hover_text(
-                "Regenerate the matrix automatically whenever a rule or override changes",
-            );
+        ui.checkbox(
+            &mut state.relations_panel.auto_recompute,
+            "Auto-rebuild on edit",
+        )
+        .on_hover_text("Regenerate the matrix automatically whenever a rule or override changes");
         let pairs = state.sector.relations.pairs.len();
         let facs = state.sector.factions.len();
         ui.label(format!("{facs} faction(s)  |  {pairs} pair(s)"));
@@ -1206,7 +1207,10 @@ fn on_catalog_edited(state: &mut BuilderState) {
 /// `note_catalog_edit` so the discrete-delete path does not re-open a session
 /// after its own commit.
 fn after_catalog_commit(state: &mut BuilderState) {
-    state.mark_catalog_dirty(state.config.inputs.relations.clone(), DEFAULT_RELATIONS_PATH);
+    state.mark_catalog_dirty(
+        state.config.inputs.relations.clone(),
+        DEFAULT_RELATIONS_PATH,
+    );
     state.mark_validation_dirty();
     if state.relations_panel.auto_recompute {
         state.recompute_relations();

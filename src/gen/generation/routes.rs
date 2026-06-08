@@ -640,12 +640,32 @@ mod rebalance_tests {
         // `route-sys-0000-sys-0001` is lexicographically below idx 1's
         // `route-sys-0002-sys-0003`. So idx 0 downgrades; idx 1 stays Perilous.
         let mut routes: Vec<GeneratedRoute> = Vec::new();
-        routes.push(route(0, 1, RouteType::ChartedPassage, RouteStability::Perilous));
-        routes.push(route(1, 1, RouteType::ChartedPassage, RouteStability::Perilous));
-        routes.push(route(2, 5, RouteType::ChartedPassage, RouteStability::Perilous));
+        routes.push(route(
+            0,
+            1,
+            RouteType::ChartedPassage,
+            RouteStability::Perilous,
+        ));
+        routes.push(route(
+            1,
+            1,
+            RouteType::ChartedPassage,
+            RouteStability::Perilous,
+        ));
+        routes.push(route(
+            2,
+            5,
+            RouteType::ChartedPassage,
+            RouteStability::Perilous,
+        ));
         // Pad with non-Perilous routes up to 20 so the limit is exactly 2.
         for i in 3..20 {
-            routes.push(route(i, 1, RouteType::ChartedPassage, RouteStability::Stable));
+            routes.push(route(
+                i,
+                1,
+                RouteType::ChartedPassage,
+                RouteStability::Stable,
+            ));
         }
         // Sanity: idx 0's id sorts below idx 1's (the tie-break direction).
         assert!(routes[0].id < routes[1].id);

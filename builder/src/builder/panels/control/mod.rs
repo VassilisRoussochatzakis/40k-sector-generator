@@ -570,7 +570,10 @@ fn show_add_presence_row(
             return;
         }
         super::presence_widgets::PresenceCandidates::AllPresent => {
-            ui_kit::placeholder(ui, "Every faction already has a presence row on this world.");
+            ui_kit::placeholder(
+                ui,
+                "Every faction already has a presence row on this world.",
+            );
             return;
         }
         super::presence_widgets::PresenceCandidates::Available(c) => c,
@@ -1201,7 +1204,10 @@ pub(crate) fn build_overlay_cells(
                     let style = cache
                         .and_then(|mc| mc.faction_style(fid.as_str()).copied())
                         .unwrap_or_else(|| {
-                            sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str())
+                            sectorforge_gui_core::palette::faction_style_by_id(
+                                factions,
+                                fid.as_str(),
+                            )
                         });
                     out.insert(
                         sys.id.clone(),

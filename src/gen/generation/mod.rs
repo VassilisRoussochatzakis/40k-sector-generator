@@ -511,7 +511,9 @@ where
     // §5 NEW.md: apply region effects to routes (storm → perilous, turbulence
     // → one tier worse, calm corridor → one tier better up to the perilous
     // ceiling). Idempotent. No RNG.
-    if Stage::RegionRouteEffects <= through && regions_cfg.apply_to_routes && !warp_regions.is_empty()
+    if Stage::RegionRouteEffects <= through
+        && regions_cfg.apply_to_routes
+        && !warp_regions.is_empty()
     {
         emit!(SectorProgress::StageStarted {
             name: "region route effects",
@@ -783,48 +785,48 @@ where
             name: "influence field overlay",
         });
         sector.influence_field =
-        crate::influence_field::build_with_progress(&sector, |event| match event {
-            crate::influence_field::InfluenceFieldProgress::Started {
-                systems,
-                anchors,
-                cells,
-                radius,
-            } => progress(SectorProgress::InfluenceFieldStarted {
-                systems,
-                anchors,
-                cells,
-                radius,
-            }),
-            crate::influence_field::InfluenceFieldProgress::AnchorsProjected {
-                current,
-                total,
-                touched_cells,
-            } => progress(SectorProgress::InfluenceFieldAnchorsProjected {
-                current,
-                total,
-                touched_cells,
-            }),
-            crate::influence_field::InfluenceFieldProgress::CellsResolved {
-                current,
-                total,
-                claimed_cells,
-            } => progress(SectorProgress::InfluenceFieldCellsResolved {
-                current,
-                total,
-                claimed_cells,
-            }),
-            crate::influence_field::InfluenceFieldProgress::BandsBuilt {
-                bands,
-                claimed_cells,
-            } => progress(SectorProgress::InfluenceFieldBandsBuilt {
-                bands,
-                claimed_cells,
-            }),
-            crate::influence_field::InfluenceFieldProgress::Complete { cells, bands } => {
-                progress(SectorProgress::InfluenceFieldComplete { cells, bands });
-            }
-        })
-        .into();
+            crate::influence_field::build_with_progress(&sector, |event| match event {
+                crate::influence_field::InfluenceFieldProgress::Started {
+                    systems,
+                    anchors,
+                    cells,
+                    radius,
+                } => progress(SectorProgress::InfluenceFieldStarted {
+                    systems,
+                    anchors,
+                    cells,
+                    radius,
+                }),
+                crate::influence_field::InfluenceFieldProgress::AnchorsProjected {
+                    current,
+                    total,
+                    touched_cells,
+                } => progress(SectorProgress::InfluenceFieldAnchorsProjected {
+                    current,
+                    total,
+                    touched_cells,
+                }),
+                crate::influence_field::InfluenceFieldProgress::CellsResolved {
+                    current,
+                    total,
+                    claimed_cells,
+                } => progress(SectorProgress::InfluenceFieldCellsResolved {
+                    current,
+                    total,
+                    claimed_cells,
+                }),
+                crate::influence_field::InfluenceFieldProgress::BandsBuilt {
+                    bands,
+                    claimed_cells,
+                } => progress(SectorProgress::InfluenceFieldBandsBuilt {
+                    bands,
+                    claimed_cells,
+                }),
+                crate::influence_field::InfluenceFieldProgress::Complete { cells, bands } => {
+                    progress(SectorProgress::InfluenceFieldComplete { cells, bands });
+                }
+            })
+            .into();
         emit!(SectorProgress::OverlayDerived {
             name: "influence_field",
         });
@@ -888,56 +890,56 @@ where
             history_cfg,
             &nonces.suffix(Stage::Chronicle),
             |event| match event {
-            crate::history::HistoryProgress::Started {
-                systems,
-                worlds,
-                routes,
-                max_subsector_events,
-            } => progress(SectorProgress::ChronicleStarted {
-                systems,
-                worlds,
-                routes,
-                max_subsector_events,
-            }),
-            crate::history::HistoryProgress::SubsectorEventsStarted {
-                exact_cluster_count,
-                emitted_cap,
-                sampled,
-            } => progress(SectorProgress::ChronicleSubsectorEventsStarted {
-                exact_cluster_count,
-                emitted_cap,
-                sampled,
-            }),
-            crate::history::HistoryProgress::SubsectorEventsDone { events } => {
-                progress(SectorProgress::ChronicleSubsectorEventsDone { events });
-            }
-            crate::history::HistoryProgress::SystemsScanned {
-                current,
-                total,
-                events,
-            } => progress(SectorProgress::ChronicleSystemsScanned {
-                current,
-                total,
-                events,
-            }),
-            crate::history::HistoryProgress::RoutesScanned {
-                current,
-                total,
-                events,
-            } => progress(SectorProgress::ChronicleRoutesScanned {
-                current,
-                total,
-                events,
-            }),
-            crate::history::HistoryProgress::EventRulesApplied { events } => {
-                progress(SectorProgress::ChronicleEventRulesApplied { events });
-            }
-            crate::history::HistoryProgress::SortingStarted { events } => {
-                progress(SectorProgress::ChronicleSortingStarted { events });
-            }
-            crate::history::HistoryProgress::Complete { events } => {
-                progress(SectorProgress::ChronicleComplete { events });
-            }
+                crate::history::HistoryProgress::Started {
+                    systems,
+                    worlds,
+                    routes,
+                    max_subsector_events,
+                } => progress(SectorProgress::ChronicleStarted {
+                    systems,
+                    worlds,
+                    routes,
+                    max_subsector_events,
+                }),
+                crate::history::HistoryProgress::SubsectorEventsStarted {
+                    exact_cluster_count,
+                    emitted_cap,
+                    sampled,
+                } => progress(SectorProgress::ChronicleSubsectorEventsStarted {
+                    exact_cluster_count,
+                    emitted_cap,
+                    sampled,
+                }),
+                crate::history::HistoryProgress::SubsectorEventsDone { events } => {
+                    progress(SectorProgress::ChronicleSubsectorEventsDone { events });
+                }
+                crate::history::HistoryProgress::SystemsScanned {
+                    current,
+                    total,
+                    events,
+                } => progress(SectorProgress::ChronicleSystemsScanned {
+                    current,
+                    total,
+                    events,
+                }),
+                crate::history::HistoryProgress::RoutesScanned {
+                    current,
+                    total,
+                    events,
+                } => progress(SectorProgress::ChronicleRoutesScanned {
+                    current,
+                    total,
+                    events,
+                }),
+                crate::history::HistoryProgress::EventRulesApplied { events } => {
+                    progress(SectorProgress::ChronicleEventRulesApplied { events });
+                }
+                crate::history::HistoryProgress::SortingStarted { events } => {
+                    progress(SectorProgress::ChronicleSortingStarted { events });
+                }
+                crate::history::HistoryProgress::Complete { events } => {
+                    progress(SectorProgress::ChronicleComplete { events });
+                }
             },
         );
         emit!(SectorProgress::OverlayDerived { name: "chronicle" });

@@ -368,7 +368,13 @@ pub(super) fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
     out
 }
 
-pub(super) fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline: Color32) {
+pub(super) fn draw_hex(
+    painter: &egui::Painter,
+    c: Pos2,
+    size: f32,
+    fill: Color32,
+    outline: Color32,
+) {
     if size < 3.0 {
         painter.circle_filled(c, size * 0.9, fill);
         return;
@@ -534,7 +540,12 @@ pub(super) fn subsector_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> 
     (label_size >= SUBSECTOR_LABEL_MIN_VISIBLE_PX).then_some(label_size)
 }
 
-pub(super) fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32, theme: &RenderMapTheme) {
+pub(super) fn draw_capital_marker(
+    painter: &egui::Painter,
+    c: Pos2,
+    hex_size: f32,
+    theme: &RenderMapTheme,
+) {
     let r = theme.capital_marker_radius.px(hex_size);
     let cy = c.y - hex_size * 0.55;
     let pts = vec![
@@ -784,7 +795,11 @@ mod tests {
         assert_eq!(blend_heat(from, to, 0.0), from);
         // And the clean-arithmetic black->grey case is exactly black.
         assert_eq!(
-            blend_heat(Color32::from_rgb(0, 0, 0), Color32::from_rgb(100, 100, 100), 0.0),
+            blend_heat(
+                Color32::from_rgb(0, 0, 0),
+                Color32::from_rgb(100, 100, 100),
+                0.0
+            ),
             Color32::from_rgb(0, 0, 0)
         );
     }
@@ -793,7 +808,11 @@ mod tests {
     fn blend_heat_one_caps_at_85_percent() {
         // eff t = min(0.20 + 0.65, 0.85) = 0.85; round(100 * 0.85) = 85.
         assert_eq!(
-            blend_heat(Color32::from_rgb(0, 0, 0), Color32::from_rgb(100, 100, 100), 1.0),
+            blend_heat(
+                Color32::from_rgb(0, 0, 0),
+                Color32::from_rgb(100, 100, 100),
+                1.0
+            ),
             Color32::from_rgb(85, 85, 85)
         );
     }
@@ -803,7 +822,11 @@ mod tests {
         // Any non-zero t jumps to >= 0.20: eff t = 0.20 + 0.001*0.65 = 0.20065;
         // round(100 * 0.20065) = round(20.065) = 20.
         assert_eq!(
-            blend_heat(Color32::from_rgb(0, 0, 0), Color32::from_rgb(100, 100, 100), 0.001),
+            blend_heat(
+                Color32::from_rgb(0, 0, 0),
+                Color32::from_rgb(100, 100, 100),
+                0.001
+            ),
             Color32::from_rgb(20, 20, 20)
         );
     }
@@ -877,9 +900,15 @@ mod tests {
     #[test]
     fn region_label_text_boundary_at_18_chars() {
         // Exactly 18 chars -> unchanged (uppercased).
-        assert_eq!(region_label_text("ABCDEFGHIJKLMNOPQR"), "ABCDEFGHIJKLMNOPQR");
+        assert_eq!(
+            region_label_text("ABCDEFGHIJKLMNOPQR"),
+            "ABCDEFGHIJKLMNOPQR"
+        );
         // 19 chars -> take(17) + '.'.
-        assert_eq!(region_label_text("ABCDEFGHIJKLMNOPQRS"), "ABCDEFGHIJKLMNOPQ.");
+        assert_eq!(
+            region_label_text("ABCDEFGHIJKLMNOPQRS"),
+            "ABCDEFGHIJKLMNOPQ."
+        );
     }
 
     #[test]
@@ -900,24 +929,55 @@ mod tests {
     fn distance_impls_agree_on_fixed_sample() {
         let pts = [
             // on the perpendicular through the midpoint
-            (Pos2::new(0.0, 5.0), Pos2::new(-10.0, 0.0), Pos2::new(10.0, 0.0)),
+            (
+                Pos2::new(0.0, 5.0),
+                Pos2::new(-10.0, 0.0),
+                Pos2::new(10.0, 0.0),
+            ),
             // beyond an endpoint -> both clamp to the nearer end
-            (Pos2::new(20.0, 0.0), Pos2::new(-10.0, 0.0), Pos2::new(10.0, 0.0)),
+            (
+                Pos2::new(20.0, 0.0),
+                Pos2::new(-10.0, 0.0),
+                Pos2::new(10.0, 0.0),
+            ),
             // arbitrary diagonal segment, point off to one side
-            (Pos2::new(3.0, -4.0), Pos2::new(1.0, 1.0), Pos2::new(7.0, 9.0)),
+            (
+                Pos2::new(3.0, -4.0),
+                Pos2::new(1.0, 1.0),
+                Pos2::new(7.0, 9.0),
+            ),
             // point across the other quadrant
-            (Pos2::new(-6.0, 8.0), Pos2::new(-2.0, -3.0), Pos2::new(5.0, 4.0)),
+            (
+                Pos2::new(-6.0, 8.0),
+                Pos2::new(-2.0, -3.0),
+                Pos2::new(5.0, 4.0),
+            ),
             // probe coincident with endpoint a
-            (Pos2::new(1.0, 1.0), Pos2::new(1.0, 1.0), Pos2::new(7.0, 9.0)),
+            (
+                Pos2::new(1.0, 1.0),
+                Pos2::new(1.0, 1.0),
+                Pos2::new(7.0, 9.0),
+            ),
             // steep vertical segment
-            (Pos2::new(12.0, 3.0), Pos2::new(0.0, -50.0), Pos2::new(0.0, 50.0)),
+            (
+                Pos2::new(12.0, 3.0),
+                Pos2::new(0.0, -50.0),
+                Pos2::new(0.0, 50.0),
+            ),
             // degenerate segment a == b
-            (Pos2::new(5.0, 6.0), Pos2::new(2.0, 2.0), Pos2::new(2.0, 2.0)),
+            (
+                Pos2::new(5.0, 6.0),
+                Pos2::new(2.0, 2.0),
+                Pos2::new(2.0, 2.0),
+            ),
         ];
         for (p, a, b) in pts {
             let d1 = point_segment_distance(p, a, b);
             let d2 = distance_to_segment(p, a, b);
-            assert!((d1 - d2).abs() < 1e-3, "drift at {p:?}/{a:?}/{b:?}: {d1} vs {d2}");
+            assert!(
+                (d1 - d2).abs() < 1e-3,
+                "drift at {p:?}/{a:?}/{b:?}: {d1} vs {d2}"
+            );
         }
     }
 

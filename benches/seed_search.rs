@@ -101,8 +101,7 @@ fn bench_run_search(c: &mut Criterion) {
             |b, (template, wishes)| {
                 b.iter(|| {
                     black_box(
-                        run_seed_search(black_box(template), black_box(wishes))
-                            .expect("search ok"),
+                        run_seed_search(black_box(template), black_box(wishes)).expect("search ok"),
                     )
                 });
             },

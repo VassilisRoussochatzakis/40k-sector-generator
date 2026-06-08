@@ -736,8 +736,7 @@ mod tests {
     /// and echoes the offending token.
     #[test]
     fn resolve_formats_unknown_token_names_flag() {
-        let err =
-            resolve_formats(vec![], Some(vec!["bogus".into()]), None, false).unwrap_err();
+        let err = resolve_formats(vec![], Some(vec!["bogus".into()]), None, false).unwrap_err();
         match err {
             SectorError::InvalidConfig(m) => {
                 assert!(m.contains("--formats"), "message {m:?} missing flag name");
@@ -809,8 +808,7 @@ mod tests {
             "expected exactly-one error for (None, None)"
         );
 
-        let err =
-            load_or_regenerate(Some("a".into()), Some("b".into())).unwrap_err();
+        let err = load_or_regenerate(Some("a".into()), Some("b".into())).unwrap_err();
         assert!(
             matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
             "expected exactly-one error for (Some, Some)"
@@ -850,8 +848,7 @@ mod tests {
         let sec = sectorforge::generate_sector(sectorforge::load_project(&proj).unwrap()).unwrap();
 
         let tmp = tempfile::TempDir::new().unwrap();
-        let json_path =
-            Utf8PathBuf::from_path_buf(tmp.path().join("sector.json")).unwrap();
+        let json_path = Utf8PathBuf::from_path_buf(tmp.path().join("sector.json")).unwrap();
         sectorforge::write_sector_json(&json_path, &sec).unwrap();
 
         let (_sec, cfg) = resolve_sector_with_cfg::<MarkerCfg>(None, Some(&json_path), |_| {

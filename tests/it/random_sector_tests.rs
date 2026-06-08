@@ -94,7 +94,10 @@ fn mint_seed_is_16_hex_and_varies() {
         set.insert(s);
     }
     // `> 1` (not `== 8`) tolerates a vanishingly-unlikely nanos collision.
-    assert!(set.len() > 1, "8 mints all identical — entropy source broken");
+    assert!(
+        set.len() > 1,
+        "8 mints all identical — entropy source broken"
+    );
 }
 
 #[test]

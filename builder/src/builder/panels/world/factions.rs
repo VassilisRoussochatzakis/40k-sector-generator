@@ -2,13 +2,13 @@
 
 use egui::{Color32, Ui};
 
+use crate::builder::state::{EntityRef, ModalKind};
+use crate::builder::BuilderState;
 use sectorforge::ids::FactionId;
 use sectorforge::sector_model::{
     DominanceState, FactionInfluence, PresenceDimensions, WorldFactionPresence,
 };
 use sectorforge_gui_core::ui_kit;
-use crate::builder::state::{EntityRef, ModalKind};
-use crate::builder::BuilderState;
 
 // ── factions ──────────────────────────────────────────────────────────────
 
@@ -94,26 +94,24 @@ pub(super) fn show_add_presence_row(
     // WORLD-specific (extra dominance combo, Display tier labels, wrapped layout)
     // — intentional divergence from the CONTROL row.
     use crate::builder::panels::presence_widgets::{presence_candidates, PresenceCandidates};
-    let candidates = match presence_candidates(
-        &state.sector.systems[sys_idx].worlds[w_idx],
-        &factions,
-    ) {
-        PresenceCandidates::NoFactions => {
-            ui_kit::placeholder(
-                ui,
-                "No factions in the sector roster yet — add some on the Factions tab first.",
-            );
-            return;
-        }
-        PresenceCandidates::AllPresent => {
-            ui_kit::placeholder(
-                ui,
-                "Every faction in the roster already has a presence row on this world.",
-            );
-            return;
-        }
-        PresenceCandidates::Available(c) => c,
-    };
+    let candidates =
+        match presence_candidates(&state.sector.systems[sys_idx].worlds[w_idx], &factions) {
+            PresenceCandidates::NoFactions => {
+                ui_kit::placeholder(
+                    ui,
+                    "No factions in the sector roster yet — add some on the Factions tab first.",
+                );
+                return;
+            }
+            PresenceCandidates::AllPresent => {
+                ui_kit::placeholder(
+                    ui,
+                    "Every faction in the roster already has a presence row on this world.",
+                );
+                return;
+            }
+            PresenceCandidates::Available(c) => c,
+        };
 
     let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
     let buf_id = egui::Id::new(("w_add_presence", world_id.as_str()));

@@ -31,9 +31,9 @@ mod tables;
 mod tension;
 
 pub use config::{
-    DirectionalRelation, DispositionRule, FactionRelation, KindRule, PairOverride, RelationAttitude,
-    RelationMetrics, RelationOverride, RelationsConfig, RelationsFile, RelationsMatrix,
-    RelationsReport, Stance, TreatyStatus,
+    DirectionalRelation, DispositionRule, FactionRelation, KindRule, PairOverride,
+    RelationAttitude, RelationMetrics, RelationOverride, RelationsConfig, RelationsFile,
+    RelationsMatrix, RelationsReport, Stance, TreatyStatus,
 };
 pub use derive::{
     derive, derive_with, derive_with_threshold, derive_with_threshold_reroll, load_relations_file,
@@ -401,7 +401,10 @@ mod tests {
             },
         );
         let weak = faction_with_power("weak", "imperial", "lawful", PowerProfile::default());
-        let m = derive_with(&sector_with(vec![strong, weak]), &RelationsConfig::default());
+        let m = derive_with(
+            &sector_with(vec![strong, weak]),
+            &RelationsConfig::default(),
+        );
         let rel = pair_of(&m, "strong", "weak");
         // military_pressure depends on `to.power`, so the two directions diverge
         // (perturbation only shifts the stance/attitude, not this metric).
@@ -427,11 +430,7 @@ mod tests {
 
     /// Pin a base stance with a `pair_override` (no rich override) so the derived
     /// `treaty_status` is observable and perturbation cannot flip the branch.
-    fn derived_treaty(
-        kind_a: &str,
-        kind_b: &str,
-        stance: Stance,
-    ) -> TreatyStatus {
+    fn derived_treaty(kind_a: &str, kind_b: &str, stance: Stance) -> TreatyStatus {
         let mut cfg = RelationsConfig::default();
         cfg.pair_overrides.push(PairOverride {
             a: "fa".into(),

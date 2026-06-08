@@ -12,7 +12,10 @@
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::sector_model::{SystemKind, SystemState};
-use sectorforge_gui_core::{card, palette, ui_kit::{self, labeled}};
+use sectorforge_gui_core::{
+    card, palette,
+    ui_kit::{self, labeled},
+};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
@@ -314,7 +317,8 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 };
                 match state.run(cmd) {
                     Err(e) => {
-                        state.feedback.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+                        state.feedback.modal =
+                            Some(ModalKind::Message(format!("Add world failed: {e}")));
                     }
                     Ok(()) => {
                         // §R4: pin the new world's orbit through SetWorldOrbit
@@ -461,7 +465,8 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             // covers the control summary; the setter is a plain field write with
             // no cascade, so the clone-mutate-dispatch shape is exact.
             if let Err(e) = state.edit_system(id, |sys| sys.control.state = current) {
-                state.feedback.modal = Some(ModalKind::Message(format!("Control update failed: {e}")));
+                state.feedback.modal =
+                    Some(ModalKind::Message(format!("Control update failed: {e}")));
             }
         }
         ui.add_space(4.0);

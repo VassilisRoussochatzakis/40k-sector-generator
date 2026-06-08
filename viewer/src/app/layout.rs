@@ -208,9 +208,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                 }
 
                 if !app.export_status.is_empty() {
-                    ui.label(
-                        RichText::new(&app.export_status).color(palette::warning()),
-                    );
+                    ui.label(RichText::new(&app.export_status).color(palette::warning()));
                 }
             });
         });

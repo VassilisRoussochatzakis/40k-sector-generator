@@ -144,9 +144,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     let entries = match state.cached.clone() {
         Some(Ok(v)) => v,
         Some(Err(e)) => {
-            ui.label(
-                RichText::new(format!("load failed: {e}")).color(palette::danger()),
-            );
+            ui.label(RichText::new(format!("load failed: {e}")).color(palette::danger()));
             return;
         }
         None => return,

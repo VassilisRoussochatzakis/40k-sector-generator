@@ -137,10 +137,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         {
                             create = true;
                         }
-                        if ui
-                            .button(RichText::new("CANCEL"))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("CANCEL")).clicked() {
                             cancel = true;
                         }
                     });
@@ -298,9 +295,10 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 };
                 // F11: index/id assignment + insert lives once in the shared
                 // `add_system_full`, which also carries the chosen kind + star.
-                let new_id = state.sector.as_mut().and_then(|sec| {
-                    sec.add_system_full(coord, name.trim(), kind, star).ok()
-                });
+                let new_id = state
+                    .sector
+                    .as_mut()
+                    .and_then(|sec| sec.add_system_full(coord, name.trim(), kind, star).ok());
                 if let Some(id) = new_id {
                     state.mark_dirty();
                     state.selection = super::state::Selection::System(id);
@@ -358,9 +356,7 @@ mod tests {
             SystemKind::Star,
             None,
         ));
-        sector
-            .routes
-            .push(empty_route(system_id(1), system_id(2)));
+        sector.routes.push(empty_route(system_id(1), system_id(2)));
 
         refresh_manifest_counts(&mut sector, "renamed-project");
 

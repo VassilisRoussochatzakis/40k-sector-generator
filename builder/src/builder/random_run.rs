@@ -35,7 +35,9 @@ pub enum RandomJobResult {
 
 impl sectorforge_gui_core::jobs::FromJobPanic for RandomJobResult {
     fn from_job_panic(message: String) -> Option<Self> {
-        Some(Self::Failed(format!("Random generation panicked: {message}")))
+        Some(Self::Failed(format!(
+            "Random generation panicked: {message}"
+        )))
     }
 }
 

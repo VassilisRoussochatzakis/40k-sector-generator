@@ -166,7 +166,10 @@ pub(crate) fn catch_build_subsectors(
     match built {
         Ok(Ok(subs)) => Ok(subs),
         Ok(Err(e)) => Err(e.to_string()),
-        Err(payload) => Err(format!("subsectors panicked: {}", panic_msg(payload.as_ref()))),
+        Err(payload) => Err(format!(
+            "subsectors panicked: {}",
+            panic_msg(payload.as_ref())
+        )),
     }
 }
 
@@ -845,8 +848,14 @@ mod tests {
     #[test]
     fn catch_build_subsectors_ok_on_valid_sector() {
         let mut state = blank(8, 8);
-        state.sector.add_system(HexCoord { q: 1, r: 1 }, "Alpha").unwrap();
-        state.sector.add_system(HexCoord { q: 4, r: 4 }, "Bravo").unwrap();
+        state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "Alpha")
+            .unwrap();
+        state
+            .sector
+            .add_system(HexCoord { q: 4, r: 4 }, "Bravo")
+            .unwrap();
         let out = catch_build_subsectors(&state.sector, SubsectorConfig::default());
         assert!(out.is_ok(), "valid sector should not error");
     }

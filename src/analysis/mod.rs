@@ -107,11 +107,7 @@ mod tests {
 
     #[test]
     fn nan_compares_equal_in_both_positions_and_directions() {
-        for (a, b) in [
-            (f32::NAN, 1.0),
-            (1.0, f32::NAN),
-            (f32::NAN, f32::NAN),
-        ] {
+        for (a, b) in [(f32::NAN, 1.0), (1.0, f32::NAN), (f32::NAN, f32::NAN)] {
             assert_eq!(cmp_f32_desc(a, b), Ordering::Equal, "desc NaN policy");
             assert_eq!(cmp_f32_asc(a, b), Ordering::Equal, "asc NaN policy");
         }

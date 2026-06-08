@@ -24,8 +24,8 @@ use sectorforge_gui_core::ui_kit;
 
 use super::{
     analytics, briefing, control, diff, economy, export, factions, history, hooks, interestingness,
-    invariants as invariants_panel, iterative_gen, map, missions, personae, project, prose, regions,
-    relations, routes, search, segmentum, sites, subsectors, system, validation, world,
+    invariants as invariants_panel, iterative_gen, map, missions, personae, project, prose,
+    regions, relations, routes, search, segmentum, sites, subsectors, system, validation, world,
 };
 
 /// §UO6 P2: the top tab strip grouped into labeled clusters. Every

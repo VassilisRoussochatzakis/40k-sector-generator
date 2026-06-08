@@ -11,7 +11,9 @@
 use proptest::prelude::*;
 use sectorforge::{
     generate_sector, load_project,
-    relations::{self, load_relations_file, RelationAttitude, RelationsConfig, RelationsReport, Stance},
+    relations::{
+        self, load_relations_file, RelationAttitude, RelationsConfig, RelationsReport, Stance,
+    },
     GeneratedSector,
 };
 
@@ -170,11 +172,17 @@ fn load_relations_file_changes_derivation_deterministically() {
     //    serialized matrix is not byte-identical.
     let base = serde_json::to_string(&relations::derive(sector)).unwrap();
     let with = serde_json::to_string(&relations::derive_with(sector, &cfg)).unwrap();
-    assert_ne!(base, with, "loaded config did not change the derived matrix");
+    assert_ne!(
+        base, with,
+        "loaded config did not change the derived matrix"
+    );
 
     // 3. Re-running derive_with on the same loaded config is byte-identical.
     let with2 = serde_json::to_string(&relations::derive_with(sector, &cfg)).unwrap();
-    assert_eq!(with, with2, "derive_with not deterministic for loaded config");
+    assert_eq!(
+        with, with2,
+        "derive_with not deterministic for loaded config"
+    );
 
     // 4. (Conditional) The file's rich override pins ecclesiarchy×inquisition
     //    public_attitude = "allied". If those faction ids exist in the m42

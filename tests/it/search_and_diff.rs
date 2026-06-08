@@ -103,8 +103,7 @@ fn search_near_misses_are_byte_identical_single_vs_multi_thread() {
         .num_threads(1)
         .build()
         .unwrap();
-    let single =
-        pool.install(|| sectorforge::run_seed_search(&input_single, &wishes).unwrap());
+    let single = pool.install(|| sectorforge::run_seed_search(&input_single, &wishes).unwrap());
 
     // (b) Default parallel: the global rayon pool (multi-threaded on CI/dev).
     let input_multi = sectorforge::load_project(&project).unwrap();
@@ -112,7 +111,10 @@ fn search_near_misses_are_byte_identical_single_vs_multi_thread() {
 
     // The search must have produced near-misses (no winner for an impossible
     // constraint) — otherwise this test would be vacuous.
-    assert!(single.winning.is_none(), "impossible constraint must not win");
+    assert!(
+        single.winning.is_none(),
+        "impossible constraint must not win"
+    );
     assert!(
         !single.near_misses.is_empty(),
         "an impossible constraint must populate near_misses"

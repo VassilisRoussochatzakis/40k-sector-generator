@@ -83,7 +83,10 @@ pub fn derive_regions(w: &GeneratedWorld) -> Vec<SurfaceRegion> {
     let wt = w.world.world_type.clone();
     let pop = w.world.population.clone();
     if pop == Population::Uninhabited
-        && !matches!(wt, WorldType::TombWorld | WorldType::DeadWorld | WorldType::WarpLostWorld)
+        && !matches!(
+            wt,
+            WorldType::TombWorld | WorldType::DeadWorld | WorldType::WarpLostWorld
+        )
     {
         return Vec::new();
     }

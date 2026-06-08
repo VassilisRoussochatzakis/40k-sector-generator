@@ -1,12 +1,10 @@
 //! Subsector summary render (`subsector_summary`). Split verbatim from
 //! `info_panel.rs` (AREA_F F8, by section).
 
-
 use egui::Ui;
 
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::Subsector;
-
 
 use super::{body, dim, kv, section, title};
 
@@ -169,4 +167,3 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
         }
     }
 }
-

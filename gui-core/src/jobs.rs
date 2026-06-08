@@ -230,8 +230,9 @@ mod tests {
         // restore it afterwards so other tests aren't affected.
         let prev = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
-        let handle: JobHandle<TestResult> =
-            spawn_job("panic-job", 7, "panicker", ctx, |_| panic!("boom in worker"));
+        let handle: JobHandle<TestResult> = spawn_job("panic-job", 7, "panicker", ctx, |_| {
+            panic!("boom in worker")
+        });
         let got = handle.receiver.recv_timeout(Duration::from_secs(1));
         std::panic::set_hook(prev);
 

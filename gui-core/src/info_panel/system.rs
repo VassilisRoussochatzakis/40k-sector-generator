@@ -1,17 +1,11 @@
 //! System detail renders (`system_summary`, `star_detail`) and the per-system
 //! info blocks. Split verbatim from `info_panel.rs` (AREA_F F8, by section).
 
-
 use egui::Ui;
 
-use sectorforge::sector_model::{
-    GeneratedSector, GeneratedSystem,
-};
+use sectorforge::sector_model::{GeneratedSector, GeneratedSystem};
 
-use crate::palette::{
-    faction_style_by_id, star_color,
-    world_type_color,
-};
+use crate::palette::{faction_style_by_id, star_color, world_type_color};
 use crate::sector_view::SectorMapCache;
 
 use super::history::system_history;
@@ -317,4 +311,3 @@ fn orbital_assets_block(ui: &mut Ui, sys: &GeneratedSystem) {
         );
     }
 }
-

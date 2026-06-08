@@ -200,7 +200,8 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.claim_kind_counts = claim_counts;
     a.dominance_counts = dominance_counts;
     a.system_state_counts = compute_system_state_counts(sector);
-    a.world_type_distribution = compute_distribution(sector, |w| w.world.world_type.to_string().into());
+    a.world_type_distribution =
+        compute_distribution(sector, |w| w.world.world_type.to_string().into());
     a.star_colour_distribution = sector
         .systems
         .iter()
@@ -209,7 +210,8 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
             *m.entry(k).or_insert(0) += 1;
             m
         });
-    a.population_distribution = compute_distribution(sector, |w| w.world.population.to_string().into());
+    a.population_distribution =
+        compute_distribution(sector, |w| w.world.population.to_string().into());
     a.route_type_distribution = sector
         .routes
         .iter()

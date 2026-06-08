@@ -950,7 +950,12 @@ mod tests {
     };
 
     /// One star system with `name`, optional star, at `coord`.
-    fn system(id: &str, name: &str, coord: HexCoord, star: Option<GeneratedStar>) -> GeneratedSystem {
+    fn system(
+        id: &str,
+        name: &str,
+        coord: HexCoord,
+        star: Option<GeneratedStar>,
+    ) -> GeneratedSystem {
         GeneratedSystem {
             id: id.into(),
             index: 0,
@@ -1058,7 +1063,10 @@ mod tests {
         let fac_header = "| ID | Name | Kind | Disposition | Subfactions | Forces | Systems | Worlds | Projection | Mil | Naval | Econ | Covert |";
         assert!(md.contains(fac_header), "factions header missing");
         let fac_header_cells = cell_count(fac_header);
-        assert_eq!(fac_header_cells, 13, "factions header should have 13 columns");
+        assert_eq!(
+            fac_header_cells, 13,
+            "factions header should have 13 columns"
+        );
 
         // The faction data row (escaped "A\|B").
         let fac_row = md
@@ -1076,8 +1084,14 @@ mod tests {
         );
 
         // No HTML entity encoding of the pipe sneaked in.
-        assert!(!md.contains("&#124;"), "pipe must not be HTML-entity encoded");
-        assert!(!md.contains("&vert;"), "pipe must not be HTML-entity encoded");
+        assert!(
+            !md.contains("&#124;"),
+            "pipe must not be HTML-entity encoded"
+        );
+        assert!(
+            !md.contains("&vert;"),
+            "pipe must not be HTML-entity encoded"
+        );
     }
 
     // GAP 147: empty-collection literals + the starless ASCII glyph.

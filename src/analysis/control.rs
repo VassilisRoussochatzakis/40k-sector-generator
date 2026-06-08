@@ -389,9 +389,7 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
             (id, dimensions.local_control_score(), dimensions, confidence)
         })
         .collect();
-    scored.sort_by(|a, b| {
-        crate::analysis::cmp_f32_desc(a.1, b.1).then_with(|| a.0.cmp(&b.0))
-    });
+    scored.sort_by(|a, b| crate::analysis::cmp_f32_desc(a.1, b.1).then_with(|| a.0.cmp(&b.0)));
 
     let pick_dim = |f: fn(&PresenceDimensions) -> f32| -> Option<FactionId> {
         scored
@@ -506,8 +504,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
         .map(|(faction_id, score)| ScoredFaction { faction_id, score })
         .collect();
     top.sort_by(|a, b| {
-        crate::analysis::cmp_f32_desc(a.score, b.score)
-            .then(a.faction_id.cmp(&b.faction_id))
+        crate::analysis::cmp_f32_desc(a.score, b.score).then(a.faction_id.cmp(&b.faction_id))
     });
     top.truncate(5);
 
@@ -674,9 +671,9 @@ pub fn apply_faction_power(
 mod tests {
     use super::*;
     use crate::sector_model::{
-        ClaimType, DominanceState, FactionInfluence, GeneratedStar, GeneratedSystem, GeneratedWorld,
-        HexCoord, SystemControlSummary, SystemKind, SystemState, WorldControlSummary, WorldDto,
-        WorldFactionPresence,
+        ClaimType, DominanceState, FactionInfluence, GeneratedStar, GeneratedSystem,
+        GeneratedWorld, HexCoord, SystemControlSummary, SystemKind, SystemState,
+        WorldControlSummary, WorldDto, WorldFactionPresence,
     };
     use crate::worlds::Population;
 
@@ -906,7 +903,8 @@ mod tests {
         // ork ⇒ HuntingGround, admin 80 ⇒ score 16.
         // Distinct ClaimTypes ⇒ two claims, ordered strength-desc: ork before
         // merchant, which is the OPPOSITE of id-ascending order.
-        w.factions.push(admin_presence("merchant", "opportunistic", 50.0));
+        w.factions
+            .push(admin_presence("merchant", "opportunistic", 50.0));
         w.factions.push(admin_presence("ork", "hostile", 80.0));
         let claims = derive_world_claims(&w);
         assert_eq!(claims.len(), 2);
@@ -948,7 +946,11 @@ mod tests {
         let cases: &[(&str, &str, ClaimType)] = &[
             // "inquisition" wins even though the id also contains "guard" and
             // begins like an imperial arm.
-            ("imperial_inquisition_guard", "lawful", ClaimType::CovertWrit),
+            (
+                "imperial_inquisition_guard",
+                "lawful",
+                ClaimType::CovertWrit,
+            ),
             ("inquisition", "lawful", ClaimType::CovertWrit),
             ("adepta_sororitas", "lawful", ClaimType::ReligiousMandate),
             // starts_with "imperial" fires before the lawful disposition fallback.
@@ -1057,8 +1059,16 @@ mod tests {
         let power = aggregate_faction_power(&[system_with("sys-0001", vec![w])]);
         let a = power.get("a").expect("faction a present");
         let b = power.get("b").expect("faction b present");
-        assert!((a.administrative - 8.4).abs() < 1e-3, "a = {}", a.administrative);
-        assert!((b.administrative - 6.3).abs() < 1e-3, "b = {}", b.administrative);
+        assert!(
+            (a.administrative - 8.4).abs() < 1e-3,
+            "a = {}",
+            a.administrative
+        );
+        assert!(
+            (b.administrative - 6.3).abs() < 1e-3,
+            "b = {}",
+            b.administrative
+        );
         assert!(a.administrative > b.administrative);
     }
 
@@ -1152,9 +1162,15 @@ mod tests {
         };
         let sys = system_with(
             "sys-0001",
-            vec![contested_world("sys-0001-w1"), contested_world("sys-0001-w2")],
+            vec![
+                contested_world("sys-0001-w1"),
+                contested_world("sys-0001-w2"),
+            ],
         );
-        assert_eq!(derive_system_control(&sys).state, Some(SystemState::Warzone));
+        assert_eq!(
+            derive_system_control(&sys).state,
+            Some(SystemState::Warzone)
+        );
     }
 
     #[test]

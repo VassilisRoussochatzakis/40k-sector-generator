@@ -2,13 +2,13 @@
 
 use egui::{Color32, Ui};
 
+use crate::builder::state::ModalKind;
+use crate::builder::BuilderState;
 use sectorforge::worlds::{
     Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel, WorldType,
 };
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
-use crate::builder::state::ModalKind;
-use crate::builder::BuilderState;
 
 // ── features (W5) ──────────────────────────────────────────────────────────
 
@@ -125,7 +125,8 @@ pub(super) fn show_features_section(
                         w.world.notable_features.push(feature);
                     }
                 }) {
-                    state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
         },
@@ -276,7 +277,10 @@ pub(super) fn coupling_warnings(dto: &sectorforge::sector_model::WorldDto) -> Ve
     let bio = &dto.biosphere;
     let gov = &dto.government;
     let atm = &dto.atmosphere;
-    let is_dense = matches!(pop, Population::DenselyPopulated | Population::ExtremelyDense);
+    let is_dense = matches!(
+        pop,
+        Population::DenselyPopulated | Population::ExtremelyDense
+    );
     let is_uninhabited = *pop == Population::Uninhabited;
 
     if *wt == WorldType::DeathWorld && matches!(tech, TechLevel::High | TechLevel::Archaeotech) {

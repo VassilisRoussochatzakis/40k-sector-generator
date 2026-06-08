@@ -138,7 +138,11 @@ fn show_no_session(ui: &mut Ui) {
 /// until reached (you advance with ▶ Next). Clicking an enabled, already-visited
 /// step jumps back to it (re-running its preview).
 fn show_step_rail(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("STEPS").small().color(palette::chrome_text_dim()));
+    ui.label(
+        RichText::new("STEPS")
+            .small()
+            .color(palette::chrome_text_dim()),
+    );
     ui.separator();
 
     let Some(session) = state.iterative_gen.as_ref() else {
@@ -289,7 +293,10 @@ fn show_size_form(ui: &mut Ui, state: &mut BuilderState) {
          square, so this single field sets both.",
         |ui| {
             dim_changed = ui
-                .add(egui::DragValue::new(&mut dim).range(1..=sectorforge::random_sector::MAX_CUSTOM_DIM))
+                .add(
+                    egui::DragValue::new(&mut dim)
+                        .range(1..=sectorforge::random_sector::MAX_CUSTOM_DIM),
+                )
                 .changed();
         },
     );
@@ -573,9 +580,7 @@ fn show_systems_form(ui: &mut Ui, state: &mut BuilderState) {
             "Require worlds to match the star colour exactly (schema: \
              world_selection.strict_same_star_colour).",
             |ui| {
-                changed |= ui
-                    .checkbox(&mut ws.strict_same_star_colour, "")
-                    .changed();
+                changed |= ui.checkbox(&mut ws.strict_same_star_colour, "").changed();
             },
         );
         labeled(
@@ -669,7 +674,9 @@ fn show_routes_form(ui: &mut Ui, state: &mut BuilderState) {
             "Add bridging routes so every system is reachable (schema: \
              routes.ensure_connected_graph).",
             |ui| {
-                changed |= ui.checkbox(&mut routes.ensure_connected_graph, "").changed();
+                changed |= ui
+                    .checkbox(&mut routes.ensure_connected_graph, "")
+                    .changed();
             },
         );
     }
@@ -773,7 +780,11 @@ fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
                     .progress_snapshot()
                     .map(progress_detail)
                     .unwrap_or_else(|| "Starting…".to_string());
-                ui.label(RichText::new(detail).small().color(palette::chrome_text_dim()));
+                ui.label(
+                    RichText::new(detail)
+                        .small()
+                        .color(palette::chrome_text_dim()),
+                );
                 // Keep the frame loop spinning so the bar animates + the result
                 // is pumped next frame.
                 ui.ctx().request_repaint();
@@ -1020,11 +1031,9 @@ fn progress_detail(p: SectorProgress) -> String {
         }
         SectorProgress::SystemsPlaced { total, .. } => format!("Placed {total} systems"),
         SectorProgress::RegionsBuilt { count } => format!("Grew {count} warp regions"),
-        SectorProgress::SystemBuilt {
-            current,
-            total,
-            ..
-        } => format!("Building systems — {current}/{total}"),
+        SectorProgress::SystemBuilt { current, total, .. } => {
+            format!("Building systems — {current}/{total}")
+        }
         SectorProgress::FactionsAssigned { catalog_rows } => {
             format!("Assigning factions — {catalog_rows} rows")
         }

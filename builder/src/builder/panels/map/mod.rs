@@ -22,7 +22,10 @@ mod theme;
 use crate::builder::state::{EntityRef, MapTool};
 use crate::builder::BuilderState;
 
-use sectorforge_gui_core::{palette, ui_kit::{self, labeled}};
+use sectorforge_gui_core::{
+    palette,
+    ui_kit::{self, labeled},
+};
 
 pub(super) use context_menu::menu_anchor_pivot;
 
@@ -506,7 +509,10 @@ mod tests {
             .add_system(HexCoord { q: 2, r: 2 }, "B")
             .unwrap();
         handle_drag_drop(&mut state, a.clone(), HexCoord { q: 2, r: 2 });
-        let pending = state.drag.pending_collision.expect("collision dialog armed");
+        let pending = state
+            .drag
+            .pending_collision
+            .expect("collision dialog armed");
         assert_eq!(pending.dragging, a);
         assert_eq!(pending.occupant, b);
     }
@@ -1007,13 +1013,15 @@ mod tests {
     fn ctx_multi_delete_requires_confirm_gate() {
         let (mut state, a, b) = multi_state(8, 8);
         let confirming = state
-            .map_view.sector_context_menu
+            .map_view
+            .sector_context_menu
             .as_ref()
             .map(|m| m.bulk_delete_confirm)
             .unwrap();
         assert!(!confirming, "fresh menu starts with confirm unarmed");
         state
-            .map_view.sector_context_menu
+            .map_view
+            .sector_context_menu
             .as_mut()
             .unwrap()
             .bulk_delete_confirm = true;
@@ -1111,7 +1119,10 @@ mod tests {
         state.map_view.partial_regen_anchor = Some(HexCoord { q: 1, r: 5 });
         let consumed = apply_partial_regen_anchor_click(&mut state, HexCoord { q: 4, r: 2 });
         assert!(consumed, "click consumed while anchor was armed");
-        assert!(state.map_view.partial_regen_anchor.is_none(), "anchor cleared");
+        assert!(
+            state.map_view.partial_regen_anchor.is_none(),
+            "anchor cleared"
+        );
         let rect = state.map_view.partial_regen_rect.expect("rect populated");
         assert_eq!(rect.min_q, 1);
         assert_eq!(rect.max_q, 4);
@@ -1355,7 +1366,8 @@ mod tests {
             .unwrap();
         refresh_map_cache(&mut state);
         let digest = state
-            .map_view.cache
+            .map_view
+            .cache
             .as_ref()
             .map(|c| c.digest.clone())
             .unwrap();
@@ -1623,7 +1635,10 @@ mod tests {
         assert!(closed);
         assert!(state.drag.pending_route_start.is_none());
         assert_eq!(state.map_view.tool, MapTool::Select);
-        assert_eq!(state.feedback.last_menu_action.as_deref(), Some("route :: CANCEL"));
+        assert_eq!(
+            state.feedback.last_menu_action.as_deref(),
+            Some("route :: CANCEL")
+        );
     }
 
     #[test]

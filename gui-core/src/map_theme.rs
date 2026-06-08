@@ -367,10 +367,22 @@ mod tests {
         assert_eq!(t.route_color(RouteStability::Hazardous), t.route_hazardous);
         assert_eq!(t.route_color(RouteStability::Perilous), t.route_perilous);
         // Concrete default values (mirror `palette::stability_color`).
-        assert_eq!(t.route_color(RouteStability::Stable), Color32::from_rgb(110, 210, 130));
-        assert_eq!(t.route_color(RouteStability::Unstable), Color32::from_rgb(240, 200, 90));
-        assert_eq!(t.route_color(RouteStability::Hazardous), Color32::from_rgb(235, 90, 90));
-        assert_eq!(t.route_color(RouteStability::Perilous), Color32::from_rgb(165, 100, 215));
+        assert_eq!(
+            t.route_color(RouteStability::Stable),
+            Color32::from_rgb(110, 210, 130)
+        );
+        assert_eq!(
+            t.route_color(RouteStability::Unstable),
+            Color32::from_rgb(240, 200, 90)
+        );
+        assert_eq!(
+            t.route_color(RouteStability::Hazardous),
+            Color32::from_rgb(235, 90, 90)
+        );
+        assert_eq!(
+            t.route_color(RouteStability::Perilous),
+            Color32::from_rgb(165, 100, 215)
+        );
         // `RouteStability` is `#[non_exhaustive]`, so the `_ => route_unstable`
         // arm is a future-proofing fallback: it cannot be exercised here because
         // no fifth variant is constructible, but document the mapping it uses.
@@ -381,17 +393,38 @@ mod tests {
     fn region_color_maps_each_overlay_distinctly() {
         use crate::visual_tokens::MapRegionOverlay;
         let t = RenderMapTheme::default();
-        assert_eq!(t.region_color(MapRegionOverlay::WarpStorm), Color32::from_rgb(170, 60, 180));
-        assert_eq!(t.region_color(MapRegionOverlay::Turbulence), Color32::from_rgb(140, 100, 200));
-        assert_eq!(t.region_color(MapRegionOverlay::CalmCorridor), Color32::from_rgb(90, 200, 180));
-        assert_eq!(t.region_color(MapRegionOverlay::Blackout), Color32::from_rgb(60, 60, 80));
-        assert_eq!(t.region_color(MapRegionOverlay::Anomaly), Color32::from_rgb(220, 160, 60));
+        assert_eq!(
+            t.region_color(MapRegionOverlay::WarpStorm),
+            Color32::from_rgb(170, 60, 180)
+        );
+        assert_eq!(
+            t.region_color(MapRegionOverlay::Turbulence),
+            Color32::from_rgb(140, 100, 200)
+        );
+        assert_eq!(
+            t.region_color(MapRegionOverlay::CalmCorridor),
+            Color32::from_rgb(90, 200, 180)
+        );
+        assert_eq!(
+            t.region_color(MapRegionOverlay::Blackout),
+            Color32::from_rgb(60, 60, 80)
+        );
+        assert_eq!(
+            t.region_color(MapRegionOverlay::Anomaly),
+            Color32::from_rgb(220, 160, 60)
+        );
         assert_eq!(
             t.region_color(MapRegionOverlay::NecropolisDrift),
             Color32::from_rgb(100, 130, 140)
         );
-        assert_eq!(t.region_color(MapRegionOverlay::BeaconChain), Color32::from_rgb(230, 210, 100));
-        assert_eq!(t.region_color(MapRegionOverlay::EmpyricBleed), Color32::from_rgb(190, 70, 160));
+        assert_eq!(
+            t.region_color(MapRegionOverlay::BeaconChain),
+            Color32::from_rgb(230, 210, 100)
+        );
+        assert_eq!(
+            t.region_color(MapRegionOverlay::EmpyricBleed),
+            Color32::from_rgb(190, 70, 160)
+        );
 
         // All eight overlay colours are pairwise distinct.
         let all = [
@@ -416,7 +449,7 @@ mod tests {
         // px = max(hex_size * mul, min).
         assert_eq!(ScaledSize::new(0.5, 4.0).px(20.0), 10.0); // 10.0 > 4.0 floor
         assert_eq!(ScaledSize::new(0.5, 4.0).px(2.0), 4.0); // 1.0 < 4.0 -> floor
-        // Default route thickness: mul 0.08, min 2.0.
+                                                            // Default route thickness: mul 0.08, min 2.0.
         let rt = RenderMapTheme::default().route_thickness;
         assert_eq!(rt.px(100.0), 8.0); // max(8.0, 2.0)
         assert_eq!(rt.px(10.0), 2.0); // max(0.8, 2.0) -> floor

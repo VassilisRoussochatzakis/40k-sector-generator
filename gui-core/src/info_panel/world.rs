@@ -1,7 +1,6 @@
 //! World detail render (`world_detail`). Split verbatim from `info_panel.rs`
 //! (AREA_F F8, by section).
 
-
 use egui::Ui;
 
 use sectorforge::sector_model::GeneratedWorld;
@@ -34,15 +33,39 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
     ui.add_space(8.0);
 
     section(ui, "ENVIRONMENT");
-    kv(ui, "ATMOSPHERE", &w.world.atmosphere.to_string().to_uppercase());
-    kv(ui, "TEMPERATURE", &w.world.temperature.to_string().to_uppercase());
-    kv(ui, "BIOSPHERE", &w.world.biosphere.to_string().to_uppercase());
+    kv(
+        ui,
+        "ATMOSPHERE",
+        &w.world.atmosphere.to_string().to_uppercase(),
+    );
+    kv(
+        ui,
+        "TEMPERATURE",
+        &w.world.temperature.to_string().to_uppercase(),
+    );
+    kv(
+        ui,
+        "BIOSPHERE",
+        &w.world.biosphere.to_string().to_uppercase(),
+    );
     ui.add_space(8.0);
 
     section(ui, "SOCIETY");
-    kv(ui, "POPULATION", &w.world.population.to_string().to_uppercase());
-    kv(ui, "TECH LEVEL", &w.world.tech_level.to_string().to_uppercase());
-    kv(ui, "GOVERNMENT", &w.world.government.to_string().to_uppercase());
+    kv(
+        ui,
+        "POPULATION",
+        &w.world.population.to_string().to_uppercase(),
+    );
+    kv(
+        ui,
+        "TECH LEVEL",
+        &w.world.tech_level.to_string().to_uppercase(),
+    );
+    kv(
+        ui,
+        "GOVERNMENT",
+        &w.world.government.to_string().to_uppercase(),
+    );
 
     if !w.world.notable_features.is_empty() {
         ui.add_space(8.0);
@@ -182,4 +205,3 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         }
     }
 }
-

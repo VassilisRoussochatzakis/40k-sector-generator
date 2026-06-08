@@ -631,8 +631,8 @@ mod tests {
     use super::*;
     use sectorforge::ids::{route_id, system_id, world_id, FactionId};
     use sectorforge::sector_model::{
-        empty_faction, empty_route, empty_sector, empty_system, empty_world, hex_distance, HexCoord,
-        SystemKind,
+        empty_faction, empty_route, empty_sector, empty_system, empty_world, hex_distance,
+        HexCoord, SystemKind,
     };
 
     /// Canonical viewer fixture: two `Star` systems (`sys-0001` at (0,0) with one
@@ -797,8 +797,7 @@ mod tests {
         assert_eq!(app.sector_selected, Some(system_id(1)));
         match &app.view {
             View::System {
-                system_id: open_id,
-                ..
+                system_id: open_id, ..
             } => assert_eq!(*open_id, system_id(1)),
             other => panic!("expected View::System, got {other:?}"),
         }

@@ -87,7 +87,10 @@ fn heatmap_render_is_byte_stable_and_distinct_from_off() {
     // SVG byte-stability under heatmap.
     let svg1 = sectorforge::svg_export::render_sector_svg(sector, None, &opts);
     let svg2 = sectorforge::svg_export::render_sector_svg(sector, None, &opts);
-    assert_eq!(svg1, svg2, "heatmap SVG must be byte-identical across renders");
+    assert_eq!(
+        svg1, svg2,
+        "heatmap SVG must be byte-identical across renders"
+    );
 
     // PNG byte-stability under heatmap (blake3 over encoded bytes).
     let img1 = sectorforge::bitmap::render_sector_image(sector, 2, None, opts.clone());
@@ -120,16 +123,15 @@ fn heatmap_render_is_byte_stable_and_distinct_from_off() {
 #[test]
 fn subsector_branches_render_and_are_stable() {
     let sector = fixture_sector();
-    let subs = sectorforge::build_subsectors(
-        sector,
-        sectorforge::subsectors::SubsectorConfig::default(),
-    )
-    .expect("build_subsectors");
+    let subs =
+        sectorforge::build_subsectors(sector, sectorforge::subsectors::SubsectorConfig::default())
+            .expect("build_subsectors");
     assert!(!subs.is_empty(), "fixture should yield >=1 subsector");
 
     let opts = sectorforge::bitmap::RenderOptions::default();
 
-    let with_subs = sectorforge::svg_export::render_sector_svg(sector, Some(subs.as_slice()), &opts);
+    let with_subs =
+        sectorforge::svg_export::render_sector_svg(sector, Some(subs.as_slice()), &opts);
 
     // Structural framing.
     assert!(with_subs.starts_with("<?xml"));
@@ -219,8 +221,14 @@ fn svg_is_tag_depth_balanced_including_ampersand_name() {
         None,
         &sectorforge::bitmap::RenderOptions::default(),
     );
-    assert!(svg2.contains("&amp;"), "ampersand should be escaped to &amp;");
-    assert!(!svg2.contains("A & B"), "raw `A & B` must not appear unescaped");
+    assert!(
+        svg2.contains("&amp;"),
+        "ampersand should be escaped to &amp;"
+    );
+    assert!(
+        !svg2.contains("A & B"),
+        "raw `A & B` must not appear unescaped"
+    );
     assert_eq!(
         tag_depth_balance(&svg2),
         Some(0),

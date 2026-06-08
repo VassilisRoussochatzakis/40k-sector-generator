@@ -69,9 +69,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "TYPE",
         |ui| {
-            enum_combo(ui, "w_type", &mut w.world.world_type, WorldType::VARIANTS, |v| {
-                v.display_name()
-            })
+            enum_combo(
+                ui,
+                "w_type",
+                &mut w.world.world_type,
+                WorldType::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -82,9 +86,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "ATMOSPHERE",
         |ui| {
-            enum_combo(ui, "w_atm", &mut w.world.atmosphere, Atmosphere::VARIANTS, |v| {
-                v.display_name()
-            })
+            enum_combo(
+                ui,
+                "w_atm",
+                &mut w.world.atmosphere,
+                Atmosphere::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -106,9 +114,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "BIOSPHERE",
         |ui| {
-            enum_combo(ui, "w_bio", &mut w.world.biosphere, Biosphere::VARIANTS, |v| {
-                v.display_name()
-            })
+            enum_combo(
+                ui,
+                "w_bio",
+                &mut w.world.biosphere,
+                Biosphere::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -119,9 +131,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "POPULATION",
         |ui| {
-            enum_combo(ui, "w_pop", &mut w.world.population, Population::VARIANTS, |v| {
-                v.display_name()
-            })
+            enum_combo(
+                ui,
+                "w_pop",
+                &mut w.world.population,
+                Population::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -129,9 +145,13 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui,
         "TECH",
         |ui| {
-            enum_combo(ui, "w_tech", &mut w.world.tech_level, TechLevel::VARIANTS, |v| {
-                v.display_name()
-            })
+            enum_combo(
+                ui,
+                "w_tech",
+                &mut w.world.tech_level,
+                TechLevel::VARIANTS,
+                |v| v.display_name(),
+            )
         },
         &mut dirty,
     );
@@ -158,13 +178,9 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let mut remove: Option<usize> = None;
     for (i, feat) in w.world.notable_features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            if enum_combo(
-                ui,
-                ("w_feat", i),
-                feat,
-                NotableFeature::VARIANTS,
-                |v| v.display_name(),
-            ) {
+            if enum_combo(ui, ("w_feat", i), feat, NotableFeature::VARIANTS, |v| {
+                v.display_name()
+            }) {
                 dirty = true;
             }
             if ui.small_button(RichText::new("x")).clicked() {

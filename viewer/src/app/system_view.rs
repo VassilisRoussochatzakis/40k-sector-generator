@@ -368,7 +368,11 @@ mod tests {
 
         assert_eq!(idx, 1);
         let sector = app.editor.sector.as_ref().unwrap();
-        let sys = sector.systems.iter().find(|s| s.id == system_id(1)).unwrap();
+        let sys = sector
+            .systems
+            .iter()
+            .find(|s| s.id == system_id(1))
+            .unwrap();
         let world = sys.worlds.iter().find(|w| w.index == 1).unwrap();
         assert_eq!(&*world.name, "Planet 1");
         assert_eq!(world.index, 1);
@@ -420,7 +424,11 @@ mod tests {
         app.add_planet_to_system(&system_id(1)).unwrap();
 
         let sector = app.editor.sector.as_ref().unwrap();
-        let world = sector.systems[0].worlds.iter().find(|w| w.index == 1).unwrap();
+        let world = sector.systems[0]
+            .worlds
+            .iter()
+            .find(|w| w.index == 1)
+            .unwrap();
         assert_eq!(world.world.star_colour, StarColour::OrangeDwarf);
     }
 
@@ -448,7 +456,11 @@ mod tests {
 
         assert_eq!(idx, 1);
         let sector = app.editor.sector.as_ref().unwrap();
-        let world = sector.systems[0].worlds.iter().find(|w| w.index == 1).unwrap();
+        let world = sector.systems[0]
+            .worlds
+            .iter()
+            .find(|w| w.index == 1)
+            .unwrap();
         assert_eq!(world.world.star_colour, StarColour::White);
     }
 

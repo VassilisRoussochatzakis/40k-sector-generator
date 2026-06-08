@@ -43,8 +43,7 @@ fn kind_map(factions: &[GeneratedFaction]) -> BTreeMap<&str, &str> {
 
 fn world_has_tag(w: &GeneratedWorld, needle: &str) -> bool {
     w.tags.iter().any(|t| t.contains(needle))
-        || w
-            .world
+        || w.world
             .notable_features
             .iter()
             .any(|f| f.as_ref().contains(needle))

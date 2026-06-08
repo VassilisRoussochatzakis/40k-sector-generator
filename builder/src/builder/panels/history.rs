@@ -23,7 +23,11 @@ use sectorforge::history::{
 };
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::SystemState;
-use sectorforge_gui_core::{palette, ui_kit::{self, labeled}, widgets};
+use sectorforge_gui_core::{
+    palette,
+    ui_kit::{self, labeled},
+    widgets,
+};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{
@@ -1136,7 +1140,8 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                     before: None,
                     after: Box::new(chron),
                 }) {
-                    state.feedback.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
                 }
             }
         } else if close {

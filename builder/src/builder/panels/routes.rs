@@ -11,7 +11,10 @@ use sectorforge::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSector, GeneratedSystem, RouteStability, RouteType,
 };
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
-use sectorforge_gui_core::{card, palette, ui_kit::{self, labeled}};
+use sectorforge_gui_core::{
+    card, palette,
+    ui_kit::{self, labeled},
+};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::preview::DEFAULT_DEBOUNCE_MS;
@@ -105,7 +108,8 @@ fn selected_route_index(state: &mut BuilderState) -> Option<usize> {
     }
     state.selection.route_id = state.sector.routes.first().map(|r| r.id.clone());
     state
-        .selection.route_id
+        .selection
+        .route_id
         .as_ref()
         .and_then(|id| state.index.routes.get(id).copied())
 }
@@ -128,7 +132,8 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
             if let Some(id) = state.selection.route_id.clone() {
                 let cmd = BuilderCommand::RemoveRoute { id, before: None };
                 if let Err(e) = state.run(cmd) {
-                    state.feedback.modal = Some(ModalKind::Message(format!("Delete route failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("Delete route failed: {e}")));
                 } else {
                     apply_ensure_connected_if_enabled(state);
                     state.selection.route_id = state.sector.routes.first().map(|r| r.id.clone());
@@ -737,13 +742,15 @@ fn apply_bulk_routes(state: &mut BuilderState, action: BulkRouteAction) {
 
 fn route_matches_bulk(state: &BuilderState, route: &GeneratedRoute) -> bool {
     if state
-        .route_bulk.filter_type
+        .route_bulk
+        .filter_type
         .is_some_and(|filter| filter != route.route_type)
     {
         return false;
     }
     if state
-        .route_bulk.filter_stability
+        .route_bulk
+        .filter_stability
         .is_some_and(|filter| filter != route.stability)
     {
         return false;
@@ -1072,7 +1079,8 @@ fn mark_route_rules_changed(ui: &Ui, state: &mut BuilderState) {
     state.mark_validation_dirty();
     let now = ui.ctx().input(|i| i.time);
     state
-        .generation.preview
+        .generation
+        .preview
         .schedule(now, DEFAULT_DEBOUNCE_MS as f64 / 1000.0);
 }
 
@@ -1300,7 +1308,8 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
             {
                 let (routes, added) = ensure_connected_routes(state, state.sector.routes.clone());
                 if added == 0 {
-                    state.feedback.modal = Some(ModalKind::Message("Route graph already connected.".into()));
+                    state.feedback.modal =
+                        Some(ModalKind::Message("Route graph already connected.".into()));
                 } else {
                     replace_routes(state, routes);
                 }

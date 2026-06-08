@@ -138,11 +138,9 @@ fn system_map_png_matches_pinned_blake3_hash() {
 #[test]
 fn html_export_matches_pinned_blake3_hash() {
     let sector = fixture_sector();
-    let html = sectorforge::html_export::render_html(
-        sector,
-        &sectorforge::config::HtmlConfig::default(),
-    )
-    .expect("render_html");
+    let html =
+        sectorforge::html_export::render_html(sector, &sectorforge::config::HtmlConfig::default())
+            .expect("render_html");
     assert_blake3_golden(
         "html_m42_default.blake3",
         "UPDATE_GOLDEN_HTML",
@@ -227,7 +225,8 @@ fn segmentum_composition_matches_committed_golden() {
         )
     });
     assert_eq!(
-        expected, json,
+        expected,
+        json,
         "segmentum composition drifted from the committed golden ({} vs {} bytes); \
          if intentional, rerun with `UPDATE_GOLDEN_SEGMENTUM=1` and review \
          `git diff tests/goldens/`",

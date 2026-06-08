@@ -194,7 +194,9 @@ pub enum IterativeJobResult {
 
 impl FromJobPanic for IterativeJobResult {
     fn from_job_panic(message: String) -> Option<Self> {
-        Some(Self::Failed(format!("Iterative prefix run panicked: {message}")))
+        Some(Self::Failed(format!(
+            "Iterative prefix run panicked: {message}"
+        )))
     }
 }
 
@@ -1020,23 +1022,49 @@ mod progress_bar_tests {
     fn fraction_is_monotonic_and_bounded_for_systems_cutoff() {
         let through = Stage::Systems;
         let stream = [
-            SectorProgress::WorldPoolBuilt { rows: 100, candidates: 80, excluded: 20 },
-            SectorProgress::SystemsPlaced { total: 40, width: 8, height: 8 },
+            SectorProgress::WorldPoolBuilt {
+                rows: 100,
+                candidates: 80,
+                excluded: 20,
+            },
+            SectorProgress::SystemsPlaced {
+                total: 40,
+                width: 8,
+                height: 8,
+            },
             SectorProgress::RegionsBuilt { count: 3 },
-            SectorProgress::SystemBuilt { current: 1, total: 40, worlds: 2 },
-            SectorProgress::SystemBuilt { current: 20, total: 40, worlds: 1 },
-            SectorProgress::SystemBuilt { current: 40, total: 40, worlds: 3 },
+            SectorProgress::SystemBuilt {
+                current: 1,
+                total: 40,
+                worlds: 2,
+            },
+            SectorProgress::SystemBuilt {
+                current: 20,
+                total: 40,
+                worlds: 1,
+            },
+            SectorProgress::SystemBuilt {
+                current: 40,
+                total: 40,
+                worlds: 3,
+            },
         ];
         let mut last = 0.0_f32;
         for ev in &stream {
             let f = preview_progress_fraction(ev, through).expect("anchored milestone");
-            assert!((0.0..1.0).contains(&f), "fraction {f} out of [0,1) for {ev:?}");
+            assert!(
+                (0.0..1.0).contains(&f),
+                "fraction {f} out of [0,1) for {ev:?}"
+            );
             assert!(f >= last, "bar went backwards: {last} -> {f} at {ev:?}");
             last = f;
         }
         // WorldPool is the first of four stages (WorldPool..=Systems) ⇒ exactly 1/4.
         let first = preview_progress_fraction(&stream[0], through).unwrap();
-        assert!((first - 0.25).abs() < 1e-6, "WorldPool should fill 1/4, got {first}");
+        assert!(
+            (first - 0.25).abs() < 1e-6,
+            "WorldPool should fill 1/4, got {first}"
+        );
         // The final per-system event all but completes the bar.
         assert!(last > 0.9, "last fraction should be near full, got {last}");
     }
@@ -1045,10 +1073,17 @@ mod progress_bar_tests {
     /// the fill is relative to the cutoff, not absolute.
     #[test]
     fn fraction_is_relative_to_cutoff() {
-        let ev = SectorProgress::SystemsPlaced { total: 10, width: 4, height: 4 };
+        let ev = SectorProgress::SystemsPlaced {
+            total: 10,
+            width: 4,
+            height: 4,
+        };
         let early = preview_progress_fraction(&ev, Stage::Systems).unwrap();
         let full = preview_progress_fraction(&ev, Stage::Chronicle).unwrap();
-        assert!(full < early, "longer run ⇒ smaller slice: expected {full} < {early}");
+        assert!(
+            full < early,
+            "longer run ⇒ smaller slice: expected {full} < {early}"
+        );
     }
 
     /// Stage-boundary / timing events carry no completion signal, so they leave
@@ -1056,10 +1091,15 @@ mod progress_bar_tests {
     #[test]
     fn unanchored_events_return_none() {
         let through = Stage::Chronicle;
-        assert!(preview_progress_fraction(&SectorProgress::StageStarted { name: "x" }, through)
-            .is_none());
+        assert!(
+            preview_progress_fraction(&SectorProgress::StageStarted { name: "x" }, through)
+                .is_none()
+        );
         assert!(preview_progress_fraction(
-            &SectorProgress::StageElapsed { stage: "x", millis: 3 },
+            &SectorProgress::StageElapsed {
+                stage: "x",
+                millis: 3
+            },
             through
         )
         .is_none());

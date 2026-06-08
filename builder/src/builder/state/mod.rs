@@ -324,7 +324,8 @@ pub struct BuilderState {
     /// §E3: per-system `SupplyRisk` override.
     pub(crate) system_supply_overrides: BTreeMap<SystemId, sectorforge::economy::SupplyRisk>,
     /// §E3: per-system `StrategicPriority` override.
-    pub(crate) system_priority_overrides: BTreeMap<SystemId, sectorforge::economy::StrategicPriority>,
+    pub(crate) system_priority_overrides:
+        BTreeMap<SystemId, sectorforge::economy::StrategicPriority>,
     /// Audit finding #8 — catalog-edit coalescing. When a catalog panel begins
     /// editing it snapshots the whole catalog-edit slice here (via
     /// [`Self::begin_catalog_session`]); every subsequent live `.as_mut()` edit

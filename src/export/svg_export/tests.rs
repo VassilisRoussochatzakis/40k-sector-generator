@@ -160,7 +160,10 @@ fn region_label_xml_special_chars_are_escaped() {
         svg.contains("R&lt;X&gt;&amp;Y"),
         "escaped + uppercased region label missing"
     );
-    assert!(!svg.contains("R<x>"), "raw `R<x>` region name leaked unescaped");
+    assert!(
+        !svg.contains("R<x>"),
+        "raw `R<x>` region name leaked unescaped"
+    );
 }
 
 /// Lightweight tag-balance check used by the well-formedness tests: count

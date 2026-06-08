@@ -293,7 +293,10 @@ subfaction_name = "Sub Bbb"
             (FactionBorder::Dotted, "dotted"),
             (FactionBorder::Thin, "thin"),
         ] {
-            assert_eq!(toml::Value::try_from(border).unwrap().as_str(), Some(spelling));
+            assert_eq!(
+                toml::Value::try_from(border).unwrap().as_str(),
+                Some(spelling)
+            );
         }
     }
 

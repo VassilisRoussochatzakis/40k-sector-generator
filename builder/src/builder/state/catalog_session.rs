@@ -229,7 +229,11 @@ mod tests {
             })
             .unwrap();
         assert!(
-            state.data_catalogs.economy.as_ref().is_some_and(|c| c.enabled),
+            state
+                .data_catalogs
+                .economy
+                .as_ref()
+                .is_some_and(|c| c.enabled),
             "edit must install the economy catalog"
         );
 
@@ -241,7 +245,11 @@ mod tests {
 
         state.redo().unwrap();
         assert!(
-            state.data_catalogs.economy.as_ref().is_some_and(|c| c.enabled),
+            state
+                .data_catalogs
+                .economy
+                .as_ref()
+                .is_some_and(|c| c.enabled),
             "redo must re-install the economy catalog"
         );
     }
@@ -304,13 +312,40 @@ mod tests {
                     .push(faction_row("imperium"));
             })
             .unwrap();
-        assert_eq!(state.data_catalogs.factions.as_ref().unwrap().factions.len(), 1);
+        assert_eq!(
+            state
+                .data_catalogs
+                .factions
+                .as_ref()
+                .unwrap()
+                .factions
+                .len(),
+            1
+        );
 
         state.undo().unwrap();
-        assert_eq!(state.data_catalogs.factions.as_ref().unwrap().factions.len(), 0);
+        assert_eq!(
+            state
+                .data_catalogs
+                .factions
+                .as_ref()
+                .unwrap()
+                .factions
+                .len(),
+            0
+        );
 
         state.redo().unwrap();
-        assert_eq!(state.data_catalogs.factions.as_ref().unwrap().factions.len(), 1);
+        assert_eq!(
+            state
+                .data_catalogs
+                .factions
+                .as_ref()
+                .unwrap()
+                .factions
+                .len(),
+            1
+        );
     }
 
     /// The §E1 economy *override* side-table (which lives on `BuilderState`, not

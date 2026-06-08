@@ -7,14 +7,11 @@
 //! submodule. The public render fns are re-exported so `info_panel::*` paths
 //! in the builder and viewer stay unchanged.
 
-
 use egui::{Color32, Pos2, RichText, Ui, Vec2};
 
 use sectorforge::sector_model::RoutePattern;
 
-use crate::palette::{
-    self, darken, draw_route_line,
-};
+use crate::palette::{self, darken, draw_route_line};
 
 mod history;
 mod overview;
@@ -188,4 +185,3 @@ mod tests {
         assert_eq!(short("abc", 0), ".");
     }
 }
-

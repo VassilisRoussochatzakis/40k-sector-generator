@@ -2,10 +2,10 @@
 
 use egui::{RichText, Ui};
 
-use sectorforge::sector_model::{ClaimType, FactionClaim};
-use sectorforge_gui_core::ui_kit;
 use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
+use sectorforge::sector_model::{ClaimType, FactionClaim};
+use sectorforge_gui_core::ui_kit;
 
 // ── claims chip-row (W7) ───────────────────────────────────────────────────
 
@@ -26,9 +26,8 @@ pub(super) fn show_claims_section(
             let mut remove: Option<usize> = None;
             ui.horizontal_wrapped(|ui| {
                 for (i, c) in claims.iter().enumerate() {
-                    let (bg, fg) = crate::builder::panels::presence_widgets::claim_chip_colours(
-                        c.claim_type,
-                    );
+                    let (bg, fg) =
+                        crate::builder::panels::presence_widgets::claim_chip_colours(c.claim_type);
                     egui::Frame::none()
                         .fill(bg)
                         .stroke(egui::Stroke::new(1.0, fg))
@@ -58,7 +57,8 @@ pub(super) fn show_claims_section(
                 if let Err(e) = state.edit_world(wid, |w| {
                     w.claims.remove(i);
                 }) {
-                    state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
             ui.add_space(4.0);
@@ -149,7 +149,8 @@ pub(super) fn show_add_claim_row(
                         strength: buf.strength,
                     });
                 }) {
-                    state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
         }
@@ -170,4 +171,3 @@ const CLAIM_TYPES: &[ClaimType] = &[
     ClaimType::CovertWrit,
     ClaimType::Rebellion,
 ];
-

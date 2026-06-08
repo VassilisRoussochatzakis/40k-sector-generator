@@ -145,8 +145,7 @@ mod tests {
     fn weighted_index_error_paths_carry_verbatim_context() {
         fn assert_err_context<T>(pool: &[(T, f64)], ctx: &str) {
             let mut rng = stage_rng("s", "t", "d");
-            let err = weighted_index(pool, &mut rng, ctx)
-                .expect_err("malformed pool must error");
+            let err = weighted_index(pool, &mut rng, ctx).expect_err("malformed pool must error");
             match err {
                 SectorError::WeightedSelectionFailed { context } => {
                     assert_eq!(context, ctx);
@@ -210,20 +209,11 @@ mod tests {
         }
 
         // Identity: same key -> same stream.
-        assert_eq!(
-            draw16("k", "stage", "disc"),
-            draw16("k", "stage", "disc"),
-        );
+        assert_eq!(draw16("k", "stage", "disc"), draw16("k", "stage", "disc"),);
         // Distinct discriminator decorrelates.
-        assert_ne!(
-            draw16("k", "stage", "disc"),
-            draw16("k", "stage", "disc2"),
-        );
+        assert_ne!(draw16("k", "stage", "disc"), draw16("k", "stage", "disc2"),);
         // Distinct stage decorrelates.
-        assert_ne!(
-            draw16("k", "stage", "disc"),
-            draw16("k", "stage2", "disc"),
-        );
+        assert_ne!(draw16("k", "stage", "disc"), draw16("k", "stage2", "disc"),);
     }
 
     // GAP 5 (M) — ChaCha8 cross-version golden PIN. The first u64 drawn from
@@ -257,11 +247,9 @@ mod tests {
         assert_eq!(digest_bytes(b"abc"), digest_bytes(b"abc"));
         assert_ne!(digest_bytes(b"abc"), digest_bytes(b"abd"));
         assert_eq!(digest_bytes(b"abc").len(), 64);
-        assert!(
-            digest_bytes(b"abc")
-                .chars()
-                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
-        );
+        assert!(digest_bytes(b"abc")
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),);
         // PIN: blake3("abc") lowercase hex — canary against a blake3
         // algorithm/version change.
         assert_eq!(

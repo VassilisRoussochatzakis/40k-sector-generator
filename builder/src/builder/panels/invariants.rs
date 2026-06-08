@@ -24,7 +24,10 @@ use egui::{Color32, RichText};
 
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::invariants::{InvariantReport, InvariantViolation};
-use sectorforge_gui_core::{card, palette, ui_kit::{self, labeled}};
+use sectorforge_gui_core::{
+    card, palette,
+    ui_kit::{self, labeled},
+};
 
 use crate::builder::BuilderState;
 

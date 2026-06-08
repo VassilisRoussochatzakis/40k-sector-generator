@@ -1,11 +1,9 @@
 //! Chronicle renders (`world_history`, `system_history`) + event-mention
 //! predicates. Split verbatim from `info_panel.rs` (AREA_F F8, by section).
 
-
 use egui::Ui;
 
 use sectorforge::sector_model::GeneratedSector;
-
 
 use super::{dim, section, short};
 
@@ -192,4 +190,3 @@ mod tests {
         assert!(!event_mentions_system(&e2, "sys-0001"));
     }
 }
-

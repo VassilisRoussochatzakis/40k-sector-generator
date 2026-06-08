@@ -66,10 +66,7 @@ pub(crate) fn show(
     ui.add_space(8.0);
 
     if a.low_confidence {
-        ui.label(
-            RichText::new("⚠ low-confidence sector (few systems)")
-                .color(palette::warning()),
-        );
+        ui.label(RichText::new("⚠ low-confidence sector (few systems)").color(palette::warning()));
         ui.add_space(6.0);
     }
 
@@ -86,7 +83,15 @@ pub(crate) fn show(
         ui.add_space(4.0);
         const TOP: usize = 12;
         for (i, f) in a.faction_balance.top_factions.iter().take(TOP).enumerate() {
-            share_bar(ui, &sector.factions, cache, &f.name, &f.faction_id, f.share, i);
+            share_bar(
+                ui,
+                &sector.factions,
+                cache,
+                &f.name,
+                &f.faction_id,
+                f.share,
+                i,
+            );
         }
         let total = a.faction_balance.top_factions.len();
         if total > TOP {

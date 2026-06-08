@@ -205,8 +205,7 @@ mod tests {
         for name in ["alpha", "beta"] {
             let out = ex.join(name).join("out");
             fs::create_dir_all(&out).unwrap();
-            let text =
-                serde_json::to_string_pretty(&empty_sector(name, name, "s", 8, 8)).unwrap();
+            let text = serde_json::to_string_pretty(&empty_sector(name, name, "s", 8, 8)).unwrap();
             fs::write(out.join("sector.json"), text).unwrap();
         }
         fs::create_dir_all(ex.join("gamma")).unwrap(); // no out/sector.json -> skipped
@@ -217,7 +216,10 @@ mod tests {
         // --- load an existing project ---
         let (sector, _input, path) = load_project_sector("alpha").unwrap();
         assert_eq!(&*sector.id, "alpha");
-        assert!(path.ends_with("examples/alpha/out/sector.json"), "path was {path}");
+        assert!(
+            path.ends_with("examples/alpha/out/sector.json"),
+            "path was {path}"
+        );
 
         // --- happy-path save writes parseable JSON under examples/<name> ---
         let saved = save_project_sector("delta", &empty_sector("delta", "D", "s", 8, 8)).unwrap();

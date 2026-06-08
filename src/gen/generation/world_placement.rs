@@ -406,10 +406,7 @@ mod tests {
 
         // 8 base prefixes + 2 feature tags.
         assert_eq!(tags.len(), 10, "8 base prefixes + 2 features");
-        assert_eq!(
-            tags.iter().filter(|t| t.starts_with("feature:")).count(),
-            2
-        );
+        assert_eq!(tags.iter().filter(|t| t.starts_with("feature:")).count(), 2);
 
         // Each of the 8 base namespaces is present exactly once.
         for ns in [

@@ -34,16 +34,17 @@ pub use render::{render_markdown, write_report};
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::route_control::RouteControl;
     use crate::sector_model::{
         GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem, GeneratedWorld,
         GenerationManifest, HexCoord, RouteStability, RouteType, SystemControlSummary,
         WorldControlSummary, WorldDto,
     };
-    use crate::worlds::{
-        Atmosphere, Biosphere, Government, Population, StarColour, Temperature, TechLevel, WorldType,
-    };
-    use crate::route_control::RouteControl;
     use crate::stability::StabilityState;
+    use crate::worlds::{
+        Atmosphere, Biosphere, Government, Population, StarColour, TechLevel, Temperature,
+        WorldType,
+    };
     use std::collections::BTreeMap as Map;
 
     fn world(id: &str, world_type: WorldType, tech: TechLevel, pop_tag: &str) -> GeneratedWorld {
@@ -350,7 +351,10 @@ mod tests {
             )],
         )]);
         let report = derive(&s);
-        assert!(!report.worlds[0].stranded, "AgriWorld should not be stranded");
+        assert!(
+            !report.worlds[0].stranded,
+            "AgriWorld should not be stranded"
+        );
         apply_stability_nudge(&report, &mut s);
         assert_eq!(
             s.systems[0].worlds[0].stability.famine_or_resource_stress,
@@ -426,7 +430,9 @@ mod tests {
                 )],
             ),
         ]);
-        s.routes = vec![route_full("r1", "sys-0001", "sys-0002", 1, stability, controls)];
+        s.routes = vec![route_full(
+            "r1", "sys-0001", "sys-0002", 1, stability, controls,
+        )];
         derive(&s).routes[0].friction
     }
 
@@ -530,8 +536,22 @@ mod tests {
             ),
         ]);
         s.routes = vec![
-            route_full("r-a", "sys-cons", "sys-a", 1, RouteStability::Stable, vec![]),
-            route_full("r-b", "sys-cons", "sys-b", 4, RouteStability::Stable, vec![]),
+            route_full(
+                "r-a",
+                "sys-cons",
+                "sys-a",
+                1,
+                RouteStability::Stable,
+                vec![],
+            ),
+            route_full(
+                "r-b",
+                "sys-cons",
+                "sys-b",
+                4,
+                RouteStability::Stable,
+                vec![],
+            ),
         ];
         let r = derive(&s);
         let food_edges: Vec<&DependencyEdge> = r
@@ -539,7 +559,11 @@ mod tests {
             .iter()
             .filter(|e| e.to_system_id == "sys-cons" && e.resource == "food")
             .collect();
-        assert_eq!(food_edges.len(), 1, "expected exactly one food edge to consumer");
+        assert_eq!(
+            food_edges.len(),
+            1,
+            "expected exactly one food edge to consumer"
+        );
         assert_eq!(food_edges[0].from_system_id, "sys-a");
     }
 
@@ -706,8 +730,22 @@ mod tests {
             ),
         ]);
         s.routes = vec![
-            route_full("r-a", "sys-cons-a", "sys-sup-a", 1, RouteStability::Stable, vec![]),
-            route_full("r-b", "sys-cons-b", "sys-sup-b", 1, RouteStability::Stable, vec![]),
+            route_full(
+                "r-a",
+                "sys-cons-a",
+                "sys-sup-a",
+                1,
+                RouteStability::Stable,
+                vec![],
+            ),
+            route_full(
+                "r-b",
+                "sys-cons-b",
+                "sys-sup-b",
+                1,
+                RouteStability::Stable,
+                vec![],
+            ),
         ];
         let r = derive(&s);
         assert!(r.dependency_edges.len() >= 2, "expected at least two edges");
@@ -724,6 +762,9 @@ mod tests {
             .collect();
         let mut sorted = keys.clone();
         sorted.sort();
-        assert_eq!(keys, sorted, "dependency edges not sorted by (to, resource, from)");
+        assert_eq!(
+            keys, sorted,
+            "dependency edges not sorted by (to, resource, from)"
+        );
     }
 }

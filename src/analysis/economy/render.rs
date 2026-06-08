@@ -112,9 +112,7 @@ pub fn render_markdown(sector_id: &str, report: &EconomyReport) -> String {
 
     // Top 10 routes by volume.
     let mut top: Vec<&RouteEconomy> = report.routes.iter().collect();
-    top.sort_by(|a, b| {
-        crate::analysis::cmp_f32_desc(a.volume, b.volume)
-    });
+    top.sort_by(|a, b| crate::analysis::cmp_f32_desc(a.volume, b.volume));
     let _ = writeln!(s, "\n## Top trade lanes");
     for r in top.iter().take(10) {
         let _ = writeln!(

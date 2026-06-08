@@ -350,7 +350,15 @@ mod tests {
         egui::__run_test_ui(|ui| {
             // viewer-style: String labels, no tooltips.
             let mut a: Option<u8> = None;
-            let _ = enum_combo(ui, "a", &mut a, &[1u8, 2, 3], |v| v.to_string(), |_| None, None);
+            let _ = enum_combo(
+                ui,
+                "a",
+                &mut a,
+                &[1u8, 2, 3],
+                |v| v.to_string(),
+                |_| None,
+                None,
+            );
             // builder-style: &'static str labels + per-variant + sentinel hover.
             let mut b: Option<u8> = Some(2);
             let _ = enum_combo(

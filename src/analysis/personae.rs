@@ -566,16 +566,29 @@ fn canonical_kind(kind: &str) -> &'static str {
     let k = kind.trim().to_ascii_lowercase().replace('\'', "");
     match k.as_str() {
         // Imperial civil authority + Imperial military / elite arms.
-        "imperial" | "imperial_guard" | "imperial_knight" | "adeptus_astartes" | "deathwatch"
-        | "grey_knights" | "talons_of_the_emperor" | "collegia_titanica" => "imperial",
+        "imperial"
+        | "imperial_guard"
+        | "imperial_knight"
+        | "adeptus_astartes"
+        | "deathwatch"
+        | "grey_knights"
+        | "talons_of_the_emperor"
+        | "collegia_titanica" => "imperial",
         // Militant faith.
         "adepta_sororitas" | "ecclesiarchy" => "ecclesiarchy",
         "inquisition" | "inquisitorial" => "inquisition",
         // Adeptus Mechanicus + its corrupted mirror.
         "mechanicus" | "dark_mechanicum" => "mechanicus",
         // Chaos / traitor / warp, including generic and heretic cults.
-        "chaos" | "chaos_space_marine" | "chaos_knight" | "traitor_guard"
-        | "traitor_titan_legion" | "daemon" | "cult" | "heretic" | "renegade" => "chaos",
+        "chaos"
+        | "chaos_space_marine"
+        | "chaos_knight"
+        | "traitor_guard"
+        | "traitor_titan_legion"
+        | "daemon"
+        | "cult"
+        | "heretic"
+        | "renegade" => "chaos",
         // Genestealer cults (all spellings).
         "genestealer_cult" | "genestealer" | "gsc" => "genestealer",
         "tau" => "tau",

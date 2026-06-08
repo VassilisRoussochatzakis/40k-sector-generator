@@ -154,7 +154,8 @@ pub(super) fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                 // write). `worlds` rides through the system clone unchanged.
                 let sys_id = state.sector.systems[sys_idx].id.clone();
                 if let Err(e) = state.edit_system(sys_id, |sys| sys.kind = kind_choice) {
-                    state.feedback.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                    state.feedback.modal =
+                        Some(ModalKind::Message(format!("System edit failed: {e}")));
                 } else {
                     ui.data_mut(|d| d.remove::<SystemKind>(kind_choice_key));
                 }
@@ -163,7 +164,12 @@ pub(super) fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_i
     });
 }
 
-pub(super) fn apply_coord_move(state: &mut BuilderState, id: SystemId, from: HexCoord, to: HexCoord) {
+pub(super) fn apply_coord_move(
+    state: &mut BuilderState,
+    id: SystemId,
+    from: HexCoord,
+    to: HexCoord,
+) {
     if to.q < 0
         || to.r < 0
         || (to.q as u32) >= state.sector.width

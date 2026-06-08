@@ -453,7 +453,12 @@ mod tests {
                 world(2, 2, "Yperion", crate::worlds::WorldType::DeathWorld),
                 world(3, 3, "Mourn Yperion", crate::worlds::WorldType::DeathWorld),
                 world(4, 4, "Tarsi", crate::worlds::WorldType::AgriWorld),
-                world(5, 5, "Last Meridian Inner", crate::worlds::WorldType::AgriWorld),
+                world(
+                    5,
+                    5,
+                    "Last Meridian Inner",
+                    crate::worlds::WorldType::AgriWorld,
+                ),
             ],
             primary_factions: vec![],
             tags: vec![],

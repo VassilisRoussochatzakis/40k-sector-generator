@@ -879,7 +879,10 @@ mod tests {
             .unwrap();
         let sys = s.systems.iter().find(|x| x.id == id).unwrap();
         assert_eq!(sys.kind, SystemKind::BlackHole);
-        assert_eq!(sys.star.as_ref().map(|st| st.colour_code.as_ref()), Some("W"));
+        assert_eq!(
+            sys.star.as_ref().map(|st| st.colour_code.as_ref()),
+            Some("W")
+        );
         assert_eq!(&*sys.name, "Nova");
     }
 
@@ -903,7 +906,9 @@ mod tests {
             .unwrap();
 
         // a faction present on the removed system + its world, plus on a survivor
-        let f = s.add_faction(FactionId::new("imperium"), "Imperium", "imperial").unwrap();
+        let f = s
+            .add_faction(FactionId::new("imperium"), "Imperium", "imperial")
+            .unwrap();
         {
             let fac = s.factions.iter_mut().find(|x| x.id == f).unwrap();
             fac.system_presence.push(a.clone());

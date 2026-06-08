@@ -778,7 +778,9 @@ fn edit_world_round_trip() {
         "undo restores the pre-edit world"
     );
 
-    let err = s.edit_world(WorldId::new("no-such-world"), |_| {}).unwrap_err();
+    let err = s
+        .edit_world(WorldId::new("no-such-world"), |_| {})
+        .unwrap_err();
     assert!(matches!(
         err,
         crate::builder::errors::BuilderError::Mutation(
@@ -858,8 +860,7 @@ fn gen_faction(id: &str, kind: &str, disposition: &str) -> GeneratedFaction {
 fn drain_until_done(state: &mut BuilderState, kind: DerivationKind) -> bool {
     for _ in 0..200 {
         state.pump_derivation_jobs();
-        if !state.derivations.deriving.contains(&kind)
-            && !state.derivation_jobs.has_in_flight(kind)
+        if !state.derivations.deriving.contains(&kind) && !state.derivation_jobs.has_in_flight(kind)
         {
             return true;
         }
@@ -1677,8 +1678,8 @@ fn export_block_reason_refuses_on_violation_and_strict_warning() {
     // ── strict-warning branch ──
     {
         let mut s = BuilderState::new_blank("t", "T", "seed", 16, 16); // no worlds catalog
-        // No worlds catalog => revalidate_now's None-branch leaves validation_report
-        // untouched, so a pre-injected warning survives the recompute.
+                                                                       // No worlds catalog => revalidate_now's None-branch leaves validation_report
+                                                                       // untouched, so a pre-injected warning survives the recompute.
         s.validation_report = Some(warn_validation());
         s.validation_strict = true;
         let reason = s
@@ -1749,11 +1750,7 @@ fn advance_conflict_ticks_zero_guard_and_change_only_log() {
         let log_before = s.command_log.len();
         let tick_before = s.conflict_panel.tick_log.len();
         s.advance_conflict_ticks(0).unwrap();
-        assert_eq!(
-            s.command_log.len(),
-            log_before,
-            "ticks=0 pushes no command"
-        );
+        assert_eq!(s.command_log.len(), log_before, "ticks=0 pushes no command");
         assert_eq!(
             s.conflict_panel.tick_log.len(),
             tick_before,
@@ -1809,10 +1806,18 @@ fn recompute_methods_mark_fresh_and_arm_validation() {
             );
         }};
     }
-    check_report_overlay!(recompute_personae, DerivationKind::Personae, personae_report);
+    check_report_overlay!(
+        recompute_personae,
+        DerivationKind::Personae,
+        personae_report
+    );
     check_report_overlay!(recompute_hooks, DerivationKind::Hooks, hooks_report);
     check_report_overlay!(recompute_sites, DerivationKind::Sites, sites_report);
-    check_report_overlay!(recompute_missions, DerivationKind::Missions, missions_report);
+    check_report_overlay!(
+        recompute_missions,
+        DerivationKind::Missions,
+        missions_report
+    );
     check_report_overlay!(recompute_prose, DerivationKind::Prose, prose_report);
 
     // sector.*-installing overlays: own-kind Fresh + validation armed.
@@ -1994,7 +1999,10 @@ mod off_bus_seam {
     fn first_command_writes_immediately() {
         let dir = tempfile::TempDir::new().unwrap();
         let (mut s, path) = auto_save_state(&dir);
-        assert!(!path.as_std_path().exists(), "no write before the first command");
+        assert!(
+            !path.as_std_path().exists(),
+            "no write before the first command"
+        );
 
         s.run(BuilderCommand::RenameSystem {
             id: s.sector.systems[0].id.clone(),
@@ -2003,7 +2011,10 @@ mod off_bus_seam {
         })
         .unwrap();
 
-        assert!(!s.auto_save_pending, "the immediate write clears the pending flag");
+        assert!(
+            !s.auto_save_pending,
+            "the immediate write clears the pending flag"
+        );
         let saved = read_saved(&path);
         assert_eq!(saved.systems[0].name.as_ref(), "alpha-1");
     }
@@ -2338,10 +2349,7 @@ mod iterative_gen_session {
         state.iterative_gen = Some(new_session(8));
         assert!(state.iterative_gen.as_ref().unwrap().dest.is_none());
         let err = state.commit_new_project().unwrap_err();
-        assert!(
-            err.contains("destination"),
-            "unexpected message: {err}"
-        );
+        assert!(err.contains("destination"), "unexpected message: {err}");
         assert!(
             state.iterative_gen.is_some(),
             "commit must not clear the session when it errors"
@@ -2355,18 +2363,14 @@ mod iterative_gen_session {
         // past the dest guard and hit the missing-catalog guard; the session
         // (and the chosen dest) survive for a retry.
         let dir = tempfile::TempDir::new().unwrap();
-        let dest =
-            camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-seed")).unwrap();
+        let dest = camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-seed")).unwrap();
         let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
         let mut session = new_session(8);
         session.dest = Some(dest.clone());
         state.iterative_gen = Some(session);
 
         let err = state.commit_new_project().unwrap_err();
-        assert!(
-            err.contains("worlds catalog"),
-            "unexpected message: {err}"
-        );
+        assert!(err.contains("worlds catalog"), "unexpected message: {err}");
         assert!(state.iterative_gen.is_some(), "session survives the error");
         assert_eq!(
             state.iterative_gen.as_ref().unwrap().dest.as_ref(),
@@ -2374,7 +2378,10 @@ mod iterative_gen_session {
             "the chosen destination is preserved for a retry"
         );
         // Nothing was written to disk on the failed run.
-        assert!(!dest.as_std_path().exists(), "no project tree on a failed commit");
+        assert!(
+            !dest.as_std_path().exists(),
+            "no project tree on a failed commit"
+        );
     }
 
     #[test]
@@ -2405,8 +2412,7 @@ mod iterative_gen_session {
         session.config.inputs = inputs;
         session.catalogs_override = Some(catalogs);
         let dir = tempfile::TempDir::new().unwrap();
-        let dest =
-            camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-blank")).unwrap();
+        let dest = camino::Utf8PathBuf::from_path_buf(dir.path().join("iterative-blank")).unwrap();
         session.dest = Some(dest.clone());
         state.iterative_gen = Some(session);
 
@@ -2416,7 +2422,10 @@ mod iterative_gen_session {
 
         // The commit is a session boundary: the wizard is cleared and the freshly
         // written project is reopened in place.
-        assert!(state.iterative_gen.is_none(), "wizard cleared at the commit boundary");
+        assert!(
+            state.iterative_gen.is_none(),
+            "wizard cleared at the commit boundary"
+        );
         assert_eq!(
             state.project_path.as_ref(),
             Some(&dest),
@@ -2435,22 +2444,34 @@ mod iterative_gen_session {
             .factions
             .as_ref()
             .expect("the reopened project has a factions catalog");
-        assert!(!factions.factions.is_empty(), "the reopened roster is non-empty");
+        assert!(
+            !factions.factions.is_empty(),
+            "the reopened roster is non-empty"
+        );
 
         // A real sector was generated and persisted (preview/commit produce
         // systems from the seeded world pool, not the blank starting grid).
-        assert!(!state.sector.systems.is_empty(), "the committed sector has systems");
+        assert!(
+            !state.sector.systems.is_empty(),
+            "the committed sector has systems"
+        );
 
         // The catalog + sector files actually landed on disk so the reopen above
         // found a real project tree.
         let out_rel = state.config.outputs.directory.trim_end_matches('/');
         assert!(
-            dest.join(out_rel).join("sector.json").as_std_path().exists(),
+            dest.join(out_rel)
+                .join("sector.json")
+                .as_std_path()
+                .exists(),
             "sector.json was written under the outputs directory"
         );
         let worlds_dir = state.config.inputs.world_data_dir.trim_end_matches('/');
         assert!(
-            dest.join(worlds_dir).join("worlds.toml").as_std_path().exists(),
+            dest.join(worlds_dir)
+                .join("worlds.toml")
+                .as_std_path()
+                .exists(),
             "worlds.toml was written so the reopen finds a world pool"
         );
     }
@@ -2517,7 +2538,11 @@ mod iterative_gen_session {
             "override=Some must substitute the patch into the assembled input",
         );
         assert_eq!(
-            state.data_catalogs.regions.as_ref().map(|r| (r.enabled, r.count)),
+            state
+                .data_catalogs
+                .regions
+                .as_ref()
+                .map(|r| (r.enabled, r.count)),
             Some((false, 2)),
             "applying the override must NOT mutate data_catalogs (transient, preview-only)",
         );
@@ -2609,7 +2634,10 @@ mod iterative_gen_session {
         let max_n = ((1.0 + (1.0 + 8.0 * cap as f64).sqrt()) / 2.0).floor() as u64;
         // Grid large enough to actually hold them (effective count == requested).
         let dim = MAX_CUSTOM_DIM;
-        assert!(u64::from(dim) * u64::from(dim) > max_n, "grid must hold max_n+1");
+        assert!(
+            u64::from(dim) * u64::from(dim) > max_n,
+            "grid must hold max_n+1"
+        );
         assert!(
             precheck_generatable(&precheck_cfg(dim, max_n as usize)).is_ok(),
             "n at the budget must pass (pairs ≤ cap)"
@@ -2636,7 +2664,10 @@ mod iterative_gen_session {
         state.set_grid_dim(&ctx, 200);
         let g = &state.iterative_gen.as_ref().unwrap().config.generation;
         assert_eq!(g.sector_width, MAX_CUSTOM_DIM);
-        assert_eq!(g.sector_height, MAX_CUSTOM_DIM, "clamp keeps the square invariant");
+        assert_eq!(
+            g.sector_height, MAX_CUSTOM_DIM,
+            "clamp keeps the square invariant"
+        );
     }
 
     #[test]
@@ -2680,8 +2711,14 @@ mod iterative_gen_session {
 
         let err = state.commit_new_project().unwrap_err();
         assert!(err.contains("exceeds the maximum"), "unexpected: {err}");
-        assert!(state.iterative_gen.is_some(), "session survives the rejection");
-        assert!(!dest.as_std_path().exists(), "no project tree written on rejection");
+        assert!(
+            state.iterative_gen.is_some(),
+            "session survives the rejection"
+        );
+        assert!(
+            !dest.as_std_path().exists(),
+            "no project tree written on rejection"
+        );
     }
 
     #[test]
@@ -2738,7 +2775,10 @@ mod iterative_gen_session {
         state.spawn_prefix(&ctx, sectorforge::Stage::Systems);
 
         let s = state.iterative_gen.as_ref().unwrap();
-        assert!(s.job.is_none(), "no background job dispatched for a rejected config");
+        assert!(
+            s.job.is_none(),
+            "no background job dispatched for a rejected config"
+        );
         assert!(s.preview.is_none(), "preview stays empty");
         let err = state
             .feedback

@@ -1173,9 +1173,7 @@ impl BuilderCommand {
                 }
                 Ok(())
             }
-            Self::EditRegion {
-                region, before, ..
-            } => {
+            Self::EditRegion { region, before, .. } => {
                 if let Some(prev) = before {
                     let mut regions = (*sector.regions).clone();
                     if let Some(slot) = regions.iter_mut().find(|r| r.id == *region) {
@@ -1347,7 +1345,10 @@ pub(crate) mod tests {
     fn builder_command_size_is_bounded() {
         const MAX: usize = 256;
         let actual = std::mem::size_of::<BuilderCommand>();
-        assert!(actual <= MAX, "BuilderCommand is {actual} bytes (cap {MAX})");
+        assert!(
+            actual <= MAX,
+            "BuilderCommand is {actual} bytes (cap {MAX})"
+        );
     }
 
     /// LD2 — every command classifies into at least one dependency class, and
@@ -1416,7 +1417,8 @@ pub(crate) mod tests {
         let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
         let c = s.add_system(HexCoord { q: 2, r: 0 }, "C").unwrap();
         let wid = s.add_world_to_system(&a, "W").unwrap();
-        s.add_faction(FactionId::from("f"), "F", "imperial").unwrap();
+        s.add_faction(FactionId::from("f"), "F", "imperial")
+            .unwrap();
         let rid = s
             .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
             .unwrap();
@@ -1718,7 +1720,8 @@ pub(crate) mod tests {
     #[test]
     fn apply_faction_power_round_trip() {
         let mut s = empty();
-        s.add_faction(FactionId::from("f"), "F", "imperial").unwrap();
+        s.add_faction(FactionId::from("f"), "F", "imperial")
+            .unwrap();
         s.factions[0].power.military = 7.0;
         let mut after = std::collections::BTreeMap::new();
         after.insert(
@@ -2077,7 +2080,12 @@ pub(crate) mod tests {
             RegionConditionKind::Blackout,
             HexCoord { q: 1, r: 1 },
         );
-        let mut after = s.regions.iter().find(|r| r.id == "reg-0001").unwrap().clone();
+        let mut after = s
+            .regions
+            .iter()
+            .find(|r| r.id == "reg-0001")
+            .unwrap()
+            .clone();
         after.name = "Sealed".into();
         after.hexes.push(HexCoord { q: 2, r: 1 });
         let mut cmd = BuilderCommand::EditRegion {
@@ -2107,10 +2115,21 @@ pub(crate) mod tests {
             RegionConditionKind::Blackout,
             HexCoord { q: 1, r: 1 },
         );
-        let pre = s.regions.iter().find(|r| r.id == "reg-0001").unwrap().clone();
+        let pre = s
+            .regions
+            .iter()
+            .find(|r| r.id == "reg-0001")
+            .unwrap()
+            .clone();
         // Live preview painted an extra hex before the commit.
-        s.add_region_hex("reg-0001", HexCoord { q: 2, r: 1 }).unwrap();
-        let after = s.regions.iter().find(|r| r.id == "reg-0001").unwrap().clone();
+        s.add_region_hex("reg-0001", HexCoord { q: 2, r: 1 })
+            .unwrap();
+        let after = s
+            .regions
+            .iter()
+            .find(|r| r.id == "reg-0001")
+            .unwrap()
+            .clone();
         let mut cmd = BuilderCommand::EditRegion {
             region: "reg-0001".into(),
             before: Some(Box::new(pre)),
@@ -2118,12 +2137,22 @@ pub(crate) mod tests {
         };
         cmd.apply(&mut s).unwrap();
         assert_eq!(
-            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().hexes.len(),
+            s.regions
+                .iter()
+                .find(|r| r.id == "reg-0001")
+                .unwrap()
+                .hexes
+                .len(),
             2
         );
         cmd.revert(&mut s).unwrap();
         assert_eq!(
-            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().hexes.len(),
+            s.regions
+                .iter()
+                .find(|r| r.id == "reg-0001")
+                .unwrap()
+                .hexes
+                .len(),
             1,
             "revert must restore the pre-stroke footprint"
         );
@@ -2435,7 +2464,8 @@ pub(crate) mod tests {
     #[test]
     fn derive_baseline_intel_round_trip() {
         let mut s = empty();
-        s.add_faction(FactionId::from("imperium"), "Imperium", "imperial").unwrap();
+        s.add_faction(FactionId::from("imperium"), "Imperium", "imperial")
+            .unwrap();
         let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
         let wid = s.add_world_to_system(&sys, "W").unwrap();
         let sys_intel_before_empty = s.get_system(&sys).unwrap().intel.is_empty();

@@ -230,7 +230,12 @@ impl App {
         if self.editor.auto_save && self.editor.dirty {
             if let Some(path_str) = self.editor.loaded_from.clone() {
                 let path = PathBuf::from(path_str);
-                match self.editor.sector.as_ref().map(serde_json::to_string_pretty) {
+                match self
+                    .editor
+                    .sector
+                    .as_ref()
+                    .map(serde_json::to_string_pretty)
+                {
                     Some(Ok(text)) => match fs::write(&path, text) {
                         Ok(()) => {
                             self.editor.dirty = false;
@@ -373,14 +378,19 @@ mod tests {
         let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
         app.editor.loaded_from = Some(path.to_string_lossy().to_string());
         app.editor.auto_save = true;
-        app.editor.sector.as_mut().unwrap().systems.push(empty_system(
-            system_id(1),
-            1,
-            "S".into(),
-            HexCoord { q: 0, r: 0 },
-            SystemKind::Star,
-            None,
-        ));
+        app.editor
+            .sector
+            .as_mut()
+            .unwrap()
+            .systems
+            .push(empty_system(
+                system_id(1),
+                1,
+                "S".into(),
+                HexCoord { q: 0, r: 0 },
+                SystemKind::Star,
+                None,
+            ));
         app.editor.mark_dirty();
 
         app.sync_derived_sector();
@@ -405,14 +415,19 @@ mod tests {
         let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
         app.editor.loaded_from = Some(path.to_string_lossy().to_string());
         app.editor.auto_save = false;
-        app.editor.sector.as_mut().unwrap().systems.push(empty_system(
-            system_id(1),
-            1,
-            "S".into(),
-            HexCoord { q: 0, r: 0 },
-            SystemKind::Star,
-            None,
-        ));
+        app.editor
+            .sector
+            .as_mut()
+            .unwrap()
+            .systems
+            .push(empty_system(
+                system_id(1),
+                1,
+                "S".into(),
+                HexCoord { q: 0, r: 0 },
+                SystemKind::Star,
+                None,
+            ));
         app.editor.mark_dirty();
 
         app.sync_derived_sector();

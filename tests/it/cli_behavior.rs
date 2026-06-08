@@ -142,7 +142,11 @@ fn generate_all_partial_failure_reports_one_of_two_and_fails() {
     let (code, stdout, stderr) = run(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
 
     // One project survived, one failed → ExitCode::FAILURE (1 on Unix).
-    assert_eq!(code, Some(1), "partial failure should exit 1; stderr: {stderr}");
+    assert_eq!(
+        code,
+        Some(1),
+        "partial failure should exit 1; stderr: {stderr}"
+    );
     assert!(
         stdout.contains("generate-all: 1/2 project(s) generated"),
         "stdout missing 1/2 summary: {stdout}"
@@ -174,7 +178,11 @@ fn generate_all_nonexistent_dir_is_io_error() {
     let (code, _stdout, stderr) = run(&["generate-all", "--dir", missing.to_str().unwrap()]);
 
     // read_dir on a missing dir -> SectorError::io -> from_error -> 74.
-    assert_eq!(code, Some(74), "missing dir should map to 74; stderr: {stderr}");
+    assert_eq!(
+        code,
+        Some(74),
+        "missing dir should map to 74; stderr: {stderr}"
+    );
     assert!(
         stderr.contains("error: I/O error at "),
         "stderr missing I/O error line: {stderr}"
@@ -195,7 +203,11 @@ fn generate_all_counts_only_direct_children() {
 
     let (code, stdout, stderr) = run(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
 
-    assert_eq!(code, Some(0), "single valid child should succeed; stderr: {stderr}");
+    assert_eq!(
+        code,
+        Some(0),
+        "single valid child should succeed; stderr: {stderr}"
+    );
     assert!(
         stdout.contains("generate-all: 1/1 project(s) generated"),
         "nested project should be ignored (expected 1/1): {stdout}"
@@ -221,7 +233,11 @@ fn generate_exclude_json_is_rejected_and_writes_nothing() {
     ]);
 
     // InvalidConfig -> 78, fired in resolve_formats before any export.
-    assert_eq!(code, Some(78), "excluding json should exit 78; stderr: {stderr}");
+    assert_eq!(
+        code,
+        Some(78),
+        "excluding json should exit 78; stderr: {stderr}"
+    );
     assert!(
         stderr.contains("json cannot be excluded"),
         "stderr missing json-exclusion message: {stderr}"
@@ -248,7 +264,11 @@ fn generate_unknown_format_token_is_rejected() {
         "bogus",
     ]);
 
-    assert_eq!(code, Some(78), "bad --formats token should exit 78; stderr: {stderr}");
+    assert_eq!(
+        code,
+        Some(78),
+        "bad --formats token should exit 78; stderr: {stderr}"
+    );
     assert!(
         stderr.contains("unknown --formats token 'bogus'"),
         "stderr missing unknown-token message: {stderr}"
@@ -330,8 +350,7 @@ fn validate_sector_invalid_json_exits_one() {
     assert!(json_path.exists(), "generation did not write sector.json");
 
     // Control: the valid sector passes invariants → exit 0, "OK".
-    let (code, stdout, stderr) =
-        run(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
+    let (code, stdout, stderr) = run(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
     assert_eq!(code, Some(0), "valid sector should pass; stderr: {stderr}");
     assert!(
         stdout.contains("Sector invariants: OK"),
@@ -351,8 +370,7 @@ fn validate_sector_invalid_json_exits_one() {
 
     // run_validate_sector returns Ok(ExitCode::from(1)) directly (bypassing
     // from_error) when the report is not ok.
-    let (code, stdout, stderr) =
-        run(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
+    let (code, stdout, stderr) = run(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
     assert_eq!(
         code,
         Some(1),

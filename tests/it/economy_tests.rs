@@ -186,7 +186,10 @@ fn load_economy_file_changes_derivation_deterministically() {
 
     // 3. Re-running derive_with on the same loaded config is byte-identical.
     let loaded2 = serde_json::to_string(&economy::derive_with(sector, &cfg)).unwrap();
-    assert_eq!(loaded, loaded2, "derive_with not deterministic for loaded config");
+    assert_eq!(
+        loaded, loaded2,
+        "derive_with not deterministic for loaded config"
+    );
 }
 
 /// Build a non-empty [`ResourceModelConfig`] with a single `world_type` entry
@@ -214,7 +217,7 @@ fn rmc_with(key: &str) -> ResourceModelConfig {
 fn economy_file_into_config_keeps_nested_resources_when_toplevel_empty() {
     let mut f = EconomyFile::default();
     f.economy.resources = rmc_with("hive_world"); // nested populated
-    // f.resources stays default (empty) → the `if` is false → nested survives.
+                                                  // f.resources stays default (empty) → the `if` is false → nested survives.
     let cfg = f.into_config();
     assert!(
         cfg.resources.world_type.contains_key("hive_world"),

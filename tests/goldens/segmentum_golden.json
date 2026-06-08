@@ -16,12 +16,12 @@
       "title": "Alpha",
       "sector_id": "m42-sector",
       "seed": "alpha-seed",
-      "sector_digest": "blake3:4394440eb5879ece3547fd1a4e91f02dcdfa674018ef74b108ec73c2797aa00d",
+      "sector_digest": "blake3:f485c1f5923ce3dc014af895300aa5ad7b105be8a047d83589c98db3d088665e",
       "width": 10,
       "height": 10,
       "system_count": 24,
       "world_count": 94,
-      "route_count": 67
+      "route_count": 56
     },
     {
       "id": "beta",
@@ -31,12 +31,12 @@
       "title": "Beta",
       "sector_id": "m42-sector",
       "seed": "beta-seed",
-      "sector_digest": "blake3:3389488cace25e474f0e6c923bcb202cd940a81cda737bcc90676e11200577a2",
+      "sector_digest": "blake3:47a153f001983e2898deb8340c7f51733556ab86402bbfb63d423bc2433b3b79",
       "width": 10,
       "height": 10,
       "system_count": 24,
       "world_count": 93,
-      "route_count": 73
+      "route_count": 65
     }
   ],
   "inter_sector_links": [
@@ -72,12 +72,12 @@
     "settings_digest": "blake3:28c740d7c4ca61be06b9425df77110b14e2d6b41420b132b664a9ba999a70ed2",
     "faction_mode": "shared",
     "child_digests": {
-      "alpha": "blake3:4394440eb5879ece3547fd1a4e91f02dcdfa674018ef74b108ec73c2797aa00d",
-      "beta": "blake3:3389488cace25e474f0e6c923bcb202cd940a81cda737bcc90676e11200577a2"
+      "alpha": "blake3:f485c1f5923ce3dc014af895300aa5ad7b105be8a047d83589c98db3d088665e",
+      "beta": "blake3:47a153f001983e2898deb8340c7f51733556ab86402bbfb63d423bc2433b3b79"
     },
     "system_count": 48,
     "world_count": 187,
-    "route_count": 140,
+    "route_count": 121,
     "inter_sector_link_count": 2
   }
 }

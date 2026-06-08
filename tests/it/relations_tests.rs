@@ -41,12 +41,28 @@ fn matrix_covers_every_present_faction_pair() {
     let sector = fixture_sector();
     let matrix = relations::derive(sector);
 
-    let n = sector.factions.len();
+    // The matrix only covers factions that meaningfully appear in the sector:
+    // `relations::derive` filters the roster by world/system presence (threshold
+    // 1) to avoid a C(~1000,2) blow-up on the full catalogue, falling back to the
+    // whole roster only when nothing is present. So the expected pair count is
+    // C(present, 2) — a faction the generator never placed has no row. (Counting
+    // `sector.factions.len()` instead silently assumes every aggregated faction
+    // got placed, which breaks the moment a seed leaves one with zero presence.)
+    let present = sector
+        .factions
+        .iter()
+        .filter(|f| !f.world_presence.is_empty() || !f.system_presence.is_empty())
+        .count();
+    let n = if present == 0 {
+        sector.factions.len()
+    } else {
+        present
+    };
     let expected = n * n.saturating_sub(1) / 2;
     assert_eq!(
         matrix.pairs.len(),
         expected,
-        "pair count {} != C({n},2)={expected}",
+        "pair count {} != C(present={n},2)={expected}",
         matrix.pairs.len()
     );
 

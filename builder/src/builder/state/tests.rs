@@ -1855,6 +1855,195 @@ fn recompute_methods_mark_fresh_and_arm_validation() {
     }
 }
 
+// ── REVIEW §P2 / §P5 regression guards ───────────────────────────────────────
+//
+// Two committed fixes are pinned here so a future refactor cannot silently
+// reintroduce the bugs they closed:
+//
+//   §P2 — `regenerate_world` must route the rerolled payload *through the
+//   command bus* (`BuilderCommand::EditWorld`) so the reroll lands on the
+//   undo/redo log. The earlier code bypassed the bus with a direct
+//   `sector_mut` write, which broke undo (§R4). The guard below asserts a
+//   command was recorded AND that undo round-trips the world.
+//
+//   §P5 — a wholesale sector swap (`apply_preview`, `apply_search_seed`) must
+//   reset the undo history: clear `command_log`, rewind `command_cursor` to 0,
+//   and drop every `snapshot`. Otherwise the stale commands would replay
+//   against an unrelated document (phantom no-op reverts).
+
+/// Build a populated single-row worlds catalog so `synthesize_project_input`
+/// returns `Some` and `build_pool` yields exactly one usable candidate (the
+/// `WorldSelectionConfig` default requires complete rows + a positive weight).
+/// The row's fields are deliberately distinct from the `GeneratedWorld::new`
+/// placeholder (`DeadWorld / Airless / … / no tags`) that `AddWorld` installs,
+/// so a reroll provably changes the world payload. `strict_same_star_colour`
+/// defaults to false, so the `Yellow` star colour here is selectable for any
+/// host system (a freshly-added blank system has no star ⇒ the "G"/Yellow
+/// fallback in `regenerate_world`).
+fn single_row_worlds_catalog() -> sectorforge::worlds_toml::WorldsConfig {
+    use sectorforge::worlds::{
+        Atmosphere, Biosphere, GenerationRow, Government, Population, StarColour, TechLevel,
+        Temperature, WorldType,
+    };
+    sectorforge::worlds_toml::WorldsConfig {
+        generation: vec![GenerationRow {
+            star_colour: Some(StarColour::Yellow),
+            world_type: Some(WorldType::HiveWorld),
+            atmosphere: Some(Atmosphere::Breathable),
+            temperature: Some(Temperature::Hot),
+            biosphere: Some(Biosphere::Thriving),
+            population: Some(Population::DenselyPopulated),
+            tech: Some(TechLevel::High),
+            government: Some(Government::MilitaryGovernor),
+            notable_feature: None,
+            counter: None,
+            weight: Some(1.0),
+        }],
+        ..Default::default()
+    }
+}
+
+/// REVIEW §P2 — `regenerate_world` routes the rerolled payload through the
+/// command bus (`EditWorld`), so the reroll lands on the undo/redo log and is
+/// reversible. A direct `sector_mut` bypass (the bug) would push no command —
+/// assertion (a) fails first in that case — and would leave nothing to undo.
+#[test]
+fn regenerate_world_routes_through_command_bus() {
+    // GeneratedWorld has no PartialEq (its WorldDto leaf is fine, but the struct
+    // as a whole isn't derived), so compare via canonical JSON — the same
+    // byte-stability surface the golden tests rely on.
+    let world_json =
+        |w: &sectorforge::sector_model::GeneratedWorld| serde_json::to_string(w).unwrap();
+
+    let mut s = seeded(); // alpha @ q0r0, beta @ q1r0 — 2 AddSystem on the log
+    let sys_id = s.sector.systems[0].id.clone();
+    s.run(BuilderCommand::AddWorld {
+        system: sys_id,
+        name: "terra".into(),
+        result_id: None,
+    })
+    .unwrap();
+    // A worlds catalog is required: `regenerate_world` -> `synthesize_project_input`
+    // returns None without one (and `build_pool` would be empty regardless).
+    s.data_catalogs.worlds = Some(single_row_worlds_catalog());
+
+    let wid: WorldId = s.sector.systems[0].worlds[0].id.clone();
+    let before_json = world_json(&s.sector.systems[0].worlds[0]);
+    let (log_len, cursor) = (s.command_log.len(), s.command_cursor);
+
+    s.regenerate_world(&wid).unwrap();
+
+    // (a) an EditWorld command was recorded — THIS fails first if the reroll is
+    //     reverted to a direct sector_mut bypass.
+    assert_eq!(
+        s.command_log.len(),
+        log_len + 1,
+        "regenerate_world must push exactly one command (EditWorld) onto the log"
+    );
+    // (b) the recorded command is specifically EditWorld.
+    assert!(
+        matches!(
+            s.command_log.last().unwrap(),
+            BuilderCommand::EditWorld { .. }
+        ),
+        "the reroll routes through BuilderCommand::EditWorld"
+    );
+    // (c) the cursor advanced in lock-step.
+    assert_eq!(s.command_cursor, cursor + 1);
+    // (d) the world actually changed (single-row pool picks the distinctive
+    //     HiveWorld/Breathable/… row, replacing the DeadWorld/Airless placeholder).
+    assert_ne!(
+        world_json(&s.sector.systems[0].worlds[0]),
+        before_json,
+        "the rerolled world payload differs from the pre-reroll world"
+    );
+    // (e)/(f) undo restores the pre-reroll world exactly (round-trip), proving
+    //     the reroll was a real undoable command, not a bus-bypassing write.
+    s.undo().unwrap();
+    assert_eq!(
+        world_json(&s.sector.systems[0].worlds[0]),
+        before_json,
+        "undo restores the pre-reroll world payload byte-for-byte"
+    );
+}
+
+/// REVIEW §P5 — `apply_preview` (a wholesale sector swap) resets the undo
+/// history: command_log cleared, command_cursor rewound to 0, snapshots dropped.
+/// Removing any one of those three resets re-fails this test. No worlds catalog
+/// is needed — the swap consumes whatever GeneratedSector sits in the preview
+/// slot, so a tiny 1×1 empty sector (square: §geometry) is the cleanest source.
+#[test]
+fn apply_preview_resets_undo_history() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    // Run >= 1 real bus command so the log is non-empty and the cursor > 0.
+    add_n_systems(&mut s, 2);
+    // Capture a snapshot so `snapshots.clear()` is genuinely exercised (the bus
+    // does not auto-create snapshots; `snapshot()` is the explicit seam, used by
+    // the ring-buffer tests above). This is precondition setup, not a document
+    // mutation under test.
+    s.snapshot("before-swap");
+
+    // All three preconditions hold before the swap — self-documenting.
+    assert!(!s.command_log.is_empty(), "precondition: log non-empty");
+    assert!(s.command_cursor > 0, "precondition: cursor advanced");
+    assert!(!s.snapshots.is_empty(), "precondition: a snapshot exists");
+
+    // Put a sector into the preview slot so apply_preview proceeds. `apply_preview`
+    // does `self.sector = preview_sector.into()`, mirroring this empty-sector path.
+    s.generation.preview.sector = Some(GeneratedSector::empty("p", "P", "s", 1, 1));
+
+    assert!(
+        s.apply_preview(),
+        "apply_preview consumes the staged sector"
+    );
+
+    // §P5: the wholesale swap reset the entire undo history.
+    assert!(
+        s.command_log.is_empty(),
+        "apply_preview clears the command log"
+    );
+    assert_eq!(s.command_cursor, 0, "apply_preview rewinds the cursor to 0");
+    assert!(s.snapshots.is_empty(), "apply_preview drops all snapshots");
+}
+
+/// REVIEW §P5 — `apply_search_seed` shares the same history-reset block as
+/// `apply_preview` (clear log / rewind cursor / drop snapshots), executed
+/// *before* the `if commit` branch. It needs a loaded worlds catalog because it
+/// runs a full synchronous `generate_sector`; the single-row catalog above
+/// provides a non-empty pool. `commit = false` is the non-destructive "view on
+/// map" action — it avoids the auto-save trigger while still performing the swap
+/// and the reset.
+#[test]
+fn apply_search_seed_resets_undo_history() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 16, 16);
+    s.data_catalogs.worlds = Some(single_row_worlds_catalog());
+    // Run >= 1 real bus command and capture a snapshot so all three resets are
+    // exercised.
+    add_n_systems(&mut s, 2);
+    s.snapshot("before-search-swap");
+
+    assert!(!s.command_log.is_empty(), "precondition: log non-empty");
+    assert!(s.command_cursor > 0, "precondition: cursor advanced");
+    assert!(!s.snapshots.is_empty(), "precondition: a snapshot exists");
+
+    // commit = false: swap the searched-seed sector in (so it renders) without
+    // marking the project dirty / triggering auto-save.
+    s.apply_search_seed("review-p5-seed", false).unwrap();
+
+    assert!(
+        s.command_log.is_empty(),
+        "apply_search_seed clears the command log"
+    );
+    assert_eq!(
+        s.command_cursor, 0,
+        "apply_search_seed rewinds the cursor to 0"
+    );
+    assert!(
+        s.snapshots.is_empty(),
+        "apply_search_seed drops all snapshots"
+    );
+}
+
 // ── #35: apply ∘ revert == identity for EVERY BuilderCommand variant ──────────
 //
 // Parametric coverage layered on top of the bespoke per-command round-trip

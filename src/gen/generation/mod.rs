@@ -264,6 +264,18 @@ where
     )
 }
 
+/// Capped max-distance for the CalmCorridor route-distance floor.
+///
+/// Must be the SAME capped max-distance `generate_routes` classified every
+/// route against: the raw config value floored by the route rules'
+/// `max_distance` (routes.rs `.max(rules.max_distance)`). Passing the raw config
+/// value alone lets the distance floor exceed the capped maximum (a hop in the
+/// `[raw_max, rules_max)` band would clamp to Perilous), producing routes
+/// longer/less-safe than the rules permit. (REVIEW §P4)
+fn calm_corridor_max_distance(config_max: u32, rules_max: u32) -> u32 {
+    config_max.max(rules_max)
+}
+
 /// Deterministic **prefix** generation: run the pipeline up to and including
 /// `through`, returning the partial [`GeneratedSector`] populated as far as the
 /// cutoff reached (overlays past the cutoff are left at their `Default`/empty
@@ -522,18 +534,12 @@ where
             &warp_regions,
             &systems,
             &mut routes,
-            // The CalmCorridor floor must use the SAME capped max-distance that
-            // `generate_routes` classified every route against — the raw config
-            // value floored by the route rules' `max_distance` (routes.rs:48-52,
-            // `.max(rules.max_distance)`). Passing the raw config value alone
-            // lets the distance floor exceed the capped maximum (a hop in the
-            // [raw_max, rules_max) band would clamp to Perilous), producing
-            // routes longer/less-safe than the rules permit.
-            config
-                .generation
-                .routes
-                .max_route_distance
-                .max(route_rules.max_distance),
+            // Capped max-distance for the CalmCorridor floor
+            // (REVIEW §P4 — see `calm_corridor_max_distance`).
+            calm_corridor_max_distance(
+                config.generation.routes.max_route_distance,
+                route_rules.max_distance,
+            ),
             |event| match event {
                 crate::regions::RegionRouteEffectsProgress::Started {
                     regions,
@@ -1016,5 +1022,25 @@ fn build_manifest(
         system_count: systems.len(),
         world_count,
         route_count: routes.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::calm_corridor_max_distance;
+
+    #[test]
+    fn calm_corridor_max_distance_uses_capped_max_not_raw_config() {
+        // Guards the `generate_prefix` call site (REVIEW §P4): the CalmCorridor
+        // floor must receive the *capped* max — the raw config max floored by the
+        // rules cap — never the raw config value alone. Reverting the helper to
+        // return `config_max` makes the first assertion fail.
+        assert_eq!(
+            calm_corridor_max_distance(4, 8),
+            8,
+            "must use the larger rules cap when config is lower"
+        );
+        assert_eq!(calm_corridor_max_distance(8, 4), 8, "max of the two caps");
+        assert_eq!(calm_corridor_max_distance(5, 5), 5);
     }
 }

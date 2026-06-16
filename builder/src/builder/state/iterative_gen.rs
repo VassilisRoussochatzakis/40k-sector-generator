@@ -1116,3 +1116,364 @@ mod progress_bar_tests {
         .is_none());
     }
 }
+
+/// Safety net for the iterative-gen DAG step-navigation logic
+/// (`step_next` / `step_back` / `note_config_edit` / `invalidate_from` /
+/// `reroll_step`). These lock in the current `current_step` / `accepted_through`
+/// / `nonces` / `root_seed` transitions before a separate change edits this
+/// module.
+///
+/// # Headless note
+///
+/// The ctx-taking ops funnel through `rerun_preview`, which (for any non-`Size`
+/// step) calls `spawn_prefix`. In these tests the fixture's `data_catalogs` has
+/// **no worlds catalog** (`BuilderState::new_blank` ⇒ `DataCatalogs::new()`), so
+/// `synthesize_project_input_with` returns `None` and `spawn_prefix` records a
+/// `feedback.last_command_error` and returns **without spawning any background
+/// job** (verified against `spawn_prefix` / `synthesize_project_input_with`). No
+/// generation runs, so the assertions below target only the *synchronous* state
+/// transitions that are already applied by the time each method returns. The
+/// pure `invalidate_from` carries the bulk of the DAG-semantics coverage.
+#[cfg(test)]
+mod step_nav_tests {
+    use super::*;
+    use sectorforge::random_sector::SectorSize;
+
+    /// Square fixture (invariant #4): `Custom { dim }` is `dim × dim` by
+    /// construction. A blank builder has no worlds catalog, so every prefix run
+    /// no-ops synchronously (see the module note). `#[cfg(test)]` fixtures may
+    /// install the session directly — this is transient session state, not
+    /// document state, and the bus carve-out plus the test carve-out both apply.
+    fn session_state() -> BuilderState {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let session = IterativeGenSession::new(
+            state.config.clone(),
+            "seed".to_string(),
+            SectorSize::Custom { dim: 8 },
+        );
+        state.iterative_gen = Some(session);
+        state
+    }
+
+    /// Borrow the live session (panics if absent — the fixture always installs
+    /// one).
+    fn sess(state: &BuilderState) -> &IterativeGenSession {
+        state.iterative_gen.as_ref().expect("session installed")
+    }
+
+    /// A fresh `egui::Context` is enough to drive the ctx-taking ops; the prefix
+    /// run no-ops on the catalog-less fixture, so nothing is actually painted.
+    fn ctx() -> egui::Context {
+        egui::Context::default()
+    }
+
+    // --- invalidate_from (pure: no ctx, no preview) -------------------------
+
+    /// `invalidate_from(Size)` always clears `accepted_through` to `None` — Size
+    /// is the only step whose `prev()` is `None`, so editing it invalidates
+    /// everything regardless of the prior value.
+    #[test]
+    fn invalidate_from_size_clears_to_none() {
+        for prior in [
+            None,
+            Some(GenStep::Size),
+            Some(GenStep::Systems),
+            Some(GenStep::Finalize),
+        ] {
+            let mut state = session_state();
+            state.iterative_gen.as_mut().unwrap().accepted_through = prior;
+            state.invalidate_from(GenStep::Size);
+            assert_eq!(
+                sess(&state).accepted_through,
+                None,
+                "invalidate_from(Size) must clear to None (prior = {prior:?})"
+            );
+        }
+    }
+
+    /// For a non-first step, `invalidate_from(step)` clears `accepted_through`
+    /// back to `step.prev()` **only when** the current value is `>= step`.
+    #[test]
+    fn invalidate_from_clears_back_to_prev_when_accepted_at_or_past_step() {
+        // accepted_through == step ⇒ retreat to step.prev().
+        let mut state = session_state();
+        state.iterative_gen.as_mut().unwrap().accepted_through = Some(GenStep::Systems);
+        state.invalidate_from(GenStep::Systems);
+        assert_eq!(sess(&state).accepted_through, GenStep::Systems.prev());
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Regions));
+
+        // accepted_through strictly past step ⇒ still retreat to step.prev().
+        let mut state = session_state();
+        state.iterative_gen.as_mut().unwrap().accepted_through = Some(GenStep::Finalize);
+        state.invalidate_from(GenStep::Systems);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Regions));
+    }
+
+    /// `invalidate_from(step)` leaves `accepted_through` untouched when it is
+    /// strictly *before* `step` (those earlier steps are still accepted) or
+    /// `None`.
+    #[test]
+    fn invalidate_from_is_noop_when_accepted_before_step_or_none() {
+        // accepted_through < step ⇒ untouched.
+        let mut state = session_state();
+        state.iterative_gen.as_mut().unwrap().accepted_through = Some(GenStep::Placement);
+        state.invalidate_from(GenStep::Routes);
+        assert_eq!(
+            sess(&state).accepted_through,
+            Some(GenStep::Placement),
+            "earlier accepted step must survive a later invalidation"
+        );
+
+        // accepted_through == None ⇒ untouched (stays None).
+        let mut state = session_state();
+        state.iterative_gen.as_mut().unwrap().accepted_through = None;
+        state.invalidate_from(GenStep::Routes);
+        assert_eq!(sess(&state).accepted_through, None);
+    }
+
+    /// Sweep every `step` against an `accepted_through` parked at the last step
+    /// (`Finalize`): each non-`Size` step retreats it to `step.prev()`, and
+    /// `Size` clears it to `None`. Locks the full DAG-retreat table in one go.
+    #[test]
+    fn invalidate_from_sweeps_full_dag_from_finalize() {
+        for &step in &GenStep::ALL {
+            let mut state = session_state();
+            state.iterative_gen.as_mut().unwrap().accepted_through = Some(GenStep::Finalize);
+            state.invalidate_from(step);
+            let expected = step.prev(); // None only for Size
+            assert_eq!(
+                sess(&state).accepted_through,
+                expected,
+                "invalidate_from({step:?}) from Finalize should land on {expected:?}"
+            );
+        }
+    }
+
+    // --- step_next ----------------------------------------------------------
+
+    /// `step_next` advances `current_step` by one and records the *leaving* step
+    /// as `accepted_through` (monotone forward) when it was `None`.
+    #[test]
+    fn step_next_advances_and_accepts_leaving_step() {
+        let mut state = session_state();
+        assert_eq!(sess(&state).current_step, GenStep::Size);
+        assert_eq!(sess(&state).accepted_through, None);
+
+        state.step_next(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Placement);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Size));
+
+        state.step_next(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Regions);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Placement));
+    }
+
+    /// Walking `step_next` from `Size` to `Finalize` ends with `current_step ==
+    /// Finalize` and `accepted_through == Routes` (the last step *left*); a
+    /// further `step_next` at `Finalize` is a no-op.
+    #[test]
+    fn step_next_is_noop_at_finalize() {
+        let mut state = session_state();
+        for _ in 0..GenStep::ALL.len() {
+            state.step_next(&ctx());
+        }
+        assert_eq!(sess(&state).current_step, GenStep::Finalize);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Routes));
+
+        // One more Next at the last step changes nothing.
+        state.step_next(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Finalize);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Routes));
+    }
+
+    /// `accepted_through` only ratchets forward: when it is already past the
+    /// step being left, `step_next` does **not** pull it back.
+    #[test]
+    fn step_next_keeps_accepted_through_monotone() {
+        let mut state = session_state();
+        // Pretend the user has already accepted through Finalize, then sits back
+        // on Placement (current_step) — stepping forward must not lower
+        // accepted_through to the (earlier) leaving step.
+        {
+            let s = state.iterative_gen.as_mut().unwrap();
+            s.current_step = GenStep::Placement;
+            s.accepted_through = Some(GenStep::Finalize);
+        }
+        state.step_next(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Regions);
+        assert_eq!(
+            sess(&state).accepted_through,
+            Some(GenStep::Finalize),
+            "accepted_through must not regress when stepping forward"
+        );
+    }
+
+    // --- step_back ----------------------------------------------------------
+
+    /// `step_back` retreats `current_step` by one and leaves `accepted_through`
+    /// untouched (stepping back does not un-accept).
+    #[test]
+    fn step_back_retreats_and_preserves_accepted_through() {
+        let mut state = session_state();
+        // Advance to Regions, accepting Size then Placement along the way.
+        state.step_next(&ctx());
+        state.step_next(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Regions);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Placement));
+
+        state.step_back(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Placement);
+        assert_eq!(
+            sess(&state).accepted_through,
+            Some(GenStep::Placement),
+            "step_back must leave accepted_through alone"
+        );
+
+        state.step_back(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Size);
+        assert_eq!(sess(&state).accepted_through, Some(GenStep::Placement));
+    }
+
+    /// `step_back` at `Size` is a no-op (there is no earlier step).
+    #[test]
+    fn step_back_is_noop_at_size() {
+        let mut state = session_state();
+        assert_eq!(sess(&state).current_step, GenStep::Size);
+        state.step_back(&ctx());
+        assert_eq!(sess(&state).current_step, GenStep::Size);
+        assert_eq!(sess(&state).accepted_through, None);
+    }
+
+    // --- note_config_edit (delegates to invalidate_from) --------------------
+
+    /// `note_config_edit(step)` delegates to `invalidate_from(step)`: editing a
+    /// knob on a step retreats `accepted_through` to `step.prev()` when it was at
+    /// or past that step, and `current_step` is untouched.
+    #[test]
+    fn note_config_edit_delegates_to_invalidate_from() {
+        let mut state = session_state();
+        {
+            let s = state.iterative_gen.as_mut().unwrap();
+            s.current_step = GenStep::Factions;
+            s.accepted_through = Some(GenStep::Finalize);
+        }
+        state.note_config_edit(&ctx(), GenStep::Systems);
+        assert_eq!(
+            sess(&state).accepted_through,
+            Some(GenStep::Regions),
+            "editing Systems must retreat accepted_through to Regions"
+        );
+        assert_eq!(
+            sess(&state).current_step,
+            GenStep::Factions,
+            "a config edit must not move current_step"
+        );
+    }
+
+    /// `note_config_edit(Size)` clears `accepted_through` to `None` (the
+    /// first-step special case, via `invalidate_from`).
+    #[test]
+    fn note_config_edit_on_size_clears_accepted_through() {
+        let mut state = session_state();
+        state.iterative_gen.as_mut().unwrap().accepted_through = Some(GenStep::Routes);
+        state.note_config_edit(&ctx(), GenStep::Size);
+        assert_eq!(sess(&state).accepted_through, None);
+    }
+
+    // --- reroll_step --------------------------------------------------------
+
+    /// Re-rolling a stage-owning step bumps **only that step's** stage nonce,
+    /// retreats `accepted_through` via `invalidate_from`, and leaves `root_seed`
+    /// alone.
+    #[test]
+    fn reroll_step_bumps_only_that_stage_nonce() {
+        let mut state = session_state();
+        state.iterative_gen.as_mut().unwrap().accepted_through = Some(GenStep::Finalize);
+        let seed_before = sess(&state).root_seed.clone();
+
+        // GenStep::Routes owns Stage::RouteControls (not Stage::Routes).
+        state.reroll_step(&ctx(), GenStep::Routes);
+
+        let s = sess(&state);
+        assert_eq!(
+            s.nonces.get(Stage::RouteControls),
+            1,
+            "re-rolling Routes bumps its owned stage nonce once"
+        );
+        // No other stage nonce moved.
+        assert_eq!(s.nonces.get(Stage::Placement), 0);
+        assert_eq!(s.nonces.get(Stage::Systems), 0);
+        assert_eq!(s.nonces.get(Stage::Factions), 0);
+        // DAG retreat: Routes.prev() == Factions (ALL order is
+        // Size, Placement, Regions, Systems, Factions, Routes, Finalize).
+        assert_eq!(s.accepted_through, Some(GenStep::Factions));
+        // A stage re-roll never re-mints the root seed.
+        assert_eq!(s.root_seed, seed_before);
+    }
+
+    /// Re-rolling the same step twice bumps its nonce to 2 (monotone re-roll
+    /// counter).
+    #[test]
+    fn reroll_step_twice_bumps_nonce_to_two() {
+        let mut state = session_state();
+        state.reroll_step(&ctx(), GenStep::Placement);
+        state.reroll_step(&ctx(), GenStep::Placement);
+        assert_eq!(sess(&state).nonces.get(Stage::Placement), 2);
+    }
+
+    /// Re-rolling `Size` re-mints `root_seed` (fresh entropy), mirrors it into
+    /// `config.generation.seed`, resets **all** nonces to zero, and clears
+    /// `accepted_through` to `None`. Size owns no stage, so no stage nonce is
+    /// bumped.
+    #[test]
+    fn reroll_size_remints_seed_and_resets_nonces() {
+        let mut state = session_state();
+        // Dirty the state first: bump a nonce and accept through the end.
+        {
+            let s = state.iterative_gen.as_mut().unwrap();
+            s.nonces.bump(Stage::Systems);
+            s.accepted_through = Some(GenStep::Finalize);
+        }
+        let seed_before = sess(&state).root_seed.clone();
+        assert_eq!(seed_before, "seed");
+
+        state.reroll_step(&ctx(), GenStep::Size);
+
+        let s = sess(&state);
+        // mint_seed is the sole non-deterministic step — assert it *changed* and
+        // is internally consistent rather than pinning a value.
+        assert_ne!(
+            s.root_seed, seed_before,
+            "Size re-roll must re-mint the seed"
+        );
+        assert_eq!(
+            s.config.generation.seed, s.root_seed,
+            "rolled config seed must mirror the new root_seed"
+        );
+        // Square geometry preserved across the re-roll of the knobs (invariant #4).
+        assert_eq!(s.config.generation.sector_width, 8);
+        assert_eq!(s.config.generation.sector_height, 8);
+        // All nonces reset to zero, including the one bumped above.
+        assert_eq!(s.nonces.get(Stage::Systems), 0);
+        assert_eq!(s.nonces.get(Stage::Placement), 0);
+        // Size invalidates everything downstream.
+        assert_eq!(s.accepted_through, None);
+    }
+
+    // --- no-session no-ops --------------------------------------------------
+
+    /// Every ctx-taking step-nav op is a silent no-op when no session is
+    /// installed (the `let Some(session) = ... else { return }` guard).
+    #[test]
+    fn ops_are_noops_without_a_session() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert!(state.iterative_gen.is_none());
+        // None of these should panic or install a session.
+        state.step_next(&ctx());
+        state.step_back(&ctx());
+        state.note_config_edit(&ctx(), GenStep::Systems);
+        state.reroll_step(&ctx(), GenStep::Placement);
+        state.invalidate_from(GenStep::Systems);
+        assert!(state.iterative_gen.is_none());
+    }
+}

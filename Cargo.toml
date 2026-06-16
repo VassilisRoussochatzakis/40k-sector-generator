@@ -95,10 +95,6 @@ dhat-heap = ["dep:dhat"]
 tempfile.workspace = true
 proptest = "1"
 criterion = { workspace = true }
-# #17: integration tests force `run_search` onto a single-thread rayon pool to
-# prove its serialized output (incl. `near_misses`) matches the default parallel
-# run byte-for-byte. Tracks the `rayon = "1"` pin in `[dependencies]`.
-rayon = "1"
 
 # RUST_FIXES.md QW-C-4: opt this crate into the workspace clippy lint levels.
 [lints]

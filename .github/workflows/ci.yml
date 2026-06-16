@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: clippy + tests (MSRV 1.87)
+    name: fmt + clippy + tests (MSRV 1.87)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,19 +15,58 @@ jobs:
       - name: Install Rust 1.87
         uses: dtolnay/rust-toolchain@1.87
         with:
-          components: clippy
+          components: clippy, rustfmt
 
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
 
+      # P17: the tree is kept rustfmt-clean; this gate fails the build on drift.
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      # --locked everywhere (P18): CI must build the exact committed Cargo.lock,
+      # never silently resolve a newer graph.
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
 
       - name: Golden output tests
-        run: cargo test --test it -- golden
+        run: cargo test --test it --locked -- golden
+
+  # P18 / safety net: run the #[ignore]-gated heavy tests (full-m42 segmentum
+  # composition + the export-byte goldens) so the byte contracts they guard are
+  # actually exercised in CI, not just locally. Separate job so the slow run
+  # parallelises with the main `test` job.
+  integration-ignored:
+    name: integration tests incl. #[ignore] (segmentum + export-byte goldens)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.87
+        uses: dtolnay/rust-toolchain@1.87
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Integration tests (including #[ignore]-gated)
+        run: cargo test --test it --locked -- --include-ignored
+
+  # P18: fail the build on a known RUSTSEC advisory in the dependency graph.
+  audit:
+    name: cargo audit (RUSTSEC advisories)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: RustSec advisory audit
+        uses: rustsec/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   fuzz-build:
     name: fuzz build smoke (nightly)

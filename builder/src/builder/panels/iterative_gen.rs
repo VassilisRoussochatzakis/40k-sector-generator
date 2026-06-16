@@ -1019,8 +1019,7 @@ fn faction_palette_picker(
                     .hint_text("filter by name / id / type…")
                     .desired_width(180.0),
             );
-            if !picker.search.is_empty()
-                && ui.button("✕").on_hover_text("Clear filter").clicked()
+            if !picker.search.is_empty() && ui.button("✕").on_hover_text("Clear filter").clicked()
             {
                 picker.search.clear();
             }

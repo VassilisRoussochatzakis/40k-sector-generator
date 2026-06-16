@@ -157,10 +157,9 @@ pub(super) fn generate_routes(
     // bent convexly so the low/mid slider stays sparse: density 0 → backbone
     // only; density 1 → ~ROUTE_DENSITY_EXTRA_PER_NODE * n extra edges.
     let backbone = systems.len().saturating_sub(1);
-    let extra = (density.powf(ROUTE_DENSITY_CURVE)
-        * ROUTE_DENSITY_EXTRA_PER_NODE
-        * systems.len() as f64)
-        .round() as usize;
+    let extra =
+        (density.powf(ROUTE_DENSITY_CURVE) * ROUTE_DENSITY_EXTRA_PER_NODE * systems.len() as f64)
+            .round() as usize;
     // `take` below saturates at `candidates.len()`, so over-targeting a small
     // candidate pool harmlessly yields every available edge.
     let target_count = backbone + extra;

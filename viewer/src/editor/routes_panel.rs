@@ -102,7 +102,11 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     }
 
     if let Some(i) = remove_idx {
-        sector.routes.remove(i);
+        // `i` is a live row index, so the route exists; use the shared
+        // `remove_route` mutation helper (keeps `manifest.route_count` in sync)
+        // instead of a bare `Vec::remove`.
+        let id = sector.routes[i].id.clone();
+        let _ = sector.remove_route(&id);
         dirty = true;
         // Clear/reindex pick after deletion.
         new_pick = Some(match current_pick {

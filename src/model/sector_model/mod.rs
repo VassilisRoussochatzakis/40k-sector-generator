@@ -1123,6 +1123,7 @@ enum_slug!(FactionInfluence {
 
 impl FactionInfluence {
     /// Spec §10.9 scoring weight for primary-faction derivation.
+    #[must_use]
     pub fn weight(self) -> f64 {
         match self {
             FactionInfluence::Dominant => 3.0,
@@ -1198,6 +1199,7 @@ impl GenerationManifest {
 /// HexCoord (q, r) stores the offset column/row of a rectangular grid.
 /// Converts to cube coordinates first and then takes the standard
 /// max(|dx|, |dy|, |dz|) cube distance.
+#[must_use]
 pub fn hex_distance(a: HexCoord, b: HexCoord) -> u32 {
     let (ax, az) = offset_r_to_cube(a);
     let ay = -ax - az;

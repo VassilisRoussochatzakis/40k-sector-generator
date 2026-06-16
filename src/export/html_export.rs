@@ -65,7 +65,7 @@ pub fn write_html_to(
     let text =
         render_html(sector, cfg).map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
     if (text.len() as u64) > cfg.size_warn_bytes {
-        eprintln!(
+        log::warn!(
             "sectorforge: interactive HTML is {} bytes (warn threshold {})",
             text.len(),
             cfg.size_warn_bytes

@@ -241,7 +241,7 @@ fn step_hint(step: GenStep) -> &'static str {
         GenStep::Regions => {
             "Warp regions seed anomaly hexes that bias world selection, so they run before \
              System contents. Tune them here (an in-memory patch over data/routes/regions.toml); \
-             preview renders through System contents; re-roll re-rolls placement (and downstream)."
+             preview renders through System contents; re-roll moves only regions (and everything downstream)."
         }
         GenStep::Systems => "Worlds per system, features, and star-colour bias.",
         GenStep::Factions => {

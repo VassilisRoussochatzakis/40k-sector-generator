@@ -90,13 +90,21 @@ pub fn render_html(
         Some(observer) => redact_for_observer(sector, observer, cfg.player_min_confidence),
         None => sector.clone(),
     };
+    // SECURITY (stored XSS): these JSON strings are embedded verbatim inside an
+    // inline `<script>…</script>` block below. An HTML parser terminates the
+    // script element at the first literal `</` (e.g. a world name or note
+    // containing `</script>`), after which the remainder is parsed as HTML —
+    // a script-injection vector. Escaping `</` to `<\/` is JSON-equivalent
+    // (the backslash is an ignorable string escape) but can no longer close the
+    // tag. Apply it to EVERY JSON payload spliced into the script block.
     let sector_json = if cfg.compact_json {
         serde_json::to_string(&view)?
     } else {
         serde_json::to_string_pretty(&view)?
-    };
-    let faction_palette = build_faction_palette_json(&view)?;
-    let theme = theme_payload(cfg.theme);
+    }
+    .replace("</", "<\\/");
+    let faction_palette = build_faction_palette_json(&view)?.replace("</", "<\\/");
+    let theme = theme_payload(cfg.theme).replace("</", "<\\/");
     let edition = cfg
         .player_observer
         .as_deref()
@@ -537,6 +545,49 @@ mod tests {
         assert!(palette["imp\"x"]["fill"]
             .as_str()
             .is_some_and(|hex| hex.starts_with('#') && hex.len() == 7));
+    }
+
+    // SECURITY (stored XSS / script-injection): a string in the inlined JSON
+    // that contains a literal `</script>` must not be able to terminate the
+    // inline `<script>` element early. The exporter escapes `</` to `<\/`, so
+    // the only `</script>` in the document is the real closing tag, and the
+    // payload survives as the JSON-equivalent `<\/script>`. Without the escape
+    // this test fails: the unescaped payload introduces a second raw
+    // `</script>` and the `<\/script>` marker is absent.
+    #[test]
+    fn inlined_json_escapes_script_close_sequence() {
+        // Stash the attack payload in a field that round-trips into SECTOR JSON.
+        let mut s = sample(90.0, 10.0);
+        let payload = "x</script><script>alert(1)</script>";
+        s.systems[0].worlds[0].name = payload.into();
+        s.title = payload.into();
+
+        let html = render_html(&s, &HtmlConfig::default()).expect("render_html ok");
+
+        // The escaped form is present (the payload survived, neutralised).
+        assert!(
+            html.contains("<\\/script>"),
+            "payload should be embedded as the escaped `<\\/script>` sequence"
+        );
+
+        // Exactly one raw `</script>` exists in the whole document: the genuine
+        // closing tag of the inline script. (The renderer JS legitimately emits
+        // other `</…>` close tags inside template literals, e.g. `</span>`, but
+        // never a `</script>`.) Any extra `</script>` means the payload escaped
+        // the script context — i.e. the injection succeeded.
+        let raw_close_count = html.matches("</script>").count();
+        assert_eq!(
+            raw_close_count, 1,
+            "found {raw_close_count} raw `</script>` (expected only the real closing tag); \
+             the embedded JSON was not escaped and can break out of the <script> element"
+        );
+
+        // The verbatim attack string must not survive anywhere in the output;
+        // only its escaped, neutralised form may.
+        assert!(
+            !html.contains(payload),
+            "the raw attack payload `{payload}` must not appear unescaped in the output"
+        );
     }
 
     // GAP 144: `render_html` on an EMPTY sector (no systems, no factions). The

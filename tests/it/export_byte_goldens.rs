@@ -234,3 +234,42 @@ fn segmentum_composition_matches_committed_golden() {
         json.len(),
     );
 }
+
+// The human-readable Markdown super-map (`segmentum::render_markdown`) is the
+// exact byte string `write_segmentum`'s `.md` writer puts on disk, and is fully
+// determined by the composed `Segmentum`. It is pinned here as a committed file
+// golden (so `git diff tests/goldens/segmentum.md` shows any drift verbatim)
+// over the SAME fixed-seed children as the JSON golden above. Same `#[ignore]`
+// gating because it shares the slow full-composition step.
+#[test]
+#[ignore = "slow: full m42 composition; run with `cargo test --test it export_byte_goldens -- --ignored`"]
+fn segmentum_markdown_matches_committed_golden() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let file = segmentum_base_file();
+    let base = Utf8PathBuf::from(".");
+    let seg = sectorforge::compose_segmentum(&file, &base, &out).expect("compose");
+    let md = sectorforge::segmentum::render_markdown(&seg);
+
+    let path = goldens_dir().join("segmentum.md");
+    if std::env::var_os("UPDATE_GOLDEN_SEGMENTUM_MD").is_some() {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, &md).unwrap();
+        return;
+    }
+    let expected = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+        panic!(
+            "missing segmentum markdown golden; bless with `UPDATE_GOLDEN_SEGMENTUM_MD=1 \
+             cargo test --test it segmentum_markdown -- --ignored`"
+        )
+    });
+    assert_eq!(
+        expected,
+        md,
+        "segmentum markdown drifted from the committed golden ({} vs {} bytes); \
+         if intentional, rerun with `UPDATE_GOLDEN_SEGMENTUM_MD=1` and review \
+         `git diff tests/goldens/`",
+        expected.len(),
+        md.len(),
+    );
+}

@@ -131,7 +131,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
         s.push_str("|---|---|---|---:|---|---|\n");
         for r in &sector.routes {
             s.push_str(&format!(
-                "| {} | {} | {} | {} | {:?} | {:?} |\n",
+                "| {} | {} | {} | {} | {} | {} |\n",
                 r.id, r.from_system_id, r.to_system_id, r.distance, r.route_type, r.stability
             ));
         }
@@ -262,7 +262,7 @@ fn format_history_section(sector: &GeneratedSector) -> String {
     s.push_str("|---|---|---|---|\n");
     for e in top.iter().take(12) {
         s.push_str(&format!(
-            "| {} | {} | {:?} | {} |\n",
+            "| {} | {} | {} | {} |\n",
             e.date, e.era_label, e.kind, e.summary
         ));
     }
@@ -290,7 +290,7 @@ fn format_local_history(
     s.push_str("**Local history:**\n\n");
     for e in hits.iter().take(8) {
         s.push_str(&format!(
-            "- **{}** · _{}_ ({:?}): {}\n",
+            "- **{}** · _{}_ ({}): {}\n",
             e.date, e.era_label, e.kind, e.summary
         ));
     }
@@ -432,7 +432,7 @@ fn format_relations_digest(sector: &GeneratedSector) -> String {
         s.push_str("**At war:**\n\n");
         for p in &at_war {
             s.push_str(&format!(
-                "- {} ↔ {} — public {:?}, secret {:?}, treaty {:?} (tension {:.0}; {})\n",
+                "- {} ↔ {} — public {}, secret {}, treaty {} (tension {:.0}; {})\n",
                 p.a, p.b, p.public_attitude, p.secret_attitude, p.treaty_status, p.tension, p.cause
             ));
         }
@@ -442,7 +442,7 @@ fn format_relations_digest(sector: &GeneratedSector) -> String {
         s.push_str("**Hostile:**\n\n");
         for p in &hostile {
             s.push_str(&format!(
-                "- {} ↔ {} — public {:?}, secret {:?}, treaty {:?} (tension {:.0}; {})\n",
+                "- {} ↔ {} — public {}, secret {}, treaty {} (tension {:.0}; {})\n",
                 p.a, p.b, p.public_attitude, p.secret_attitude, p.treaty_status, p.tension, p.cause
             ));
         }
@@ -461,7 +461,7 @@ fn format_regions_section(sector: &GeneratedSector) -> String {
     s.push_str("|---|---|---|---:|---|\n");
     for r in sector.regions.iter() {
         s.push_str(&format!(
-            "| {} | {} | {:?} | {} | (q={}, r={}) |\n",
+            "| {} | {} | {} | {} | (q={}, r={}) |\n",
             r.id,
             r.name,
             r.kind,
@@ -514,7 +514,7 @@ fn format_economy_section(sector: &GeneratedSector) -> String {
         s.push_str("| System | Tithe | Supply | Priority |\n|---|---|---|---|\n");
         for sy in stressed.iter().take(12) {
             s.push_str(&format!(
-                "| {} | {:?} | {:?} | {:?} |\n",
+                "| {} | {} | {} | {} |\n",
                 sy.system_id, sy.tithe_status, sy.supply_risk, sy.strategic_priority
             ));
         }
@@ -727,7 +727,7 @@ fn format_orbital_assets_block(sys: &GeneratedSystem) -> String {
     s.push_str("|---|---|---:|\n");
     for a in &sys.orbital_assets {
         s.push_str(&format!(
-            "| {:?} | {} | {} |\n",
+            "| {} | {} | {} |\n",
             a.kind, a.faction_id, a.strength
         ));
     }
@@ -778,7 +778,7 @@ fn format_world_control_blocks(
             for p in &w.factions {
                 let d = &p.dimensions;
                 s.push_str(&format!(
-                    "| {} | {} | {} | {:?} | {:?} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
+                    "| {} | {} | {} | {} | {} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
                     p.faction_id,
                     format_subfaction(p),
                     format_force(p),
@@ -853,7 +853,7 @@ fn format_world_control_blocks(
             s.push_str("|---|---|---:|\n");
             for c in &w.claims {
                 s.push_str(&format!(
-                    "| {} | {:?} | {} |\n",
+                    "| {} | {} | {} |\n",
                     c.faction_id, c.claim_type, c.strength
                 ));
             }
@@ -865,7 +865,7 @@ fn format_world_control_blocks(
             s.push_str("|---|---|---|---:|---:|---:|\n");
             for r in &w.regions {
                 s.push_str(&format!(
-                    "| {} | {:?} | {} | {} | {} | {} |\n",
+                    "| {} | {} | {} | {} | {} | {} |\n",
                     r.name,
                     r.kind,
                     r.dominant.as_deref().unwrap_or("—"),

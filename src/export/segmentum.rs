@@ -861,7 +861,7 @@ pub fn render_markdown(seg: &Segmentum) -> String {
         s.push_str("|---|---|---|---|---:|---|---|\n");
         for l in &seg.inter_sector_links {
             s.push_str(&format!(
-                "| {} | {}/{} | {}/{} | {} | {} | {:?} | {:?} |\n",
+                "| {} | {}/{} | {}/{} | {} | {} | {} | {} |\n",
                 md_cell(&l.id),
                 md_cell(&l.from_child_id),
                 md_cell(&l.from_system_id),

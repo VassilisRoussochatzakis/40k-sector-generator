@@ -34,18 +34,18 @@ Chronicle events: **427**
 
 | Date | Era | Kind | Event |
 |---|---|---|---|
-| M40.709 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Viridia and Phlegethon Sanctuary as SmugglingLane; later charts record it as Perilous. |
-| M40.717 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Dominicar and Castoria as SmugglingLane; later charts record it as Perilous. |
-| M40.717 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Perilous. |
-| M40.718 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Castoria and Narthax as SmugglingLane; later charts record it as Perilous. |
-| M40.722 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Ophidian Wreath and Prosperis II as ChartedPassage; later charts record it as Perilous. |
-| M40.726 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Ossian Exile and Ophidian Wreath as ChartedPassage; later charts record it as Perilous. |
-| M40.728 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Lamenta and Prosperis II as ChartedPassage; later charts record it as Perilous. |
-| M40.729 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Viridia and Dominicar as SmugglingLane; later charts record it as Perilous. |
-| M40.731 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Tantalus Cradle and Phlegethon Sanctuary as ChartedPassage; later charts record it as Perilous. |
-| M40.738 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Phlegethon Sanctuary and Lamenta as SmugglingLane; later charts record it as Perilous. |
-| M40.739 | Age of Wounds | WarpStormSurge | Navigators marked the lane between Caestorum and Castoria as SmugglingLane; later charts record it as Perilous. |
-| M40.711 | Age of Wounds | OrkWaaagh | A Waaagh! gathered momentum across Narthax. |
+| M40.709 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Viridia and Phlegethon Sanctuary as SmugglingLane; later charts record it as Perilous. |
+| M40.717 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Dominicar and Castoria as SmugglingLane; later charts record it as Perilous. |
+| M40.717 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Benedica and Ophidian Wreath as ChartedPassage; later charts record it as Perilous. |
+| M40.718 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Castoria and Narthax as SmugglingLane; later charts record it as Perilous. |
+| M40.722 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Ophidian Wreath and Prosperis II as ChartedPassage; later charts record it as Perilous. |
+| M40.726 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Ossian Exile and Ophidian Wreath as ChartedPassage; later charts record it as Perilous. |
+| M40.728 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Lamenta and Prosperis II as ChartedPassage; later charts record it as Perilous. |
+| M40.729 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Viridia and Dominicar as SmugglingLane; later charts record it as Perilous. |
+| M40.731 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Tantalus Cradle and Phlegethon Sanctuary as ChartedPassage; later charts record it as Perilous. |
+| M40.738 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Phlegethon Sanctuary and Lamenta as SmugglingLane; later charts record it as Perilous. |
+| M40.739 | Age of Wounds | warp_storm_surge | Navigators marked the lane between Caestorum and Castoria as SmugglingLane; later charts record it as Perilous. |
+| M40.711 | Age of Wounds | ork_waaagh | A Waaagh! gathered momentum across Narthax. |
 
 ## System index
 
@@ -95,23 +95,23 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 100 |
-| DefensePlatform | ork | 23 |
-| DefensePlatform | xenos | 25 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
+| defense_platform | imperial | 100 |
+| defense_platform | ork | 23 |
+| defense_platform | xenos | 25 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Obsidia in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Praetor Gallowsmere in this era; the world was settled as an ImperialWorld and registered a PopulistTyrant.
-- **M36.030** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian Mendica Station in this era; the world was settled as an IndustrialWorld and registered a CorruptAristocrats.
-- **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Golgothar in this era; the world was settled as an ImperialWorld and registered a MagistrateCouncil.
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Icarion in this era; the world was settled as a DeathWorld and registered a ClansTribes.
-- **M36.074** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Tantalus Cradle as ChartedPassage; later charts record it as Hazardous.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Prosperis as ChartedPassage; later charts record it as Hazardous.
-- **M36.080** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Mara as ChartedPassage; later charts record it as Hazardous.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Obsidia in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Praetor Gallowsmere in this era; the world was settled as an ImperialWorld and registered a PopulistTyrant.
+- **M36.030** · _Age of Foundation_ (foundation): Records place the founding of Aurelian Mendica Station in this era; the world was settled as an IndustrialWorld and registered a CorruptAristocrats.
+- **M36.032** · _Age of Foundation_ (foundation): Records place the founding of Golgothar in this era; the world was settled as an ImperialWorld and registered a MagistrateCouncil.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Icarion in this era; the world was settled as a DeathWorld and registered a ClansTribes.
+- **M36.074** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Tantalus Cradle as ChartedPassage; later charts record it as Hazardous.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Prosperis as ChartedPassage; later charts record it as Hazardous.
+- **M36.080** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Mara as ChartedPassage; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -125,12 +125,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Obsidia in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M37.179** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Obsidia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Obsidia in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M37.179** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Obsidia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Mechanicus (`mechanicus`) | Data-looms of Mars (`data_looms_of_mars`) | Dominant | Influence | 37 | 25 | 35 | 50 | 32 | 43 | 50 | 25 | 72 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Data-looms of Mars (`data_looms_of_mars`) | dominant | influence | 37 | 25 | 35 | 50 | 32 | 43 | 50 | 25 | 72 |
 
 **Control:**
 - Dominant: imperial
@@ -153,28 +153,28 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 37 |
+| imperial | imperial_mandate | 37 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 31 | 30 | 72 |
-| Hinterland | Wilderness | imperial | 14 | 70 | 72 |
+| Capital | capital | imperial | 31 | 30 | 72 |
+| Hinterland | wilderness | imperial | 14 | 70 | 72 |
 
 ### SYS-0001-W02 — Golgothar
 
 **Local history:**
 
-- **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Golgothar in this era; the world was settled as an ImperialWorld and registered a MagistrateCouncil.
-- **M37.164** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Golgothar into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M38.320** · _Age of Fracture_ (AeldariActivity): Orks marked Golgothar as a recurring hunting ground.
+- **M36.032** · _Age of Foundation_ (foundation): Records place the founding of Golgothar in this era; the world was settled as an ImperialWorld and registered a MagistrateCouncil.
+- **M37.164** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Golgothar into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M38.320** · _Age of Fracture_ (aeldari_activity): Orks marked Golgothar as a recurring hunting ground.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | Dominant | Contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Adeptus Terra (`adeptus_terra`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| ork | Ork Klanz (`ork`) | Deathskulls Clan (`deathskulls_clan`) | Minor | Presence | 11 | 2 | 32 | 10 | 5 | 12 | 14 | 7 | 29 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | dominant | contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Adeptus Terra (`adeptus_terra`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| ork | Ork Klanz (`ork`) | Deathskulls Clan (`deathskulls_clan`) | minor | presence | 11 | 2 | 32 | 10 | 5 | 12 | 14 | 7 | 29 |
 
 **Control:**
 - Dominant: imperial
@@ -197,30 +197,30 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
-| ork | HuntingGround | 11 |
+| imperial | imperial_mandate | 49 |
+| ork | hunting_ground | 11 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 70 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 70 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ### SYS-0001-W03 — Praetor Gallowsmere
 
 **Local history:**
 
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Praetor Gallowsmere in this era; the world was settled as an ImperialWorld and registered a PopulistTyrant.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Praetor Gallowsmere into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.188** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Praetor Gallowsmere.
-- **M39.456** · _Age of Compliance_ (Annexation): Xenos seized Praetor Gallowsmere by force of arms.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Praetor Gallowsmere in this era; the world was settled as an ImperialWorld and registered a PopulistTyrant.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Praetor Gallowsmere into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.188** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Praetor Gallowsmere.
+- **M39.456** · _Age of Compliance_ (annexation): Xenos seized Praetor Gallowsmere by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Imperial Navy (`imperial_navy`) | Imperial Fleet Admiralty (`imperial_fleet_admiralty`) | Dominant | Contested | 48 | 86 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | Significant | Presence | 19 | 16 | 32 | 13 | 16 | 13 | 20 | 23 | 35 |
-| merchant | Merchant Combines (`merchant`) | Void Nomad Flotillas (`void_nomad_flotillas`) | Minor | Presence | 15 | 10 | 5 | 12 | 33 | 14 | 11 | 12 | 24 |
+| imperial | Imperial Navy (`imperial_navy`) | Imperial Fleet Admiralty (`imperial_fleet_admiralty`) | dominant | contested | 48 | 86 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | significant | presence | 19 | 16 | 32 | 13 | 16 | 13 | 20 | 23 | 35 |
+| merchant | Merchant Combines (`merchant`) | Void Nomad Flotillas (`void_nomad_flotillas`) | minor | presence | 15 | 10 | 5 | 12 | 33 | 14 | 11 | 12 | 24 |
 
 **Control:**
 - Dominant: imperial
@@ -243,27 +243,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 48 |
-| xenos | MilitaryOccupation | 19 |
-| merchant | CommercialCharter | 15 |
+| imperial | imperial_mandate | 48 |
+| xenos | military_occupation | 19 |
+| merchant | commercial_charter | 15 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 66 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 17 | 70 | 90 |
+| Capital | capital | imperial | 66 | 30 | 90 |
+| Hinterland | wilderness | imperial | 17 | 70 | 90 |
 
 ### SYS-0001-W04 — Icarion
 
 **Local history:**
 
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Icarion in this era; the world was settled as a DeathWorld and registered a ClansTribes.
-- **M37.164** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Icarion as a charge of the faith.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Icarion in this era; the world was settled as a DeathWorld and registered a ClansTribes.
+- **M37.164** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Icarion as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adepta Famulous (`adepta_famulous`) | Dominant | Influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adepta Famulous (`adepta_famulous`) | dominant | influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -286,15 +286,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 31 |
+| imperial | religious_mandate | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Garrison | Capital | imperial | 30 | 15 | 90 |
-| Death-World Biome | Wilderness | imperial | 11 | 75 | 90 |
-| Cult Cells | Hideout | imperial | 12 | 10 | 90 |
+| Garrison | capital | imperial | 30 | 15 | 90 |
+| Death-World Biome | wilderness | imperial | 11 | 75 | 90 |
+| Cult Cells | hideout | imperial | 12 | 10 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -302,15 +302,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.030** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian Mendica Station in this era; the world was settled as an IndustrialWorld and registered a CorruptAristocrats.
-- **M37.148** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Aurelian Mendica Station into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.162** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Aurelian Mendica Station as a charge of the faith.
+- **M36.030** · _Age of Foundation_ (foundation): Records place the founding of Aurelian Mendica Station in this era; the world was settled as an IndustrialWorld and registered a CorruptAristocrats.
+- **M37.148** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Aurelian Mendica Station into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.162** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Aurelian Mendica Station as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | Dominant | Contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Pronatus (`orders_pronatus`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| imperial | Adeptus Mechanicus (`mechanicus`) | Forge World Agripinaa (`forge_world_agripinaa`) | Minor | Presence | 19 | 19 | 12 | 18 | 24 | 33 | 18 | 9 | 25 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | dominant | contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Pronatus (`orders_pronatus`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Forge World Agripinaa (`forge_world_agripinaa`) | minor | presence | 19 | 19 | 12 | 18 | 24 | 33 | 18 | 9 | 25 |
 
 **Control:**
 - Dominant: imperial
@@ -333,15 +333,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
-| imperial | ReligiousMandate | 33 |
+| imperial | imperial_mandate | 49 |
+| imperial | religious_mandate | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 70 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 70 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ## SYS-0002 — Caestorum
 
@@ -363,23 +363,23 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 75 |
-| Shipyard | merchant | 63 |
-| Station | imperial | 71 |
-| Station | merchant | 56 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 75 |
+| shipyard | merchant | 63 |
+| station | imperial | 71 |
+| station | merchant | 56 |
 
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Clarion in this era; the world was settled as an IndustrialWorld and registered a Megacorporations.
-- **M36.023** · _Age of Foundation_ (Foundation): Records place the founding of Cthonis in this era; the world was settled as a DeadWorld and registered a None.
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Adamant Katarion in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Laodice Harbor in this era; the world was settled as a XenosWorld and registered a XenosOverlords.
-- **M36.071** · _Age of Foundation_ (Discovery): Navigators marked the lane between Caestorum and Viridia as SmugglingLane; later charts record it as Hazardous.
-- **M36.084** · _Age of Foundation_ (Discovery): Navigators marked the lane between Caestorum and Phlegethon Sanctuary as SmugglingLane; later charts record it as Hazardous.
-- **M36.087** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Caestorum as ChartedPassage; later charts record it as Hazardous.
-- **M36.109** · _Age of Foundation_ (Discovery): A concealed passage linking Caestorum and Castoria entered restricted charts as SmugglingLane.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Clarion in this era; the world was settled as an IndustrialWorld and registered a Megacorporations.
+- **M36.023** · _Age of Foundation_ (foundation): Records place the founding of Cthonis in this era; the world was settled as a DeadWorld and registered a None.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Adamant Katarion in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Laodice Harbor in this era; the world was settled as a XenosWorld and registered a XenosOverlords.
+- **M36.071** · _Age of Foundation_ (discovery): Navigators marked the lane between Caestorum and Viridia as SmugglingLane; later charts record it as Hazardous.
+- **M36.084** · _Age of Foundation_ (discovery): Navigators marked the lane between Caestorum and Phlegethon Sanctuary as SmugglingLane; later charts record it as Hazardous.
+- **M36.087** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Caestorum as ChartedPassage; later charts record it as Hazardous.
+- **M36.109** · _Age of Foundation_ (discovery): A concealed passage linking Caestorum and Castoria entered restricted charts as SmugglingLane.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -392,15 +392,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Adamant Katarion in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
-- **M37.148** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Adamant Katarion into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.182** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Adamant Katarion.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Adamant Katarion in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
+- **M37.148** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Adamant Katarion into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.182** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Adamant Katarion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Collegia Titanica (`collegia_titanica`) | Legio Gryphonicus (`legio_gryphonicus`) | Dominant | Contested | 45 | 30 | 85 | 30 | 25 | 65 | 40 | 15 | 67 |
-| merchant | Merchant Combines (`merchant`) | Warrant-holder Conclaves (`warrant_holder_conclaves`) | Significant | Influence | 27 | 20 | 10 | 23 | 62 | 26 | 13 | 20 | 46 |
-| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Adeptus Astronomica (`adeptus_astronomica`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | Collegia Titanica (`collegia_titanica`) | Legio Gryphonicus (`legio_gryphonicus`) | dominant | contested | 45 | 30 | 85 | 30 | 25 | 65 | 40 | 15 | 67 |
+| merchant | Merchant Combines (`merchant`) | Warrant-holder Conclaves (`warrant_holder_conclaves`) | significant | influence | 27 | 20 | 10 | 23 | 62 | 26 | 13 | 20 | 46 |
+| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Adeptus Astronomica (`adeptus_astronomica`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -423,21 +423,21 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
-| merchant | CommercialCharter | 27 |
+| imperial | imperial_mandate | 45 |
+| merchant | commercial_charter | 27 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 46 | 30 | 67 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 67 |
+| Capital | capital | imperial | 46 | 30 | 67 |
+| Hinterland | wilderness | imperial | 21 | 70 | 67 |
 
 ### SYS-0002-W02 — Cthonis
 
 **Local history:**
 
-- **M36.023** · _Age of Foundation_ (Foundation): Records place the founding of Cthonis in this era; the world was settled as a DeadWorld and registered a None.
+- **M36.023** · _Age of Foundation_ (foundation): Records place the founding of Cthonis in this era; the world was settled as a DeadWorld and registered a None.
 
 **Stability:**
 - Public order: 70
@@ -452,22 +452,22 @@ Chronicle events: **427**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | — | 0 | 30 | 0 |
-| Hinterland | Wilderness | — | 0 | 70 | 0 |
+| Capital | capital | — | 0 | 30 | 0 |
+| Hinterland | wilderness | — | 0 | 70 | 0 |
 
 ### SYS-0002-W03 — Clarion
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Clarion in this era; the world was settled as an IndustrialWorld and registered a Megacorporations.
-- **M37.148** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Clarion.
-- **M39.432** · _Age of Compliance_ (Annexation): Xenos seized Clarion by force of arms.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Clarion in this era; the world was settled as an IndustrialWorld and registered a Megacorporations.
+- **M37.148** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Clarion.
+- **M39.432** · _Age of Compliance_ (annexation): Xenos seized Clarion by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| merchant | Merchant Combines (`merchant`) | Deep Void Miners (`deep_void_miners`) | Dominant | Influence | 42 | 35 | 15 | 35 | 95 | 40 | 20 | 30 | 70 |
-| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | Significant | Presence | 19 | 16 | 32 | 13 | 16 | 13 | 20 | 23 | 35 |
-| tau | T'au Septs (`tau`) | Kroot Farstalker Kinbands (`kroot_farstalker_kinbands`) | Minor | Presence | 22 | 29 | 19 | 18 | 23 | 26 | 21 | 12 | 24 |
+| merchant | Merchant Combines (`merchant`) | Deep Void Miners (`deep_void_miners`) | dominant | influence | 42 | 35 | 15 | 35 | 95 | 40 | 20 | 30 | 70 |
+| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | significant | presence | 19 | 16 | 32 | 13 | 16 | 13 | 20 | 23 | 35 |
+| tau | T'au Septs (`tau`) | Kroot Farstalker Kinbands (`kroot_farstalker_kinbands`) | minor | presence | 22 | 29 | 19 | 18 | 23 | 26 | 21 | 12 | 24 |
 
 **Control:**
 - Dominant: merchant
@@ -490,28 +490,28 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| merchant | CommercialCharter | 43 |
-| xenos | MilitaryOccupation | 19 |
+| merchant | commercial_charter | 43 |
+| xenos | military_occupation | 19 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | merchant | 41 | 30 | 70 |
-| Hinterland | Wilderness | merchant | 14 | 70 | 70 |
+| Capital | capital | merchant | 41 | 30 | 70 |
+| Hinterland | wilderness | merchant | 14 | 70 | 70 |
 
 ### SYS-0002-W04 — Laodice Harbor
 
 **Local history:**
 
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Laodice Harbor in this era; the world was settled as a XenosWorld and registered a XenosOverlords.
-- **M37.167** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Laodice Harbor as a charge of the faith.
-- **M37.176** · _Age of Compliance_ (CommercialCharter): Criminal Powers was granted a commercial charter to operate on Laodice Harbor.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Laodice Harbor in this era; the world was settled as a XenosWorld and registered a XenosOverlords.
+- **M37.167** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Laodice Harbor as a charge of the faith.
+- **M37.176** · _Age of Compliance_ (commercial_charter): Criminal Powers was granted a commercial charter to operate on Laodice Harbor.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adepta Sororitas (`adepta_sororitas`) | Confessor Retinues (`confessor_retinues`) | Dominant | Influence | 39 | 20 | 65 | 25 | 16 | 6 | 100 | 25 | 80 |
-| criminal | Criminal Syndicates (`criminal`) | House Escher (`house_escher`) | Significant | Presence | 18 | 2 | 13 | 13 | 30 | 13 | 10 | 52 | 16 |
+| imperial | Adepta Sororitas (`adepta_sororitas`) | Confessor Retinues (`confessor_retinues`) | dominant | influence | 39 | 20 | 65 | 25 | 16 | 6 | 100 | 25 | 80 |
+| criminal | Criminal Syndicates (`criminal`) | House Escher (`house_escher`) | significant | presence | 18 | 2 | 13 | 13 | 30 | 13 | 10 | 52 | 16 |
 
 **Control:**
 - Dominant: imperial
@@ -535,15 +535,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 39 |
-| criminal | CommercialCharter | 18 |
+| imperial | religious_mandate | 39 |
+| criminal | commercial_charter | 18 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 35 | 30 | 80 |
-| Hinterland | Wilderness | imperial | 17 | 70 | 80 |
+| Capital | capital | imperial | 35 | 30 | 80 |
+| Hinterland | wilderness | imperial | 17 | 70 | 80 |
 
 ## SYS-0003 — Tantalus Cradle
 
@@ -564,24 +564,24 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | chaos | 81 |
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Shipyard | tau | 32 |
-| Station | imperial | 100 |
-| Station | tau | 28 |
+| defense_platform | chaos | 81 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| shipyard | tau | 32 |
+| station | imperial | 100 |
+| station | tau | 28 |
 
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Prometheon in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
-- **M36.020** · _Age of Foundation_ (Foundation): Records place the founding of Supplica in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
-- **M36.026** · _Age of Foundation_ (Foundation): Records place the founding of Jade Benedica in this era; the world was settled as a FeralWorld and registered a WarriorAristocracy.
-- **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Lamenta in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian Nemoria in this era; the world was settled as an Orbital and registered a MechanicusForgeLord.
-- **M36.074** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Tantalus Cradle as ChartedPassage; later charts record it as Hazardous.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Tantalus Cradle and Penitent Fires as ChartedPassage; later charts record it as Hazardous.
-- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Tantalus Cradle and Praetoria as ChartedPassage; later charts record it as Hazardous.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Prometheon in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
+- **M36.020** · _Age of Foundation_ (foundation): Records place the founding of Supplica in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
+- **M36.026** · _Age of Foundation_ (foundation): Records place the founding of Jade Benedica in this era; the world was settled as a FeralWorld and registered a WarriorAristocracy.
+- **M36.028** · _Age of Foundation_ (foundation): Records place the founding of Lamenta in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Aurelian Nemoria in this era; the world was settled as an Orbital and registered a MechanicusForgeLord.
+- **M36.074** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Tantalus Cradle as ChartedPassage; later charts record it as Hazardous.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Tantalus Cradle and Penitent Fires as ChartedPassage; later charts record it as Hazardous.
+- **M36.092** · _Age of Foundation_ (discovery): Navigators marked the lane between Tantalus Cradle and Praetoria as ChartedPassage; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -595,12 +595,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.026** · _Age of Foundation_ (Foundation): Records place the founding of Jade Benedica in this era; the world was settled as a FeralWorld and registered a WarriorAristocracy.
-- **M37.160** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Jade Benedica into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.026** · _Age of Foundation_ (foundation): Records place the founding of Jade Benedica in this era; the world was settled as a FeralWorld and registered a WarriorAristocracy.
+- **M37.160** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Jade Benedica into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Mechanicus (`mechanicus`) | Noosphere Savants (`noosphere_savants`) | Dominant | Contested | 49 | 47 | 35 | 50 | 60 | 81 | 50 | 25 | 72 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Noosphere Savants (`noosphere_savants`) | dominant | contested | 49 | 47 | 35 | 50 | 60 | 81 | 50 | 25 | 72 |
 
 **Control:**
 - Dominant: imperial
@@ -623,29 +623,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
+| imperial | imperial_mandate | 49 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 50 | 30 | 72 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 72 |
+| Capital | capital | imperial | 50 | 30 | 72 |
+| Hinterland | wilderness | imperial | 18 | 70 | 72 |
 
 ### SYS-0003-W02 — Prometheon
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Prometheon in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
-- **M37.163** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Prometheon into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.458** · _Age of Compliance_ (Annexation): Chaos seized Prometheon by force of arms.
-- **M42.016** · _Indomitus Dawn_ (Purge): Open warfare engulfed Prometheon; Imperium pressed an offensive against Chaos.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Prometheon in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
+- **M37.163** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Prometheon into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.458** · _Age of Compliance_ (annexation): Chaos seized Prometheon by force of arms.
+- **M42.016** · _Indomitus Dawn_ (purge): Open warfare engulfed Prometheon; Imperium pressed an offensive against Chaos.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Heretic Astartes (`chaos_space_marine`) | Cypher’s Fallen (`cyphers_fallen`) | Dominant | Influence | 41 | 5 | 95 | 60 | 10 | 25 | 60 | 50 | 64 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | Significant | Influence | 34 | 66 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| imperial | Collegia Titanica (`collegia_titanica`) | Legio Solaria (`legio_solaria`) | Minor | Presence | 18 | 20 | 30 | 10 | 9 | 23 | 14 | 5 | 23 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | Cypher’s Fallen (`cyphers_fallen`) | dominant | influence | 41 | 5 | 95 | 60 | 10 | 25 | 60 | 50 | 64 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | significant | influence | 34 | 66 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| imperial | Collegia Titanica (`collegia_titanica`) | Legio Solaria (`legio_solaria`) | minor | presence | 18 | 20 | 30 | 10 | 9 | 23 | 14 | 5 | 23 |
 
 **Control:**
 - Dominant: imperial
@@ -669,15 +669,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 41 |
-| imperial | ImperialMandate | 34 |
+| chaos | military_occupation | 41 |
+| imperial | imperial_mandate | 34 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 58 |
-| Hinterland | Wilderness | chaos | 20 | 70 | 64 |
+| Capital | capital | imperial | 41 | 30 | 58 |
+| Hinterland | wilderness | chaos | 20 | 70 | 64 |
 
 **Conflict:** intensity 92 momentum -14 attacker=imperial defender=chaos
 
@@ -685,15 +685,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian Nemoria in this era; the world was settled as an Orbital and registered a MechanicusForgeLord.
-- **M37.151** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Aurelian Nemoria as a charge of the faith.
-- **M37.161** · _Age of Compliance_ (CommercialCharter): T'au Empire was granted a commercial charter to operate on Aurelian Nemoria.
-- **M42.033** · _Indomitus Dawn_ (Purge): Open warfare engulfed Aurelian Nemoria; T'au Empire pressed an offensive against Imperium.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Aurelian Nemoria in this era; the world was settled as an Orbital and registered a MechanicusForgeLord.
+- **M37.151** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Aurelian Nemoria as a charge of the faith.
+- **M37.161** · _Age of Compliance_ (commercial_charter): T'au Empire was granted a commercial charter to operate on Aurelian Nemoria.
+- **M42.033** · _Indomitus Dawn_ (purge): Open warfare engulfed Aurelian Nemoria; T'au Empire pressed an offensive against Imperium.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Hospitaller (`orders_hospitaller`) | Dominant | Influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
-| tau | T'au Septs (`tau`) | Dal’yth Sept (`dalyth_sept`) | Significant | Influence | 31 | 23 | 36 | 32 | 27 | 32 | 43 | 25 | 46 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Hospitaller (`orders_hospitaller`) | dominant | influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
+| tau | T'au Septs (`tau`) | Dal’yth Sept (`dalyth_sept`) | significant | influence | 31 | 23 | 36 | 32 | 27 | 32 | 43 | 25 | 46 |
 
 **Control:**
 - Dominant: imperial
@@ -717,15 +717,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 37 |
-| tau | CommercialCharter | 31 |
+| imperial | religious_mandate | 37 |
+| tau | commercial_charter | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 13 | 70 | 90 |
+| Capital | capital | imperial | 41 | 30 | 90 |
+| Hinterland | wilderness | imperial | 13 | 70 | 90 |
 
 **Conflict:** intensity 93 momentum -13 attacker=tau defender=imperial
 
@@ -733,13 +733,13 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.020** · _Age of Foundation_ (Foundation): Records place the founding of Supplica in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
-- **M37.152** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Supplica into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.020** · _Age of Foundation_ (foundation): Records place the founding of Supplica in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
+- **M37.152** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Supplica into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Dominant | Influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
-| imperial | Adeptus Mechanicus (`mechanicus`) | Ordo Reductor (`ordo_reductor`) | Significant | Influence | 28 | 23 | 23 | 32 | 30 | 40 | 32 | 16 | 47 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | dominant | influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Ordo Reductor (`ordo_reductor`) | significant | influence | 28 | 23 | 23 | 32 | 30 | 40 | 32 | 16 | 47 |
 
 **Control:**
 - Dominant: imperial
@@ -762,25 +762,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 37 |
+| imperial | imperial_mandate | 37 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 13 | 70 | 90 |
+| Capital | capital | imperial | 41 | 30 | 90 |
+| Hinterland | wilderness | imperial | 13 | 70 | 90 |
 
 ### SYS-0003-W05 — Lamenta
 
 **Local history:**
 
-- **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Lamenta in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M37.160** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Lamenta as a charge of the faith.
+- **M36.028** · _Age of Foundation_ (foundation): Records place the founding of Lamenta in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M37.160** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Lamenta as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Pronatus (`orders_pronatus`) | Dominant | Contested | 45 | 73 | 30 | 20 | 42 | 30 | 53 | 13 | 90 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Pronatus (`orders_pronatus`) | dominant | contested | 45 | 73 | 30 | 20 | 42 | 30 | 53 | 13 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -803,14 +803,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 45 |
+| imperial | religious_mandate | 45 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 56 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 56 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ## SYS-0004 — Viridia
 
@@ -832,20 +832,20 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | necron | 74 |
-| DefensePlatform | ork | 66 |
+| defense_platform | necron | 74 |
+| defense_platform | ork | 66 |
 
 
 **Local history:**
 
-- **M36.023** · _Age of Foundation_ (Foundation): Records place the founding of Charred Ravenna in this era; the world was settled as an Orbital and registered a RogueTraderDynasty.
-- **M36.026** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Indomara Monastery in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Subiacum Sepulchre in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
-- **M36.071** · _Age of Foundation_ (Discovery): Navigators marked the lane between Caestorum and Viridia as SmugglingLane; later charts record it as Hazardous.
-- **M36.072** · _Age of Foundation_ (Discovery): Navigators marked the lane between Viridia and Praetoria as StableWarpLane; later charts record it as Unstable.
-- **M36.074** · _Age of Foundation_ (Discovery): Navigators marked the lane between Viridia and Sorrow Pilgrim as StableWarpLane; later charts record it as Unstable.
-- **M36.103** · _Age of Foundation_ (Discovery): Navigators marked the lane between Tantalus Cradle and Viridia as StableWarpLane; later charts record it as Unstable.
+- **M36.023** · _Age of Foundation_ (foundation): Records place the founding of Charred Ravenna in this era; the world was settled as an Orbital and registered a RogueTraderDynasty.
+- **M36.026** · _Age of Foundation_ (foundation): Records place the founding of Aurelian in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Indomara Monastery in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Subiacum Sepulchre in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
+- **M36.071** · _Age of Foundation_ (discovery): Navigators marked the lane between Caestorum and Viridia as SmugglingLane; later charts record it as Hazardous.
+- **M36.072** · _Age of Foundation_ (discovery): Navigators marked the lane between Viridia and Praetoria as StableWarpLane; later charts record it as Unstable.
+- **M36.074** · _Age of Foundation_ (discovery): Navigators marked the lane between Viridia and Sorrow Pilgrim as StableWarpLane; later charts record it as Unstable.
+- **M36.103** · _Age of Foundation_ (discovery): Navigators marked the lane between Tantalus Cradle and Viridia as StableWarpLane; later charts record it as Unstable.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -858,12 +858,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Subiacum Sepulchre in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
-- **M38.308** · _Age of Fracture_ (AeldariActivity): Orks marked Subiacum Sepulchre as a recurring hunting ground.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Subiacum Sepulchre in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
+- **M38.308** · _Age of Fracture_ (aeldari_activity): Orks marked Subiacum Sepulchre as a recurring hunting ground.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| ork | Ork Klanz (`ork`) | Big Mek Workshops (`big_mek_workshops`) | Dominant | Influence | 32 | 4 | 90 | 30 | 13 | 30 | 40 | 20 | 84 |
+| ork | Ork Klanz (`ork`) | Big Mek Workshops (`big_mek_workshops`) | dominant | influence | 32 | 4 | 90 | 30 | 13 | 30 | 40 | 20 | 84 |
 
 **Control:**
 - Dominant: ork
@@ -884,14 +884,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| ork | HuntingGround | 32 |
+| ork | hunting_ground | 32 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | ork | 20 | 30 | 84 |
-| Hinterland | Wilderness | ork | 28 | 70 | 84 |
+| Capital | capital | ork | 20 | 30 | 84 |
+| Hinterland | wilderness | ork | 28 | 70 | 84 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=ork
 
@@ -899,12 +899,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.023** · _Age of Foundation_ (Foundation): Records place the founding of Charred Ravenna in this era; the world was settled as an Orbital and registered a RogueTraderDynasty.
-- **M39.579** · _Age of Fracture_ (Uprising): Loyalist authority on Charred Ravenna collapsed; Rebel Powers declared open rebellion.
+- **M36.023** · _Age of Foundation_ (foundation): Records place the founding of Charred Ravenna in this era; the world was settled as an Orbital and registered a RogueTraderDynasty.
+- **M39.579** · _Age of Fracture_ (uprising): Loyalist authority on Charred Ravenna collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Psyker Rights Movements (`psyker_rights_movements`) | Dominant | Influence | 30 | 13 | 60 | 10 | 21 | 17 | 55 | 50 | 59 |
+| rebel | Rebel Movements (`rebel`) | Psyker Rights Movements (`psyker_rights_movements`) | dominant | influence | 30 | 13 | 60 | 10 | 21 | 17 | 55 | 50 | 59 |
 
 **Control:**
 - Dominant: rebel
@@ -927,14 +927,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 30 |
+| rebel | rebellion | 30 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | rebel | 21 | 30 | 59 |
-| Hinterland | Wilderness | rebel | 13 | 70 | 59 |
+| Capital | capital | rebel | 21 | 30 | 59 |
+| Hinterland | wilderness | rebel | 13 | 70 | 59 |
 
 **Conflict:** intensity 15 momentum 0 attacker=— defender=rebel
 
@@ -942,12 +942,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.026** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M39.584** · _Age of Fracture_ (Uprising): Loyalist authority on Aurelian collapsed; Necrons declared open rebellion.
+- **M36.026** · _Age of Foundation_ (foundation): Records place the founding of Aurelian in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M39.584** · _Age of Fracture_ (uprising): Loyalist authority on Aurelian collapsed; Necrons declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| necron | Necron Dynasties (`necron`) | C’tan Shard Cults (`ctan_shard_cults`) | Dominant | Influence | 38 | 14 | 90 | 50 | 9 | 22 | 35 | 55 | 39 |
+| necron | Necron Dynasties (`necron`) | C’tan Shard Cults (`ctan_shard_cults`) | dominant | influence | 38 | 14 | 90 | 50 | 9 | 22 | 35 | 55 | 39 |
 
 **Control:**
 - Dominant: necron
@@ -969,25 +969,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| necron | Rebellion | 38 |
+| necron | rebellion | 38 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | necron | 26 | 30 | 39 |
-| Hinterland | Wilderness | necron | 18 | 70 | 39 |
+| Capital | capital | necron | 26 | 30 | 39 |
+| Hinterland | wilderness | necron | 18 | 70 | 39 |
 
 ### SYS-0004-W04 — Indomara Monastery
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Indomara Monastery in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M37.170** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Indomara Monastery into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Indomara Monastery in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M37.170** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Indomara Monastery into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | Dominant | Influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | dominant | influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -1010,14 +1010,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 31 |
+| imperial | imperial_mandate | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 30 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 90 |
+| Capital | capital | imperial | 30 | 30 | 90 |
+| Hinterland | wilderness | imperial | 11 | 70 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -1039,21 +1039,21 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 80 |
-| Shipyard | imperial | 70 |
-| Station | imperial | 64 |
+| defense_platform | imperial | 80 |
+| shipyard | imperial | 70 |
+| station | imperial | 64 |
 
 
 **Local history:**
 
-- **M36.013** · _Age of Foundation_ (Foundation): Subsector Radamanth Gate was elevated around Radamanth Gate; sys-0005-w02 became the recorded capital world.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Harrowmere in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
-- **M36.038** · _Age of Foundation_ (Foundation): Records place the founding of Decimara Pyre in this era; the world was settled as a PlanetaryMonument and registered a None.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Sorrow Pilgrim as ChartedPassage; later charts record it as Hazardous.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Penitent Fires as StableWarpLane; later charts record it as Unstable.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Castoria as ChartedPassage; later charts record it as Hazardous.
-- **M36.088** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Dominicar as ChartedPassage; later charts record it as Hazardous.
-- **M37.159** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Harrowmere into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.013** · _Age of Foundation_ (foundation): Subsector Radamanth Gate was elevated around Radamanth Gate; sys-0005-w02 became the recorded capital world.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Harrowmere in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
+- **M36.038** · _Age of Foundation_ (foundation): Records place the founding of Decimara Pyre in this era; the world was settled as a PlanetaryMonument and registered a None.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Sorrow Pilgrim as ChartedPassage; later charts record it as Hazardous.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Penitent Fires as StableWarpLane; later charts record it as Unstable.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Castoria as ChartedPassage; later charts record it as Hazardous.
+- **M36.088** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Dominicar as ChartedPassage; later charts record it as Hazardous.
+- **M37.159** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Harrowmere into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -1064,7 +1064,7 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.038** · _Age of Foundation_ (Foundation): Records place the founding of Decimara Pyre in this era; the world was settled as a PlanetaryMonument and registered a None.
+- **M36.038** · _Age of Foundation_ (foundation): Records place the founding of Decimara Pyre in this era; the world was settled as a PlanetaryMonument and registered a None.
 
 **Stability:**
 - Public order: 70
@@ -1079,16 +1079,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.013** · _Age of Foundation_ (Foundation): Subsector Radamanth Gate was elevated around Radamanth Gate; sys-0005-w02 became the recorded capital world.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Harrowmere in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
-- **M37.159** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Harrowmere into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.165** · _Echoes of the Great Crusade_ (DynasticClaim): Necrons pressed an ancestral dynastic right over Harrowmere.
+- **M36.013** · _Age of Foundation_ (foundation): Subsector Radamanth Gate was elevated around Radamanth Gate; sys-0005-w02 became the recorded capital world.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Harrowmere in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
+- **M37.159** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Harrowmere into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.165** · _Echoes of the Great Crusade_ (dynastic_claim): Necrons pressed an ancestral dynastic right over Harrowmere.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Collegia Titanica (`collegia_titanica`) | Legio Astorum (`legio_astorum`) | Dominant | Contested | 45 | 30 | 85 | 30 | 25 | 65 | 40 | 15 | 67 |
-| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | Significant | Influence | 31 | 56 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| necron | Necron Dynasties (`necron`) | Mephrit Dynasty (`mephrit_dynasty`) | Minor | Presence | 16 | 10 | 32 | 18 | 7 | 18 | 12 | 19 | 14 |
+| imperial | Collegia Titanica (`collegia_titanica`) | Legio Astorum (`legio_astorum`) | dominant | contested | 45 | 30 | 85 | 30 | 25 | 65 | 40 | 15 | 67 |
+| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | significant | influence | 31 | 56 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| necron | Necron Dynasties (`necron`) | Mephrit Dynasty (`mephrit_dynasty`) | minor | presence | 16 | 10 | 32 | 18 | 7 | 18 | 12 | 19 | 14 |
 
 **Control:**
 - Dominant: imperial
@@ -1111,15 +1111,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
-| necron | DynasticRight | 16 |
+| imperial | imperial_mandate | 45 |
+| necron | dynastic_right | 16 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 46 | 30 | 67 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 67 |
+| Capital | capital | imperial | 46 | 30 | 67 |
+| Hinterland | wilderness | imperial | 21 | 70 | 67 |
 
 ## SYS-0006 — Sorrow Pilgrim
 
@@ -1141,25 +1141,25 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 78 |
-| DefensePlatform | ork | 66 |
-| DefensePlatform | tau | 53 |
-| Shipyard | imperial | 87 |
-| Shipyard | tau | 65 |
-| Station | imperial | 100 |
-| Station | tau | 53 |
+| defense_platform | imperial | 78 |
+| defense_platform | ork | 66 |
+| defense_platform | tau | 53 |
+| shipyard | imperial | 87 |
+| shipyard | tau | 65 |
+| station | imperial | 100 |
+| station | tau | 53 |
 
 
 **Local history:**
 
-- **M36.016** · _Age of Foundation_ (Foundation): Records place the founding of Ysengrav in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Dead Furoria Dolor in this era; the world was settled as an ImperialWorld and registered a CorruptAristocrats.
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Junora Beta in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Sorrow Pilgrim as ChartedPassage; later charts record it as Hazardous.
-- **M36.074** · _Age of Foundation_ (Discovery): Navigators marked the lane between Viridia and Sorrow Pilgrim as StableWarpLane; later charts record it as Unstable.
-- **M36.095** · _Age of Foundation_ (Discovery): Navigators marked the lane between Sorrow Pilgrim and Benedica as StableWarpLane; later charts record it as Unstable.
-- **M37.151** · _Age of Compliance_ (CommercialCharter): T'au Empire was granted a commercial charter to operate on Ysengrav.
-- **M37.160** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Dead Furoria Dolor into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.016** · _Age of Foundation_ (foundation): Records place the founding of Ysengrav in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Dead Furoria Dolor in this era; the world was settled as an ImperialWorld and registered a CorruptAristocrats.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Junora Beta in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Sorrow Pilgrim as ChartedPassage; later charts record it as Hazardous.
+- **M36.074** · _Age of Foundation_ (discovery): Navigators marked the lane between Viridia and Sorrow Pilgrim as StableWarpLane; later charts record it as Unstable.
+- **M36.095** · _Age of Foundation_ (discovery): Navigators marked the lane between Sorrow Pilgrim and Benedica as StableWarpLane; later charts record it as Unstable.
+- **M37.151** · _Age of Compliance_ (commercial_charter): T'au Empire was granted a commercial charter to operate on Ysengrav.
+- **M37.160** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Dead Furoria Dolor into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -1171,16 +1171,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Junora Beta in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
-- **M37.178** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Junora Beta into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M38.317** · _Age of Fracture_ (AeldariActivity): Orks marked Junora Beta as a recurring hunting ground.
-- **M39.461** · _Age of Compliance_ (Annexation): Xenos seized Junora Beta by force of arms.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Junora Beta in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
+- **M37.178** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Junora Beta into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M38.317** · _Age of Fracture_ (aeldari_activity): Orks marked Junora Beta as a recurring hunting ground.
+- **M39.461** · _Age of Compliance_ (annexation): Xenos seized Junora Beta by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| ork | Ork Klanz (`ork`) | Octarius Ork Empires (`octarius_ork_empires`) | Dominant | Influence | 33 | 5 | 90 | 30 | 15 | 35 | 40 | 20 | 84 |
-| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | Significant | Influence | 31 | 56 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | Minor | Presence | 10 | 9 | 18 | 7 | 9 | 7 | 10 | 12 | 19 |
+| ork | Ork Klanz (`ork`) | Octarius Ork Empires (`octarius_ork_empires`) | dominant | influence | 33 | 5 | 90 | 30 | 15 | 35 | 40 | 20 | 84 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | significant | influence | 31 | 56 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | minor | presence | 10 | 9 | 18 | 7 | 9 | 7 | 10 | 12 | 19 |
 
 **Control:**
 - Dominant: ork
@@ -1203,18 +1203,18 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| ork | HuntingGround | 33 |
-| imperial | ImperialMandate | 31 |
-| xenos | MilitaryOccupation | 10 |
+| ork | hunting_ground | 33 |
+| imperial | imperial_mandate | 31 |
+| xenos | military_occupation | 10 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Primary Forge | ForgeComplex | ork | 22 | 50 | 84 |
-| Magos Spire | Capital | imperial | 35 | 15 | 58 |
-| Servitor Underworks | Underhive | ork | 21 | 15 | 84 |
-| Slag Plains | Wilderness | ork | 29 | 20 | 84 |
+| Primary Forge | forge_complex | ork | 22 | 50 | 84 |
+| Magos Spire | capital | imperial | 35 | 15 | 58 |
+| Servitor Underworks | underhive | ork | 21 | 15 | 84 |
+| Slag Plains | wilderness | ork | 29 | 20 | 84 |
 
 **Conflict:** intensity 6 momentum 0 attacker=imperial defender=ork
 
@@ -1222,16 +1222,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.016** · _Age of Foundation_ (Foundation): Records place the founding of Ysengrav in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
-- **M37.151** · _Age of Compliance_ (CommercialCharter): T'au Empire was granted a commercial charter to operate on Ysengrav.
-- **M37.184** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Ysengrav into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.454** · _Age of Compliance_ (Annexation): Chaos seized Ysengrav by force of arms.
+- **M36.016** · _Age of Foundation_ (foundation): Records place the founding of Ysengrav in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
+- **M37.151** · _Age of Compliance_ (commercial_charter): T'au Empire was granted a commercial charter to operate on Ysengrav.
+- **M37.184** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Ysengrav into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.454** · _Age of Compliance_ (annexation): Chaos seized Ysengrav by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| tau | T'au Septs (`tau`) | Au’taal Sept (`autaal_sept`) | Dominant | Contested | 56 | 55 | 55 | 50 | 65 | 75 | 60 | 35 | 70 |
-| chaos | Traitor Guard (`traitor_guard`) | Severan Dominate (`severan_dominate`) | Significant | Presence | 23 | 10 | 52 | 10 | 10 | 26 | 26 | 26 | 45 |
-| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Solar (`battlefleet_solar`) | Minor | Presence | 18 | 30 | 10 | 7 | 18 | 12 | 24 | 7 | 32 |
+| tau | T'au Septs (`tau`) | Au’taal Sept (`autaal_sept`) | dominant | contested | 56 | 55 | 55 | 50 | 65 | 75 | 60 | 35 | 70 |
+| chaos | Traitor Guard (`traitor_guard`) | Severan Dominate (`severan_dominate`) | significant | presence | 23 | 10 | 52 | 10 | 10 | 26 | 26 | 26 | 45 |
+| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Solar (`battlefleet_solar`) | minor | presence | 18 | 30 | 10 | 7 | 18 | 12 | 24 | 7 | 32 |
 
 **Control:**
 - Dominant: tau
@@ -1254,29 +1254,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| tau | CommercialCharter | 56 |
-| chaos | MilitaryOccupation | 23 |
-| imperial | ImperialMandate | 18 |
+| tau | commercial_charter | 56 |
+| chaos | military_occupation | 23 |
+| imperial | imperial_mandate | 18 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | tau | 57 | 30 | 70 |
-| Hinterland | Wilderness | tau | 23 | 70 | 70 |
+| Capital | capital | tau | 57 | 30 | 70 |
+| Hinterland | wilderness | tau | 23 | 70 | 70 |
 
 ### SYS-0006-W03 — Dead Furoria Dolor
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Dead Furoria Dolor in this era; the world was settled as an ImperialWorld and registered a CorruptAristocrats.
-- **M37.160** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Dead Furoria Dolor into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Dead Furoria Dolor in this era; the world was settled as an ImperialWorld and registered a CorruptAristocrats.
+- **M37.160** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Dead Furoria Dolor into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Tempestus Scions (`tempestus_scions`) | Dominant | Contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
-| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | Significant | Influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Lord Governor Retinues (`lord_governor_retinues`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Tempestus Scions (`tempestus_scions`) | dominant | contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
+| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | significant | influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Lord Governor Retinues (`lord_governor_retinues`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -1299,14 +1299,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
+| imperial | imperial_mandate | 49 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 67 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 67 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ## SYS-0007 — Praetoria
 
@@ -1326,20 +1326,20 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 79 |
-| Station | imperial | 88 |
+| defense_platform | imperial | 79 |
+| station | imperial | 88 |
 
 
 **Local history:**
 
-- **M36.021** · _Age of Foundation_ (Foundation): Records place the founding of Imperial Rubrica in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M36.026** · _Age of Foundation_ (Foundation): Records place the founding of Penitentia Ferrum in this era; the world was settled as a ResearchStation and registered a MechanicusForgeLord.
-- **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Incense Acridion in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M36.072** · _Age of Foundation_ (Discovery): Navigators marked the lane between Viridia and Praetoria as StableWarpLane; later charts record it as Unstable.
-- **M36.075** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Hadar Crag as ChartedPassage; later charts record it as Hazardous.
-- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Tantalus Cradle and Praetoria as ChartedPassage; later charts record it as Hazardous.
-- **M36.093** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Prosperis as BlackShip; later charts record it as Unstable.
-- **M36.104** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Penitent Fires as StableWarpLane; later charts record it as Unstable.
+- **M36.021** · _Age of Foundation_ (foundation): Records place the founding of Imperial Rubrica in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M36.026** · _Age of Foundation_ (foundation): Records place the founding of Penitentia Ferrum in this era; the world was settled as a ResearchStation and registered a MechanicusForgeLord.
+- **M36.032** · _Age of Foundation_ (foundation): Records place the founding of Incense Acridion in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M36.072** · _Age of Foundation_ (discovery): Navigators marked the lane between Viridia and Praetoria as StableWarpLane; later charts record it as Unstable.
+- **M36.075** · _Age of Foundation_ (discovery): Navigators marked the lane between Praetoria and Hadar Crag as ChartedPassage; later charts record it as Hazardous.
+- **M36.092** · _Age of Foundation_ (discovery): Navigators marked the lane between Tantalus Cradle and Praetoria as ChartedPassage; later charts record it as Hazardous.
+- **M36.093** · _Age of Foundation_ (discovery): Navigators marked the lane between Praetoria and Prosperis as BlackShip; later charts record it as Unstable.
+- **M36.104** · _Age of Foundation_ (discovery): Navigators marked the lane between Praetoria and Penitent Fires as StableWarpLane; later charts record it as Unstable.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -1351,12 +1351,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Incense Acridion in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M37.177** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Incense Acridion into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.032** · _Age of Foundation_ (foundation): Records place the founding of Incense Acridion in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M37.177** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Incense Acridion into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Segmentum Command (`segmentum_command`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Segmentum Command (`segmentum_command`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -1379,25 +1379,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 56 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 56 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0007-W02 — Penitentia Ferrum
 
 **Local history:**
 
-- **M36.026** · _Age of Foundation_ (Foundation): Records place the founding of Penitentia Ferrum in this era; the world was settled as a ResearchStation and registered a MechanicusForgeLord.
-- **M39.571** · _Age of Fracture_ (CultExposed): Imperium obtained a covert writ binding agents on Penitentia Ferrum.
+- **M36.026** · _Age of Foundation_ (foundation): Records place the founding of Penitentia Ferrum in this era; the world was settled as a ResearchStation and registered a MechanicusForgeLord.
+- **M39.571** · _Age of Fracture_ (cult_exposed): Imperium obtained a covert writ binding agents on Penitentia Ferrum.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | The Inquisition (`inquisition`) | Deathwatch Watch Stations (`deathwatch_watch_stations`) | Dominant | Influence | 26 | 9 | 35 | 15 | 4 | 4 | 30 | 100 | 0 |
+| imperial | The Inquisition (`inquisition`) | Deathwatch Watch Stations (`deathwatch_watch_stations`) | dominant | influence | 26 | 9 | 35 | 15 | 4 | 4 | 30 | 100 | 0 |
 
 **Control:**
 - Dominant: imperial
@@ -1420,14 +1420,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | CovertWrit | 26 |
+| imperial | covert_writ | 26 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 19 | 30 | 0 |
-| Hinterland | Wilderness | imperial | 9 | 70 | 0 |
+| Capital | capital | imperial | 19 | 30 | 0 |
+| Hinterland | wilderness | imperial | 9 | 70 | 0 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -1435,12 +1435,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.021** · _Age of Foundation_ (Foundation): Records place the founding of Imperial Rubrica in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
-- **M37.170** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Imperial Rubrica into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.021** · _Age of Foundation_ (foundation): Records place the founding of Imperial Rubrica in this era; the world was settled as an Asteroid and registered a RogueTraderDynasty.
+- **M37.170** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Imperial Rubrica into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Census Bureau (`imperial_census_bureau`) | Dominant | Influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Census Bureau (`imperial_census_bureau`) | dominant | influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -1463,14 +1463,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 31 |
+| imperial | imperial_mandate | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 30 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 90 |
+| Capital | capital | imperial | 30 | 30 | 90 |
+| Hinterland | wilderness | imperial | 11 | 70 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -1496,23 +1496,23 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| BlockadeFleet | chaos | 100 |
-| DefensePlatform | chaos | 100 |
-| DefensePlatform | imperial | 64 |
-| Shipyard | imperial | 57 |
-| Station | imperial | 73 |
+| blockade_fleet | chaos | 100 |
+| defense_platform | chaos | 100 |
+| defense_platform | imperial | 64 |
+| shipyard | imperial | 57 |
+| station | imperial | 73 |
 
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Ataraxia in this era; the world was settled as a DeathWorld and registered a ClansTribes.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Karthaxia in this era; the world was settled as a FeudalWorld and registered a BalkanizedLocalFactions.
-- **M36.021** · _Age of Foundation_ (Foundation): Records place the founding of Hallowed Rhadam in this era; the world was settled as an AgriWorld and registered a Megacorporations.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Amaraxis in this era; the world was settled as a TombWorld and registered a None.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Phlegethon Sanctuary and Castoria as SmugglingLane; later charts record it as Hazardous.
-- **M36.083** · _Age of Foundation_ (Discovery): Navigators marked the lane between Phlegethon Sanctuary and Xanthus Perdition as ChartedPassage; later charts record it as Hazardous.
-- **M36.084** · _Age of Foundation_ (Discovery): Navigators marked the lane between Caestorum and Phlegethon Sanctuary as SmugglingLane; later charts record it as Hazardous.
-- **M36.100** · _Age of Foundation_ (Discovery): Navigators marked the lane between Phlegethon Sanctuary and Heres as StableWarpLane; later charts record it as Hazardous.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Ataraxia in this era; the world was settled as a DeathWorld and registered a ClansTribes.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Karthaxia in this era; the world was settled as a FeudalWorld and registered a BalkanizedLocalFactions.
+- **M36.021** · _Age of Foundation_ (foundation): Records place the founding of Hallowed Rhadam in this era; the world was settled as an AgriWorld and registered a Megacorporations.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Amaraxis in this era; the world was settled as a TombWorld and registered a None.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Phlegethon Sanctuary and Castoria as SmugglingLane; later charts record it as Hazardous.
+- **M36.083** · _Age of Foundation_ (discovery): Navigators marked the lane between Phlegethon Sanctuary and Xanthus Perdition as ChartedPassage; later charts record it as Hazardous.
+- **M36.084** · _Age of Foundation_ (discovery): Navigators marked the lane between Caestorum and Phlegethon Sanctuary as SmugglingLane; later charts record it as Hazardous.
+- **M36.100** · _Age of Foundation_ (discovery): Navigators marked the lane between Phlegethon Sanctuary and Heres as StableWarpLane; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -1525,12 +1525,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Ataraxia in this era; the world was settled as a DeathWorld and registered a ClansTribes.
-- **M39.460** · _Age of Compliance_ (Annexation): Chaos seized Ataraxia by force of arms.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Ataraxia in this era; the world was settled as a DeathWorld and registered a ClansTribes.
+- **M39.460** · _Age of Compliance_ (annexation): Chaos seized Ataraxia by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Traitor Titan Legions (`traitor_titan_legion`) | Legio Mordaxis (`legio_mordaxis`) | Dominant | Influence | 35 | 4 | 100 | 30 | 7 | 25 | 40 | 25 | 64 |
+| chaos | Traitor Titan Legions (`traitor_titan_legion`) | Legio Mordaxis (`legio_mordaxis`) | dominant | influence | 35 | 4 | 100 | 30 | 7 | 25 | 40 | 25 | 64 |
 
 **Control:**
 - Dominant: chaos
@@ -1551,15 +1551,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 35 |
+| chaos | military_occupation | 35 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Garrison | Capital | chaos | 22 | 15 | 64 |
-| Death-World Biome | Wilderness | chaos | 17 | 75 | 64 |
-| Cult Cells | Hideout | chaos | 19 | 10 | 64 |
+| Garrison | capital | chaos | 22 | 15 | 64 |
+| Death-World Biome | wilderness | chaos | 17 | 75 | 64 |
+| Cult Cells | hideout | chaos | 19 | 10 | 64 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=chaos
 
@@ -1567,7 +1567,7 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Amaraxis in this era; the world was settled as a TombWorld and registered a None.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Amaraxis in this era; the world was settled as a TombWorld and registered a None.
 
 **Stability:**
 - Public order: 70
@@ -1582,22 +1582,22 @@ Chronicle events: **427**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Inner Tomb | TombComplex | — | 0 | 60 | 0 |
-| Surface Wastes | Wilderness | — | 0 | 40 | 0 |
+| Inner Tomb | tomb_complex | — | 0 | 60 | 0 |
+| Surface Wastes | wilderness | — | 0 | 40 | 0 |
 
 ### SYS-0008-W03 — Hallowed Rhadam
 
 **Local history:**
 
-- **M36.021** · _Age of Foundation_ (Foundation): Records place the founding of Hallowed Rhadam in this era; the world was settled as an AgriWorld and registered a Megacorporations.
-- **M37.168** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Hallowed Rhadam into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.570** · _Age of Fracture_ (Uprising): Loyalist authority on Hallowed Rhadam collapsed; Tyranids declared open rebellion.
+- **M36.021** · _Age of Foundation_ (foundation): Records place the founding of Hallowed Rhadam in this era; the world was settled as an AgriWorld and registered a Megacorporations.
+- **M37.168** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Hallowed Rhadam into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.570** · _Age of Fracture_ (uprising): Loyalist authority on Hallowed Rhadam collapsed; Tyranids declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | Dominant | Contested | 48 | 86 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| imperial | Astra Militarum (`imperial_guard`) | Last Chancers (`last_chancers`) | Significant | Influence | 29 | 23 | 52 | 16 | 13 | 36 | 23 | 6 | 58 |
-| tyranid | Genestealer Cults (`genestealer_cult`) | Sons of Jormungandr (`sons_of_jormungandr`) | Minor | Presence | 10 | 4 | 12 | 2 | 9 | 9 | 18 | 38 | 0 |
+| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | dominant | contested | 48 | 86 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| imperial | Astra Militarum (`imperial_guard`) | Last Chancers (`last_chancers`) | significant | influence | 29 | 23 | 52 | 16 | 13 | 36 | 23 | 6 | 58 |
+| tyranid | Genestealer Cults (`genestealer_cult`) | Sons of Jormungandr (`sons_of_jormungandr`) | minor | presence | 10 | 4 | 12 | 2 | 9 | 9 | 18 | 38 | 0 |
 
 **Control:**
 - Dominant: imperial
@@ -1621,16 +1621,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 48 |
-| tyranid | Rebellion | 10 |
+| imperial | imperial_mandate | 48 |
+| tyranid | rebellion | 10 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Agri Belt | AgriBelt | imperial | 44 | 70 | 90 |
-| Provincial Capital | Capital | imperial | 66 | 10 | 90 |
-| Wild Districts | Wilderness | imperial | 17 | 20 | 90 |
+| Agri Belt | agri_belt | imperial | 44 | 70 | 90 |
+| Provincial Capital | capital | imperial | 66 | 10 | 90 |
+| Wild Districts | wilderness | imperial | 17 | 20 | 90 |
 
 **Conflict:** intensity 9 momentum 0 attacker=imperial defender=imperial
 
@@ -1638,12 +1638,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Karthaxia in this era; the world was settled as a FeudalWorld and registered a BalkanizedLocalFactions.
-- **M39.444** · _Age of Compliance_ (Annexation): Chaos seized Karthaxia by force of arms.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Karthaxia in this era; the world was settled as a FeudalWorld and registered a BalkanizedLocalFactions.
+- **M39.444** · _Age of Compliance_ (annexation): Chaos seized Karthaxia by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Daemonic Legions (`daemon`) | Nurglings Infestations (`nurglings_infestations`) | Dominant | Influence | 33 | 0 | 85 | 30 | 4 | 0 | 80 | 70 | 54 |
+| chaos | Daemonic Legions (`daemon`) | Nurglings Infestations (`nurglings_infestations`) | dominant | influence | 33 | 0 | 85 | 30 | 4 | 0 | 80 | 70 | 54 |
 
 **Control:**
 - Dominant: chaos
@@ -1664,14 +1664,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 33 |
+| chaos | military_occupation | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | chaos | 20 | 30 | 54 |
-| Hinterland | Wilderness | chaos | 16 | 70 | 54 |
+| Capital | capital | chaos | 20 | 30 | 54 |
+| Hinterland | wilderness | chaos | 16 | 70 | 54 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=chaos
 
@@ -1693,22 +1693,22 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | chaos | 72 |
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
+| defense_platform | chaos | 72 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.002** · _Age of Foundation_ (Foundation): Records place the founding of Nullion in this era; the world was settled as an ImperialWorld and registered a HereticalImperialCult.
-- **M36.012** · _Age of Foundation_ (Foundation): Records place the founding of Echo Zephona Majoris in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Karthaxia Delta in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Edicta in this era; the world was settled as a FeudalWorld and registered a Demagogue.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Atropis Pilgrim in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Night Arkhelia Exile in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Prosperis as ChartedPassage; later charts record it as Hazardous.
-- **M36.093** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Prosperis as BlackShip; later charts record it as Unstable.
+- **M36.002** · _Age of Foundation_ (foundation): Records place the founding of Nullion in this era; the world was settled as an ImperialWorld and registered a HereticalImperialCult.
+- **M36.012** · _Age of Foundation_ (foundation): Records place the founding of Echo Zephona Majoris in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Karthaxia Delta in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Edicta in this era; the world was settled as a FeudalWorld and registered a Demagogue.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Atropis Pilgrim in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Night Arkhelia Exile in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Prosperis as ChartedPassage; later charts record it as Hazardous.
+- **M36.093** · _Age of Foundation_ (discovery): Navigators marked the lane between Praetoria and Prosperis as BlackShip; later charts record it as Unstable.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -1723,14 +1723,14 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Edicta in this era; the world was settled as a FeudalWorld and registered a Demagogue.
-- **M37.157** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Edicta as a charge of the faith.
-- **M37.170** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Edicta into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Edicta in this era; the world was settled as a FeudalWorld and registered a Demagogue.
+- **M37.157** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Edicta as a charge of the faith.
+- **M37.170** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Edicta into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Mechanicus (`mechanicus`) | Explorator Fleets (`explorator_fleets`) | Dominant | Influence | 43 | 36 | 35 | 50 | 46 | 62 | 50 | 25 | 72 |
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adeptus Ministorum (`ecclesiarchy`) | Significant | Influence | 26 | 37 | 20 | 13 | 21 | 15 | 41 | 10 | 58 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Explorator Fleets (`explorator_fleets`) | dominant | influence | 43 | 36 | 35 | 50 | 46 | 62 | 50 | 25 | 72 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adeptus Ministorum (`ecclesiarchy`) | significant | influence | 26 | 37 | 20 | 13 | 21 | 15 | 41 | 10 | 58 |
 
 **Control:**
 - Dominant: imperial
@@ -1753,29 +1753,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 43 |
-| imperial | ReligiousMandate | 26 |
+| imperial | imperial_mandate | 43 |
+| imperial | religious_mandate | 26 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 40 | 30 | 72 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 72 |
+| Capital | capital | imperial | 40 | 30 | 72 |
+| Hinterland | wilderness | imperial | 16 | 70 | 72 |
 
 ### SYS-0009-W02 — Nullion
 
 **Local history:**
 
-- **M36.002** · _Age of Foundation_ (Foundation): Records place the founding of Nullion in this era; the world was settled as an ImperialWorld and registered a HereticalImperialCult.
-- **M37.158** · _Echoes of the Great Crusade_ (DynasticClaim): Imperium pressed an ancestral dynastic right over Nullion.
-- **M37.171** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Nullion into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.002** · _Age of Foundation_ (foundation): Records place the founding of Nullion in this era; the world was settled as an ImperialWorld and registered a HereticalImperialCult.
+- **M37.158** · _Echoes of the Great Crusade_ (dynastic_claim): Imperium pressed an ancestral dynastic right over Nullion.
+- **M37.171** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Nullion into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Remembrancers (`imperial_remembrancers`) | Dominant | Contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
-| imperial | Grey Knights (`grey_knights`) | Grey Knights (`grey_knights`) | Significant | Influence | 28 | 6 | 52 | 39 | 3 | 10 | 32 | 54 | 16 |
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Remembrancers (`imperial_remembrancers`) | dominant | contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
+| imperial | Grey Knights (`grey_knights`) | Grey Knights (`grey_knights`) | significant | influence | 28 | 6 | 52 | 39 | 3 | 10 | 32 | 54 | 16 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -1798,29 +1798,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
-| imperial | DynasticRight | 28 |
+| imperial | imperial_mandate | 49 |
+| imperial | dynastic_right | 28 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 67 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 67 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ### SYS-0009-W03 — Night Arkhelia Exile
 
 **Local history:**
 
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Night Arkhelia Exile in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
-- **M37.157** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Night Arkhelia Exile.
-- **M37.162** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Night Arkhelia Exile into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Night Arkhelia Exile in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
+- **M37.157** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Night Arkhelia Exile.
+- **M37.162** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Night Arkhelia Exile into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Collegia Titanica (`collegia_titanica`) | Collegia Titanica (`collegia_titanica`) | Dominant | Contested | 45 | 30 | 85 | 30 | 25 | 65 | 40 | 15 | 67 |
-| merchant | Merchant Combines (`merchant`) | Oathbound Mercenaries (`oathbound_mercenaries`) | Significant | Influence | 28 | 24 | 10 | 23 | 62 | 26 | 13 | 20 | 46 |
-| imperial | Imperial Chartist Fleets (`chartist_fleets`) | Chartist Captains (`chartist_captains`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | Collegia Titanica (`collegia_titanica`) | Collegia Titanica (`collegia_titanica`) | dominant | contested | 45 | 30 | 85 | 30 | 25 | 65 | 40 | 15 | 67 |
+| merchant | Merchant Combines (`merchant`) | Oathbound Mercenaries (`oathbound_mercenaries`) | significant | influence | 28 | 24 | 10 | 23 | 62 | 26 | 13 | 20 | 46 |
+| imperial | Imperial Chartist Fleets (`chartist_fleets`) | Chartist Captains (`chartist_captains`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -1843,26 +1843,26 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
-| merchant | CommercialCharter | 28 |
+| imperial | imperial_mandate | 45 |
+| merchant | commercial_charter | 28 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 46 | 30 | 67 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 67 |
+| Capital | capital | imperial | 46 | 30 | 67 |
+| Hinterland | wilderness | imperial | 21 | 70 | 67 |
 
 ### SYS-0009-W04 — Karthaxia Delta
 
 **Local history:**
 
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Karthaxia Delta in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M37.168** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Karthaxia Delta into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Karthaxia Delta in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M37.168** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Karthaxia Delta into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | Dominant | Contested | 45 | 77 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
+| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | dominant | contested | 45 | 77 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -1885,29 +1885,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
+| imperial | imperial_mandate | 45 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 59 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 59 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0009-W05 — Atropis Pilgrim
 
 **Local history:**
 
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Atropis Pilgrim in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
-- **M37.178** · _Echoes of the Great Crusade_ (DynasticClaim): Imperium pressed an ancestral dynastic right over Atropis Pilgrim.
-- **M37.186** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Atropis Pilgrim into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.458** · _Age of Compliance_ (Annexation): Chaos seized Atropis Pilgrim by force of arms.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Atropis Pilgrim in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
+- **M37.178** · _Echoes of the Great Crusade_ (dynastic_claim): Imperium pressed an ancestral dynastic right over Atropis Pilgrim.
+- **M37.186** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Atropis Pilgrim into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.458** · _Age of Compliance_ (annexation): Chaos seized Atropis Pilgrim by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Grey Knights (`grey_knights`) | Grey Knights (`grey_knights`) | Dominant | Contested | 45 | 20 | 80 | 60 | 5 | 15 | 47 | 82 | 25 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | Significant | Influence | 34 | 66 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| chaos | Traitor Guard (`traitor_guard`) | Blood Pact (`blood_pact`) | Minor | Presence | 14 | 10 | 28 | 5 | 5 | 14 | 18 | 16 | 24 |
+| imperial | Grey Knights (`grey_knights`) | Grey Knights (`grey_knights`) | dominant | contested | 45 | 20 | 80 | 60 | 5 | 15 | 47 | 82 | 25 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | significant | influence | 34 | 66 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| chaos | Traitor Guard (`traitor_guard`) | Blood Pact (`blood_pact`) | minor | presence | 14 | 10 | 28 | 5 | 5 | 14 | 18 | 16 | 24 |
 
 **Control:**
 - Dominant: imperial
@@ -1930,31 +1930,31 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | DynasticRight | 45 |
-| imperial | ImperialMandate | 34 |
-| chaos | MilitaryOccupation | 14 |
+| imperial | dynastic_right | 45 |
+| imperial | imperial_mandate | 34 |
+| chaos | military_occupation | 14 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 43 | 30 | 25 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 25 |
+| Capital | capital | imperial | 43 | 30 | 25 |
+| Hinterland | wilderness | imperial | 21 | 70 | 25 |
 
 ### SYS-0009-W06 — Echo Zephona Majoris
 
 **Local history:**
 
-- **M36.012** · _Age of Foundation_ (Foundation): Records place the founding of Echo Zephona Majoris in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
-- **M37.155** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Echo Zephona Majoris into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.435** · _Age of Compliance_ (Annexation): Chaos seized Echo Zephona Majoris by force of arms.
-- **M39.579** · _Age of Fracture_ (Uprising): Loyalist authority on Echo Zephona Majoris collapsed; Rebel Powers declared open rebellion.
+- **M36.012** · _Age of Foundation_ (foundation): Records place the founding of Echo Zephona Majoris in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
+- **M37.155** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Echo Zephona Majoris into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.435** · _Age of Compliance_ (annexation): Chaos seized Echo Zephona Majoris by force of arms.
+- **M39.579** · _Age of Fracture_ (uprising): Loyalist authority on Echo Zephona Majoris collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Astra Militarum (`imperial_guard`) | Scintillan Fusiliers (`scintillan_fusiliers`) | Dominant | Contested | 45 | 41 | 80 | 25 | 20 | 55 | 35 | 9 | 90 |
-| chaos | Heretic Astartes (`chaos_space_marine`) | The Shriven (`the_shriven`) | Significant | Influence | 27 | 3 | 62 | 39 | 6 | 16 | 39 | 32 | 42 |
-| rebel | Rebel Movements (`rebel`) | Voidborn Separatists (`voidborn_separatists`) | Minor | Presence | 13 | 10 | 21 | 4 | 9 | 7 | 23 | 20 | 21 |
+| imperial | Astra Militarum (`imperial_guard`) | Scintillan Fusiliers (`scintillan_fusiliers`) | dominant | contested | 45 | 41 | 80 | 25 | 20 | 55 | 35 | 9 | 90 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | The Shriven (`the_shriven`) | significant | influence | 27 | 3 | 62 | 39 | 6 | 16 | 39 | 32 | 42 |
+| rebel | Rebel Movements (`rebel`) | Voidborn Separatists (`voidborn_separatists`) | minor | presence | 13 | 10 | 21 | 4 | 9 | 7 | 23 | 20 | 21 |
 
 **Control:**
 - Dominant: imperial
@@ -1977,16 +1977,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
-| chaos | MilitaryOccupation | 27 |
-| rebel | Rebellion | 13 |
+| imperial | imperial_mandate | 45 |
+| chaos | military_occupation | 27 |
+| rebel | rebellion | 13 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 50 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 90 |
+| Capital | capital | imperial | 50 | 30 | 90 |
+| Hinterland | wilderness | imperial | 21 | 70 | 90 |
 
 **Conflict:** intensity 9 momentum 0 attacker=chaos defender=imperial
 
@@ -2010,25 +2010,25 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| BlockadeFleet | imperial | 100 |
-| DefensePlatform | chaos | 100 |
-| DefensePlatform | imperial | 100 |
-| Shipyard | chaos | 100 |
-| Shipyard | imperial | 100 |
-| Station | chaos | 77 |
-| Station | imperial | 100 |
+| blockade_fleet | imperial | 100 |
+| defense_platform | chaos | 100 |
+| defense_platform | imperial | 100 |
+| shipyard | chaos | 100 |
+| shipyard | imperial | 100 |
+| station | chaos | 77 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.000** · _Age of Foundation_ (Foundation): Records place the founding of Crypt Kythera Vigil in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M36.008** · _Age of Foundation_ (Foundation): Records place the founding of Dustfall Fulmenar in this era; the world was settled as a FeralWorld and registered a ClansTribes.
-- **M36.012** · _Age of Foundation_ (Foundation): Records place the founding of Glory Pharosia in this era; the world was settled as an AgriWorld and registered a TraditionalistAristocracy.
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Gallowsmere in this era; the world was settled as a HiveWorld and registered a Megacorporations.
-- **M36.017** · _Age of Foundation_ (Foundation): Records place the founding of Saint Sarumis Septimus in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Bitter Woehaven Gate in this era; the world was settled as an ImperialWorld and registered a MilitaryGovernor.
-- **M36.080** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Mara as ChartedPassage; later charts record it as Hazardous.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Bitter Woehaven Gate into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.000** · _Age of Foundation_ (foundation): Records place the founding of Crypt Kythera Vigil in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M36.008** · _Age of Foundation_ (foundation): Records place the founding of Dustfall Fulmenar in this era; the world was settled as a FeralWorld and registered a ClansTribes.
+- **M36.012** · _Age of Foundation_ (foundation): Records place the founding of Glory Pharosia in this era; the world was settled as an AgriWorld and registered a TraditionalistAristocracy.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Gallowsmere in this era; the world was settled as a HiveWorld and registered a Megacorporations.
+- **M36.017** · _Age of Foundation_ (foundation): Records place the founding of Saint Sarumis Septimus in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Bitter Woehaven Gate in this era; the world was settled as an ImperialWorld and registered a MilitaryGovernor.
+- **M36.080** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Mara as ChartedPassage; later charts record it as Hazardous.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Bitter Woehaven Gate into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -2043,12 +2043,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.012** · _Age of Foundation_ (Foundation): Records place the founding of Glory Pharosia in this era; the world was settled as an AgriWorld and registered a TraditionalistAristocracy.
-- **M37.174** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Glory Pharosia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.012** · _Age of Foundation_ (foundation): Records place the founding of Glory Pharosia in this era; the world was settled as an AgriWorld and registered a TraditionalistAristocracy.
+- **M37.174** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Glory Pharosia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Navis Nobilite (`navis_nobilite`) | Navis Nobilite (`navis_nobilite`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navis Nobilite (`navis_nobilite`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -2071,30 +2071,30 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Agri Belt | AgriBelt | imperial | 37 | 70 | 90 |
-| Provincial Capital | Capital | imperial | 55 | 10 | 90 |
-| Wild Districts | Wilderness | imperial | 16 | 20 | 90 |
+| Agri Belt | agri_belt | imperial | 37 | 70 | 90 |
+| Provincial Capital | capital | imperial | 55 | 10 | 90 |
+| Wild Districts | wilderness | imperial | 16 | 20 | 90 |
 
 ### SYS-0010-W02 — Saint Sarumis Septimus
 
 **Local history:**
 
-- **M36.017** · _Age of Foundation_ (Foundation): Records place the founding of Saint Sarumis Septimus in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
-- **M37.156** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Saint Sarumis Septimus into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.166** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Saint Sarumis Septimus as a charge of the faith.
-- **M38.320** · _Age of Fracture_ (AeldariActivity): Tyranids marked Saint Sarumis Septimus as a recurring hunting ground.
+- **M36.017** · _Age of Foundation_ (foundation): Records place the founding of Saint Sarumis Septimus in this era; the world was settled as an ImperialWorld and registered a LoyalistMassMovement.
+- **M37.156** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Saint Sarumis Septimus into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.166** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Saint Sarumis Septimus as a charge of the faith.
+- **M38.320** · _Age of Fracture_ (aeldari_activity): Tyranids marked Saint Sarumis Septimus as a recurring hunting ground.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adepta Sororitas (`adepta_sororitas`) | Seraphim Choirs (`seraphim_choirs`) | Dominant | Influence | 44 | 30 | 65 | 25 | 25 | 10 | 100 | 27 | 80 |
-| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Scholastica Psykana (`scholastica_psykana`) | Significant | Influence | 31 | 56 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| tyranid | Tyranid Hive Fleets (`tyranid`) | Splinter Fleet Scarabus (`splinter_fleet_scarabus`) | Minor | Presence | 11 | 0 | 35 | 21 | 0 | 0 | 0 | 10 | 22 |
+| imperial | Adepta Sororitas (`adepta_sororitas`) | Seraphim Choirs (`seraphim_choirs`) | dominant | influence | 44 | 30 | 65 | 25 | 25 | 10 | 100 | 27 | 80 |
+| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Scholastica Psykana (`scholastica_psykana`) | significant | influence | 31 | 56 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| tyranid | Tyranid Hive Fleets (`tyranid`) | Splinter Fleet Scarabus (`splinter_fleet_scarabus`) | minor | presence | 11 | 0 | 35 | 21 | 0 | 0 | 0 | 10 | 22 |
 
 **Control:**
 - Dominant: imperial
@@ -2117,30 +2117,30 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 44 |
-| imperial | ImperialMandate | 31 |
-| tyranid | HuntingGround | 11 |
+| imperial | religious_mandate | 44 |
+| imperial | imperial_mandate | 31 |
+| tyranid | hunting_ground | 11 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 46 | 30 | 80 |
-| Hinterland | Wilderness | imperial | 19 | 70 | 80 |
+| Capital | capital | imperial | 46 | 30 | 80 |
+| Hinterland | wilderness | imperial | 19 | 70 | 80 |
 
 ### SYS-0010-W03 — Gallowsmere
 
 **Local history:**
 
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Gallowsmere in this era; the world was settled as a HiveWorld and registered a Megacorporations.
-- **M37.182** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Gallowsmere into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.468** · _Age of Compliance_ (Annexation): Xenos seized Gallowsmere by force of arms.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Gallowsmere in this era; the world was settled as a HiveWorld and registered a Megacorporations.
+- **M37.182** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Gallowsmere into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.468** · _Age of Compliance_ (annexation): Xenos seized Gallowsmere by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | Dominant | Contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| xenos | Minor Xenos Species (`minor_xenos`) | Barghesi (`barghesi`) | Significant | Presence | 19 | 16 | 32 | 13 | 16 | 13 | 20 | 23 | 35 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | Minor | Presence | 18 | 35 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | dominant | contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| xenos | Minor Xenos Species (`minor_xenos`) | Barghesi (`barghesi`) | significant | presence | 19 | 16 | 32 | 13 | 16 | 13 | 20 | 23 | 35 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | minor | presence | 18 | 35 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2163,30 +2163,30 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
-| xenos | MilitaryOccupation | 19 |
+| imperial | imperial_mandate | 49 |
+| xenos | military_occupation | 19 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Sector Capital | Capital | imperial | 70 | 25 | 90 |
-| Primary Hive | Hive | imperial | 55 | 45 | 90 |
-| Underhive | Underhive | imperial | 26 | 25 | 90 |
-| Outer Wastes | Wilderness | imperial | 18 | 5 | 90 |
+| Sector Capital | capital | imperial | 70 | 25 | 90 |
+| Primary Hive | hive | imperial | 55 | 45 | 90 |
+| Underhive | underhive | imperial | 26 | 25 | 90 |
+| Outer Wastes | wilderness | imperial | 18 | 5 | 90 |
 
 ### SYS-0010-W04 — Dustfall Fulmenar
 
 **Local history:**
 
-- **M36.008** · _Age of Foundation_ (Foundation): Records place the founding of Dustfall Fulmenar in this era; the world was settled as a FeralWorld and registered a ClansTribes.
-- **M37.174** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Dustfall Fulmenar into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.444** · _Age of Compliance_ (Annexation): Chaos seized Dustfall Fulmenar by force of arms.
+- **M36.008** · _Age of Foundation_ (foundation): Records place the founding of Dustfall Fulmenar in this era; the world was settled as a FeralWorld and registered a ClansTribes.
+- **M37.174** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Dustfall Fulmenar into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.444** · _Age of Compliance_ (annexation): Chaos seized Dustfall Fulmenar by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Mechanicus (`mechanicus`) | Forge World Metalica (`forge_world_metalica`) | Dominant | Influence | 43 | 36 | 35 | 50 | 46 | 62 | 50 | 25 | 72 |
-| chaos | Heretic Astartes (`chaos_space_marine`) | Skyrar’s Dark Wolves (`skyrars_dark_wolves`) | Significant | Influence | 26 | 2 | 62 | 39 | 4 | 11 | 39 | 32 | 42 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Forge World Metalica (`forge_world_metalica`) | dominant | influence | 43 | 36 | 35 | 50 | 46 | 62 | 50 | 25 | 72 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | Skyrar’s Dark Wolves (`skyrars_dark_wolves`) | significant | influence | 26 | 2 | 62 | 39 | 4 | 11 | 39 | 32 | 42 |
 
 **Control:**
 - Dominant: imperial
@@ -2209,30 +2209,30 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 43 |
-| chaos | MilitaryOccupation | 26 |
+| imperial | imperial_mandate | 43 |
+| chaos | military_occupation | 26 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 40 | 30 | 72 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 72 |
+| Capital | capital | imperial | 40 | 30 | 72 |
+| Hinterland | wilderness | imperial | 16 | 70 | 72 |
 
 ### SYS-0010-W05 — Bitter Woehaven Gate
 
 **Local history:**
 
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Bitter Woehaven Gate in this era; the world was settled as an ImperialWorld and registered a MilitaryGovernor.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Bitter Woehaven Gate into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.455** · _Age of Compliance_ (Annexation): Chaos seized Bitter Woehaven Gate by force of arms.
-- **M42.038** · _Indomitus Dawn_ (Purge): Open warfare engulfed Bitter Woehaven Gate; Imperium pressed an offensive against Chaos.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Bitter Woehaven Gate in this era; the world was settled as an ImperialWorld and registered a MilitaryGovernor.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Bitter Woehaven Gate into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.455** · _Age of Compliance_ (annexation): Chaos seized Bitter Woehaven Gate by force of arms.
+- **M42.038** · _Indomitus Dawn_ (purge): Open warfare engulfed Bitter Woehaven Gate; Imperium pressed an offensive against Chaos.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Dark Mechanicum (`dark_mechanicum`) | Soul Grinder Manufactoria (`soul_grinder_manufactoria`) | Dominant | Contested | 46 | 25 | 60 | 45 | 55 | 85 | 40 | 65 | 44 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Segmentum Command (`segmentum_command`) | Minor | Presence | 19 | 35 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| chaos | Dark Mechanicum (`dark_mechanicum`) | Soul Grinder Manufactoria (`soul_grinder_manufactoria`) | dominant | contested | 46 | 25 | 60 | 45 | 55 | 85 | 40 | 65 | 44 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Segmentum Command (`segmentum_command`) | minor | presence | 19 | 35 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2256,15 +2256,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 46 |
-| imperial | ImperialMandate | 33 |
+| chaos | military_occupation | 46 |
+| imperial | imperial_mandate | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 38 | 30 | 58 |
-| Hinterland | Wilderness | chaos | 19 | 70 | 44 |
+| Capital | capital | imperial | 38 | 30 | 58 |
+| Hinterland | wilderness | chaos | 19 | 70 | 44 |
 
 **Conflict:** intensity 86 momentum -26 attacker=imperial defender=chaos
 
@@ -2272,16 +2272,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.000** · _Age of Foundation_ (Foundation): Records place the founding of Crypt Kythera Vigil in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Crypt Kythera Vigil into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.461** · _Age of Compliance_ (Annexation): Chaos seized Crypt Kythera Vigil by force of arms.
-- **M39.604** · _Age of Fracture_ (CultExposed): Imperium obtained a covert writ binding agents on Crypt Kythera Vigil.
+- **M36.000** · _Age of Foundation_ (foundation): Records place the founding of Crypt Kythera Vigil in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Crypt Kythera Vigil into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.461** · _Age of Compliance_ (annexation): Chaos seized Crypt Kythera Vigil by force of arms.
+- **M39.604** · _Age of Fracture_ (cult_exposed): Imperium obtained a covert writ binding agents on Crypt Kythera Vigil.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | The Inquisition (`inquisition`) | Black Ship Custodians (`black_ship_custodians`) | Dominant | Influence | 32 | 20 | 35 | 15 | 10 | 10 | 38 | 100 | 0 |
-| chaos | Heretic Astartes (`chaos_space_marine`) | The Cleaved (`the_cleaved`) | Significant | Influence | 27 | 3 | 62 | 39 | 6 | 16 | 43 | 34 | 42 |
-| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| imperial | The Inquisition (`inquisition`) | Black Ship Custodians (`black_ship_custodians`) | dominant | influence | 32 | 20 | 35 | 15 | 10 | 10 | 38 | 100 | 0 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | The Cleaved (`the_cleaved`) | significant | influence | 27 | 3 | 62 | 39 | 6 | 16 | 43 | 34 | 42 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2305,16 +2305,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | CovertWrit | 32 |
-| chaos | MilitaryOccupation | 27 |
-| imperial | ImperialMandate | 17 |
+| imperial | covert_writ | 32 |
+| chaos | military_occupation | 27 |
+| imperial | imperial_mandate | 17 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 30 | 30 | 0 |
-| Hinterland | Wilderness | imperial | 12 | 70 | 0 |
+| Capital | capital | imperial | 30 | 30 | 0 |
+| Hinterland | wilderness | imperial | 12 | 70 | 0 |
 
 ## SYS-0011 — Dominicar
 
@@ -2336,22 +2336,22 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
-| Station | merchant | 33 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
+| station | merchant | 33 |
 
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Eosphora in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
-- **M36.023** · _Age of Foundation_ (Foundation): Records place the founding of Witching Clarion in this era; the world was settled as a DeadWorld and registered a None.
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Obsidian Nicomede in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M36.033** · _Age of Foundation_ (Foundation): Records place the founding of Veneris in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Rhadam in this era; the world was settled as a TombWorld and registered a XenosOverlords.
-- **M36.036** · _Age of Foundation_ (Foundation): Records place the founding of Penitentia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M36.086** · _Age of Foundation_ (Discovery): A concealed passage linking Dominicar and Castoria entered restricted charts as SmugglingLane.
-- **M36.087** · _Age of Foundation_ (Discovery): Navigators marked the lane between Dominicar and Hadar Crag as SmugglingLane; later charts record it as Hazardous.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Eosphora in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
+- **M36.023** · _Age of Foundation_ (foundation): Records place the founding of Witching Clarion in this era; the world was settled as a DeadWorld and registered a None.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Obsidian Nicomede in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M36.033** · _Age of Foundation_ (foundation): Records place the founding of Veneris in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Rhadam in this era; the world was settled as a TombWorld and registered a XenosOverlords.
+- **M36.036** · _Age of Foundation_ (foundation): Records place the founding of Penitentia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M36.086** · _Age of Foundation_ (discovery): A concealed passage linking Dominicar and Castoria entered restricted charts as SmugglingLane.
+- **M36.087** · _Age of Foundation_ (discovery): Navigators marked the lane between Dominicar and Hadar Crag as SmugglingLane; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -2366,16 +2366,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Eosphora in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
-- **M37.169** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Eosphora into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.172** · _Echoes of the Great Crusade_ (DynasticClaim): Imperium pressed an ancestral dynastic right over Eosphora.
-- **M37.189** · _Age of Compliance_ (CommercialCharter): Criminal Powers was granted a commercial charter to operate on Eosphora.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Eosphora in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
+- **M37.169** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Eosphora into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.172** · _Echoes of the Great Crusade_ (dynastic_claim): Imperium pressed an ancestral dynastic right over Eosphora.
+- **M37.189** · _Age of Compliance_ (commercial_charter): Criminal Powers was granted a commercial charter to operate on Eosphora.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Imperial Knights (`imperial_knight`) | House Mortan (`house_mortan`) | Dominant | Influence | 40 | 31 | 75 | 15 | 25 | 30 | 50 | 9 | 75 |
-| criminal | Criminal Syndicates (`criminal`) | Pale Throng (`pale_throng`) | Significant | Presence | 20 | 3 | 13 | 13 | 46 | 20 | 10 | 52 | 16 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Remembrancers (`imperial_remembrancers`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| imperial | Imperial Knights (`imperial_knight`) | House Mortan (`house_mortan`) | dominant | influence | 40 | 31 | 75 | 15 | 25 | 30 | 50 | 9 | 75 |
+| criminal | Criminal Syndicates (`criminal`) | Pale Throng (`pale_throng`) | significant | presence | 20 | 3 | 13 | 13 | 46 | 20 | 10 | 52 | 16 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Remembrancers (`imperial_remembrancers`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2399,27 +2399,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | DynasticRight | 40 |
-| criminal | CommercialCharter | 20 |
-| imperial | ImperialMandate | 17 |
+| imperial | dynastic_right | 40 |
+| criminal | commercial_charter | 20 |
+| imperial | imperial_mandate | 17 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 42 | 30 | 75 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 75 |
+| Capital | capital | imperial | 42 | 30 | 75 |
+| Hinterland | wilderness | imperial | 18 | 70 | 75 |
 
 ### SYS-0011-W02 — Obsidian Nicomede
 
 **Local history:**
 
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Obsidian Nicomede in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M37.155** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Obsidian Nicomede into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Obsidian Nicomede in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M37.155** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Obsidian Nicomede into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Planetary Defence Forces (`planetary_defence_forces`) | Dominant | Contested | 45 | 77 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Planetary Defence Forces (`planetary_defence_forces`) | dominant | contested | 45 | 77 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -2442,29 +2442,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
+| imperial | imperial_mandate | 45 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 58 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 58 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0011-W03 — Penitentia
 
 **Local history:**
 
-- **M36.036** · _Age of Foundation_ (Foundation): Records place the founding of Penitentia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M37.162** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Penitentia.
-- **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Penitentia into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M42.045** · _Indomitus Dawn_ (Purge): Open warfare engulfed Penitentia; Imperium pressed an offensive against Merchant Powers.
+- **M36.036** · _Age of Foundation_ (foundation): Records place the founding of Penitentia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M37.162** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Penitentia.
+- **M37.175** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Penitentia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M42.045** · _Indomitus Dawn_ (purge): Open warfare engulfed Penitentia; Imperium pressed an offensive against Merchant Powers.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| merchant | Merchant Combines (`merchant`) | Trade Mission Factors (`trade_mission_factors`) | Dominant | Influence | 41 | 30 | 15 | 35 | 95 | 40 | 20 | 30 | 70 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Minor | Presence | 18 | 35 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| merchant | Merchant Combines (`merchant`) | Trade Mission Factors (`trade_mission_factors`) | dominant | influence | 41 | 30 | 15 | 35 | 95 | 40 | 20 | 30 | 70 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | minor | presence | 18 | 35 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2488,15 +2488,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| merchant | CommercialCharter | 41 |
-| imperial | ImperialMandate | 33 |
+| merchant | commercial_charter | 41 |
+| imperial | imperial_mandate | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | merchant | 38 | 30 | 70 |
-| Hinterland | Wilderness | merchant | 14 | 70 | 70 |
+| Capital | capital | merchant | 38 | 30 | 70 |
+| Hinterland | wilderness | merchant | 14 | 70 | 70 |
 
 **Conflict:** intensity 91 momentum -17 attacker=imperial defender=merchant
 
@@ -2504,16 +2504,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.033** · _Age of Foundation_ (Foundation): Records place the founding of Veneris in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
-- **M37.159** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Veneris as a charge of the faith.
-- **M37.173** · _Age of Compliance_ (CommercialCharter): Criminal Powers was granted a commercial charter to operate on Veneris.
-- **M39.610** · _Age of Fracture_ (CultExposed): Imperium obtained a covert writ binding agents on Veneris.
+- **M36.033** · _Age of Foundation_ (foundation): Records place the founding of Veneris in this era; the world was settled as an ImperialWorld and registered a GuildsCombine.
+- **M37.159** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Veneris as a charge of the faith.
+- **M37.173** · _Age of Compliance_ (commercial_charter): Criminal Powers was granted a commercial charter to operate on Veneris.
+- **M39.610** · _Age of Fracture_ (cult_exposed): Imperium obtained a covert writ binding agents on Veneris.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | The Inquisition (`inquisition`) | Vanus Temple (`vanus_temple`) | Dominant | Influence | 31 | 20 | 35 | 15 | 10 | 10 | 30 | 100 | 0 |
-| criminal | Criminal Syndicates (`criminal`) | Mutant Brotherhoods (`mutant_brotherhoods`) | Significant | Presence | 22 | 8 | 13 | 13 | 46 | 20 | 10 | 52 | 16 |
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adepta Famulous (`adepta_famulous`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | The Inquisition (`inquisition`) | Vanus Temple (`vanus_temple`) | dominant | influence | 31 | 20 | 35 | 15 | 10 | 10 | 30 | 100 | 0 |
+| criminal | Criminal Syndicates (`criminal`) | Mutant Brotherhoods (`mutant_brotherhoods`) | significant | presence | 22 | 8 | 13 | 13 | 46 | 20 | 10 | 52 | 16 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adepta Famulous (`adepta_famulous`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2537,22 +2537,22 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | CovertWrit | 31 |
-| criminal | CommercialCharter | 22 |
-| imperial | ReligiousMandate | 17 |
+| imperial | covert_writ | 31 |
+| criminal | commercial_charter | 22 |
+| imperial | religious_mandate | 17 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 29 | 30 | 0 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 0 |
+| Capital | capital | imperial | 29 | 30 | 0 |
+| Hinterland | wilderness | imperial | 11 | 70 | 0 |
 
 ### SYS-0011-W05 — Witching Clarion
 
 **Local history:**
 
-- **M36.023** · _Age of Foundation_ (Foundation): Records place the founding of Witching Clarion in this era; the world was settled as a DeadWorld and registered a None.
+- **M36.023** · _Age of Foundation_ (foundation): Records place the founding of Witching Clarion in this era; the world was settled as a DeadWorld and registered a None.
 
 **Stability:**
 - Public order: 70
@@ -2567,14 +2567,14 @@ Chronicle events: **427**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | — | 0 | 30 | 0 |
-| Hinterland | Wilderness | — | 0 | 70 | 0 |
+| Capital | capital | — | 0 | 30 | 0 |
+| Hinterland | wilderness | — | 0 | 70 | 0 |
 
 ### SYS-0011-W06 — Rhadam
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Rhadam in this era; the world was settled as a TombWorld and registered a XenosOverlords.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Rhadam in this era; the world was settled as a TombWorld and registered a XenosOverlords.
 
 **Stability:**
 - Public order: 70
@@ -2589,8 +2589,8 @@ Chronicle events: **427**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Inner Tomb | TombComplex | — | 0 | 60 | 0 |
-| Surface Wastes | Wilderness | — | 0 | 40 | 0 |
+| Inner Tomb | tomb_complex | — | 0 | 60 | 0 |
+| Surface Wastes | wilderness | — | 0 | 40 | 0 |
 
 ## SYS-0012 — Heres
 
@@ -2610,21 +2610,21 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Redemptia in this era; the world was settled as an ImperialWorld and registered a TraditionalistAristocracy.
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Howling Wardis Extremis in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
-- **M36.024** · _Age of Foundation_ (Foundation): Records place the founding of Final Obdura in this era; the world was settled as a DeathWorld and registered a ClansTribes.
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Forlornia in this era; the world was settled as a ResearchStation and registered a MagistrateCouncil.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Necropolia in this era; the world was settled as an Orbital and registered a MagistrateCouncil.
-- **M36.036** · _Age of Foundation_ (Foundation): Records place the founding of Tormenta in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M36.099** · _Age of Foundation_ (Discovery): Navigators marked the lane between Heres and Ossian Exile as ChartedPassage; later charts record it as Hazardous.
-- **M36.100** · _Age of Foundation_ (Discovery): Navigators marked the lane between Phlegethon Sanctuary and Heres as StableWarpLane; later charts record it as Hazardous.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Redemptia in this era; the world was settled as an ImperialWorld and registered a TraditionalistAristocracy.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Howling Wardis Extremis in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
+- **M36.024** · _Age of Foundation_ (foundation): Records place the founding of Final Obdura in this era; the world was settled as a DeathWorld and registered a ClansTribes.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Forlornia in this era; the world was settled as a ResearchStation and registered a MagistrateCouncil.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Necropolia in this era; the world was settled as an Orbital and registered a MagistrateCouncil.
+- **M36.036** · _Age of Foundation_ (foundation): Records place the founding of Tormenta in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M36.099** · _Age of Foundation_ (discovery): Navigators marked the lane between Heres and Ossian Exile as ChartedPassage; later charts record it as Hazardous.
+- **M36.100** · _Age of Foundation_ (discovery): Navigators marked the lane between Phlegethon Sanctuary and Heres as StableWarpLane; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -2639,12 +2639,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Forlornia in this era; the world was settled as a ResearchStation and registered a MagistrateCouncil.
-- **M37.183** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Forlornia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Forlornia in this era; the world was settled as a ResearchStation and registered a MagistrateCouncil.
+- **M37.183** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Forlornia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Departmento Munitorum (`departmento_munitorum`) | Dominant | Influence | 32 | 41 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Departmento Munitorum (`departmento_munitorum`) | dominant | influence | 32 | 41 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -2667,14 +2667,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 32 |
+| imperial | imperial_mandate | 32 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 31 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 90 |
+| Capital | capital | imperial | 31 | 30 | 90 |
+| Hinterland | wilderness | imperial | 11 | 70 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -2682,15 +2682,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Redemptia in this era; the world was settled as an ImperialWorld and registered a TraditionalistAristocracy.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Redemptia into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.171** · _Echoes of the Great Crusade_ (DynasticClaim): Chaos pressed an ancestral dynastic right over Redemptia.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Redemptia in this era; the world was settled as an ImperialWorld and registered a TraditionalistAristocracy.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Redemptia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.171** · _Echoes of the Great Crusade_ (dynastic_claim): Chaos pressed an ancestral dynastic right over Redemptia.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | Dominant | Contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
-| chaos | Chaos Knights (`chaos_knight`) | Warp-haunted Sacristans (`warp_haunted_sacristans`) | Significant | Presence | 20 | 3 | 55 | 10 | 6 | 16 | 29 | 23 | 35 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | dominant | contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
+| chaos | Chaos Knights (`chaos_knight`) | Warp-haunted Sacristans (`warp_haunted_sacristans`) | significant | presence | 20 | 3 | 55 | 10 | 6 | 16 | 29 | 23 | 35 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -2713,26 +2713,26 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
-| chaos | DynasticRight | 20 |
+| imperial | imperial_mandate | 49 |
+| chaos | dynastic_right | 20 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 67 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 67 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ### SYS-0012-W03 — Tormenta
 
 **Local history:**
 
-- **M36.036** · _Age of Foundation_ (Foundation): Records place the founding of Tormenta in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M37.166** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Tormenta into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.036** · _Age of Foundation_ (foundation): Records place the founding of Tormenta in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M37.166** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Tormenta into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -2755,25 +2755,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 55 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 55 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0012-W04 — Final Obdura
 
 **Local history:**
 
-- **M36.024** · _Age of Foundation_ (Foundation): Records place the founding of Final Obdura in this era; the world was settled as a DeathWorld and registered a ClansTribes.
-- **M37.145** · _Echoes of the Great Crusade_ (DynasticClaim): Chaos pressed an ancestral dynastic right over Final Obdura.
+- **M36.024** · _Age of Foundation_ (foundation): Records place the founding of Final Obdura in this era; the world was settled as a DeathWorld and registered a ClansTribes.
+- **M37.145** · _Echoes of the Great Crusade_ (dynastic_claim): Chaos pressed an ancestral dynastic right over Final Obdura.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Chaos Knights (`chaos_knight`) | House Caesarean (`house_caesarean`) | Dominant | Influence | 29 | 4 | 85 | 15 | 4 | 11 | 45 | 35 | 54 |
+| chaos | Chaos Knights (`chaos_knight`) | House Caesarean (`house_caesarean`) | dominant | influence | 29 | 4 | 85 | 15 | 4 | 11 | 45 | 35 | 54 |
 
 **Control:**
 - Dominant: chaos
@@ -2794,15 +2794,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | DynasticRight | 29 |
+| chaos | dynastic_right | 29 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Garrison | Capital | chaos | 18 | 15 | 54 |
-| Death-World Biome | Wilderness | chaos | 13 | 75 | 54 |
-| Cult Cells | Hideout | chaos | 19 | 10 | 54 |
+| Garrison | capital | chaos | 18 | 15 | 54 |
+| Death-World Biome | wilderness | chaos | 13 | 75 | 54 |
+| Cult Cells | hideout | chaos | 19 | 10 | 54 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=chaos
 
@@ -2810,12 +2810,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Howling Wardis Extremis in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
-- **M37.153** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Howling Wardis Extremis as a charge of the faith.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Howling Wardis Extremis in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
+- **M37.153** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Howling Wardis Extremis as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adepta Sororitas (`adepta_sororitas`) | Order of the Argent Shroud (`order_of_the_argent_shroud`) | Dominant | Influence | 36 | 14 | 65 | 25 | 11 | 4 | 100 | 25 | 80 |
+| imperial | Adepta Sororitas (`adepta_sororitas`) | Order of the Argent Shroud (`order_of_the_argent_shroud`) | dominant | influence | 36 | 14 | 65 | 25 | 11 | 4 | 100 | 25 | 80 |
 
 **Control:**
 - Dominant: imperial
@@ -2837,25 +2837,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 36 |
+| imperial | religious_mandate | 36 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 29 | 30 | 80 |
-| Hinterland | Wilderness | imperial | 15 | 70 | 80 |
+| Capital | capital | imperial | 29 | 30 | 80 |
+| Hinterland | wilderness | imperial | 15 | 70 | 80 |
 
 ### SYS-0012-W06 — Necropolia
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Necropolia in this era; the world was settled as an Orbital and registered a MagistrateCouncil.
-- **M37.169** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Necropolia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Necropolia in this era; the world was settled as an Orbital and registered a MagistrateCouncil.
+- **M37.169** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Necropolia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Dominant | Influence | 32 | 41 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | dominant | influence | 32 | 41 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -2878,14 +2878,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 32 |
+| imperial | imperial_mandate | 32 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 31 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 90 |
+| Capital | capital | imperial | 31 | 30 | 90 |
+| Hinterland | wilderness | imperial | 11 | 70 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -2908,25 +2908,25 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| BlockadeFleet | chaos | 100 |
-| DefensePlatform | chaos | 100 |
-| DefensePlatform | imperial | 100 |
-| DefensePlatform | xenos | 25 |
-| Shipyard | chaos | 81 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
+| blockade_fleet | chaos | 100 |
+| defense_platform | chaos | 100 |
+| defense_platform | imperial | 100 |
+| defense_platform | xenos | 25 |
+| shipyard | chaos | 81 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Tollaris Hive in this era; the world was settled as an AgriWorld and registered a CorruptAristocrats.
-- **M36.014** · _Age of Foundation_ (Foundation): Records place the founding of Aethon in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Crypt Maccabia Decimus in this era; the world was settled as an ImperialWorld and registered a Demagogue.
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Tomb Aquilon Pyre in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Silent Leontar Crypt in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Sanctified Ursae in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
-- **M36.081** · _Age of Foundation_ (Discovery): Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.
-- **M36.100** · _Age of Foundation_ (Discovery): Navigators marked the lane between Athanora and Octavia as ChartedPassage; later charts record it as Hazardous.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Tollaris Hive in this era; the world was settled as an AgriWorld and registered a CorruptAristocrats.
+- **M36.014** · _Age of Foundation_ (foundation): Records place the founding of Aethon in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Crypt Maccabia Decimus in this era; the world was settled as an ImperialWorld and registered a Demagogue.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Tomb Aquilon Pyre in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M36.028** · _Age of Foundation_ (foundation): Records place the founding of Silent Leontar Crypt in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Sanctified Ursae in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
+- **M36.081** · _Age of Foundation_ (discovery): Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.
+- **M36.100** · _Age of Foundation_ (discovery): Navigators marked the lane between Athanora and Octavia as ChartedPassage; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -2941,13 +2941,13 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Tollaris Hive in this era; the world was settled as an AgriWorld and registered a CorruptAristocrats.
-- **M39.447** · _Age of Compliance_ (Annexation): Chaos seized Tollaris Hive by force of arms.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Tollaris Hive in this era; the world was settled as an AgriWorld and registered a CorruptAristocrats.
+- **M39.447** · _Age of Compliance_ (annexation): Chaos seized Tollaris Hive by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Heretic Astartes (`chaos_space_marine`) | Death Guard (`death_guard`) | Dominant | Influence | 40 | 3 | 95 | 60 | 6 | 16 | 60 | 50 | 64 |
-| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | Significant | Presence | 17 | 11 | 32 | 13 | 11 | 8 | 20 | 23 | 35 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | Death Guard (`death_guard`) | dominant | influence | 40 | 3 | 95 | 60 | 6 | 16 | 60 | 50 | 64 |
+| xenos | Xenos Powers (`xenos`) | Xenos Incursion (`xenos_threat`) | significant | presence | 17 | 11 | 32 | 13 | 11 | 8 | 20 | 23 | 35 |
 
 **Control:**
 - Dominant: chaos
@@ -2968,26 +2968,26 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 40 |
+| chaos | military_occupation | 40 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Agri Belt | AgriBelt | chaos | 21 | 70 | 64 |
-| Provincial Capital | Capital | chaos | 25 | 10 | 64 |
-| Wild Districts | Wilderness | chaos | 20 | 20 | 64 |
+| Agri Belt | agri_belt | chaos | 21 | 70 | 64 |
+| Provincial Capital | capital | chaos | 25 | 10 | 64 |
+| Wild Districts | wilderness | chaos | 20 | 20 | 64 |
 
 ### SYS-0013-W02 — Silent Leontar Crypt
 
 **Local history:**
 
-- **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Silent Leontar Crypt in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M37.169** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Silent Leontar Crypt as a charge of the faith.
+- **M36.028** · _Age of Foundation_ (foundation): Records place the founding of Silent Leontar Crypt in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M37.169** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Silent Leontar Crypt as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Pronatus (`orders_pronatus`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Orders Pronatus (`orders_pronatus`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -3010,29 +3010,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 44 |
+| imperial | religious_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 56 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 56 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0013-W03 — Aethon
 
 **Local history:**
 
-- **M36.014** · _Age of Foundation_ (Foundation): Records place the founding of Aethon in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
-- **M37.173** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Aethon into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.433** · _Age of Compliance_ (Annexation): Chaos seized Aethon by force of arms.
-- **M42.021** · _Indomitus Dawn_ (Purge): Open warfare engulfed Aethon; Imperium pressed an offensive against Chaos.
+- **M36.014** · _Age of Foundation_ (foundation): Records place the founding of Aethon in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
+- **M37.173** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Aethon into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.433** · _Age of Compliance_ (annexation): Chaos seized Aethon by force of arms.
+- **M42.021** · _Indomitus Dawn_ (purge): Open warfare engulfed Aethon; Imperium pressed an offensive against Chaos.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Heretic Astartes (`chaos_space_marine`) | The Cleaved (`the_cleaved`) | Dominant | Influence | 41 | 5 | 95 | 60 | 10 | 25 | 60 | 50 | 64 |
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Planetary Defence Forces (`planetary_defence_forces`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| imperial | Astra Militarum (`imperial_guard`) | Valhallan Ice Warriors (`valhallan_ice_warriors`) | Minor | Presence | 17 | 18 | 28 | 9 | 7 | 19 | 12 | 3 | 32 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | The Cleaved (`the_cleaved`) | dominant | influence | 41 | 5 | 95 | 60 | 10 | 25 | 60 | 50 | 64 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Planetary Defence Forces (`planetary_defence_forces`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| imperial | Astra Militarum (`imperial_guard`) | Valhallan Ice Warriors (`valhallan_ice_warriors`) | minor | presence | 17 | 18 | 28 | 9 | 7 | 19 | 12 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -3056,15 +3056,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 41 |
-| imperial | ImperialMandate | 33 |
+| chaos | military_occupation | 41 |
+| imperial | imperial_mandate | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 38 | 30 | 58 |
-| Hinterland | Wilderness | chaos | 20 | 70 | 64 |
+| Capital | capital | imperial | 38 | 30 | 58 |
+| Hinterland | wilderness | chaos | 20 | 70 | 64 |
 
 **Conflict:** intensity 91 momentum -17 attacker=imperial defender=chaos
 
@@ -3072,12 +3072,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Crypt Maccabia Decimus in this era; the world was settled as an ImperialWorld and registered a Demagogue.
-- **M37.157** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Crypt Maccabia Decimus into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Crypt Maccabia Decimus in this era; the world was settled as an ImperialWorld and registered a Demagogue.
+- **M37.157** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Crypt Maccabia Decimus into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Collegia Titanica (`collegia_titanica`) | Legio Astorum (`legio_astorum`) | Dominant | Influence | 43 | 26 | 85 | 30 | 21 | 55 | 40 | 15 | 67 |
+| imperial | Collegia Titanica (`collegia_titanica`) | Legio Astorum (`legio_astorum`) | dominant | influence | 43 | 26 | 85 | 30 | 21 | 55 | 40 | 15 | 67 |
 
 **Control:**
 - Dominant: imperial
@@ -3100,27 +3100,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 43 |
+| imperial | imperial_mandate | 43 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 40 | 30 | 67 |
-| Hinterland | Wilderness | imperial | 20 | 70 | 67 |
+| Capital | capital | imperial | 40 | 30 | 67 |
+| Hinterland | wilderness | imperial | 20 | 70 | 67 |
 
 ### SYS-0013-W05 — Sanctified Ursae
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Sanctified Ursae in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
-- **M37.161** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Sanctified Ursae as a charge of the faith.
-- **M39.452** · _Age of Compliance_ (Annexation): Chaos seized Sanctified Ursae by force of arms.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Sanctified Ursae in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
+- **M37.161** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Sanctified Ursae as a charge of the faith.
+- **M39.452** · _Age of Compliance_ (annexation): Chaos seized Sanctified Ursae by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adepta Sororitas (`adepta_sororitas`) | Repentia Hosts (`repentia_hosts`) | Dominant | Influence | 41 | 26 | 65 | 25 | 16 | 6 | 100 | 27 | 80 |
-| chaos | Daemonic Legions (`daemon`) | Daemonette Masques (`daemonette_masques`) | Significant | Presence | 22 | 3 | 55 | 20 | 2 | 0 | 52 | 46 | 35 |
+| imperial | Adepta Sororitas (`adepta_sororitas`) | Repentia Hosts (`repentia_hosts`) | dominant | influence | 41 | 26 | 65 | 25 | 16 | 6 | 100 | 27 | 80 |
+| chaos | Daemonic Legions (`daemon`) | Daemonette Masques (`daemonette_masques`) | significant | presence | 22 | 3 | 55 | 20 | 2 | 0 | 52 | 46 | 35 |
 
 **Control:**
 - Dominant: imperial
@@ -3143,28 +3143,28 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 41 |
-| chaos | MilitaryOccupation | 22 |
+| imperial | religious_mandate | 41 |
+| chaos | military_occupation | 22 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Pilgrim Continent | ShrineContinent | imperial | 49 | 55 | 80 |
-| Cardinal Spire | CardinalSpire | imperial | 47 | 25 | 80 |
-| Heretic Cells | Hideout | imperial | 23 | 5 | 80 |
-| Outer Cloisters | Wilderness | imperial | 17 | 15 | 80 |
+| Pilgrim Continent | shrine_continent | imperial | 49 | 55 | 80 |
+| Cardinal Spire | cardinal_spire | imperial | 47 | 25 | 80 |
+| Heretic Cells | hideout | imperial | 23 | 5 | 80 |
+| Outer Cloisters | wilderness | imperial | 17 | 15 | 80 |
 
 ### SYS-0013-W06 — Tomb Aquilon Pyre
 
 **Local history:**
 
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Tomb Aquilon Pyre in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M37.172** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Tomb Aquilon Pyre into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Tomb Aquilon Pyre in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M37.172** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Tomb Aquilon Pyre into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Census Bureau (`imperial_census_bureau`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Census Bureau (`imperial_census_bureau`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 49 | 11 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -3187,14 +3187,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 56 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 56 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ## SYS-0014 — Penitent Fires
 
@@ -3216,23 +3216,23 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | aeldari | 52 |
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Station | aeldari | 28 |
-| Station | imperial | 100 |
+| defense_platform | aeldari | 52 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| station | aeldari | 28 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.007** · _Age of Foundation_ (Foundation): Records place the founding of Holy Lictora in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
-- **M36.007** · _Age of Foundation_ (Foundation): Records place the founding of Choir Requiem in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M36.027** · _Age of Foundation_ (Foundation): Subsector Penitent Fires was elevated around Penitent Fires; sys-0014-w01 became the recorded capital world.
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Praetoria Crypt in this era; the world was settled as an Orbital and registered a Megacorporations.
-- **M36.036** · _Age of Foundation_ (Foundation): Records place the founding of Reliquary Sollemnis March in this era; the world was settled as a DeathWorld and registered a None.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Penitent Fires as StableWarpLane; later charts record it as Unstable.
-- **M36.076** · _Age of Foundation_ (Discovery): Navigators marked the lane between Penitent Fires and Ossian Exile as StableWarpLane; later charts record it as Unstable.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Tantalus Cradle and Penitent Fires as ChartedPassage; later charts record it as Hazardous.
+- **M36.007** · _Age of Foundation_ (foundation): Records place the founding of Holy Lictora in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
+- **M36.007** · _Age of Foundation_ (foundation): Records place the founding of Choir Requiem in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M36.027** · _Age of Foundation_ (foundation): Subsector Penitent Fires was elevated around Penitent Fires; sys-0014-w01 became the recorded capital world.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Praetoria Crypt in this era; the world was settled as an Orbital and registered a Megacorporations.
+- **M36.036** · _Age of Foundation_ (foundation): Records place the founding of Reliquary Sollemnis March in this era; the world was settled as a DeathWorld and registered a None.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Penitent Fires as StableWarpLane; later charts record it as Unstable.
+- **M36.076** · _Age of Foundation_ (discovery): Navigators marked the lane between Penitent Fires and Ossian Exile as StableWarpLane; later charts record it as Unstable.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Tantalus Cradle and Penitent Fires as ChartedPassage; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -3245,15 +3245,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.007** · _Age of Foundation_ (Foundation): Records place the founding of Holy Lictora in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
-- **M36.027** · _Age of Foundation_ (Foundation): Subsector Penitent Fires was elevated around Penitent Fires; sys-0014-w01 became the recorded capital world.
-- **M37.159** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Holy Lictora into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.007** · _Age of Foundation_ (foundation): Records place the founding of Holy Lictora in this era; the world was settled as an ImperialWorld and registered a Megacorporations.
+- **M36.027** · _Age of Foundation_ (foundation): Subsector Penitent Fires was elevated around Penitent Fires; sys-0014-w01 became the recorded capital world.
+- **M37.159** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Holy Lictora into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | Dominant | Contested | 48 | 86 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| imperial | Deathwatch (`deathwatch`) | Deathwatch (`deathwatch`) | Significant | Influence | 27 | 6 | 52 | 39 | 3 | 10 | 28 | 52 | 16 |
-| imperial | Imperial Chartist Fleets (`chartist_fleets`) | Chartist Captains (`chartist_captains`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | dominant | contested | 48 | 86 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| imperial | Deathwatch (`deathwatch`) | Deathwatch (`deathwatch`) | significant | influence | 27 | 6 | 52 | 39 | 3 | 10 | 28 | 52 | 16 |
+| imperial | Imperial Chartist Fleets (`chartist_fleets`) | Chartist Captains (`chartist_captains`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -3276,30 +3276,30 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 48 |
+| imperial | imperial_mandate | 48 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 66 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 17 | 70 | 90 |
+| Capital | capital | imperial | 66 | 30 | 90 |
+| Hinterland | wilderness | imperial | 17 | 70 | 90 |
 
 ### SYS-0014-W02 — Praetoria Crypt
 
 **Local history:**
 
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Praetoria Crypt in this era; the world was settled as an Orbital and registered a Megacorporations.
-- **M37.151** · _Age of Compliance_ (CommercialCharter): Aeldari concluded a treaty asserting standing rights on Praetoria Crypt.
-- **M37.152** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Praetoria Crypt into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.581** · _Age of Fracture_ (CultExposed): Inquisitorial probes catalogued covert influence by Aeldari on Praetoria Crypt.
-- **M42.025** · _Indomitus Dawn_ (Reconquest): Authority on Praetoria Crypt fractured: Aeldari seized de facto control while Imperium retained the sovereign claim.
-- **M42.033** · _Indomitus Dawn_ (Purge): Open warfare engulfed Praetoria Crypt; Imperium pressed an offensive against Aeldari.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Praetoria Crypt in this era; the world was settled as an Orbital and registered a Megacorporations.
+- **M37.151** · _Age of Compliance_ (commercial_charter): Aeldari concluded a treaty asserting standing rights on Praetoria Crypt.
+- **M37.152** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Praetoria Crypt into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.581** · _Age of Fracture_ (cult_exposed): Inquisitorial probes catalogued covert influence by Aeldari on Praetoria Crypt.
+- **M42.025** · _Indomitus Dawn_ (reconquest): Authority on Praetoria Crypt fractured: Aeldari seized de facto control while Imperium retained the sovereign claim.
+- **M42.033** · _Indomitus Dawn_ (purge): Open warfare engulfed Praetoria Crypt; Imperium pressed an offensive against Aeldari.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aeldari | Aeldari Craftworlds & Kin (`aeldari`) | Autarch Warhosts (`autarch_warhosts`) | Dominant | Influence | 38 | 16 | 60 | 40 | 16 | 20 | 50 | 80 | 17 |
-| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | Significant | Presence | 24 | 36 | 20 | 13 | 21 | 15 | 29 | 6 | 58 |
+| aeldari | Aeldari Craftworlds & Kin (`aeldari`) | Autarch Warhosts (`autarch_warhosts`) | dominant | influence | 38 | 16 | 60 | 40 | 16 | 20 | 50 | 80 | 17 |
+| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | significant | presence | 24 | 36 | 20 | 13 | 21 | 15 | 29 | 6 | 58 |
 
 **Control:**
 - Dominant: aeldari
@@ -3324,15 +3324,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| aeldari | TreatyRight | 38 |
-| imperial | ImperialMandate | 24 |
+| aeldari | treaty_right | 38 |
+| imperial | imperial_mandate | 24 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | aeldari | 29 | 30 | 17 |
-| Hinterland | Wilderness | aeldari | 16 | 70 | 17 |
+| Capital | capital | aeldari | 29 | 30 | 17 |
+| Hinterland | wilderness | aeldari | 16 | 70 | 17 |
 
 **Conflict:** intensity 86 momentum -26 attacker=imperial defender=aeldari
 
@@ -3340,7 +3340,7 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.036** · _Age of Foundation_ (Foundation): Records place the founding of Reliquary Sollemnis March in this era; the world was settled as a DeathWorld and registered a None.
+- **M36.036** · _Age of Foundation_ (foundation): Records place the founding of Reliquary Sollemnis March in this era; the world was settled as a DeathWorld and registered a None.
 
 **Stability:**
 - Public order: 70
@@ -3355,16 +3355,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.007** · _Age of Foundation_ (Foundation): Records place the founding of Choir Requiem in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M37.156** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Choir Requiem as a charge of the faith.
-- **M37.180** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Choir Requiem into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M38.322** · _Age of Fracture_ (AeldariActivity): Drukhari marked Choir Requiem as a recurring hunting ground.
+- **M36.007** · _Age of Foundation_ (foundation): Records place the founding of Choir Requiem in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M37.156** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Choir Requiem as a charge of the faith.
+- **M37.180** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Choir Requiem into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M38.322** · _Age of Fracture_ (aeldari_activity): Drukhari marked Choir Requiem as a recurring hunting ground.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adeptus Ministorum (`ecclesiarchy`) | Dominant | Contested | 51 | 85 | 30 | 20 | 50 | 35 | 71 | 19 | 90 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Census Bureau (`imperial_census_bureau`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| drukhari | Drukhari Kabals (`drukhari`) | Beastmaster Packs (`beastmaster_packs`) | Minor | Presence | 12 | 4 | 28 | 12 | 9 | 7 | 9 | 26 | 12 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adeptus Ministorum (`ecclesiarchy`) | dominant | contested | 51 | 85 | 30 | 20 | 50 | 35 | 71 | 19 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Census Bureau (`imperial_census_bureau`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| drukhari | Drukhari Kabals (`drukhari`) | Beastmaster Packs (`beastmaster_packs`) | minor | presence | 12 | 4 | 28 | 12 | 9 | 7 | 9 | 26 | 12 |
 
 **Control:**
 - Dominant: imperial
@@ -3387,16 +3387,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 51 |
-| imperial | ImperialMandate | 33 |
-| drukhari | HuntingGround | 12 |
+| imperial | religious_mandate | 51 |
+| imperial | imperial_mandate | 33 |
+| drukhari | hunting_ground | 12 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 70 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 70 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ## SYS-0015 — Benedica
 
@@ -3417,22 +3417,22 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
-| Station | merchant | 33 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
+| station | merchant | 33 |
 
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Zanthis in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
-- **M36.016** · _Age of Foundation_ (Foundation): Records place the founding of Grave Castravia in this era; the world was settled as a HiveWorld and registered a Megacorporations.
-- **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Sollemnis in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Lacuna in this era; the world was settled as a PlanetaryMonument and registered a LocalReligiousAuthorities.
-- **M36.095** · _Age of Foundation_ (Discovery): Navigators marked the lane between Sorrow Pilgrim and Benedica as StableWarpLane; later charts record it as Unstable.
-- **M36.100** · _Age of Foundation_ (Discovery): Navigators marked the lane between Penitent Fires and Benedica as BlackShip; later charts record it as Unstable.
-- **M36.106** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Benedica as StableWarpLane; later charts record it as Unstable.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): A concealed passage linking Penitent Fires and Benedica entered restricted charts as BlackShip.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Zanthis in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
+- **M36.016** · _Age of Foundation_ (foundation): Records place the founding of Grave Castravia in this era; the world was settled as a HiveWorld and registered a Megacorporations.
+- **M36.032** · _Age of Foundation_ (foundation): Records place the founding of Sollemnis in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Lacuna in this era; the world was settled as a PlanetaryMonument and registered a LocalReligiousAuthorities.
+- **M36.095** · _Age of Foundation_ (discovery): Navigators marked the lane between Sorrow Pilgrim and Benedica as StableWarpLane; later charts record it as Unstable.
+- **M36.100** · _Age of Foundation_ (discovery): Navigators marked the lane between Penitent Fires and Benedica as BlackShip; later charts record it as Unstable.
+- **M36.106** · _Age of Foundation_ (discovery): Navigators marked the lane between Praetoria and Benedica as StableWarpLane; later charts record it as Unstable.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): A concealed passage linking Penitent Fires and Benedica entered restricted charts as BlackShip.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -3445,12 +3445,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Lacuna in this era; the world was settled as a PlanetaryMonument and registered a LocalReligiousAuthorities.
-- **M37.169** · _Echoes of the Great Crusade_ (DynasticClaim): Imperium pressed an ancestral dynastic right over Lacuna.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Lacuna in this era; the world was settled as a PlanetaryMonument and registered a LocalReligiousAuthorities.
+- **M37.169** · _Echoes of the Great Crusade_ (dynastic_claim): Imperium pressed an ancestral dynastic right over Lacuna.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Grey Knights (`grey_knights`) | Grey Knights (`grey_knights`) | Dominant | Influence | 39 | 4 | 80 | 60 | 2 | 7 | 47 | 82 | 25 |
+| imperial | Grey Knights (`grey_knights`) | Grey Knights (`grey_knights`) | dominant | influence | 39 | 4 | 80 | 60 | 2 | 7 | 47 | 82 | 25 |
 
 **Control:**
 - Dominant: imperial
@@ -3473,27 +3473,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | DynasticRight | 39 |
+| imperial | dynastic_right | 39 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 28 | 30 | 25 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 25 |
+| Capital | capital | imperial | 28 | 30 | 25 |
+| Hinterland | wilderness | imperial | 18 | 70 | 25 |
 
 ### SYS-0015-W02 — Grave Castravia
 
 **Local history:**
 
-- **M36.016** · _Age of Foundation_ (Foundation): Records place the founding of Grave Castravia in this era; the world was settled as a HiveWorld and registered a Megacorporations.
-- **M37.180** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Grave Castravia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.016** · _Age of Foundation_ (foundation): Records place the founding of Grave Castravia in this era; the world was settled as a HiveWorld and registered a Megacorporations.
+- **M37.180** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Grave Castravia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | Dominant | Contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
-| imperial | Astra Militarum (`imperial_guard`) | Scion Drop Commandos (`scion_drop_commandos`) | Significant | Influence | 30 | 28 | 52 | 16 | 13 | 36 | 23 | 6 | 58 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | Minor | Presence | 18 | 35 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | dominant | contested | 49 | 91 | 30 | 20 | 50 | 35 | 45 | 9 | 90 |
+| imperial | Astra Militarum (`imperial_guard`) | Scion Drop Commandos (`scion_drop_commandos`) | significant | influence | 30 | 28 | 52 | 16 | 13 | 36 | 23 | 6 | 58 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | minor | presence | 18 | 35 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -3516,31 +3516,31 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
+| imperial | imperial_mandate | 49 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Sector Capital | Capital | imperial | 70 | 25 | 90 |
-| Primary Hive | Hive | imperial | 55 | 45 | 90 |
-| Underhive | Underhive | imperial | 26 | 25 | 90 |
-| Outer Wastes | Wilderness | imperial | 18 | 5 | 90 |
+| Sector Capital | capital | imperial | 70 | 25 | 90 |
+| Primary Hive | hive | imperial | 55 | 45 | 90 |
+| Underhive | underhive | imperial | 26 | 25 | 90 |
+| Outer Wastes | wilderness | imperial | 18 | 5 | 90 |
 
 ### SYS-0015-W03 — Zanthis
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Zanthis in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
-- **M37.163** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Zanthis into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.458** · _Age of Compliance_ (Annexation): Chaos seized Zanthis by force of arms.
-- **M39.610** · _Age of Fracture_ (CultExposed): Inquisitorial probes catalogued covert influence by Chaos on Zanthis.
-- **M42.051** · _Indomitus Dawn_ (Purge): Open warfare engulfed Zanthis; Chaos pressed an offensive against Imperium.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Zanthis in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
+- **M37.163** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Zanthis into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.458** · _Age of Compliance_ (annexation): Chaos seized Zanthis by force of arms.
+- **M39.610** · _Age of Fracture_ (cult_exposed): Inquisitorial probes catalogued covert influence by Chaos on Zanthis.
+- **M42.051** · _Indomitus Dawn_ (purge): Open warfare engulfed Zanthis; Chaos pressed an offensive against Imperium.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | Dominant | Influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
-| chaos | Dark Mechanicum (`dark_mechanicum`) | Abominable Intelligence Cells (`abominable_intelligence_cells`) | Significant | Influence | 26 | 11 | 39 | 29 | 23 | 36 | 26 | 42 | 29 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | dominant | influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
+| chaos | Dark Mechanicum (`dark_mechanicum`) | Abominable Intelligence Cells (`abominable_intelligence_cells`) | significant | influence | 26 | 11 | 39 | 29 | 23 | 36 | 26 | 42 | 29 |
 
 **Control:**
 - Dominant: imperial
@@ -3565,15 +3565,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 37 |
-| chaos | MilitaryOccupation | 26 |
+| imperial | imperial_mandate | 37 |
+| chaos | military_occupation | 26 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 13 | 70 | 90 |
+| Capital | capital | imperial | 41 | 30 | 90 |
+| Hinterland | wilderness | imperial | 13 | 70 | 90 |
 
 **Conflict:** intensity 88 momentum -22 attacker=chaos defender=imperial
 
@@ -3581,16 +3581,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.032** · _Age of Foundation_ (Foundation): Records place the founding of Sollemnis in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M37.155** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Sollemnis.
-- **M37.186** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Sollemnis into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M42.029** · _Indomitus Dawn_ (Purge): Open warfare engulfed Sollemnis; Imperium pressed an offensive against Merchant Powers.
+- **M36.032** · _Age of Foundation_ (foundation): Records place the founding of Sollemnis in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M37.155** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Sollemnis.
+- **M37.186** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Sollemnis into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M42.029** · _Indomitus Dawn_ (purge): Open warfare engulfed Sollemnis; Imperium pressed an offensive against Merchant Powers.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| merchant | Merchant Combines (`merchant`) | Corpse-starch Guilds (`corpse_starch_guilds`) | Dominant | Influence | 42 | 30 | 15 | 35 | 95 | 40 | 24 | 32 | 70 |
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| imperial | Adeptus Mechanicus (`mechanicus`) | Legio Cybernetica (`legio_cybernetica`) | Minor | Presence | 19 | 19 | 12 | 18 | 24 | 33 | 18 | 9 | 25 |
+| merchant | Merchant Combines (`merchant`) | Corpse-starch Guilds (`corpse_starch_guilds`) | dominant | influence | 42 | 30 | 15 | 35 | 95 | 40 | 24 | 32 | 70 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Legio Cybernetica (`legio_cybernetica`) | minor | presence | 19 | 19 | 12 | 18 | 24 | 33 | 18 | 9 | 25 |
 
 **Control:**
 - Dominant: imperial
@@ -3614,15 +3614,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| merchant | CommercialCharter | 42 |
-| imperial | ImperialMandate | 33 |
+| merchant | commercial_charter | 42 |
+| imperial | imperial_mandate | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | merchant | 39 | 30 | 70 |
-| Hinterland | Wilderness | merchant | 14 | 70 | 70 |
+| Capital | capital | merchant | 39 | 30 | 70 |
+| Hinterland | wilderness | merchant | 14 | 70 | 70 |
 
 **Conflict:** intensity 90 momentum -18 attacker=imperial defender=merchant
 
@@ -3645,22 +3645,22 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| BlockadeFleet | imperial | 100 |
-| DefensePlatform | imperial | 100 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
+| blockade_fleet | imperial | 100 |
+| defense_platform | imperial | 100 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.001** · _Age of Foundation_ (Foundation): Records place the founding of Sable Meridia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Cthonis in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M36.006** · _Age of Foundation_ (Foundation): Records place the founding of Voidholm in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M36.010** · _Age of Foundation_ (Foundation): Records place the founding of Bastior Quartus in this era; the world was settled as a HiveWorld and registered a HereticalImperialCult.
-- **M36.014** · _Age of Foundation_ (Foundation): Records place the founding of Medeon Hive in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Icarion in this era; the world was settled as an ImperialWorld and registered a Demagogue.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Radamanth Gate and Castoria as ChartedPassage; later charts record it as Hazardous.
-- **M36.077** · _Age of Foundation_ (Discovery): Navigators marked the lane between Phlegethon Sanctuary and Castoria as SmugglingLane; later charts record it as Hazardous.
+- **M36.001** · _Age of Foundation_ (foundation): Records place the founding of Sable Meridia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Cthonis in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M36.006** · _Age of Foundation_ (foundation): Records place the founding of Voidholm in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M36.010** · _Age of Foundation_ (foundation): Records place the founding of Bastior Quartus in this era; the world was settled as a HiveWorld and registered a HereticalImperialCult.
+- **M36.014** · _Age of Foundation_ (foundation): Records place the founding of Medeon Hive in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Icarion in this era; the world was settled as an ImperialWorld and registered a Demagogue.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Radamanth Gate and Castoria as ChartedPassage; later charts record it as Hazardous.
+- **M36.077** · _Age of Foundation_ (discovery): Navigators marked the lane between Phlegethon Sanctuary and Castoria as SmugglingLane; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -3675,14 +3675,14 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.010** · _Age of Foundation_ (Foundation): Records place the founding of Bastior Quartus in this era; the world was settled as a HiveWorld and registered a HereticalImperialCult.
-- **M37.168** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Bastior Quartus into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.010** · _Age of Foundation_ (foundation): Records place the founding of Bastior Quartus in this era; the world was settled as a HiveWorld and registered a HereticalImperialCult.
+- **M37.168** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Bastior Quartus into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | Dominant | Contested | 51 | 96 | 30 | 20 | 52 | 37 | 45 | 9 | 90 |
-| imperial | Adeptus Mechanicus (`mechanicus`) | Archaeotech Recovery Cohorts (`archaeotech_recovery_cohorts`) | Significant | Influence | 35 | 38 | 23 | 32 | 48 | 65 | 32 | 16 | 47 |
-| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Astropathic Choirs (`astropathic_choirs`) | Minor | Presence | 19 | 37 | 10 | 7 | 18 | 13 | 16 | 3 | 32 |
+| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | dominant | contested | 51 | 96 | 30 | 20 | 52 | 37 | 45 | 9 | 90 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Archaeotech Recovery Cohorts (`archaeotech_recovery_cohorts`) | significant | influence | 35 | 38 | 23 | 32 | 48 | 65 | 32 | 16 | 47 |
+| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Astropathic Choirs (`astropathic_choirs`) | minor | presence | 19 | 37 | 10 | 7 | 18 | 13 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -3705,27 +3705,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 51 |
+| imperial | imperial_mandate | 51 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Sector Capital | Capital | imperial | 75 | 25 | 90 |
-| Primary Hive | Hive | imperial | 59 | 45 | 90 |
-| Underhive | Underhive | imperial | 27 | 25 | 90 |
-| Outer Wastes | Wilderness | imperial | 18 | 5 | 90 |
+| Sector Capital | capital | imperial | 75 | 25 | 90 |
+| Primary Hive | hive | imperial | 59 | 45 | 90 |
+| Underhive | underhive | imperial | 27 | 25 | 90 |
+| Outer Wastes | wilderness | imperial | 18 | 5 | 90 |
 
 ### SYS-0016-W02 — Medeon Hive
 
 **Local history:**
 
-- **M36.014** · _Age of Foundation_ (Foundation): Records place the founding of Medeon Hive in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
-- **M37.178** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Medeon Hive into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.014** · _Age of Foundation_ (foundation): Records place the founding of Medeon Hive in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
+- **M37.178** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Medeon Hive into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Navis Nobilite (`navis_nobilite`) | Navis Nobilite (`navis_nobilite`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navis Nobilite (`navis_nobilite`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -3748,25 +3748,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 55 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 55 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0016-W03 — Icarion
 
 **Local history:**
 
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Icarion in this era; the world was settled as an ImperialWorld and registered a Demagogue.
-- **M39.593** · _Age of Fracture_ (Uprising): Loyalist authority on Icarion collapsed; Rebel Powers declared open rebellion.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Icarion in this era; the world was settled as an ImperialWorld and registered a Demagogue.
+- **M39.593** · _Age of Fracture_ (uprising): Loyalist authority on Icarion collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Anti-tithe Leagues (`anti_tithe_leagues`) | Dominant | Influence | 31 | 17 | 60 | 10 | 21 | 17 | 55 | 50 | 59 |
+| rebel | Rebel Movements (`rebel`) | Anti-tithe Leagues (`anti_tithe_leagues`) | dominant | influence | 31 | 17 | 60 | 10 | 21 | 17 | 55 | 50 | 59 |
 
 **Control:**
 - Dominant: rebel
@@ -3789,14 +3789,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 31 |
+| rebel | rebellion | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | rebel | 23 | 30 | 59 |
-| Hinterland | Wilderness | rebel | 13 | 70 | 59 |
+| Capital | capital | rebel | 23 | 30 | 59 |
+| Hinterland | wilderness | rebel | 13 | 70 | 59 |
 
 **Conflict:** intensity 15 momentum 0 attacker=— defender=rebel
 
@@ -3804,12 +3804,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.001** · _Age of Foundation_ (Foundation): Records place the founding of Sable Meridia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
-- **M37.179** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Sable Meridia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.001** · _Age of Foundation_ (foundation): Records place the founding of Sable Meridia in this era; the world was settled as an ImperialWorld and registered an EcclesiarchicalAppointee.
+- **M37.179** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Sable Meridia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Dominant | Contested | 45 | 77 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | dominant | contested | 45 | 77 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -3832,27 +3832,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
+| imperial | imperial_mandate | 45 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 58 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 58 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0016-W05 — Cthonis
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Cthonis in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Cthonis into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Cthonis in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M37.175** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Cthonis into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Astra Militarum (`imperial_guard`) | Valhallan Ice Warriors (`valhallan_ice_warriors`) | Dominant | Contested | 45 | 36 | 80 | 25 | 20 | 55 | 39 | 11 | 90 |
-| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Astropathic Choirs (`astropathic_choirs`) | Significant | Influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
-| imperial | Deathwatch (`deathwatch`) | Deathwatch (`deathwatch`) | Minor | Presence | 15 | 4 | 28 | 21 | 2 | 5 | 15 | 28 | 9 |
+| imperial | Astra Militarum (`imperial_guard`) | Valhallan Ice Warriors (`valhallan_ice_warriors`) | dominant | contested | 45 | 36 | 80 | 25 | 20 | 55 | 39 | 11 | 90 |
+| imperial | Adeptus Astra Telepathica (`astra_telepathica`) | Astropathic Choirs (`astropathic_choirs`) | significant | influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
+| imperial | Deathwatch (`deathwatch`) | Deathwatch (`deathwatch`) | minor | presence | 15 | 4 | 28 | 21 | 2 | 5 | 15 | 28 | 9 |
 
 **Control:**
 - Dominant: imperial
@@ -3875,28 +3875,28 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
+| imperial | imperial_mandate | 45 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 47 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 90 |
+| Capital | capital | imperial | 47 | 30 | 90 |
+| Hinterland | wilderness | imperial | 21 | 70 | 90 |
 
 ### SYS-0016-W06 — Voidholm
 
 **Local history:**
 
-- **M36.006** · _Age of Foundation_ (Foundation): Records place the founding of Voidholm in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M37.153** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Voidholm.
-- **M37.174** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Voidholm into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.006** · _Age of Foundation_ (foundation): Records place the founding of Voidholm in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M37.153** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Voidholm.
+- **M37.174** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Voidholm into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | Dominant | Contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Significant | Influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
-| merchant | Merchant Combines (`merchant`) | Kroot Mercenary Brokers (`kroot_mercenary_brokers`) | Minor | Presence | 14 | 10 | 5 | 12 | 33 | 14 | 7 | 10 | 24 |
+| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | dominant | contested | 49 | 86 | 30 | 20 | 50 | 35 | 49 | 11 | 90 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | significant | influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
+| merchant | Merchant Combines (`merchant`) | Kroot Mercenary Brokers (`kroot_mercenary_brokers`) | minor | presence | 14 | 10 | 5 | 12 | 33 | 14 | 7 | 10 | 24 |
 
 **Control:**
 - Dominant: imperial
@@ -3919,15 +3919,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 49 |
-| merchant | CommercialCharter | 14 |
+| imperial | imperial_mandate | 49 |
+| merchant | commercial_charter | 14 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 67 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 90 |
+| Capital | capital | imperial | 67 | 30 | 90 |
+| Hinterland | wilderness | imperial | 18 | 70 | 90 |
 
 ## SYS-0017 — Ossian Exile
 
@@ -3949,24 +3949,24 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | chaos | 54 |
-| DefensePlatform | imperial | 100 |
-| Shipyard | chaos | 61 |
-| Shipyard | imperial | 100 |
-| Station | chaos | 33 |
-| Station | imperial | 100 |
+| defense_platform | chaos | 54 |
+| defense_platform | imperial | 100 |
+| shipyard | chaos | 61 |
+| shipyard | imperial | 100 |
+| station | chaos | 33 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Necropolia in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M36.007** · _Age of Foundation_ (Foundation): Records place the founding of Vermillion Kanak Redoubt in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M36.013** · _Age of Foundation_ (Foundation): Records place the founding of Nemoria in this era; the world was settled as a ShrineWorld and registered a HereticalImperialCult.
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Xanthia Crown in this era; the world was settled as a HiveWorld and registered a MilitaryGovernor.
-- **M36.039** · _Age of Foundation_ (Foundation): Records place the founding of Orphidia in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ossian Exile and Prosperis II as ChartedPassage; later charts record it as Unstable.
-- **M36.076** · _Age of Foundation_ (Discovery): Navigators marked the lane between Penitent Fires and Ossian Exile as StableWarpLane; later charts record it as Unstable.
-- **M36.099** · _Age of Foundation_ (Discovery): Navigators marked the lane between Heres and Ossian Exile as ChartedPassage; later charts record it as Hazardous.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Necropolia in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M36.007** · _Age of Foundation_ (foundation): Records place the founding of Vermillion Kanak Redoubt in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M36.013** · _Age of Foundation_ (foundation): Records place the founding of Nemoria in this era; the world was settled as a ShrineWorld and registered a HereticalImperialCult.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Xanthia Crown in this era; the world was settled as a HiveWorld and registered a MilitaryGovernor.
+- **M36.039** · _Age of Foundation_ (foundation): Records place the founding of Orphidia in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Ossian Exile and Prosperis II as ChartedPassage; later charts record it as Unstable.
+- **M36.076** · _Age of Foundation_ (discovery): Navigators marked the lane between Penitent Fires and Ossian Exile as StableWarpLane; later charts record it as Unstable.
+- **M36.099** · _Age of Foundation_ (discovery): Navigators marked the lane between Heres and Ossian Exile as ChartedPassage; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -3980,12 +3980,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.039** · _Age of Foundation_ (Foundation): Records place the founding of Orphidia in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
-- **M37.174** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Orphidia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.039** · _Age of Foundation_ (foundation): Records place the founding of Orphidia in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
+- **M37.174** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Orphidia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Departmento Munitorum (`departmento_munitorum`) | Dominant | Influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Departmento Munitorum (`departmento_munitorum`) | dominant | influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -4008,14 +4008,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 31 |
+| imperial | imperial_mandate | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 30 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 90 |
+| Capital | capital | imperial | 30 | 30 | 90 |
+| Hinterland | wilderness | imperial | 11 | 70 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -4023,15 +4023,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.037** · _Age of Foundation_ (Foundation): Records place the founding of Xanthia Crown in this era; the world was settled as a HiveWorld and registered a MilitaryGovernor.
-- **M37.154** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Xanthia Crown into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.189** · _Age of Compliance_ (CommercialCharter): Aeldari concluded a treaty asserting standing rights on Xanthia Crown.
+- **M36.037** · _Age of Foundation_ (foundation): Records place the founding of Xanthia Crown in this era; the world was settled as a HiveWorld and registered a MilitaryGovernor.
+- **M37.154** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Xanthia Crown into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.189** · _Age of Compliance_ (commercial_charter): Aeldari concluded a treaty asserting standing rights on Xanthia Crown.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | Dominant | Contested | 53 | 100 | 30 | 20 | 52 | 37 | 49 | 11 | 90 |
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Segmentum Command (`segmentum_command`) | Significant | Influence | 36 | 69 | 20 | 13 | 34 | 24 | 33 | 8 | 58 |
-| aeldari | Aeldari Craftworlds & Kin (`aeldari`) | Maiden World Wardens (`maiden_world_wardens`) | Minor | Presence | 15 | 9 | 21 | 14 | 9 | 11 | 18 | 28 | 6 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | dominant | contested | 53 | 100 | 30 | 20 | 52 | 37 | 49 | 11 | 90 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Segmentum Command (`segmentum_command`) | significant | influence | 36 | 69 | 20 | 13 | 34 | 24 | 33 | 8 | 58 |
+| aeldari | Aeldari Craftworlds & Kin (`aeldari`) | Maiden World Wardens (`maiden_world_wardens`) | minor | presence | 15 | 9 | 21 | 14 | 9 | 11 | 18 | 28 | 6 |
 
 **Control:**
 - Dominant: imperial
@@ -4054,28 +4054,28 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 53 |
-| aeldari | TreatyRight | 15 |
+| imperial | imperial_mandate | 53 |
+| aeldari | treaty_right | 15 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Sector Capital | Capital | imperial | 79 | 25 | 90 |
-| Primary Hive | Hive | imperial | 61 | 45 | 90 |
-| Underhive | Underhive | imperial | 28 | 25 | 90 |
-| Outer Wastes | Wilderness | imperial | 19 | 5 | 90 |
+| Sector Capital | capital | imperial | 79 | 25 | 90 |
+| Primary Hive | hive | imperial | 61 | 45 | 90 |
+| Underhive | underhive | imperial | 28 | 25 | 90 |
+| Outer Wastes | wilderness | imperial | 19 | 5 | 90 |
 
 ### SYS-0017-W03 — Necropolia
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of Necropolia in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Necropolia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of Necropolia in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M37.175** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Necropolia into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Adeptus Administratum (`adeptus_administratum`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -4098,25 +4098,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 55 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 55 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0017-W04 — Vermillion Kanak Redoubt
 
 **Local history:**
 
-- **M36.007** · _Age of Foundation_ (Foundation): Records place the founding of Vermillion Kanak Redoubt in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M39.463** · _Age of Compliance_ (Annexation): Chaos seized Vermillion Kanak Redoubt by force of arms.
+- **M36.007** · _Age of Foundation_ (foundation): Records place the founding of Vermillion Kanak Redoubt in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M39.463** · _Age of Compliance_ (annexation): Chaos seized Vermillion Kanak Redoubt by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Dark Mechanicum (`dark_mechanicum`) | Scrapcode Covens (`scrapcode_covens`) | Dominant | Influence | 44 | 21 | 60 | 45 | 47 | 72 | 40 | 65 | 44 |
+| chaos | Dark Mechanicum (`dark_mechanicum`) | Scrapcode Covens (`scrapcode_covens`) | dominant | influence | 44 | 21 | 60 | 45 | 47 | 72 | 40 | 65 | 44 |
 
 **Control:**
 - Dominant: chaos
@@ -4139,25 +4139,25 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 44 |
+| chaos | military_occupation | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | chaos | 31 | 30 | 44 |
-| Hinterland | Wilderness | chaos | 18 | 70 | 44 |
+| Capital | capital | chaos | 31 | 30 | 44 |
+| Hinterland | wilderness | chaos | 18 | 70 | 44 |
 
 ### SYS-0017-W05 — Nemoria
 
 **Local history:**
 
-- **M36.013** · _Age of Foundation_ (Foundation): Records place the founding of Nemoria in this era; the world was settled as a ShrineWorld and registered a HereticalImperialCult.
-- **M37.180** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Nemoria into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.013** · _Age of Foundation_ (foundation): Records place the founding of Nemoria in this era; the world was settled as a ShrineWorld and registered a HereticalImperialCult.
+- **M37.180** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Nemoria into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Tithe Authority (`imperial_tithe_authority`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Tithe Authority (`imperial_tithe_authority`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -4180,16 +4180,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Pilgrim Continent | ShrineContinent | imperial | 33 | 55 | 90 |
-| Cardinal Spire | CardinalSpire | imperial | 39 | 25 | 90 |
-| Heretic Cells | Hideout | imperial | 17 | 5 | 90 |
-| Outer Cloisters | Wilderness | imperial | 16 | 15 | 90 |
+| Pilgrim Continent | shrine_continent | imperial | 33 | 55 | 90 |
+| Cardinal Spire | cardinal_spire | imperial | 39 | 25 | 90 |
+| Heretic Cells | hideout | imperial | 17 | 5 | 90 |
+| Outer Cloisters | wilderness | imperial | 16 | 15 | 90 |
 
 ## SYS-0018 — Lamenta
 
@@ -4211,25 +4211,25 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | chaos | 100 |
-| DefensePlatform | imperial | 100 |
-| DefensePlatform | necron | 48 |
-| Shipyard | chaos | 84 |
-| Shipyard | imperial | 100 |
-| Station | chaos | 60 |
-| Station | imperial | 100 |
+| defense_platform | chaos | 100 |
+| defense_platform | imperial | 100 |
+| defense_platform | necron | 48 |
+| shipyard | chaos | 84 |
+| shipyard | imperial | 100 |
+| station | chaos | 60 |
+| station | imperial | 100 |
 
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Apostate Icarion in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
-- **M36.009** · _Age of Foundation_ (Foundation): Records place the founding of Malachor in this era; the world was settled as a FrontierWorld and registered a Warlords.
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Eremia in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Frost Obdura in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Abyssal Numitora Oath in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M36.072** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Narthax as SmugglingLane; later charts record it as Hazardous.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Ophidian Wreath as StableWarpLane; later charts record it as Unstable.
-- **M36.080** · _Age of Foundation_ (Discovery): A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Apostate Icarion in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
+- **M36.009** · _Age of Foundation_ (foundation): Records place the founding of Malachor in this era; the world was settled as a FrontierWorld and registered a Warlords.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Eremia in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Frost Obdura in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Abyssal Numitora Oath in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M36.072** · _Age of Foundation_ (discovery): Navigators marked the lane between Lamenta and Narthax as SmugglingLane; later charts record it as Hazardous.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Lamenta and Ophidian Wreath as StableWarpLane; later charts record it as Unstable.
+- **M36.080** · _Age of Foundation_ (discovery): A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -4243,12 +4243,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.029** · _Age of Foundation_ (Foundation): Records place the founding of Frost Obdura in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
-- **M37.153** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Frost Obdura into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.029** · _Age of Foundation_ (foundation): Records place the founding of Frost Obdura in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
+- **M37.153** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Frost Obdura into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -4271,27 +4271,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 55 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 55 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ### SYS-0018-W02 — Malachor
 
 **Local history:**
 
-- **M36.009** · _Age of Foundation_ (Foundation): Records place the founding of Malachor in this era; the world was settled as a FrontierWorld and registered a Warlords.
-- **M36.109** · _Age of Foundation_ (Discovery): Surveys revealed the ancient domain of Necrons beneath Malachor.
-- **M39.607** · _Age of Fracture_ (Uprising): Loyalist authority on Malachor collapsed; Rebel Powers declared open rebellion.
+- **M36.009** · _Age of Foundation_ (foundation): Records place the founding of Malachor in this era; the world was settled as a FrontierWorld and registered a Warlords.
+- **M36.109** · _Age of Foundation_ (discovery): Surveys revealed the ancient domain of Necrons beneath Malachor.
+- **M39.607** · _Age of Fracture_ (uprising): Loyalist authority on Malachor collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Planetary Liberation Fronts (`planetary_liberation_fronts`) | Dominant | Influence | 30 | 16 | 60 | 10 | 16 | 13 | 55 | 50 | 59 |
-| necron | Necron Dynasties (`necron`) | Plasmancer Courts (`plasmancer_courts`) | Significant | Influence | 27 | 13 | 58 | 32 | 8 | 21 | 23 | 36 | 25 |
+| rebel | Rebel Movements (`rebel`) | Planetary Liberation Fronts (`planetary_liberation_fronts`) | dominant | influence | 30 | 16 | 60 | 10 | 16 | 13 | 55 | 50 | 59 |
+| necron | Necron Dynasties (`necron`) | Plasmancer Courts (`plasmancer_courts`) | significant | influence | 27 | 13 | 58 | 32 | 8 | 21 | 23 | 36 | 25 |
 
 **Control:**
 - Dominant: rebel
@@ -4315,15 +4315,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 30 |
-| necron | AncientDomain | 27 |
+| rebel | rebellion | 30 |
+| necron | ancient_domain | 27 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | rebel | 22 | 30 | 59 |
-| Hinterland | Wilderness | rebel | 13 | 70 | 59 |
+| Capital | capital | rebel | 22 | 30 | 59 |
+| Hinterland | wilderness | rebel | 13 | 70 | 59 |
 
 **Conflict:** intensity 15 momentum 0 attacker=necron defender=rebel
 
@@ -4331,18 +4331,18 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Eremia in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
-- **M37.168** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Eremia into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M38.329** · _Age of Fracture_ (AeldariActivity): Tyranids marked Eremia as a recurring hunting ground.
-- **M39.582** · _Age of Fracture_ (Uprising): Loyalist authority on Eremia collapsed; Chaos declared open rebellion.
-- **M42.048** · _Indomitus Dawn_ (Purge): Open warfare engulfed Eremia; Imperium pressed an offensive against Chaos.
-- **M42.056** · _Indomitus Dawn_ (Reconquest): Authority on Eremia fractured: Chaos seized de facto control while Imperium retained the sovereign claim.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Eremia in this era; the world was settled as an ImperialWorld and registered an ElitistTyrant.
+- **M37.168** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Eremia into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M38.329** · _Age of Fracture_ (aeldari_activity): Tyranids marked Eremia as a recurring hunting ground.
+- **M39.582** · _Age of Fracture_ (uprising): Loyalist authority on Eremia collapsed; Chaos declared open rebellion.
+- **M42.048** · _Indomitus Dawn_ (purge): Open warfare engulfed Eremia; Imperium pressed an offensive against Chaos.
+- **M42.056** · _Indomitus Dawn_ (reconquest): Authority on Eremia fractured: Chaos seized de facto control while Imperium retained the sovereign claim.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Heretic Astartes (`chaos_space_marine`) | Cult of Magic (`cult_of_magic`) | Dominant | Influence | 41 | 5 | 95 | 60 | 10 | 25 | 60 | 50 | 64 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | Significant | Influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
-| tyranid | Tyranid Hive Fleets (`tyranid`) | Norn Emissary Broods (`norn_emissary_broods`) | Minor | Presence | 11 | 0 | 35 | 21 | 0 | 0 | 0 | 10 | 22 |
+| chaos | Heretic Astartes (`chaos_space_marine`) | Cult of Magic (`cult_of_magic`) | dominant | influence | 41 | 5 | 95 | 60 | 10 | 25 | 60 | 50 | 64 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Administration (`imperial_administration`) | significant | influence | 32 | 56 | 20 | 13 | 32 | 23 | 33 | 8 | 58 |
+| tyranid | Tyranid Hive Fleets (`tyranid`) | Norn Emissary Broods (`norn_emissary_broods`) | minor | presence | 11 | 0 | 35 | 21 | 0 | 0 | 0 | 10 | 22 |
 
 **Control:**
 - Dominant: chaos
@@ -4366,16 +4366,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | Rebellion | 41 |
-| imperial | ImperialMandate | 32 |
-| tyranid | HuntingGround | 11 |
+| chaos | rebellion | 41 |
+| imperial | imperial_mandate | 32 |
+| tyranid | hunting_ground | 11 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 35 | 30 | 58 |
-| Hinterland | Wilderness | chaos | 20 | 70 | 64 |
+| Capital | capital | imperial | 35 | 30 | 58 |
+| Hinterland | wilderness | chaos | 20 | 70 | 64 |
 
 **Conflict:** intensity 90 momentum -18 attacker=imperial defender=chaos
 
@@ -4383,12 +4383,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.034** · _Age of Foundation_ (Foundation): Records place the founding of Abyssal Numitora Oath in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
-- **M37.160** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Abyssal Numitora Oath as a charge of the faith.
+- **M36.034** · _Age of Foundation_ (foundation): Records place the founding of Abyssal Numitora Oath in this era; the world was settled as an ImperialWorld and registered a TraditionalOligarchy.
+- **M37.160** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Abyssal Numitora Oath as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adepta Sororitas (`adepta_sororitas`) | Redemptionist Preachers (`redemptionist_preachers`) | Dominant | Influence | 42 | 26 | 65 | 25 | 21 | 8 | 100 | 25 | 80 |
+| imperial | Adepta Sororitas (`adepta_sororitas`) | Redemptionist Preachers (`redemptionist_preachers`) | dominant | influence | 42 | 26 | 65 | 25 | 21 | 8 | 100 | 25 | 80 |
 
 **Control:**
 - Dominant: imperial
@@ -4411,28 +4411,28 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 42 |
+| imperial | religious_mandate | 42 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 80 |
-| Hinterland | Wilderness | imperial | 18 | 70 | 80 |
+| Capital | capital | imperial | 41 | 30 | 80 |
+| Hinterland | wilderness | imperial | 18 | 70 | 80 |
 
 ### SYS-0018-W05 — Apostate Icarion
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Apostate Icarion in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
-- **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Apostate Icarion into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.444** · _Age of Compliance_ (Annexation): Chaos seized Apostate Icarion by force of arms.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Apostate Icarion in this era; the world was settled as a ForgeWorld and registered a MechanicusForgeLord.
+- **M37.175** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Apostate Icarion into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.444** · _Age of Compliance_ (annexation): Chaos seized Apostate Icarion by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Mechanicus (`mechanicus`) | Sicarian Clades (`sicarian_clades`) | Dominant | Contested | 57 | 65 | 35 | 50 | 70 | 95 | 58 | 29 | 72 |
-| chaos | Dark Mechanicum (`dark_mechanicum`) | Hell-forge Xana II (`hell_forge_xana_ii`) | Significant | Influence | 33 | 26 | 39 | 29 | 36 | 55 | 30 | 44 | 29 |
-| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| imperial | Adeptus Mechanicus (`mechanicus`) | Sicarian Clades (`sicarian_clades`) | dominant | contested | 57 | 65 | 35 | 50 | 70 | 95 | 58 | 29 | 72 |
+| chaos | Dark Mechanicum (`dark_mechanicum`) | Hell-forge Xana II (`hell_forge_xana_ii`) | significant | influence | 33 | 26 | 39 | 29 | 36 | 55 | 30 | 44 | 29 |
+| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -4456,17 +4456,17 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 57 |
-| chaos | MilitaryOccupation | 33 |
+| imperial | imperial_mandate | 57 |
+| chaos | military_occupation | 33 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Primary Forge | ForgeComplex | imperial | 66 | 50 | 72 |
-| Magos Spire | Capital | imperial | 68 | 15 | 72 |
-| Servitor Underworks | Underhive | imperial | 44 | 15 | 72 |
-| Slag Plains | Wilderness | imperial | 21 | 20 | 72 |
+| Primary Forge | forge_complex | imperial | 66 | 50 | 72 |
+| Magos Spire | capital | imperial | 68 | 15 | 72 |
+| Servitor Underworks | underhive | imperial | 44 | 15 | 72 |
+| Slag Plains | wilderness | imperial | 21 | 20 | 72 |
 
 ## SYS-0019 — Hadar Crag
 
@@ -4489,23 +4489,23 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| BlockadeFleet | imperial | 86 |
-| DefensePlatform | imperial | 93 |
-| DefensePlatform | tyranid | 55 |
-| Shipyard | imperial | 71 |
-| Station | imperial | 78 |
+| blockade_fleet | imperial | 86 |
+| defense_platform | imperial | 93 |
+| defense_platform | tyranid | 55 |
+| shipyard | imperial | 71 |
+| station | imperial | 78 |
 
 
 **Local history:**
 
-- **M36.006** · _Age of Foundation_ (Foundation): Records place the founding of Sable Olymbria Decimus in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
-- **M36.018** · _Age of Foundation_ (Foundation): Records place the founding of Vigilus Shadow in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Arctyra in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
-- **M36.075** · _Age of Foundation_ (Discovery): Navigators marked the lane between Praetoria and Hadar Crag as ChartedPassage; later charts record it as Hazardous.
-- **M36.077** · _Age of Foundation_ (Discovery): A concealed passage linking Hadar Crag and Ophidian Wreath entered restricted charts as SmugglingLane.
-- **M36.079** · _Age of Foundation_ (Discovery): Navigators marked the lane between Hadar Crag and Ophidian Wreath as SmugglingLane; later charts record it as Unstable.
-- **M36.083** · _Age of Foundation_ (Discovery): A concealed passage linking Castoria and Hadar Crag entered restricted charts as SmugglingLane.
-- **M36.087** · _Age of Foundation_ (Discovery): Navigators marked the lane between Dominicar and Hadar Crag as SmugglingLane; later charts record it as Hazardous.
+- **M36.006** · _Age of Foundation_ (foundation): Records place the founding of Sable Olymbria Decimus in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
+- **M36.018** · _Age of Foundation_ (foundation): Records place the founding of Vigilus Shadow in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Arctyra in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
+- **M36.075** · _Age of Foundation_ (discovery): Navigators marked the lane between Praetoria and Hadar Crag as ChartedPassage; later charts record it as Hazardous.
+- **M36.077** · _Age of Foundation_ (discovery): A concealed passage linking Hadar Crag and Ophidian Wreath entered restricted charts as SmugglingLane.
+- **M36.079** · _Age of Foundation_ (discovery): Navigators marked the lane between Hadar Crag and Ophidian Wreath as SmugglingLane; later charts record it as Unstable.
+- **M36.083** · _Age of Foundation_ (discovery): A concealed passage linking Castoria and Hadar Crag entered restricted charts as SmugglingLane.
+- **M36.087** · _Age of Foundation_ (discovery): Navigators marked the lane between Dominicar and Hadar Crag as SmugglingLane; later charts record it as Hazardous.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -4517,15 +4517,15 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.018** · _Age of Foundation_ (Foundation): Records place the founding of Vigilus Shadow in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
-- **M37.176** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Vigilus Shadow into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.585** · _Age of Fracture_ (Uprising): Loyalist authority on Vigilus Shadow collapsed; Chaos declared open rebellion.
+- **M36.018** · _Age of Foundation_ (foundation): Records place the founding of Vigilus Shadow in this era; the world was settled as a PenalWorld and registered an InfractionistGang.
+- **M37.176** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Vigilus Shadow into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.585** · _Age of Fracture_ (uprising): Loyalist authority on Vigilus Shadow collapsed; Chaos declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Astra Militarum (`imperial_guard`) | Imperial Penal Legions (`imperial_penal_legions`) | Dominant | Contested | 45 | 36 | 80 | 25 | 20 | 55 | 39 | 11 | 90 |
-| chaos | Chaos Cults (`cult`) | Tzeentch Covenants (`tzeentch_covenants`) | Significant | Presence | 17 | 3 | 16 | 3 | 10 | 6 | 53 | 66 | 0 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Tithe Authority (`imperial_tithe_authority`) | Minor | Presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
+| imperial | Astra Militarum (`imperial_guard`) | Imperial Penal Legions (`imperial_penal_legions`) | dominant | contested | 45 | 36 | 80 | 25 | 20 | 55 | 39 | 11 | 90 |
+| chaos | Chaos Cults (`cult`) | Tzeentch Covenants (`tzeentch_covenants`) | significant | presence | 17 | 3 | 16 | 3 | 10 | 6 | 53 | 66 | 0 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Tithe Authority (`imperial_tithe_authority`) | minor | presence | 17 | 30 | 10 | 7 | 18 | 12 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -4549,15 +4549,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
-| chaos | Rebellion | 17 |
+| imperial | imperial_mandate | 45 |
+| chaos | rebellion | 17 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 47 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 21 | 70 | 90 |
+| Capital | capital | imperial | 47 | 30 | 90 |
+| Hinterland | wilderness | imperial | 21 | 70 | 90 |
 
 **Conflict:** intensity 12 momentum 0 attacker=imperial defender=imperial
 
@@ -4565,12 +4565,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.019** · _Age of Foundation_ (Foundation): Records place the founding of Arctyra in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
-- **M37.173** · _Echoes of the Great Crusade_ (Consecration): Imperium consecrated Arctyra as a charge of the faith.
+- **M36.019** · _Age of Foundation_ (foundation): Records place the founding of Arctyra in this era; the world was settled as a FrontierWorld and registered a RogueTraderDynasty.
+- **M37.173** · _Echoes of the Great Crusade_ (consecration): Imperium consecrated Arctyra as a charge of the faith.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adepta Famulous (`adepta_famulous`) | Dominant | Influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
+| imperial | Adeptus Ministorum (`ecclesiarchy`) | Adepta Famulous (`adepta_famulous`) | dominant | influence | 31 | 39 | 30 | 20 | 22 | 16 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -4593,14 +4593,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ReligiousMandate | 31 |
+| imperial | religious_mandate | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 30 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 11 | 70 | 90 |
+| Capital | capital | imperial | 30 | 30 | 90 |
+| Hinterland | wilderness | imperial | 11 | 70 | 90 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=imperial
 
@@ -4608,14 +4608,14 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.006** · _Age of Foundation_ (Foundation): Records place the founding of Sable Olymbria Decimus in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
-- **M38.301** · _Age of Fracture_ (AeldariActivity): Tyranids marked Sable Olymbria Decimus as a recurring hunting ground.
-- **M39.609** · _Age of Fracture_ (Uprising): Loyalist authority on Sable Olymbria Decimus collapsed; Rebel Powers declared open rebellion.
+- **M36.006** · _Age of Foundation_ (foundation): Records place the founding of Sable Olymbria Decimus in this era; the world was settled as a PleasureWorld and registered a CorruptAristocrats.
+- **M38.301** · _Age of Fracture_ (aeldari_activity): Tyranids marked Sable Olymbria Decimus as a recurring hunting ground.
+- **M39.609** · _Age of Fracture_ (uprising): Loyalist authority on Sable Olymbria Decimus collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Mutant Uprisings (`mutant_uprisings`) | Dominant | Influence | 29 | 10 | 60 | 10 | 16 | 13 | 55 | 50 | 59 |
-| tyranid | Tyranid Hive Fleets (`tyranid`) | Hive Fleet Naga (`hive_fleet_naga`) | Significant | Presence | 20 | 0 | 65 | 39 | 0 | 0 | 0 | 20 | 42 |
+| rebel | Rebel Movements (`rebel`) | Mutant Uprisings (`mutant_uprisings`) | dominant | influence | 29 | 10 | 60 | 10 | 16 | 13 | 55 | 50 | 59 |
+| tyranid | Tyranid Hive Fleets (`tyranid`) | Hive Fleet Naga (`hive_fleet_naga`) | significant | presence | 20 | 0 | 65 | 39 | 0 | 0 | 0 | 20 | 42 |
 
 **Control:**
 - Dominant: rebel
@@ -4637,15 +4637,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 29 |
-| tyranid | HuntingGround | 20 |
+| rebel | rebellion | 29 |
+| tyranid | hunting_ground | 20 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | rebel | 19 | 30 | 59 |
-| Hinterland | Wilderness | tyranid | 16 | 70 | 42 |
+| Capital | capital | rebel | 19 | 30 | 59 |
+| Hinterland | wilderness | tyranid | 16 | 70 | 42 |
 
 **Conflict:** intensity 15 momentum 0 attacker=tyranid defender=rebel
 
@@ -4670,24 +4670,24 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | chaos | 54 |
-| DefensePlatform | imperial | 69 |
-| Shipyard | imperial | 62 |
-| Station | chaos | 31 |
-| Station | imperial | 100 |
-| Station | tau | 29 |
+| defense_platform | chaos | 54 |
+| defense_platform | imperial | 69 |
+| shipyard | imperial | 62 |
+| station | chaos | 31 |
+| station | imperial | 100 |
+| station | tau | 29 |
 
 
 **Local history:**
 
-- **M36.000** · _Age of Foundation_ (Foundation): Records place the founding of Abraxion in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
-- **M36.002** · _Age of Foundation_ (Foundation): Records place the founding of Ravenna in this era; the world was settled as a TombWorld and registered a XenosOverlords.
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Vigilant Meridia in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Infernus Severia Cairn in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
-- **M36.083** · _Age of Foundation_ (Discovery): Navigators marked the lane between Phlegethon Sanctuary and Xanthus Perdition as ChartedPassage; later charts record it as Hazardous.
-- **M37.153** · _Age of Compliance_ (CommercialCharter): T'au Empire was granted a commercial charter to operate on Vigilant Meridia.
-- **M37.172** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Abraxion into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M37.184** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Infernus Severia Cairn into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.000** · _Age of Foundation_ (foundation): Records place the founding of Abraxion in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
+- **M36.002** · _Age of Foundation_ (foundation): Records place the founding of Ravenna in this era; the world was settled as a TombWorld and registered a XenosOverlords.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Vigilant Meridia in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Infernus Severia Cairn in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
+- **M36.083** · _Age of Foundation_ (discovery): Navigators marked the lane between Phlegethon Sanctuary and Xanthus Perdition as ChartedPassage; later charts record it as Hazardous.
+- **M37.153** · _Age of Compliance_ (commercial_charter): T'au Empire was granted a commercial charter to operate on Vigilant Meridia.
+- **M37.172** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Abraxion into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M37.184** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Infernus Severia Cairn into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -4700,7 +4700,7 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.002** · _Age of Foundation_ (Foundation): Records place the founding of Ravenna in this era; the world was settled as a TombWorld and registered a XenosOverlords.
+- **M36.002** · _Age of Foundation_ (foundation): Records place the founding of Ravenna in this era; the world was settled as a TombWorld and registered a XenosOverlords.
 
 **Stability:**
 - Public order: 70
@@ -4715,20 +4715,20 @@ Chronicle events: **427**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Inner Tomb | TombComplex | — | 0 | 60 | 0 |
-| Surface Wastes | Wilderness | — | 0 | 40 | 0 |
+| Inner Tomb | tomb_complex | — | 0 | 60 | 0 |
+| Surface Wastes | wilderness | — | 0 | 40 | 0 |
 
 ### SYS-0020-W02 — Infernus Severia Cairn
 
 **Local history:**
 
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Infernus Severia Cairn in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
-- **M37.184** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Infernus Severia Cairn into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Infernus Severia Cairn in this era; the world was settled as a Worldship and registered a TraditionalOligarchy.
+- **M37.184** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Infernus Severia Cairn into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | Dominant | Influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Significant | Presence | 24 | 36 | 20 | 13 | 21 | 15 | 29 | 6 | 58 |
+| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | dominant | influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | significant | presence | 24 | 36 | 20 | 13 | 21 | 15 | 29 | 6 | 58 |
 
 **Control:**
 - Dominant: imperial
@@ -4751,29 +4751,29 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 37 |
+| imperial | imperial_mandate | 37 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 13 | 70 | 90 |
+| Capital | capital | imperial | 41 | 30 | 90 |
+| Hinterland | wilderness | imperial | 13 | 70 | 90 |
 
 ### SYS-0020-W03 — Vigilant Meridia
 
 **Local history:**
 
-- **M36.015** · _Age of Foundation_ (Foundation): Records place the founding of Vigilant Meridia in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
-- **M37.153** · _Age of Compliance_ (CommercialCharter): T'au Empire was granted a commercial charter to operate on Vigilant Meridia.
-- **M39.435** · _Age of Compliance_ (Annexation): Chaos seized Vigilant Meridia by force of arms.
-- **M42.027** · _Indomitus Dawn_ (Reconquest): Authority on Vigilant Meridia fractured: Chaos seized de facto control while T'au Empire retained the sovereign claim.
-- **M42.035** · _Indomitus Dawn_ (Purge): Open warfare engulfed Vigilant Meridia; T'au Empire pressed an offensive against Chaos.
+- **M36.015** · _Age of Foundation_ (foundation): Records place the founding of Vigilant Meridia in this era; the world was settled as an ExtractiveColony and registered a Megacorporations.
+- **M37.153** · _Age of Compliance_ (commercial_charter): T'au Empire was granted a commercial charter to operate on Vigilant Meridia.
+- **M39.435** · _Age of Compliance_ (annexation): Chaos seized Vigilant Meridia by force of arms.
+- **M42.027** · _Indomitus Dawn_ (reconquest): Authority on Vigilant Meridia fractured: Chaos seized de facto control while T'au Empire retained the sovereign claim.
+- **M42.035** · _Indomitus Dawn_ (purge): Open warfare engulfed Vigilant Meridia; T'au Empire pressed an offensive against Chaos.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Dark Mechanicum (`dark_mechanicum`) | Hell-forge Cyclothrathe (`hell_forge_cyclothrathe`) | Dominant | Influence | 40 | 16 | 60 | 45 | 36 | 55 | 40 | 65 | 44 |
-| tau | T'au Septs (`tau`) | Fal’shia Sept (`falshia_sept`) | Significant | Influence | 31 | 26 | 36 | 32 | 27 | 32 | 39 | 23 | 46 |
+| chaos | Dark Mechanicum (`dark_mechanicum`) | Hell-forge Cyclothrathe (`hell_forge_cyclothrathe`) | dominant | influence | 40 | 16 | 60 | 45 | 36 | 55 | 40 | 65 | 44 |
+| tau | T'au Septs (`tau`) | Fal’shia Sept (`falshia_sept`) | significant | influence | 31 | 26 | 36 | 32 | 27 | 32 | 39 | 23 | 46 |
 
 **Control:**
 - Dominant: chaos
@@ -4797,15 +4797,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 40 |
-| tau | CommercialCharter | 31 |
+| chaos | military_occupation | 40 |
+| tau | commercial_charter | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | chaos | 27 | 30 | 44 |
-| Hinterland | Wilderness | chaos | 17 | 70 | 44 |
+| Capital | capital | chaos | 27 | 30 | 44 |
+| Hinterland | wilderness | chaos | 17 | 70 | 44 |
 
 **Conflict:** intensity 90 momentum -18 attacker=tau defender=chaos
 
@@ -4813,12 +4813,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.000** · _Age of Foundation_ (Foundation): Records place the founding of Abraxion in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
-- **M37.172** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Abraxion into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.000** · _Age of Foundation_ (foundation): Records place the founding of Abraxion in this era; the world was settled as a FeudalWorld and registered a WarriorAristocracy.
+- **M37.172** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Abraxion into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | Dominant | Influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Adeptus Terra & High Lords (`adeptus_terra`) | Sector Lord Militant Staff (`sector_lord_militant_staff`) | dominant | influence | 44 | 73 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -4841,14 +4841,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 44 |
+| imperial | imperial_mandate | 44 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 55 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 16 | 70 | 90 |
+| Capital | capital | imperial | 55 | 30 | 90 |
+| Hinterland | wilderness | imperial | 16 | 70 | 90 |
 
 ## SYS-0021 — Ophidian Wreath
 
@@ -4868,20 +4868,20 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| Shipyard | merchant | 72 |
-| Station | merchant | 65 |
+| shipyard | merchant | 72 |
+| station | merchant | 65 |
 
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Vigilant Junora in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
-- **M36.024** · _Age of Foundation_ (Foundation): Records place the founding of Ursae in this era; the world was settled as an AgriWorld and registered a ClansTribes.
-- **M36.025** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian Avitus Cairn in this era; the world was settled as an Asteroid and registered a GuildsCombine.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Ophidian Wreath as StableWarpLane; later charts record it as Unstable.
-- **M36.077** · _Age of Foundation_ (Discovery): A concealed passage linking Hadar Crag and Ophidian Wreath entered restricted charts as SmugglingLane.
-- **M36.079** · _Age of Foundation_ (Discovery): Navigators marked the lane between Hadar Crag and Ophidian Wreath as SmugglingLane; later charts record it as Unstable.
-- **M36.089** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ophidian Wreath and Nicomedia Pyre as StableWarpLane; later charts record it as Unstable.
-- **M37.155** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Ursae.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Vigilant Junora in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
+- **M36.024** · _Age of Foundation_ (foundation): Records place the founding of Ursae in this era; the world was settled as an AgriWorld and registered a ClansTribes.
+- **M36.025** · _Age of Foundation_ (foundation): Records place the founding of Aurelian Avitus Cairn in this era; the world was settled as an Asteroid and registered a GuildsCombine.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Lamenta and Ophidian Wreath as StableWarpLane; later charts record it as Unstable.
+- **M36.077** · _Age of Foundation_ (discovery): A concealed passage linking Hadar Crag and Ophidian Wreath entered restricted charts as SmugglingLane.
+- **M36.079** · _Age of Foundation_ (discovery): Navigators marked the lane between Hadar Crag and Ophidian Wreath as SmugglingLane; later charts record it as Unstable.
+- **M36.089** · _Age of Foundation_ (discovery): Navigators marked the lane between Ophidian Wreath and Nicomedia Pyre as StableWarpLane; later charts record it as Unstable.
+- **M37.155** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Ursae.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -4893,12 +4893,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.024** · _Age of Foundation_ (Foundation): Records place the founding of Ursae in this era; the world was settled as an AgriWorld and registered a ClansTribes.
-- **M37.155** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Ursae.
+- **M36.024** · _Age of Foundation_ (foundation): Records place the founding of Ursae in this era; the world was settled as an AgriWorld and registered a ClansTribes.
+- **M37.155** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Ursae.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| merchant | Merchant Combines (`merchant`) | Trade Mission Factors (`trade_mission_factors`) | Dominant | Influence | 39 | 30 | 15 | 35 | 81 | 34 | 24 | 32 | 70 |
+| merchant | Merchant Combines (`merchant`) | Trade Mission Factors (`trade_mission_factors`) | dominant | influence | 39 | 30 | 15 | 35 | 81 | 34 | 24 | 32 | 70 |
 
 **Control:**
 - Dominant: merchant
@@ -4921,26 +4921,26 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| merchant | CommercialCharter | 39 |
+| merchant | commercial_charter | 39 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Agri Belt | AgriBelt | merchant | 39 | 70 | 70 |
-| Provincial Capital | Capital | merchant | 36 | 10 | 70 |
-| Wild Districts | Wilderness | merchant | 13 | 20 | 70 |
+| Agri Belt | agri_belt | merchant | 39 | 70 | 70 |
+| Provincial Capital | capital | merchant | 36 | 10 | 70 |
+| Wild Districts | wilderness | merchant | 13 | 20 | 70 |
 
 ### SYS-0021-W02 — Aurelian Avitus Cairn
 
 **Local history:**
 
-- **M36.025** · _Age of Foundation_ (Foundation): Records place the founding of Aurelian Avitus Cairn in this era; the world was settled as an Asteroid and registered a GuildsCombine.
-- **M39.598** · _Age of Fracture_ (Uprising): Loyalist authority on Aurelian Avitus Cairn collapsed; Rebel Powers declared open rebellion.
+- **M36.025** · _Age of Foundation_ (foundation): Records place the founding of Aurelian Avitus Cairn in this era; the world was settled as an Asteroid and registered a GuildsCombine.
+- **M39.598** · _Age of Fracture_ (uprising): Loyalist authority on Aurelian Avitus Cairn collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Tithe-breaker Coalitions (`tithe_breaker_coalitions`) | Dominant | Influence | 27 | 7 | 60 | 10 | 11 | 9 | 55 | 50 | 59 |
+| rebel | Rebel Movements (`rebel`) | Tithe-breaker Coalitions (`tithe_breaker_coalitions`) | dominant | influence | 27 | 7 | 60 | 10 | 11 | 9 | 55 | 50 | 59 |
 
 **Control:**
 - Dominant: rebel
@@ -4961,14 +4961,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 27 |
+| rebel | rebellion | 27 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | rebel | 18 | 30 | 59 |
-| Hinterland | Wilderness | rebel | 11 | 70 | 59 |
+| Capital | capital | rebel | 18 | 30 | 59 |
+| Hinterland | wilderness | rebel | 11 | 70 | 59 |
 
 **Conflict:** intensity 15 momentum 0 attacker=— defender=rebel
 
@@ -4976,16 +4976,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.003** · _Age of Foundation_ (Foundation): Records place the founding of Vigilant Junora in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
-- **M37.172** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Vigilant Junora.
-- **M37.189** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Vigilant Junora into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M42.040** · _Indomitus Dawn_ (Purge): Open warfare engulfed Vigilant Junora; Imperium pressed an offensive against Merchant Powers.
+- **M36.003** · _Age of Foundation_ (foundation): Records place the founding of Vigilant Junora in this era; the world was settled as a BastionWorld and registered a MilitaryGovernor.
+- **M37.172** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Vigilant Junora.
+- **M37.189** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Vigilant Junora into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M42.040** · _Indomitus Dawn_ (purge): Open warfare engulfed Vigilant Junora; Imperium pressed an offensive against Merchant Powers.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| merchant | Merchant Combines (`merchant`) | Merchant Magnates (`merchant_magnates`) | Dominant | Influence | 41 | 30 | 15 | 35 | 95 | 40 | 20 | 30 | 70 |
-| imperial | Astra Militarum (`imperial_guard`) | Savlar Chem-Dogs (`savlar_chem_dogs`) | Significant | Influence | 31 | 33 | 52 | 16 | 13 | 36 | 23 | 6 | 58 |
-| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | Minor | Presence | 19 | 40 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
+| merchant | Merchant Combines (`merchant`) | Merchant Magnates (`merchant_magnates`) | dominant | influence | 41 | 30 | 15 | 35 | 95 | 40 | 20 | 30 | 70 |
+| imperial | Astra Militarum (`imperial_guard`) | Savlar Chem-Dogs (`savlar_chem_dogs`) | significant | influence | 31 | 33 | 52 | 16 | 13 | 36 | 23 | 6 | 58 |
+| imperial | Militarum Tempestus & Schola (`militarum_tempestus`) | Schola Progenium (`schola_progenium`) | minor | presence | 19 | 40 | 10 | 7 | 18 | 12 | 16 | 3 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -5009,15 +5009,15 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| merchant | CommercialCharter | 41 |
-| imperial | ImperialMandate | 31 |
+| merchant | commercial_charter | 41 |
+| imperial | imperial_mandate | 31 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | merchant | 38 | 30 | 70 |
-| Hinterland | Wilderness | merchant | 14 | 70 | 70 |
+| Capital | capital | merchant | 38 | 30 | 70 |
+| Hinterland | wilderness | merchant | 14 | 70 | 70 |
 
 **Conflict:** intensity 90 momentum -19 attacker=imperial defender=merchant
 
@@ -5042,23 +5042,23 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 95 |
-| DefensePlatform | ork | 66 |
-| Shipyard | imperial | 100 |
-| Station | imperial | 100 |
-| Station | merchant | 25 |
+| defense_platform | imperial | 95 |
+| defense_platform | ork | 66 |
+| shipyard | imperial | 100 |
+| station | imperial | 100 |
+| station | merchant | 25 |
 
 
 **Local history:**
 
-- **M36.002** · _Age of Foundation_ (Foundation): Records place the founding of Saint Quaddian in this era; the world was settled as a HiveWorld and registered an ElitistTyrant.
-- **M36.006** · _Age of Foundation_ (Foundation): Records place the founding of Bright Tharsia in this era; the world was settled as an Asteroid and registered a GuildsCombine.
-- **M36.010** · _Age of Foundation_ (Foundation): Records place the founding of Silver Ataraxia Hollow in this era; the world was settled as an AgriWorld and registered an EcclesiarchicalAppointee.
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Sarumis in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
-- **M36.072** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Narthax as SmugglingLane; later charts record it as Hazardous.
-- **M36.081** · _Age of Foundation_ (Discovery): Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.
-- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.
-- **M36.100** · _Age of Foundation_ (Discovery): A concealed passage linking Lamenta and Narthax entered restricted charts as SmugglingLane.
+- **M36.002** · _Age of Foundation_ (foundation): Records place the founding of Saint Quaddian in this era; the world was settled as a HiveWorld and registered an ElitistTyrant.
+- **M36.006** · _Age of Foundation_ (foundation): Records place the founding of Bright Tharsia in this era; the world was settled as an Asteroid and registered a GuildsCombine.
+- **M36.010** · _Age of Foundation_ (foundation): Records place the founding of Silver Ataraxia Hollow in this era; the world was settled as an AgriWorld and registered an EcclesiarchicalAppointee.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Sarumis in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
+- **M36.072** · _Age of Foundation_ (discovery): Navigators marked the lane between Lamenta and Narthax as SmugglingLane; later charts record it as Hazardous.
+- **M36.081** · _Age of Foundation_ (discovery): Navigators marked the lane between Octavia and Narthax as ChartedPassage; later charts record it as Hazardous.
+- **M36.092** · _Age of Foundation_ (discovery): Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.
+- **M36.100** · _Age of Foundation_ (discovery): A concealed passage linking Lamenta and Narthax entered restricted charts as SmugglingLane.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5071,14 +5071,14 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.002** · _Age of Foundation_ (Foundation): Records place the founding of Saint Quaddian in this era; the world was settled as a HiveWorld and registered an ElitistTyrant.
-- **M37.145** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Saint Quaddian into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.002** · _Age of Foundation_ (foundation): Records place the founding of Saint Quaddian in this era; the world was settled as a HiveWorld and registered an ElitistTyrant.
+- **M37.145** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Saint Quaddian into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | Dominant | Contested | 52 | 96 | 30 | 20 | 52 | 37 | 49 | 11 | 90 |
-| imperial | Navis Nobilite (`navis_nobilite`) | Navis Nobilite (`navis_nobilite`) | Significant | Influence | 34 | 64 | 20 | 13 | 34 | 24 | 33 | 8 | 58 |
-| imperial | Imperial Chartist Fleets (`chartist_fleets`) | Chartist Captains (`chartist_captains`) | Minor | Presence | 19 | 37 | 10 | 7 | 18 | 13 | 20 | 5 | 32 |
+| imperial | Officio Assassinorum (`officio_assassinorum`) | Officio Assassinorum (`officio_assassinorum`) | dominant | contested | 52 | 96 | 30 | 20 | 52 | 37 | 49 | 11 | 90 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navis Nobilite (`navis_nobilite`) | significant | influence | 34 | 64 | 20 | 13 | 34 | 24 | 33 | 8 | 58 |
+| imperial | Imperial Chartist Fleets (`chartist_fleets`) | Chartist Captains (`chartist_captains`) | minor | presence | 19 | 37 | 10 | 7 | 18 | 13 | 20 | 5 | 32 |
 
 **Control:**
 - Dominant: imperial
@@ -5101,31 +5101,31 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 52 |
+| imperial | imperial_mandate | 52 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Sector Capital | Capital | imperial | 76 | 25 | 90 |
-| Primary Hive | Hive | imperial | 59 | 45 | 90 |
-| Underhive | Underhive | imperial | 28 | 25 | 90 |
-| Outer Wastes | Wilderness | imperial | 19 | 5 | 90 |
+| Sector Capital | capital | imperial | 76 | 25 | 90 |
+| Primary Hive | hive | imperial | 59 | 45 | 90 |
+| Underhive | underhive | imperial | 28 | 25 | 90 |
+| Outer Wastes | wilderness | imperial | 19 | 5 | 90 |
 
 ### SYS-0022-W02 — Sarumis
 
 **Local history:**
 
-- **M36.011** · _Age of Foundation_ (Foundation): Records place the founding of Sarumis in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
-- **M37.155** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Sarumis into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M38.303** · _Age of Fracture_ (AeldariActivity): Orks marked Sarumis as a recurring hunting ground.
-- **M39.582** · _Age of Fracture_ (Uprising): Loyalist authority on Sarumis collapsed; Tyranids declared open rebellion.
+- **M36.011** · _Age of Foundation_ (foundation): Records place the founding of Sarumis in this era; the world was settled as an IndustrialWorld and registered a RevolutionaryJunta.
+- **M37.155** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Sarumis into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M38.303** · _Age of Fracture_ (aeldari_activity): Orks marked Sarumis as a recurring hunting ground.
+- **M39.582** · _Age of Fracture_ (uprising): Loyalist authority on Sarumis collapsed; Tyranids declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| ork | Ork Klanz (`ork`) | Meganobz Retinues (`meganobz_retinues`) | Dominant | Influence | 34 | 10 | 90 | 30 | 15 | 35 | 40 | 20 | 84 |
-| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | Significant | Influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
-| tyranid | Genestealer Cults (`genestealer_cult`) | Brood Brothers (`brood_brothers`) | Minor | Presence | 13 | 14 | 12 | 2 | 9 | 9 | 18 | 38 | 0 |
+| ork | Ork Klanz (`ork`) | Meganobz Retinues (`meganobz_retinues`) | dominant | influence | 34 | 10 | 90 | 30 | 15 | 35 | 40 | 20 | 84 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | significant | influence | 33 | 61 | 20 | 13 | 32 | 23 | 29 | 6 | 58 |
+| tyranid | Genestealer Cults (`genestealer_cult`) | Brood Brothers (`brood_brothers`) | minor | presence | 13 | 14 | 12 | 2 | 9 | 9 | 18 | 38 | 0 |
 
 **Control:**
 - Dominant: ork
@@ -5149,16 +5149,16 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| ork | HuntingGround | 34 |
-| imperial | ImperialMandate | 33 |
-| tyranid | Rebellion | 13 |
+| ork | hunting_ground | 34 |
+| imperial | imperial_mandate | 33 |
+| tyranid | rebellion | 13 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 38 | 30 | 58 |
-| Hinterland | Wilderness | ork | 30 | 70 | 84 |
+| Capital | capital | imperial | 38 | 30 | 58 |
+| Hinterland | wilderness | ork | 30 | 70 | 84 |
 
 **Conflict:** intensity 15 momentum 0 attacker=imperial defender=ork
 
@@ -5166,12 +5166,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.010** · _Age of Foundation_ (Foundation): Records place the founding of Silver Ataraxia Hollow in this era; the world was settled as an AgriWorld and registered an EcclesiarchicalAppointee.
-- **M37.167** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Silver Ataraxia Hollow into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.010** · _Age of Foundation_ (foundation): Records place the founding of Silver Ataraxia Hollow in this era; the world was settled as an AgriWorld and registered an EcclesiarchicalAppointee.
+- **M37.167** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Silver Ataraxia Hollow into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | Dominant | Contested | 45 | 77 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
+| imperial | Adeptus Arbites (`adeptus_arbites`) | Adeptus Arbites (`adeptus_arbites`) | dominant | contested | 45 | 77 | 30 | 20 | 42 | 30 | 45 | 9 | 90 |
 
 **Control:**
 - Dominant: imperial
@@ -5194,26 +5194,26 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 45 |
+| imperial | imperial_mandate | 45 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Agri Belt | AgriBelt | imperial | 39 | 70 | 90 |
-| Provincial Capital | Capital | imperial | 58 | 10 | 90 |
-| Wild Districts | Wilderness | imperial | 16 | 20 | 90 |
+| Agri Belt | agri_belt | imperial | 39 | 70 | 90 |
+| Provincial Capital | capital | imperial | 58 | 10 | 90 |
+| Wild Districts | wilderness | imperial | 16 | 20 | 90 |
 
 ### SYS-0022-W04 — Bright Tharsia
 
 **Local history:**
 
-- **M36.006** · _Age of Foundation_ (Foundation): Records place the founding of Bright Tharsia in this era; the world was settled as an Asteroid and registered a GuildsCombine.
-- **M37.174** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Bright Tharsia.
+- **M36.006** · _Age of Foundation_ (foundation): Records place the founding of Bright Tharsia in this era; the world was settled as an Asteroid and registered a GuildsCombine.
+- **M37.174** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Bright Tharsia.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| merchant | Merchant Combines (`merchant`) | Cold Trade Syndicates (`cold_trade_syndicates`) | Dominant | Influence | 30 | 16 | 15 | 35 | 43 | 18 | 24 | 32 | 70 |
+| merchant | Merchant Combines (`merchant`) | Cold Trade Syndicates (`cold_trade_syndicates`) | dominant | influence | 30 | 16 | 15 | 35 | 43 | 18 | 24 | 32 | 70 |
 
 **Control:**
 - Dominant: merchant
@@ -5236,14 +5236,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| merchant | CommercialCharter | 30 |
+| merchant | commercial_charter | 30 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | merchant | 23 | 30 | 70 |
-| Hinterland | Wilderness | merchant | 10 | 70 | 70 |
+| Capital | capital | merchant | 23 | 30 | 70 |
+| Hinterland | wilderness | merchant | 10 | 70 | 70 |
 
 **Conflict:** intensity 6 momentum 0 attacker=— defender=merchant
 
@@ -5265,20 +5265,20 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | imperial | 60 |
-| Station | imperial | 89 |
+| defense_platform | imperial | 60 |
+| station | imperial | 89 |
 
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of White Calibryx in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
-- **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Amaraxis in this era; the world was settled as an ExtractiveColony and registered a CorruptAristocrats.
-- **M36.080** · _Age of Foundation_ (Discovery): A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.
-- **M36.087** · _Age of Foundation_ (Discovery): Navigators marked the lane between Hadar Crag and Nicomedia Pyre as SmugglingLane; later charts record it as Unstable.
-- **M36.089** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ophidian Wreath and Nicomedia Pyre as StableWarpLane; later charts record it as Unstable.
-- **M36.094** · _Age of Foundation_ (Discovery): Navigators marked the lane between Lamenta and Nicomedia Pyre as SmugglingLane; later charts record it as Hazardous.
-- **M36.109** · _Age of Foundation_ (Discovery): A concealed passage linking Hadar Crag and Nicomedia Pyre entered restricted charts as SmugglingLane.
-- **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Amaraxis into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of White Calibryx in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
+- **M36.028** · _Age of Foundation_ (foundation): Records place the founding of Amaraxis in this era; the world was settled as an ExtractiveColony and registered a CorruptAristocrats.
+- **M36.080** · _Age of Foundation_ (discovery): A concealed passage linking Lamenta and Nicomedia Pyre entered restricted charts as SmugglingLane.
+- **M36.087** · _Age of Foundation_ (discovery): Navigators marked the lane between Hadar Crag and Nicomedia Pyre as SmugglingLane; later charts record it as Unstable.
+- **M36.089** · _Age of Foundation_ (discovery): Navigators marked the lane between Ophidian Wreath and Nicomedia Pyre as StableWarpLane; later charts record it as Unstable.
+- **M36.094** · _Age of Foundation_ (discovery): Navigators marked the lane between Lamenta and Nicomedia Pyre as SmugglingLane; later charts record it as Hazardous.
+- **M36.109** · _Age of Foundation_ (discovery): A concealed passage linking Hadar Crag and Nicomedia Pyre entered restricted charts as SmugglingLane.
+- **M37.175** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Amaraxis into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5289,13 +5289,13 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.028** · _Age of Foundation_ (Foundation): Records place the founding of Amaraxis in this era; the world was settled as an ExtractiveColony and registered a CorruptAristocrats.
-- **M37.175** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered Amaraxis into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M36.028** · _Age of Foundation_ (foundation): Records place the founding of Amaraxis in this era; the world was settled as an ExtractiveColony and registered a CorruptAristocrats.
+- **M37.175** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered Amaraxis into the Imperial registry; Imperium took custody under Imperial Mandate.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | Dominant | Influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
-| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | Significant | Presence | 24 | 36 | 20 | 13 | 21 | 15 | 29 | 6 | 58 |
+| imperial | Navis Nobilite (`navis_nobilite`) | Navigator Houses (`navigator_houses`) | dominant | influence | 37 | 56 | 30 | 20 | 32 | 23 | 45 | 9 | 90 |
+| imperial | Adeptus Administratum (`administratum`) | Imperial Armoury Guilds (`imperial_armoury_guilds`) | significant | presence | 24 | 36 | 20 | 13 | 21 | 15 | 29 | 6 | 58 |
 
 **Control:**
 - Dominant: imperial
@@ -5318,27 +5318,27 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| imperial | ImperialMandate | 37 |
+| imperial | imperial_mandate | 37 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | imperial | 41 | 30 | 90 |
-| Hinterland | Wilderness | imperial | 13 | 70 | 90 |
+| Capital | capital | imperial | 41 | 30 | 90 |
+| Hinterland | wilderness | imperial | 13 | 70 | 90 |
 
 ### SYS-0023-W02 — White Calibryx
 
 **Local history:**
 
-- **M36.005** · _Age of Foundation_ (Foundation): Records place the founding of White Calibryx in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
-- **M37.176** · _Echoes of the Great Crusade_ (ImperialMandateGranted): The Adeptus Terra entered White Calibryx into the Imperial registry; Imperium took custody under Imperial Mandate.
-- **M39.601** · _Age of Fracture_ (Uprising): Loyalist authority on White Calibryx collapsed; Rebel Powers declared open rebellion.
+- **M36.005** · _Age of Foundation_ (foundation): Records place the founding of White Calibryx in this era; the world was settled as a ShrineWorld and registered an EcclesiarchicalAppointee.
+- **M37.176** · _Echoes of the Great Crusade_ (imperial_mandate_granted): The Adeptus Terra entered White Calibryx into the Imperial registry; Imperium took custody under Imperial Mandate.
+- **M39.601** · _Age of Fracture_ (uprising): Loyalist authority on White Calibryx collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Secessionist Navy Crews (`secessionist_navy_crews`) | Dominant | Influence | 29 | 10 | 60 | 10 | 16 | 13 | 55 | 50 | 59 |
-| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | Significant | Influence | 26 | 40 | 20 | 13 | 21 | 15 | 33 | 8 | 58 |
+| rebel | Rebel Movements (`rebel`) | Secessionist Navy Crews (`secessionist_navy_crews`) | dominant | influence | 29 | 10 | 60 | 10 | 16 | 13 | 55 | 50 | 59 |
+| imperial | Imperial Navy (`imperial_navy`) | Battlefleet Gothic (`battlefleet_gothic`) | significant | influence | 26 | 40 | 20 | 13 | 21 | 15 | 33 | 8 | 58 |
 
 **Control:**
 - Dominant: rebel
@@ -5361,17 +5361,17 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 29 |
-| imperial | ImperialMandate | 26 |
+| rebel | rebellion | 29 |
+| imperial | imperial_mandate | 26 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Pilgrim Continent | ShrineContinent | rebel | 24 | 55 | 59 |
-| Cardinal Spire | CardinalSpire | rebel | 21 | 25 | 59 |
-| Heretic Cells | Hideout | rebel | 23 | 5 | 59 |
-| Outer Cloisters | Wilderness | rebel | 12 | 15 | 59 |
+| Pilgrim Continent | shrine_continent | rebel | 24 | 55 | 59 |
+| Cardinal Spire | cardinal_spire | rebel | 21 | 25 | 59 |
+| Heretic Cells | hideout | rebel | 23 | 5 | 59 |
+| Outer Cloisters | wilderness | rebel | 12 | 15 | 59 |
 
 **Conflict:** intensity 15 momentum 0 attacker=imperial defender=rebel
 
@@ -5395,22 +5395,22 @@ Chronicle events: **427**
 
 | Kind | Faction | Strength |
 |---|---|---:|
-| DefensePlatform | chaos | 54 |
-| Shipyard | chaos | 72 |
-| Station | aeldari | 22 |
-| Station | chaos | 36 |
+| defense_platform | chaos | 54 |
+| shipyard | chaos | 72 |
+| station | aeldari | 22 |
+| station | chaos | 36 |
 
 
 **Local history:**
 
-- **M36.018** · _Age of Foundation_ (Foundation): Records place the founding of Lucent Gravenor in this era; the world was settled as a HiveWorld and registered a Megacorporations.
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Allecta Inner in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M36.073** · _Age of Foundation_ (Discovery): Navigators marked the lane between Ossian Exile and Prosperis II as ChartedPassage; later charts record it as Unstable.
-- **M36.092** · _Age of Foundation_ (Discovery): Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.
-- **M37.158** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Lucent Gravenor.
-- **M37.177** · _Age of Compliance_ (CommercialCharter): Aeldari concluded a treaty asserting standing rights on Lucent Gravenor.
-- **M38.286** · _Age of Fracture_ (AeldariActivity): A concealed passage linking Penitent Fires and Prosperis II entered restricted charts as Webway.
-- **M38.316** · _Age of Fracture_ (AeldariActivity): Aeldari raiding parties returned to Prosperis II.
+- **M36.018** · _Age of Foundation_ (foundation): Records place the founding of Lucent Gravenor in this era; the world was settled as a HiveWorld and registered a Megacorporations.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Allecta Inner in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M36.073** · _Age of Foundation_ (discovery): Navigators marked the lane between Ossian Exile and Prosperis II as ChartedPassage; later charts record it as Unstable.
+- **M36.092** · _Age of Foundation_ (discovery): Navigators marked the lane between Narthax and Prosperis II as SmugglingLane; later charts record it as Unstable.
+- **M37.158** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Lucent Gravenor.
+- **M37.177** · _Age of Compliance_ (commercial_charter): Aeldari concluded a treaty asserting standing rights on Lucent Gravenor.
+- **M38.286** · _Age of Fracture_ (aeldari_activity): A concealed passage linking Penitent Fires and Prosperis II entered restricted charts as Webway.
+- **M38.316** · _Age of Fracture_ (aeldari_activity): Aeldari raiding parties returned to Prosperis II.
 
 | Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |
 |---:|---|---|---|---|---|---|---|
@@ -5421,12 +5421,12 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.027** · _Age of Foundation_ (Foundation): Records place the founding of Allecta Inner in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
-- **M39.597** · _Age of Fracture_ (Uprising): Loyalist authority on Allecta Inner collapsed; Rebel Powers declared open rebellion.
+- **M36.027** · _Age of Foundation_ (foundation): Records place the founding of Allecta Inner in this era; the world was settled as an ImperialWorld and registered a LocalReligiousAuthorities.
+- **M39.597** · _Age of Fracture_ (uprising): Loyalist authority on Allecta Inner collapsed; Rebel Powers declared open rebellion.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| rebel | Rebel Movements (`rebel`) | Tithe-breaker Coalitions (`tithe_breaker_coalitions`) | Dominant | Influence | 30 | 13 | 60 | 10 | 21 | 17 | 55 | 50 | 59 |
+| rebel | Rebel Movements (`rebel`) | Tithe-breaker Coalitions (`tithe_breaker_coalitions`) | dominant | influence | 30 | 13 | 60 | 10 | 21 | 17 | 55 | 50 | 59 |
 
 **Control:**
 - Dominant: rebel
@@ -5449,14 +5449,14 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| rebel | Rebellion | 30 |
+| rebel | rebellion | 30 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Capital | Capital | rebel | 21 | 30 | 59 |
-| Hinterland | Wilderness | rebel | 13 | 70 | 59 |
+| Capital | capital | rebel | 21 | 30 | 59 |
+| Hinterland | wilderness | rebel | 13 | 70 | 59 |
 
 **Conflict:** intensity 15 momentum 0 attacker=— defender=rebel
 
@@ -5464,16 +5464,16 @@ Chronicle events: **427**
 
 **Local history:**
 
-- **M36.018** · _Age of Foundation_ (Foundation): Records place the founding of Lucent Gravenor in this era; the world was settled as a HiveWorld and registered a Megacorporations.
-- **M37.158** · _Age of Compliance_ (CommercialCharter): Merchant Powers was granted a commercial charter to operate on Lucent Gravenor.
-- **M37.177** · _Age of Compliance_ (CommercialCharter): Aeldari concluded a treaty asserting standing rights on Lucent Gravenor.
-- **M39.441** · _Age of Compliance_ (Annexation): Chaos seized Lucent Gravenor by force of arms.
+- **M36.018** · _Age of Foundation_ (foundation): Records place the founding of Lucent Gravenor in this era; the world was settled as a HiveWorld and registered a Megacorporations.
+- **M37.158** · _Age of Compliance_ (commercial_charter): Merchant Powers was granted a commercial charter to operate on Lucent Gravenor.
+- **M37.177** · _Age of Compliance_ (commercial_charter): Aeldari concluded a treaty asserting standing rights on Lucent Gravenor.
+- **M39.441** · _Age of Compliance_ (annexation): Chaos seized Lucent Gravenor by force of arms.
 
 | Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chaos | Dark Mechanicum (`dark_mechanicum`) | Dark Skitarii (`dark_skitarii`) | Dominant | Contested | 47 | 26 | 60 | 45 | 58 | 89 | 40 | 65 | 44 |
-| aeldari | Aeldari Craftworlds & Kin (`aeldari`) | Exodite Clans (`exodite_clans`) | Significant | Influence | 27 | 17 | 39 | 26 | 17 | 20 | 32 | 52 | 11 |
-| merchant | Merchant Combines (`merchant`) | Chartist Guilds (`chartist_guilds`) | Minor | Presence | 16 | 16 | 5 | 12 | 35 | 15 | 7 | 10 | 24 |
+| chaos | Dark Mechanicum (`dark_mechanicum`) | Dark Skitarii (`dark_skitarii`) | dominant | contested | 47 | 26 | 60 | 45 | 58 | 89 | 40 | 65 | 44 |
+| aeldari | Aeldari Craftworlds & Kin (`aeldari`) | Exodite Clans (`exodite_clans`) | significant | influence | 27 | 17 | 39 | 26 | 17 | 20 | 32 | 52 | 11 |
+| merchant | Merchant Combines (`merchant`) | Chartist Guilds (`chartist_guilds`) | minor | presence | 16 | 16 | 5 | 12 | 35 | 15 | 7 | 10 | 24 |
 
 **Control:**
 - Dominant: chaos
@@ -5497,88 +5497,88 @@ Chronicle events: **427**
 
 | Faction | Type | Strength |
 |---|---|---:|
-| chaos | MilitaryOccupation | 47 |
-| aeldari | TreatyRight | 27 |
-| merchant | CommercialCharter | 16 |
+| chaos | military_occupation | 47 |
+| aeldari | treaty_right | 27 |
+| merchant | commercial_charter | 16 |
 
 **Surface regions:**
 
 | Region | Kind | Dominant | Score | Pop% | Vis |
 |---|---|---|---:|---:|---:|
-| Sector Capital | Capital | chaos | 34 | 25 | 44 |
-| Primary Hive | Hive | chaos | 58 | 45 | 44 |
-| Underhive | Underhive | chaos | 57 | 25 | 44 |
-| Outer Wastes | Wilderness | chaos | 20 | 5 | 44 |
+| Sector Capital | capital | chaos | 34 | 25 | 44 |
+| Primary Hive | hive | chaos | 58 | 45 | 44 |
+| Underhive | underhive | chaos | 57 | 25 | 44 |
+| Outer Wastes | wilderness | chaos | 20 | 5 | 44 |
 
 ## Routes
 
 | ID | From | To | Distance | Type | Stability |
 |---|---|---|---:|---|---|
-| route-sys-0001-sys-0002 | sys-0001 | sys-0002 | 1 | ChartedPassage | Hazardous |
-| route-sys-0001-sys-0003 | sys-0001 | sys-0003 | 2 | ChartedPassage | Hazardous |
-| route-sys-0001-sys-0009 | sys-0001 | sys-0009 | 3 | ChartedPassage | Hazardous |
-| route-sys-0001-sys-0010 | sys-0001 | sys-0010 | 4 | ChartedPassage | Hazardous |
-| route-sys-0001-sys-0013 | sys-0001 | sys-0013 | 4 | ChartedPassage | Hazardous |
-| route-sys-0002-sys-0004-smuggling | sys-0002 | sys-0004 | 4 | SmugglingLane | Hazardous |
-| route-sys-0002-sys-0008-smuggling | sys-0002 | sys-0008 | 4 | SmugglingLane | Hazardous |
-| route-sys-0002-sys-0016-smuggling | sys-0002 | sys-0016 | 6 | SmugglingLane | Perilous |
-| route-sys-0003-sys-0004 | sys-0003 | sys-0004 | 3 | StableWarpLane | Unstable |
-| route-sys-0003-sys-0005 | sys-0003 | sys-0005 | 2 | StableWarpLane | Stable |
-| route-sys-0003-sys-0007 | sys-0003 | sys-0007 | 4 | ChartedPassage | Hazardous |
-| route-sys-0003-sys-0008 | sys-0003 | sys-0008 | 4 | ChartedPassage | Perilous |
-| route-sys-0003-sys-0014 | sys-0003 | sys-0014 | 4 | ChartedPassage | Hazardous |
-| route-sys-0004-sys-0005 | sys-0004 | sys-0005 | 2 | StableWarpLane | Stable |
-| route-sys-0004-sys-0006 | sys-0004 | sys-0006 | 3 | StableWarpLane | Unstable |
-| route-sys-0004-sys-0007 | sys-0004 | sys-0007 | 3 | StableWarpLane | Unstable |
-| route-sys-0004-sys-0008-smuggling | sys-0004 | sys-0008 | 6 | SmugglingLane | Perilous |
-| route-sys-0004-sys-0011-smuggling | sys-0004 | sys-0011 | 5 | SmugglingLane | Perilous |
-| route-sys-0005-sys-0006 | sys-0005 | sys-0006 | 4 | ChartedPassage | Hazardous |
-| route-sys-0005-sys-0007 | sys-0005 | sys-0007 | 2 | StableWarpLane | Stable |
-| route-sys-0005-sys-0011 | sys-0005 | sys-0011 | 4 | ChartedPassage | Hazardous |
-| route-sys-0005-sys-0014 | sys-0005 | sys-0014 | 3 | StableWarpLane | Unstable |
-| route-sys-0005-sys-0016 | sys-0005 | sys-0016 | 4 | ChartedPassage | Hazardous |
-| route-sys-0006-sys-0007 | sys-0006 | sys-0007 | 2 | ChartedPassage | Stable |
-| route-sys-0006-sys-0015 | sys-0006 | sys-0015 | 3 | StableWarpLane | Unstable |
-| route-sys-0007-sys-0009-blackship | sys-0007 | sys-0009 | 5 | BlackShip | Unstable |
-| route-sys-0007-sys-0010-blackship | sys-0007 | sys-0010 | 4 | BlackShip | Stable |
-| route-sys-0007-sys-0011-blackship | sys-0007 | sys-0011 | 2 | BlackShip | Stable |
-| route-sys-0007-sys-0014 | sys-0007 | sys-0014 | 3 | StableWarpLane | Unstable |
-| route-sys-0007-sys-0015 | sys-0007 | sys-0015 | 3 | StableWarpLane | Unstable |
-| route-sys-0007-sys-0019 | sys-0007 | sys-0019 | 4 | ChartedPassage | Hazardous |
-| route-sys-0008-sys-0012 | sys-0008 | sys-0012 | 1 | StableWarpLane | Hazardous |
-| route-sys-0008-sys-0016-smuggling | sys-0008 | sys-0016 | 4 | SmugglingLane | Hazardous |
-| route-sys-0008-sys-0018-smuggling | sys-0008 | sys-0018 | 5 | SmugglingLane | Perilous |
-| route-sys-0008-sys-0020 | sys-0008 | sys-0020 | 4 | ChartedPassage | Hazardous |
-| route-sys-0009-sys-0010-blackship | sys-0009 | sys-0010 | 1 | BlackShip | Stable |
-| route-sys-0009-sys-0014-blackship | sys-0009 | sys-0014 | 2 | BlackShip | Stable |
-| route-sys-0010-sys-0014-blackship | sys-0010 | sys-0014 | 1 | BlackShip | Stable |
-| route-sys-0011-sys-0014-blackship | sys-0011 | sys-0014 | 5 | BlackShip | Unstable |
-| route-sys-0011-sys-0015-blackship | sys-0011 | sys-0015 | 1 | BlackShip | Stable |
-| route-sys-0011-sys-0016-smuggling | sys-0011 | sys-0016 | 5 | SmugglingLane | Perilous |
-| route-sys-0011-sys-0019-smuggling | sys-0011 | sys-0019 | 4 | SmugglingLane | Hazardous |
-| route-sys-0012-sys-0017 | sys-0012 | sys-0017 | 4 | ChartedPassage | Hazardous |
-| route-sys-0013-sys-0022 | sys-0013 | sys-0022 | 4 | ChartedPassage | Hazardous |
-| route-sys-0014-sys-0015-blackship | sys-0014 | sys-0015 | 5 | BlackShip | Unstable |
-| route-sys-0014-sys-0017 | sys-0014 | sys-0017 | 3 | StableWarpLane | Unstable |
-| route-sys-0014-sys-0018 | sys-0014 | sys-0018 | 2 | StableWarpLane | Stable |
-| route-sys-0014-sys-0024-webway | sys-0014 | sys-0024 | 6 | Webway | Stable |
-| route-sys-0015-sys-0021 | sys-0015 | sys-0021 | 4 | ChartedPassage | Perilous |
-| route-sys-0016-sys-0018-smuggling | sys-0016 | sys-0018 | 1 | SmugglingLane | Unstable |
-| route-sys-0016-sys-0019-smuggling | sys-0016 | sys-0019 | 2 | SmugglingLane | Unstable |
-| route-sys-0016-sys-0022-smuggling | sys-0016 | sys-0022 | 5 | SmugglingLane | Perilous |
-| route-sys-0017-sys-0018 | sys-0017 | sys-0018 | 1 | StableWarpLane | Stable |
-| route-sys-0017-sys-0021 | sys-0017 | sys-0021 | 4 | ChartedPassage | Perilous |
-| route-sys-0017-sys-0024 | sys-0017 | sys-0024 | 3 | ChartedPassage | Unstable |
-| route-sys-0018-sys-0019-smuggling | sys-0018 | sys-0019 | 2 | SmugglingLane | Unstable |
-| route-sys-0018-sys-0021 | sys-0018 | sys-0021 | 3 | StableWarpLane | Unstable |
-| route-sys-0018-sys-0022-smuggling | sys-0018 | sys-0022 | 4 | SmugglingLane | Hazardous |
-| route-sys-0018-sys-0023-smuggling | sys-0018 | sys-0023 | 4 | SmugglingLane | Hazardous |
-| route-sys-0018-sys-0024 | sys-0018 | sys-0024 | 4 | ChartedPassage | Perilous |
-| route-sys-0019-sys-0021-smuggling | sys-0019 | sys-0021 | 2 | SmugglingLane | Unstable |
-| route-sys-0019-sys-0023-smuggling | sys-0019 | sys-0023 | 3 | SmugglingLane | Unstable |
-| route-sys-0021-sys-0023 | sys-0021 | sys-0023 | 1 | StableWarpLane | Unstable |
-| route-sys-0021-sys-0024 | sys-0021 | sys-0024 | 4 | ChartedPassage | Perilous |
-| route-sys-0022-sys-0024-smuggling | sys-0022 | sys-0024 | 2 | SmugglingLane | Unstable |
+| route-sys-0001-sys-0002 | sys-0001 | sys-0002 | 1 | charted_passage | hazardous |
+| route-sys-0001-sys-0003 | sys-0001 | sys-0003 | 2 | charted_passage | hazardous |
+| route-sys-0001-sys-0009 | sys-0001 | sys-0009 | 3 | charted_passage | hazardous |
+| route-sys-0001-sys-0010 | sys-0001 | sys-0010 | 4 | charted_passage | hazardous |
+| route-sys-0001-sys-0013 | sys-0001 | sys-0013 | 4 | charted_passage | hazardous |
+| route-sys-0002-sys-0004-smuggling | sys-0002 | sys-0004 | 4 | smuggling_lane | hazardous |
+| route-sys-0002-sys-0008-smuggling | sys-0002 | sys-0008 | 4 | smuggling_lane | hazardous |
+| route-sys-0002-sys-0016-smuggling | sys-0002 | sys-0016 | 6 | smuggling_lane | perilous |
+| route-sys-0003-sys-0004 | sys-0003 | sys-0004 | 3 | stable_warp_lane | unstable |
+| route-sys-0003-sys-0005 | sys-0003 | sys-0005 | 2 | stable_warp_lane | stable |
+| route-sys-0003-sys-0007 | sys-0003 | sys-0007 | 4 | charted_passage | hazardous |
+| route-sys-0003-sys-0008 | sys-0003 | sys-0008 | 4 | charted_passage | perilous |
+| route-sys-0003-sys-0014 | sys-0003 | sys-0014 | 4 | charted_passage | hazardous |
+| route-sys-0004-sys-0005 | sys-0004 | sys-0005 | 2 | stable_warp_lane | stable |
+| route-sys-0004-sys-0006 | sys-0004 | sys-0006 | 3 | stable_warp_lane | unstable |
+| route-sys-0004-sys-0007 | sys-0004 | sys-0007 | 3 | stable_warp_lane | unstable |
+| route-sys-0004-sys-0008-smuggling | sys-0004 | sys-0008 | 6 | smuggling_lane | perilous |
+| route-sys-0004-sys-0011-smuggling | sys-0004 | sys-0011 | 5 | smuggling_lane | perilous |
+| route-sys-0005-sys-0006 | sys-0005 | sys-0006 | 4 | charted_passage | hazardous |
+| route-sys-0005-sys-0007 | sys-0005 | sys-0007 | 2 | stable_warp_lane | stable |
+| route-sys-0005-sys-0011 | sys-0005 | sys-0011 | 4 | charted_passage | hazardous |
+| route-sys-0005-sys-0014 | sys-0005 | sys-0014 | 3 | stable_warp_lane | unstable |
+| route-sys-0005-sys-0016 | sys-0005 | sys-0016 | 4 | charted_passage | hazardous |
+| route-sys-0006-sys-0007 | sys-0006 | sys-0007 | 2 | charted_passage | stable |
+| route-sys-0006-sys-0015 | sys-0006 | sys-0015 | 3 | stable_warp_lane | unstable |
+| route-sys-0007-sys-0009-blackship | sys-0007 | sys-0009 | 5 | black_ship | unstable |
+| route-sys-0007-sys-0010-blackship | sys-0007 | sys-0010 | 4 | black_ship | stable |
+| route-sys-0007-sys-0011-blackship | sys-0007 | sys-0011 | 2 | black_ship | stable |
+| route-sys-0007-sys-0014 | sys-0007 | sys-0014 | 3 | stable_warp_lane | unstable |
+| route-sys-0007-sys-0015 | sys-0007 | sys-0015 | 3 | stable_warp_lane | unstable |
+| route-sys-0007-sys-0019 | sys-0007 | sys-0019 | 4 | charted_passage | hazardous |
+| route-sys-0008-sys-0012 | sys-0008 | sys-0012 | 1 | stable_warp_lane | hazardous |
+| route-sys-0008-sys-0016-smuggling | sys-0008 | sys-0016 | 4 | smuggling_lane | hazardous |
+| route-sys-0008-sys-0018-smuggling | sys-0008 | sys-0018 | 5 | smuggling_lane | perilous |
+| route-sys-0008-sys-0020 | sys-0008 | sys-0020 | 4 | charted_passage | hazardous |
+| route-sys-0009-sys-0010-blackship | sys-0009 | sys-0010 | 1 | black_ship | stable |
+| route-sys-0009-sys-0014-blackship | sys-0009 | sys-0014 | 2 | black_ship | stable |
+| route-sys-0010-sys-0014-blackship | sys-0010 | sys-0014 | 1 | black_ship | stable |
+| route-sys-0011-sys-0014-blackship | sys-0011 | sys-0014 | 5 | black_ship | unstable |
+| route-sys-0011-sys-0015-blackship | sys-0011 | sys-0015 | 1 | black_ship | stable |
+| route-sys-0011-sys-0016-smuggling | sys-0011 | sys-0016 | 5 | smuggling_lane | perilous |
+| route-sys-0011-sys-0019-smuggling | sys-0011 | sys-0019 | 4 | smuggling_lane | hazardous |
+| route-sys-0012-sys-0017 | sys-0012 | sys-0017 | 4 | charted_passage | hazardous |
+| route-sys-0013-sys-0022 | sys-0013 | sys-0022 | 4 | charted_passage | hazardous |
+| route-sys-0014-sys-0015-blackship | sys-0014 | sys-0015 | 5 | black_ship | unstable |
+| route-sys-0014-sys-0017 | sys-0014 | sys-0017 | 3 | stable_warp_lane | unstable |
+| route-sys-0014-sys-0018 | sys-0014 | sys-0018 | 2 | stable_warp_lane | stable |
+| route-sys-0014-sys-0024-webway | sys-0014 | sys-0024 | 6 | webway | stable |
+| route-sys-0015-sys-0021 | sys-0015 | sys-0021 | 4 | charted_passage | perilous |
+| route-sys-0016-sys-0018-smuggling | sys-0016 | sys-0018 | 1 | smuggling_lane | unstable |
+| route-sys-0016-sys-0019-smuggling | sys-0016 | sys-0019 | 2 | smuggling_lane | unstable |
+| route-sys-0016-sys-0022-smuggling | sys-0016 | sys-0022 | 5 | smuggling_lane | perilous |
+| route-sys-0017-sys-0018 | sys-0017 | sys-0018 | 1 | stable_warp_lane | stable |
+| route-sys-0017-sys-0021 | sys-0017 | sys-0021 | 4 | charted_passage | perilous |
+| route-sys-0017-sys-0024 | sys-0017 | sys-0024 | 3 | charted_passage | unstable |
+| route-sys-0018-sys-0019-smuggling | sys-0018 | sys-0019 | 2 | smuggling_lane | unstable |
+| route-sys-0018-sys-0021 | sys-0018 | sys-0021 | 3 | stable_warp_lane | unstable |
+| route-sys-0018-sys-0022-smuggling | sys-0018 | sys-0022 | 4 | smuggling_lane | hazardous |
+| route-sys-0018-sys-0023-smuggling | sys-0018 | sys-0023 | 4 | smuggling_lane | hazardous |
+| route-sys-0018-sys-0024 | sys-0018 | sys-0024 | 4 | charted_passage | perilous |
+| route-sys-0019-sys-0021-smuggling | sys-0019 | sys-0021 | 2 | smuggling_lane | unstable |
+| route-sys-0019-sys-0023-smuggling | sys-0019 | sys-0023 | 3 | smuggling_lane | unstable |
+| route-sys-0021-sys-0023 | sys-0021 | sys-0023 | 1 | stable_warp_lane | unstable |
+| route-sys-0021-sys-0024 | sys-0021 | sys-0024 | 4 | charted_passage | perilous |
+| route-sys-0022-sys-0024-smuggling | sys-0022 | sys-0024 | 2 | smuggling_lane | unstable |
 
 ### Route control
 
@@ -5917,54 +5917,54 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 
 **At war:**
 
-- chaos ↔ imperial — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; The Long War; no quarter, no peace)
-- chaos ↔ ork — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Orks fight whoever is loudest; Two scorpions in a bottle)
-- chaos ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
-- criminal ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 100; Imperial enforcement vs. underworld trade; Lex Imperialis chafes against unfettered profit)
-- imperial ↔ ork — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Greenskin invasion underway)
-- imperial ↔ rebel — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Sedition; Lex Imperialis answers in fire)
-- imperial ↔ tau — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; T'au Empire expansion borders Imperial space; Lex Imperialis chafes against unfettered profit)
-- imperial ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 100; Tyranid swarm consumes all biomass)
-- aeldari ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 94; Aeldari motives are never trusted)
-- rebel ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 94; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
-- necron ↔ rebel — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 91; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
-- imperial ↔ necron — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 91; Necron protocols reclaim the galaxy)
-- imperial ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 89; Imperial Creed: Suffer Not the Alien to Live)
-- aeldari ↔ chaos — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 87; Aeldari oppose the Dark Gods with prophecy)
-- chaos ↔ necron — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 76; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
-- drukhari ↔ imperial — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 75; Drukhari slave-raids invite extermination)
-- chaos ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 72; Both seek the death of Mankind, but neither suffers a rival; Two scorpions in a bottle)
-- ork ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 63; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
-- necron ↔ ork — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 63; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
-- necron ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 59; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
-- merchant ↔ necron — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 55; Necron protocols reclaim the galaxy)
-- merchant ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 52; Tyranid swarm consumes all biomass)
-- necron ↔ tau — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 50; Necron protocols reclaim the galaxy)
-- necron ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 46; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
-- tyranid ↔ xenos — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 45; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
-- aeldari ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 45; Tyranid swarm consumes all biomass)
-- tau ↔ tyranid — public ExistentialEnemy, secret ExistentialEnemy, treaty Vendetta (tension 45; Tyranid swarm consumes all biomass)
-- drukhari ↔ necron — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 44; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
-- criminal ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 44; Tyranid swarm consumes all biomass)
-- drukhari ↔ tyranid — public Suspicious, secret ExistentialEnemy, treaty Vendetta (tension 44; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- chaos ↔ imperial — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; The Long War; no quarter, no peace)
+- chaos ↔ ork — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; Orks fight whoever is loudest; Two scorpions in a bottle)
+- chaos ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- criminal ↔ imperial — public suspicious, secret existential_enemy, treaty vendetta (tension 100; Imperial enforcement vs. underworld trade; Lex Imperialis chafes against unfettered profit)
+- imperial ↔ ork — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; Greenskin invasion underway)
+- imperial ↔ rebel — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; Sedition; Lex Imperialis answers in fire)
+- imperial ↔ tau — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; T'au Empire expansion borders Imperial space; Lex Imperialis chafes against unfettered profit)
+- imperial ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 100; Tyranid swarm consumes all biomass)
+- aeldari ↔ imperial — public suspicious, secret existential_enemy, treaty vendetta (tension 94; Aeldari motives are never trusted)
+- rebel ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 94; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- necron ↔ rebel — public existential_enemy, secret existential_enemy, treaty vendetta (tension 91; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
+- imperial ↔ necron — public existential_enemy, secret existential_enemy, treaty vendetta (tension 91; Necron protocols reclaim the galaxy)
+- imperial ↔ xenos — public existential_enemy, secret existential_enemy, treaty vendetta (tension 89; Imperial Creed: Suffer Not the Alien to Live)
+- aeldari ↔ chaos — public suspicious, secret existential_enemy, treaty vendetta (tension 87; Aeldari oppose the Dark Gods with prophecy)
+- chaos ↔ necron — public existential_enemy, secret existential_enemy, treaty vendetta (tension 76; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
+- drukhari ↔ imperial — public suspicious, secret existential_enemy, treaty vendetta (tension 75; Drukhari slave-raids invite extermination)
+- chaos ↔ xenos — public existential_enemy, secret existential_enemy, treaty vendetta (tension 72; Both seek the death of Mankind, but neither suffers a rival; Two scorpions in a bottle)
+- ork ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 63; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- necron ↔ ork — public existential_enemy, secret existential_enemy, treaty vendetta (tension 63; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
+- necron ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 59; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- merchant ↔ necron — public existential_enemy, secret existential_enemy, treaty vendetta (tension 55; Necron protocols reclaim the galaxy)
+- merchant ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 52; Tyranid swarm consumes all biomass)
+- necron ↔ tau — public existential_enemy, secret existential_enemy, treaty vendetta (tension 50; Necron protocols reclaim the galaxy)
+- necron ↔ xenos — public existential_enemy, secret existential_enemy, treaty vendetta (tension 46; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
+- tyranid ↔ xenos — public existential_enemy, secret existential_enemy, treaty vendetta (tension 45; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
+- aeldari ↔ tyranid — public suspicious, secret existential_enemy, treaty vendetta (tension 45; Tyranid swarm consumes all biomass)
+- tau ↔ tyranid — public existential_enemy, secret existential_enemy, treaty vendetta (tension 45; Tyranid swarm consumes all biomass)
+- drukhari ↔ necron — public suspicious, secret existential_enemy, treaty vendetta (tension 44; Necron protocols reclaim the galaxy; Two scorpions in a bottle)
+- criminal ↔ tyranid — public suspicious, secret existential_enemy, treaty vendetta (tension 44; Tyranid swarm consumes all biomass)
+- drukhari ↔ tyranid — public suspicious, secret existential_enemy, treaty vendetta (tension 44; Tyranid swarm consumes all biomass; Two scorpions in a bottle)
 
 **Hostile:**
 
-- chaos ↔ tau — public Hostile, secret Hostile, treaty Vendetta (tension 90; T'au reject the warp outright)
-- chaos ↔ drukhari — public Suspicious, secret Hostile, treaty Nonaggression (tension 62; No standing accord; Two scorpions in a bottle)
-- aeldari ↔ drukhari — public Suspicious, secret Hostile, treaty Nonaggression (tension 43; Estranged Aeldari kin — old wounds)
-- aeldari ↔ necron — public Suspicious, secret Hostile, treaty Nonaggression (tension 32; Necron protocols reclaim the galaxy)
-- criminal ↔ necron — public Suspicious, secret Hostile, treaty Nonaggression (tension 32; Necron protocols reclaim the galaxy)
+- chaos ↔ tau — public hostile, secret hostile, treaty vendetta (tension 90; T'au reject the warp outright)
+- chaos ↔ drukhari — public suspicious, secret hostile, treaty nonaggression (tension 62; No standing accord; Two scorpions in a bottle)
+- aeldari ↔ drukhari — public suspicious, secret hostile, treaty nonaggression (tension 43; Estranged Aeldari kin — old wounds)
+- aeldari ↔ necron — public suspicious, secret hostile, treaty nonaggression (tension 32; Necron protocols reclaim the galaxy)
+- criminal ↔ necron — public suspicious, secret hostile, treaty nonaggression (tension 32; Necron protocols reclaim the galaxy)
 
 ## Warp regions
 
 | ID | Name | Kind | Hexes | Centre |
 |---|---|---|---:|---|
-| reg-0001 | Turbulence 01 | Turbulence | 7 | (q=7, r=9) |
-| reg-0002 | Blackout 02 | Blackout | 8 | (q=5, r=2) |
-| reg-0003 | Blackout 03 | Blackout | 6 | (q=0, r=4) |
-| reg-0004 | Warp Storm 04 | WarpStorm | 6 | (q=5, r=0) |
-| reg-0005 | Necropolis Drift 05 | NecropolisDrift | 8 | (q=6, r=9) |
+| reg-0001 | Turbulence 01 | turbulence | 7 | (q=7, r=9) |
+| reg-0002 | Blackout 02 | blackout | 8 | (q=5, r=2) |
+| reg-0003 | Blackout 03 | blackout | 6 | (q=0, r=4) |
+| reg-0004 | Warp Storm 04 | warp_storm | 6 | (q=5, r=0) |
+| reg-0005 | Necropolis Drift 05 | necropolis_drift | 8 | (q=6, r=9) |
 
 ## Economy
 
@@ -5998,18 +5998,18 @@ Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Pi
 
 | System | Tithe | Supply | Priority |
 |---|---|---|---|
-| sys-0002 | Adequate | Disrupted | CrusadeLevel |
-| sys-0003 | Delinquent | Disrupted | CrusadeLevel |
-| sys-0004 | Delinquent | Vulnerable | Sector |
-| sys-0008 | Failed | Disrupted | Subsector |
-| sys-0010 | Delinquent | Disrupted | CrusadeLevel |
-| sys-0011 | Failed | Stable | CrusadeLevel |
-| sys-0012 | Delinquent | Disrupted | CrusadeLevel |
-| sys-0013 | Failed | Disrupted | CrusadeLevel |
-| sys-0016 | Strained | Disrupted | CrusadeLevel |
-| sys-0017 | Adequate | Disrupted | CrusadeLevel |
-| sys-0019 | Failed | Disrupted | Local |
-| sys-0020 | Failed | Disrupted | Subsector |
+| sys-0002 | adequate | disrupted | crusade_level |
+| sys-0003 | delinquent | disrupted | crusade_level |
+| sys-0004 | delinquent | vulnerable | sector |
+| sys-0008 | failed | disrupted | subsector |
+| sys-0010 | delinquent | disrupted | crusade_level |
+| sys-0011 | failed | stable | crusade_level |
+| sys-0012 | delinquent | disrupted | crusade_level |
+| sys-0013 | failed | disrupted | crusade_level |
+| sys-0016 | strained | disrupted | crusade_level |
+| sys-0017 | adequate | disrupted | crusade_level |
+| sys-0019 | failed | disrupted | local |
+| sys-0020 | failed | disrupted | subsector |
 
 **Stranded worlds:**
 

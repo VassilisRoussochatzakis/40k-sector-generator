@@ -161,7 +161,11 @@ impl BuilderState {
                 message: format!("world {id} is pinned"),
             });
         }
-        let (sys_idx, w_idx) =
+        // `w_idx` is intentionally unused: the world index is now resolved
+        // again inside `edit_world` (via `find_world_indices`) when the payload
+        // is committed through the bus. Only `sys_idx` is needed here, to read
+        // the host system's star colour for the reroll pool.
+        let (sys_idx, _w_idx) =
             self.find_world_indices(id)
                 .ok_or_else(|| BuilderError::ParseFailed {
                     file: "regenerate-world".into(),
@@ -200,15 +204,18 @@ impl BuilderState {
             file: "regenerate-world".into(),
             message: e.to_string(),
         })?;
-        let w = &mut self.sector_mut().systems[sys_idx].worlds[w_idx];
-        w.world = dto;
-        w.source_row_index = source_row;
-        w.tags = tags;
-        self.dirty = true;
-        self.invariant_report = Some(sectorforge::invariants::check_sector(&self.sector));
-        self.mark_validation_dirty();
-        self.trigger_auto_save();
-        Ok(())
+        // §R4: route the redrawn payload through the command bus so the reroll
+        // lands on the undo/redo log. `edit_world` clones the live world,
+        // applies the mutation, and dispatches `BuilderCommand::EditWorld`
+        // (`before: None`, captured on apply); the bus already sets `dirty`,
+        // marks validation dirty, and triggers auto-save — so no manual
+        // `sector_mut` write / dirty / mark_validation_dirty / trigger_auto_save
+        // is needed here.
+        self.edit_world(id.clone(), |w| {
+            w.world = dto;
+            w.source_row_index = source_row;
+            w.tags = tags;
+        })
     }
 
     /// §G2: derive the next seed. When `generation.seed_locked` is true, returns
@@ -268,6 +275,13 @@ impl BuilderState {
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
+        // The undo/redo log and snapshots described the *pre-swap* sector. After
+        // a wholesale sector replacement those commands would replay against an
+        // unrelated document (phantom no-op reverts), so the history is reset:
+        // clear the command log, rewind the cursor to 0, and drop all snapshots.
+        self.command_log.clear();
+        self.command_cursor = 0;
+        self.snapshots.clear();
         self.generation.preview.clear();
         true
     }
@@ -360,6 +374,14 @@ impl BuilderState {
         self.derivations.invalidate_all();
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
+        // The undo/redo log and snapshots described the sector that was just
+        // replaced wholesale. Whether or not this swap is committed, those
+        // commands would now replay against an unrelated document, so the
+        // history is reset: clear the command log, rewind the cursor to 0, and
+        // drop all snapshots.
+        self.command_log.clear();
+        self.command_cursor = 0;
+        self.snapshots.clear();
         if commit {
             self.dirty = true;
             self.trigger_auto_save();

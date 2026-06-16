@@ -190,16 +190,16 @@ fn observed_metrics(a: &SectorAnalysis, sector: &GeneratedSector) -> BTreeMap<&'
     );
     m.insert(
         "warzone_count",
-        a.system_state_counts.get("Warzone").copied().unwrap_or(0) as f32,
+        a.system_state_counts.get("warzone").copied().unwrap_or(0) as f32,
     );
     m.insert(
         "blockaded_count",
-        a.system_state_counts.get("Blockaded").copied().unwrap_or(0) as f32,
+        a.system_state_counts.get("blockaded").copied().unwrap_or(0) as f32,
     );
     m.insert(
         "infiltrated_count",
         a.system_state_counts
-            .get("Infiltrated")
+            .get("infiltrated")
             .copied()
             .unwrap_or(0) as f32,
     );
@@ -521,6 +521,76 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
+        );
+    }
+
+    /// Regression: the warzone/blockaded/infiltrated observed metrics looked up
+    /// the `system_state_counts` map with capitalised keys (`"Warzone"` …) while
+    /// the map is populated with lowercase `SystemState::as_slug()` keys
+    /// (`"warzone"` …), so the lookups always missed and the metrics read 0.
+    /// Build a sector that genuinely has all three states present and assert
+    /// each observed metric is non-zero — it would be 0 with the casing bug.
+    #[test]
+    fn warzone_blockaded_infiltrated_metrics_count_present_states() {
+        use crate::sector_model::{HexCoord, SystemState};
+
+        fn system_in_state(idx: usize, state: SystemState) -> crate::sector_model::GeneratedSystem {
+            let mut sys = crate::sector_model::GeneratedSystem::new_at(
+                format!("sys-{idx}").into(),
+                idx,
+                HexCoord {
+                    q: idx as i32,
+                    r: 0,
+                },
+                "S",
+            );
+            sys.control.state = Some(state);
+            sys
+        }
+
+        let mut s = empty_sector();
+        // Two of each state so the counts are unambiguously > 0, plus an
+        // unrelated Pacified system to prove we are counting selectively.
+        s.systems = vec![
+            system_in_state(0, SystemState::Warzone),
+            system_in_state(1, SystemState::Warzone),
+            system_in_state(2, SystemState::Blockaded),
+            system_in_state(3, SystemState::Blockaded),
+            system_in_state(4, SystemState::Infiltrated),
+            system_in_state(5, SystemState::Infiltrated),
+            system_in_state(6, SystemState::Pacified),
+        ];
+
+        // Sanity: the map really is keyed by lowercase slugs, matching the fix.
+        let analysis = analyze(&s);
+        assert_eq!(
+            analysis.system_state_counts.get("warzone").copied(),
+            Some(2)
+        );
+        assert_eq!(
+            analysis.system_state_counts.get("blockaded").copied(),
+            Some(2)
+        );
+        assert_eq!(
+            analysis.system_state_counts.get("infiltrated").copied(),
+            Some(2)
+        );
+
+        // Real production path: analyze -> observed_metrics (the fixed lookup).
+        let observed = observed_metrics(&analysis, &s);
+        let warzone = observed.get("warzone_count").copied().unwrap_or(0.0);
+        let blockaded = observed.get("blockaded_count").copied().unwrap_or(0.0);
+        let infiltrated = observed.get("infiltrated_count").copied().unwrap_or(0.0);
+
+        // With the casing bug these would all be 0.0.
+        assert!(warzone > 0.0, "warzone_count should be > 0, got {warzone}");
+        assert!(
+            blockaded > 0.0,
+            "blockaded_count should be > 0, got {blockaded}"
+        );
+        assert!(
+            infiltrated > 0.0,
+            "infiltrated_count should be > 0, got {infiltrated}"
         );
     }
 }

@@ -631,6 +631,20 @@ pub fn apply_route_effects_with_progress(
                             &mut progress,
                         )
                     }
+                    // Empyric Bleed (precedence 2) is a Turbulence sibling: the
+                    // thin veil degrades routes by one hazard tier. Mirror the
+                    // Turbulence branch exactly, only the tag differs.
+                    RegionConditionKind::EmpyricBleed => {
+                        let target = degrade(routes[idx].stability);
+                        apply_route_stability_with_bridge_progress(
+                            routes,
+                            idx,
+                            target,
+                            "region:empyric_bleed",
+                            &mut summary,
+                            &mut progress,
+                        )
+                    }
                     RegionConditionKind::CalmCorridor => {
                         if matches!(routes[idx].stability, RouteStability::Perilous) {
                             RouteEffectOutcome::default()
@@ -655,6 +669,34 @@ pub fn apply_route_effects_with_progress(
                                 idx,
                                 target,
                                 "region:calm_corridor",
+                                &mut summary,
+                                &mut progress,
+                            )
+                        }
+                    }
+                    // Beacon Chain (precedence 1) is a CalmCorridor sibling:
+                    // navigation beacons make routes more reliable (upgrade one
+                    // tier). Same Perilous-skip and distance-floor clamp so a
+                    // long beacon lane never ends up safer than a short one —
+                    // only the tag differs from the CalmCorridor branch.
+                    RegionConditionKind::BeaconChain => {
+                        if matches!(routes[idx].stability, RouteStability::Perilous) {
+                            RouteEffectOutcome::default()
+                        } else {
+                            let upgraded =
+                                crate::generation::stability_level(routes[idx].stability)
+                                    .saturating_sub(1);
+                            let floor = crate::generation::distance_base_level(
+                                routes[idx].distance,
+                                max_route_distance,
+                            );
+                            let target =
+                                crate::generation::stability_from_level(upgraded.max(floor));
+                            apply_route_stability_with_bridge_progress(
+                                routes,
+                                idx,
+                                target,
+                                "region:beacon_chain",
                                 &mut summary,
                                 &mut progress,
                             )
@@ -1262,6 +1304,134 @@ mod route_effect_tests {
         assert_eq!(routes[0].stability, RouteStability::Perilous);
     }
 
+    // ── P3 GAP: EmpyricBleed + BeaconChain route effects (prec > 0) ────────
+    //
+    // Both variants have route_precedence() > 0 (EmpyricBleed=2, BeaconChain=1)
+    // but were previously dropped by the `_ => default()` arm of the
+    // apply_route_effects match. These tests pin that their effects are now
+    // *applied*, not silently no-op'd.
+
+    // EmpyricBleed mirrors Turbulence: a Stable route inside the region must
+    // degrade one tier to Unstable. If the branch were missing it would stay
+    // Stable.
+    #[test]
+    fn empyric_bleed_degrades_one_tier() {
+        let systems = vec![sys("sys-0000", (0, 0)), sys("sys-0001", (1, 0))];
+        let bleed = region(
+            "bleed",
+            RegionConditionKind::EmpyricBleed,
+            &[(0, 0), (1, 0)],
+        );
+        let mut routes = vec![route("sys-0000", "sys-0001", 1, RouteStability::Stable)];
+        apply_route_effects(&[bleed], &systems, &mut routes, 8);
+        assert_eq!(
+            routes[0].stability,
+            RouteStability::Unstable,
+            "EmpyricBleed must degrade Stable→Unstable, not fall through to no-op"
+        );
+    }
+
+    // EmpyricBleed saturates at Perilous like Turbulence: a Hazardous route
+    // degrades to Perilous. Bridge preservation (apply_route_stability) refuses
+    // to sever the ONLY navigable link between two systems, so we give the
+    // target lane a redundant alternate path (0000–0002–0001); without it the
+    // Perilous target is clamped back to Hazardous and the saturation is
+    // invisible.
+    #[test]
+    fn empyric_bleed_saturates_at_perilous() {
+        let systems = vec![
+            sys("sys-0000", (0, 0)),
+            sys("sys-0001", (1, 0)),
+            sys("sys-0002", (0, 1)),
+        ];
+        let bleed = region(
+            "bleed",
+            RegionConditionKind::EmpyricBleed,
+            &[(0, 0), (1, 0), (0, 1)],
+        );
+        let mut routes = vec![
+            route("sys-0000", "sys-0001", 1, RouteStability::Hazardous),
+            // Redundant alternate path so the direct lane is not a navigable
+            // bridge; the Perilous degrade can then actually land.
+            route("sys-0000", "sys-0002", 1, RouteStability::Hazardous),
+            route("sys-0002", "sys-0001", 1, RouteStability::Hazardous),
+        ];
+        apply_route_effects(&[bleed], &systems, &mut routes, 8);
+        assert_eq!(
+            routes[0].stability,
+            RouteStability::Perilous,
+            "EmpyricBleed must degrade Hazardous→Perilous when the lane is not the sole navigable bridge"
+        );
+    }
+
+    // BeaconChain mirrors CalmCorridor: a Hazardous route on a short lane
+    // (distance=1 → floor=0) upgrades one tier to Unstable. If the branch were
+    // missing it would stay Hazardous.
+    #[test]
+    fn beacon_chain_upgrades_one_tier() {
+        let systems = vec![sys("sys-0000", (0, 0)), sys("sys-0001", (1, 0))];
+        let beacons = region(
+            "beacons",
+            RegionConditionKind::BeaconChain,
+            &[(0, 0), (1, 0)],
+        );
+        let mut routes = vec![route("sys-0000", "sys-0001", 1, RouteStability::Hazardous)];
+        apply_route_effects(&[beacons], &systems, &mut routes, 8);
+        assert_eq!(
+            routes[0].stability,
+            RouteStability::Unstable,
+            "BeaconChain must upgrade Hazardous→Unstable, not fall through to no-op"
+        );
+    }
+
+    // BeaconChain shares the CalmCorridor distance-floor clamp: a long lane
+    // (distance=7, max=8 → floor=2) keeps Hazardous so a long beacon route is
+    // never made safer than a short one (route-safety-monotonic invariant).
+    #[test]
+    fn beacon_chain_clamps_upgrade_to_distance_floor() {
+        let systems = vec![
+            sys("sys-0000", (0, 0)),
+            sys("sys-0001", (1, 0)),
+            sys("sys-0002", (2, 0)),
+            sys("sys-0003", (3, 0)),
+        ];
+        let beacons = region(
+            "beacons",
+            RegionConditionKind::BeaconChain,
+            &[(0, 0), (1, 0), (2, 0), (3, 0)],
+        );
+        let mut routes = vec![
+            route("sys-0000", "sys-0001", 1, RouteStability::Hazardous),
+            route("sys-0002", "sys-0003", 7, RouteStability::Hazardous),
+        ];
+        apply_route_effects(&[beacons], &systems, &mut routes, 8);
+        assert_eq!(
+            routes[0].stability,
+            RouteStability::Unstable,
+            "short beacon Hazardous should upgrade to Unstable"
+        );
+        assert_eq!(
+            routes[1].stability,
+            RouteStability::Hazardous,
+            "long beacon Hazardous should stay Hazardous (floor==2)"
+        );
+        assert!(stability_level(routes[0].stability) <= stability_level(routes[1].stability));
+    }
+
+    // BeaconChain leaves Perilous untouched, same as CalmCorridor.
+    #[test]
+    fn beacon_chain_leaves_perilous_unchanged() {
+        let systems = vec![sys("sys-0000", (0, 0)), sys("sys-0001", (1, 0))];
+        let beacons = region(
+            "beacons",
+            RegionConditionKind::BeaconChain,
+            &[(0, 0), (1, 0)],
+        );
+        let mut routes = vec![route("sys-0000", "sys-0001", 1, RouteStability::Perilous)];
+        apply_route_effects(&[beacons], &systems, &mut routes, 8);
+        assert_eq!(routes[0].stability, RouteStability::Perilous);
+    }
+
     // Cross-check the exact floor values the CalmCorridor branch relies on, so a
     // drift in `distance_base_level` banding surfaces here too.
     #[test]
@@ -1270,5 +1440,92 @@ mod route_effect_tests {
         assert_eq!(distance_base_level(7, 8), 2);
         assert_eq!(stability_from_level(1), RouteStability::Unstable);
         assert_eq!(stability_from_level(2), RouteStability::Hazardous);
+    }
+
+    // P4 regression: the CalmCorridor floor must be derived from the SAME capped
+    // max-distance `generate_routes` classifies routes against — the raw config
+    // value floored by the route rules' `max_distance` (`generation/routes.rs`
+    // `max_route_distance.max(rules.max_distance)`), NOT the raw config value
+    // alone. When the raw config cap is *smaller* than the rules cap, a hop in
+    // the `[raw_max, rules_max)` band trips `dist >= max_dist` in
+    // `distance_base_level` under the raw value and clamps to Perilous(3) — a
+    // floor that EXCEEDS the maximum the rules permit. Passing the capped value
+    // keeps the floor inside the allowed range.
+    #[test]
+    fn calm_corridor_floor_never_exceeds_capped_max_distance() {
+        // The two caps `generate_routes` reconciles: a small raw config cap and
+        // a larger rules cap. The value generation actually uses (and the value
+        // the call site now passes to `apply_route_effects`) is the max of them.
+        let raw_max: u32 = 4;
+        let rules_max: u32 = 8;
+        let capped_max = raw_max.max(rules_max); // == 8
+
+        // A hop landing in the `[raw_max, rules_max)` band: long enough that the
+        // RAW cap would call it "at/beyond the cap" (Perilous floor), yet still
+        // inside the CAPPED maximum.
+        let dist: u32 = 6;
+        assert!(dist >= raw_max, "dist must trip the raw-cap clamp");
+        assert!(dist < rules_max, "dist must stay under the rules cap");
+
+        // Pure-floor check: the raw cap floors this hop at Perilous(3); the
+        // capped cap floors it strictly safer.
+        let raw_floor = distance_base_level(dist, raw_max);
+        let capped_floor = distance_base_level(dist, capped_max);
+        assert_eq!(raw_floor, 3, "raw cap wrongly floors this hop at Perilous");
+        assert!(
+            capped_floor < raw_floor,
+            "capped floor must be safer than the raw-cap floor"
+        );
+        // Under the capped maximum, no in-range distance is floored worse than
+        // the longest legal hop — i.e. the floor never exceeds the capped max.
+        let worst_legal_floor = distance_base_level(capped_max, capped_max);
+        for d in 0..=capped_max {
+            assert!(
+                distance_base_level(d, capped_max) <= worst_legal_floor,
+                "floor at dist {d} exceeds the worst legal floor under the capped max"
+            );
+        }
+
+        // End-to-end through `apply_route_effects`: a Hazardous(2) hop of this
+        // length inside a CalmCorridor, evaluated under each cap. The lane is
+        // given a redundant alternate path (0000–0002–0001) so bridge
+        // preservation cannot mask the floor — a sole navigable link can never
+        // be pushed to Perilous. With the RAW cap the floor pins the hop at
+        // Perilous; with the CAPPED max the corridor can actually soothe it, so
+        // the capped result is strictly safer — proving the floor no longer
+        // exceeds the capped maximum.
+        let systems = vec![
+            sys("sys-0000", (0, 0)),
+            sys("sys-0001", (6, 0)),
+            sys("sys-0002", (3, 3)),
+        ];
+        let calm = region(
+            "calm",
+            RegionConditionKind::CalmCorridor,
+            &[(0, 0), (6, 0), (3, 3)],
+        );
+        let lanes = || {
+            vec![
+                route("sys-0000", "sys-0001", dist, RouteStability::Hazardous),
+                route("sys-0000", "sys-0002", 1, RouteStability::Hazardous),
+                route("sys-0002", "sys-0001", 1, RouteStability::Hazardous),
+            ]
+        };
+
+        let mut routes_capped = lanes();
+        apply_route_effects(&[calm.clone()], &systems, &mut routes_capped, capped_max);
+
+        let mut routes_raw = lanes();
+        apply_route_effects(&[calm], &systems, &mut routes_raw, raw_max);
+
+        assert_eq!(
+            routes_raw[0].stability,
+            RouteStability::Perilous,
+            "raw-cap floor wrongly pins the hop at Perilous"
+        );
+        assert!(
+            stability_level(routes_capped[0].stability) < stability_level(routes_raw[0].stability),
+            "capped-max floor must leave the route safer than the buggy raw-cap floor"
+        );
     }
 }

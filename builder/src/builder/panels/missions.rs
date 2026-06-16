@@ -972,6 +972,9 @@ fn ensure_missions_catalog(state: &mut BuilderState) {
     if state.config.inputs.missions.is_none() {
         state.config.inputs.missions = Some(DEFAULT_MISSIONS_PATH.into());
     }
+    // P6: the lazy seed above is a document-state write — arm the coalescing
+    // session so the seeded catalog is tracked for dirty/undo.
+    state.note_catalog_edit();
 }
 
 fn ensure_missions_catalog_if_needed(state: &mut BuilderState) {

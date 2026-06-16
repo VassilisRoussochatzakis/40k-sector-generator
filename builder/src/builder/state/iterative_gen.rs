@@ -820,42 +820,70 @@ impl BuilderState {
         let sector = generate_prefix(input, Stage::LAST, &nonces, |_| {}, || false)
             .map_err(|e| format!("Generating the full sector failed: {e}"))?;
 
-        // 2. Materialise the project tree at `dest`. These direct writes to
-        //    `self.config` / `self.sector` / `self.data_catalogs` are scratch
-        //    *inside* the session boundary — `open_project` + `*self = new_state`
-        //    below replace the whole document, so nothing persists outside the
-        //    carve-out (invariant #5: this is the commit boundary, no command).
-        self.config = session_config;
-        self.sector = sector.into();
+        // 2. Materialise the project tree at `dest` — **failure-atomically** (§P7).
+        //    The old path wrote the committed config / sector / catalogs straight
+        //    into `self` *before* the fallible `save_project_as` + `open_project`,
+        //    so a save or reopen error left `self` half-applied (mutated document,
+        //    no valid project on disk, wizard session still live — corrupt, stuck
+        //    state). Instead we build the to-be-written project in a **scratch**
+        //    `BuilderState` and only let `*self = open_project(...)` (step 3)
+        //    replace the live document once BOTH the save and the reopen have
+        //    succeeded. `self`'s own config / sector / data_catalogs are never
+        //    touched until that final swap, so any `Err` below returns with the
+        //    wizard session — and `self` — fully intact for a retry.
+        //
+        //    This is byte-identical to the old success path: `save_project_as`
+        //    reads only `config` / `data_catalogs` / `sector` from the state it is
+        //    handed (everything else it touches — manifest digests, project_path,
+        //    dirty flags, mtime/watcher — it *writes*), so a scratch carrying those
+        //    three identical values writes identical files. The scratch (and the
+        //    throwaway watcher `save_project_as` spawns on it) is then dropped, and
+        //    the final state comes wholly from `open_project` (invariant #5: this
+        //    is the commit session boundary, so no `BuilderCommand` is involved).
+        let mut scratch = BuilderState::new_blank(
+            sector.id.as_ref(),
+            sector.title.as_ref(),
+            sector.seed.as_ref(),
+            sector.width,
+            sector.height,
+        );
+        scratch.config = session_config;
+        // Base the scratch catalogs on the **live** builder catalogs so that, with
+        // no `catalogs_override`, the persisted catalogs are verbatim what the old
+        // path wrote (it saved `self.data_catalogs`); `new_blank`'s empty default
+        // would otherwise drop them.
+        scratch.data_catalogs = self.data_catalogs.clone();
+        scratch.sector = sector.into();
         // Blank-builder launch: persist the wizard's `_base`-seeded catalogs into
         // the new project so worlds.toml / factions.toml / names / … are written
         // (`save_project_as` only writes a catalog that is present in
-        // `data_catalogs`), and so the reopened roster is not empty. This is the
-        // commit session boundary (`open_project` + `*self = new_state` below
-        // replace the whole document), so the direct write needs no command
-        // (invariant #5) — exactly like the regions sync that follows. The session
+        // `data_catalogs`), and so the reopened roster is not empty. The session
         // config installed above already carries the matching `[inputs]` paths.
         if let Some(catalogs) = catalogs_override {
-            self.data_catalogs = catalogs;
+            scratch.data_catalogs = catalogs;
         }
         // §5: persist the transient regions-override into the new project's
         // regions catalog so the reopened sector matches the preview. This is the
-        // *only* point the override touches catalog state, and it does so at the
-        // session boundary (a fresh project that `open_project` reads back),
-        // never during preview. `save_project_as` only writes `regions.toml` when
-        // `inputs.regions` is set, so ensure the standard path is present.
+        // *only* point the override touches catalog state, and it does so on the
+        // scratch project that `open_project` reads back, never during preview.
+        // `save_project_as` only writes `regions.toml` when `inputs.regions` is
+        // set, so ensure the standard path is present.
         if let Some(regions) = regions_override {
-            self.data_catalogs.regions = Some(regions);
-            if self.config.inputs.regions.is_none() {
-                self.config.inputs.regions = Some("data/regions/regions.toml".to_string());
+            scratch.data_catalogs.regions = Some(regions);
+            if scratch.config.inputs.regions.is_none() {
+                scratch.config.inputs.regions = Some("data/regions/regions.toml".to_string());
             }
         }
-        crate::builder::project_io::save_project_as(self, &dest)
+        crate::builder::project_io::save_project_as(&mut scratch, &dest)
             .map_err(|e| format!("Writing the new project to {dest} failed: {e}"))?;
+        // The disk tree is fully written; the scratch state has served its purpose.
+        drop(scratch);
 
-        // 3. Reopen the freshly written project — the session boundary. The
-        //    reopened state carries `iterative_gen == None`, so the wizard is
-        //    cleared by the replacement itself; no `BuilderCommand` is involved.
+        // 3. Reopen the freshly written project — the session boundary, and the
+        //    sole point `self` is mutated. The reopened state carries
+        //    `iterative_gen == None`, so the wizard is cleared by the replacement
+        //    itself; no `BuilderCommand` is involved. If this fails, `self` is
+        //    still untouched (the scratch is already dropped).
         let new_state = crate::builder::project_io::open_project(&dest)
             .map_err(|e| format!("Reopening the committed project at {dest} failed: {e}"))?;
         *self = new_state;

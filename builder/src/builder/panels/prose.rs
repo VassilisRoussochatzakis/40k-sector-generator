@@ -505,6 +505,9 @@ fn ensure_prose_catalog(state: &mut BuilderState) {
     if state.config.inputs.prose.is_none() {
         state.config.inputs.prose = Some(DEFAULT_PROSE_PATH.into());
     }
+    // P6: the lazy seed above is a document-state write — arm the coalescing
+    // session so the seeded catalog is tracked for dirty/undo.
+    state.note_catalog_edit();
 }
 
 fn ensure_prose_catalog_if_needed(state: &mut BuilderState) {

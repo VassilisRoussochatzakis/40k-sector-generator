@@ -949,6 +949,9 @@ fn ensure_hooks_catalog(state: &mut BuilderState) {
     if state.config.inputs.hooks.is_none() {
         state.config.inputs.hooks = Some(DEFAULT_HOOKS_PATH.into());
     }
+    // P6: the lazy seed above is a document-state write — arm the coalescing
+    // session so the seeded catalog is tracked for dirty/undo.
+    state.note_catalog_edit();
 }
 
 fn ensure_hooks_catalog_if_needed(state: &mut BuilderState) {

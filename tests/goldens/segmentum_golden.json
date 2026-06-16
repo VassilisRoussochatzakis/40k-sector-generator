@@ -31,7 +31,7 @@
       "title": "Beta",
       "sector_id": "m42-sector",
       "seed": "beta-seed",
-      "sector_digest": "blake3:84998be389d517a85dd876f22ecfc821ceccf7359d5dedd688af5e3089f2ed73",
+      "sector_digest": "blake3:2aa71121bc80840ebb6922d23e2856fdba3543d79a4202d1783e065702dbdfde",
       "width": 10,
       "height": 10,
       "system_count": 24,
@@ -73,7 +73,7 @@
     "faction_mode": "shared",
     "child_digests": {
       "alpha": "blake3:2c6c9634ab03d8666ea8d289955ee004ecf9c463006f11beb9708b319035037d",
-      "beta": "blake3:84998be389d517a85dd876f22ecfc821ceccf7359d5dedd688af5e3089f2ed73"
+      "beta": "blake3:2aa71121bc80840ebb6922d23e2856fdba3543d79a4202d1783e065702dbdfde"
     },
     "system_count": 48,
     "world_count": 187,

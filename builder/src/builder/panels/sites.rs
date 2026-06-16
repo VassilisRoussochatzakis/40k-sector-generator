@@ -1053,6 +1053,9 @@ fn ensure_sites_catalog(state: &mut BuilderState) {
     if state.config.inputs.sites.is_none() {
         state.config.inputs.sites = Some(DEFAULT_SITES_PATH.into());
     }
+    // P6: the lazy seed above is a document-state write — arm the coalescing
+    // session so the seeded catalog is tracked for dirty/undo.
+    state.note_catalog_edit();
 }
 
 fn ensure_sites_catalog_if_needed(state: &mut BuilderState) {

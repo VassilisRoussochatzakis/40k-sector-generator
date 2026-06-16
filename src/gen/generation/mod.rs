@@ -522,7 +522,18 @@ where
             &warp_regions,
             &systems,
             &mut routes,
-            config.generation.routes.max_route_distance,
+            // The CalmCorridor floor must use the SAME capped max-distance that
+            // `generate_routes` classified every route against — the raw config
+            // value floored by the route rules' `max_distance` (routes.rs:48-52,
+            // `.max(rules.max_distance)`). Passing the raw config value alone
+            // lets the distance floor exceed the capped maximum (a hop in the
+            // [raw_max, rules_max) band would clamp to Perilous), producing
+            // routes longer/less-safe than the rules permit.
+            config
+                .generation
+                .routes
+                .max_route_distance
+                .max(route_rules.max_distance),
             |event| match event {
                 crate::regions::RegionRouteEffectsProgress::Started {
                     regions,

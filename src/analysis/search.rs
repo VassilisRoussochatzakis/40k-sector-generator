@@ -652,6 +652,24 @@ fn count_systems_matching_distance(
         return 0;
     }
 
+    // Build the undirected adjacency map once (O(R)), so the BFS below visits
+    // each system's neighbours via a lookup instead of rescanning every route
+    // on each dequeue. A `BTreeMap` keeps key/value order deterministic; the
+    // resulting `reachable` set (and thus the count) is the union of the
+    // `max_hops`-balls around the targets and is order-independent regardless.
+    let mut adjacency: std::collections::BTreeMap<crate::ids::SystemId, Vec<crate::ids::SystemId>> =
+        std::collections::BTreeMap::new();
+    for r in &sector.routes {
+        adjacency
+            .entry(r.from_system_id.clone())
+            .or_default()
+            .push(r.to_system_id.clone());
+        adjacency
+            .entry(r.to_system_id.clone())
+            .or_default()
+            .push(r.from_system_id.clone());
+    }
+
     let mut reachable = std::collections::BTreeSet::new();
     let mut queue = std::collections::VecDeque::new();
     for t in targets {
@@ -663,15 +681,8 @@ fn count_systems_matching_distance(
         if dist >= max_hops {
             continue;
         }
-        for r in &sector.routes {
-            let next = if r.from_system_id == curr {
-                Some(&r.to_system_id)
-            } else if r.to_system_id == curr {
-                Some(&r.from_system_id)
-            } else {
-                None
-            };
-            if let Some(id) = next {
+        if let Some(neighbours) = adjacency.get(&curr) {
+            for id in neighbours {
                 if !reachable.contains(id) {
                     reachable.insert(id.clone());
                     queue.push_back((id.clone(), dist + 1));

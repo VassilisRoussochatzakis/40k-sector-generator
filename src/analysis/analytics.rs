@@ -261,7 +261,7 @@ fn compute_faction_balance(sector: &GeneratedSector) -> FactionBalance {
             FactionShare {
                 faction_id: f.id.clone(),
                 name: f.name.clone(),
-                kind: f.kind.clone(),
+                kind: f.kind.as_slug().into(),
                 total_projection: *x,
                 share: if total > 0.0 { *x / total } else { 0.0 },
                 world_presence_count: f.world_presence.len() as u32,

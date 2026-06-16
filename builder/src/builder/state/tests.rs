@@ -845,7 +845,7 @@ fn gen_faction(id: &str, kind: &str, disposition: &str) -> GeneratedFaction {
     GeneratedFaction {
         id: id.into(),
         name: std::sync::Arc::from(id),
-        kind: std::sync::Arc::from(kind),
+        kind: sectorforge::sector_model::FactionKind::from_slug(kind),
         disposition: std::sync::Arc::from(disposition),
         subfactions: Vec::new(),
         system_presence: vec![],

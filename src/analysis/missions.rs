@@ -500,8 +500,8 @@ fn emit_route_missions(
                 .factions
                 .iter()
                 .find(|f| {
-                    f.kind.eq_ignore_ascii_case("imperial")
-                        || f.kind.eq_ignore_ascii_case("administratum")
+                    f.kind.as_slug().eq_ignore_ascii_case("imperial")
+                        || f.kind.as_slug().eq_ignore_ascii_case("administratum")
                 })
                 .map(|f| f.id.clone()),
             target: None,

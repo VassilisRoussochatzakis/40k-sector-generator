@@ -179,7 +179,7 @@ pub fn apply_all(sector: &mut GeneratedSector) {
     let kinds: BTreeMap<FactionId, Arc<str>> = sector
         .factions
         .iter()
-        .map(|f| (f.id.clone(), f.kind.clone()))
+        .map(|f| (f.id.clone(), f.kind.as_slug().into()))
         .collect();
 
     apply_imperial_governance(sector, &kinds);

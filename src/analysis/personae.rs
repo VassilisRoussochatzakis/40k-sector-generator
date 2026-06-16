@@ -266,7 +266,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
     let faction_kind: BTreeMap<&str, &str> = sector
         .factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_ref()))
+        .map(|f| (f.id.as_str(), f.kind.as_slug()))
         .collect();
     let mut out: Vec<Persona> = Vec::new();
     let mut used_names: BTreeSet<String> = BTreeSet::new();
@@ -398,7 +398,7 @@ fn derive_faction_leaders(
     factions.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
 
     for f in factions {
-        let kind = f.kind.as_ref();
+        let kind = f.kind.as_slug();
         let fac_id = f.id.as_str();
 
         if node_presence(&f.system_presence, &f.world_presence) >= min {

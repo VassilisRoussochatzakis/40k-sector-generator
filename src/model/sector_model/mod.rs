@@ -747,13 +747,283 @@ impl core::fmt::Display for RouteStability {
     }
 }
 
+/// Typed faction kind (REVIEW P9). Replaces the previous free-text `Arc<str>`
+/// `kind` field with a closed set of known slugs plus an [`FactionKind::Unknown`]
+/// escape hatch for anything off-list (forward-compat with hand-edited catalogs).
+///
+/// **Wire format is a plain string, byte-identical to the old `Arc<str>`.** The
+/// custom serde impls (de)serialize via [`FactionKind::as_slug`] /
+/// [`FactionKind::from_slug`], so e.g. `"kind":"imperial"` round-trips exactly —
+/// the `sector.json` golden does not move. `as_slug()` returns a `&str` (not
+/// `&'static str`) so the `Unknown(Arc<str>)` arm can hand back its payload.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum FactionKind {
+    Imperial,
+    ImperialGuard,
+    ImperialKnight,
+    AdeptaSororitas,
+    AdeptusAstartes,
+    Deathwatch,
+    GreyKnights,
+    Ecclesiarchy,
+    Inquisition,
+    Mechanicus,
+    TalonsOfTheEmperor,
+    CollegiaTitanica,
+    DarkMechanicum,
+    ChaosSpaceMarine,
+    ChaosKnight,
+    TraitorGuard,
+    TraitorTitanLegion,
+    Daemon,
+    Cult,
+    Tau,
+    Aeldari,
+    Drukhari,
+    Harlequin,
+    LeaguesOfVotann,
+    Ork,
+    Tyranid,
+    Necron,
+    MinorXenos,
+    Xenos,
+    Merchant,
+    Criminal,
+    Rebel,
+    GenestealerCult,
+    RogueTrader,
+    /// Off-list slug, preserved verbatim for round-tripping and string fallbacks.
+    Unknown(Arc<str>),
+}
+
+impl FactionKind {
+    /// Canonical slug — the on-disk / wire string. `Unknown` returns its payload.
+    #[must_use]
+    pub fn as_slug(&self) -> &str {
+        match self {
+            FactionKind::Imperial => "imperial",
+            FactionKind::ImperialGuard => "imperial_guard",
+            FactionKind::ImperialKnight => "imperial_knight",
+            FactionKind::AdeptaSororitas => "adepta_sororitas",
+            FactionKind::AdeptusAstartes => "adeptus_astartes",
+            FactionKind::Deathwatch => "deathwatch",
+            FactionKind::GreyKnights => "grey_knights",
+            FactionKind::Ecclesiarchy => "ecclesiarchy",
+            FactionKind::Inquisition => "inquisition",
+            FactionKind::Mechanicus => "mechanicus",
+            FactionKind::TalonsOfTheEmperor => "talons_of_the_emperor",
+            FactionKind::CollegiaTitanica => "collegia_titanica",
+            FactionKind::DarkMechanicum => "dark_mechanicum",
+            FactionKind::ChaosSpaceMarine => "chaos_space_marine",
+            FactionKind::ChaosKnight => "chaos_knight",
+            FactionKind::TraitorGuard => "traitor_guard",
+            FactionKind::TraitorTitanLegion => "traitor_titan_legion",
+            FactionKind::Daemon => "daemon",
+            FactionKind::Cult => "cult",
+            FactionKind::Tau => "tau",
+            FactionKind::Aeldari => "aeldari",
+            FactionKind::Drukhari => "drukhari",
+            FactionKind::Harlequin => "harlequin",
+            FactionKind::LeaguesOfVotann => "leagues_of_votann",
+            FactionKind::Ork => "ork",
+            FactionKind::Tyranid => "tyranid",
+            FactionKind::Necron => "necron",
+            FactionKind::MinorXenos => "minor_xenos",
+            FactionKind::Xenos => "xenos",
+            FactionKind::Merchant => "merchant",
+            FactionKind::Criminal => "criminal",
+            FactionKind::Rebel => "rebel",
+            FactionKind::GenestealerCult => "genestealer_cult",
+            FactionKind::RogueTrader => "rogue_trader",
+            FactionKind::Unknown(s) => s,
+        }
+    }
+
+    /// Parse a slug into a variant; any unrecognised slug becomes
+    /// [`FactionKind::Unknown`] with the original string preserved verbatim.
+    #[must_use]
+    pub fn from_slug(s: &str) -> FactionKind {
+        match s {
+            "imperial" => FactionKind::Imperial,
+            "imperial_guard" => FactionKind::ImperialGuard,
+            "imperial_knight" => FactionKind::ImperialKnight,
+            "adepta_sororitas" => FactionKind::AdeptaSororitas,
+            "adeptus_astartes" => FactionKind::AdeptusAstartes,
+            "deathwatch" => FactionKind::Deathwatch,
+            "grey_knights" => FactionKind::GreyKnights,
+            "ecclesiarchy" => FactionKind::Ecclesiarchy,
+            "inquisition" => FactionKind::Inquisition,
+            "mechanicus" => FactionKind::Mechanicus,
+            "talons_of_the_emperor" => FactionKind::TalonsOfTheEmperor,
+            "collegia_titanica" => FactionKind::CollegiaTitanica,
+            "dark_mechanicum" => FactionKind::DarkMechanicum,
+            "chaos_space_marine" => FactionKind::ChaosSpaceMarine,
+            "chaos_knight" => FactionKind::ChaosKnight,
+            "traitor_guard" => FactionKind::TraitorGuard,
+            "traitor_titan_legion" => FactionKind::TraitorTitanLegion,
+            "daemon" => FactionKind::Daemon,
+            "cult" => FactionKind::Cult,
+            "tau" => FactionKind::Tau,
+            "aeldari" => FactionKind::Aeldari,
+            "drukhari" => FactionKind::Drukhari,
+            "harlequin" => FactionKind::Harlequin,
+            "leagues_of_votann" => FactionKind::LeaguesOfVotann,
+            "ork" => FactionKind::Ork,
+            "tyranid" => FactionKind::Tyranid,
+            "necron" => FactionKind::Necron,
+            "minor_xenos" => FactionKind::MinorXenos,
+            "xenos" => FactionKind::Xenos,
+            "merchant" => FactionKind::Merchant,
+            "criminal" => FactionKind::Criminal,
+            "rebel" => FactionKind::Rebel,
+            "genestealer_cult" => FactionKind::GenestealerCult,
+            "rogue_trader" => FactionKind::RogueTrader,
+            other => FactionKind::Unknown(Arc::from(other)),
+        }
+    }
+
+    /// Coarse [`crate::analysis::importance::KindGroup`] this kind rolls up into.
+    /// Single source of truth for the kind→group mapping (REVIEW P9).
+    #[must_use]
+    pub fn group(&self) -> crate::analysis::importance::KindGroup {
+        use crate::analysis::importance::KindGroup;
+        match self {
+            FactionKind::Imperial
+            | FactionKind::ImperialGuard
+            | FactionKind::ImperialKnight
+            | FactionKind::AdeptaSororitas
+            | FactionKind::AdeptusAstartes
+            | FactionKind::Deathwatch
+            | FactionKind::GreyKnights
+            | FactionKind::TalonsOfTheEmperor
+            | FactionKind::Inquisition
+            | FactionKind::CollegiaTitanica => KindGroup::Imperial,
+            FactionKind::Mechanicus | FactionKind::DarkMechanicum => KindGroup::Mechanicus,
+            FactionKind::ChaosSpaceMarine
+            | FactionKind::ChaosKnight
+            | FactionKind::TraitorGuard
+            | FactionKind::TraitorTitanLegion
+            | FactionKind::Daemon
+            | FactionKind::Cult => KindGroup::Chaos,
+            FactionKind::Aeldari | FactionKind::Drukhari | FactionKind::Harlequin => {
+                KindGroup::Aeldari
+            }
+            FactionKind::Tau
+            | FactionKind::Ork
+            | FactionKind::Tyranid
+            | FactionKind::Necron
+            | FactionKind::LeaguesOfVotann
+            | FactionKind::MinorXenos
+            | FactionKind::Xenos
+            | FactionKind::GenestealerCult => KindGroup::Xenos,
+            FactionKind::Criminal | FactionKind::Rebel | FactionKind::Merchant => {
+                KindGroup::Criminal
+            }
+            // `ecclesiarchy`, `rogue_trader`, and `Unknown` were not enumerated by
+            // the old `KindGroup::from_kind` string match, so they fell to its
+            // `_ => Other` arm; preserve that exactly.
+            FactionKind::Ecclesiarchy | FactionKind::RogueTrader | FactionKind::Unknown(_) => {
+                KindGroup::Other
+            }
+        }
+    }
+
+    /// Stance-grouping membership in the Imperial family (REVIEW P9 — folds the
+    /// old `relations::tables::IMPERIAL_KINDS` list).
+    ///
+    /// NOTE: this is **deliberately wider** than `group() == KindGroup::Imperial`.
+    /// `Mechanicus` and `Ecclesiarchy` count as Imperial for *stance* purposes
+    /// here, but `group()` files `Mechanicus` under its own display bucket and
+    /// `Ecclesiarchy` under `Other`. The two predicates served different callers
+    /// before this refactor and must keep diverging — do not unify them.
+    #[must_use]
+    pub fn is_imperial(&self) -> bool {
+        matches!(
+            self,
+            FactionKind::Imperial
+                | FactionKind::ImperialGuard
+                | FactionKind::ImperialKnight
+                | FactionKind::AdeptaSororitas
+                | FactionKind::AdeptusAstartes
+                | FactionKind::Deathwatch
+                | FactionKind::GreyKnights
+                | FactionKind::Ecclesiarchy
+                | FactionKind::Inquisition
+                | FactionKind::Mechanicus
+                | FactionKind::TalonsOfTheEmperor
+                | FactionKind::CollegiaTitanica
+        )
+    }
+
+    /// Kinds whose hostility is masked behind a `Suspicious` public attitude
+    /// (REVIEW P9 — folds `relations::tables::is_hidden_kind`). Mirror of the old
+    /// GSC ∪ criminal ∪ drukhari ∪ aeldari ∪ {cult, harlequin} string check.
+    #[must_use]
+    pub fn is_hidden(&self) -> bool {
+        matches!(
+            self,
+            FactionKind::GenestealerCult
+                | FactionKind::Criminal
+                | FactionKind::Drukhari
+                | FactionKind::Aeldari
+                | FactionKind::Harlequin
+                | FactionKind::Cult
+        )
+    }
+
+    /// Mercantile kinds that lift economic-dependency scoring (REVIEW P9 — folds
+    /// `relations::tables::is_merchant_kind`: `merchant` ∪ `rogue_trader`).
+    #[must_use]
+    pub fn is_merchant(&self) -> bool {
+        matches!(self, FactionKind::Merchant | FactionKind::RogueTrader)
+    }
+}
+
+impl serde::Serialize for FactionKind {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_slug())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for FactionKind {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = <std::borrow::Cow<'de, str>>::deserialize(deserializer)?;
+        Ok(FactionKind::from_slug(&s))
+    }
+}
+
+impl core::fmt::Display for FactionKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
+impl From<&str> for FactionKind {
+    fn from(s: &str) -> Self {
+        FactionKind::from_slug(s)
+    }
+}
+
+impl From<String> for FactionKind {
+    fn from(s: String) -> Self {
+        FactionKind::from_slug(&s)
+    }
+}
+
+impl From<&String> for FactionKind {
+    fn from(s: &String) -> Self {
+        FactionKind::from_slug(s)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
 /// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedFaction {
     pub id: FactionId,
     pub name: Arc<str>,
-    pub kind: Arc<str>,
+    pub kind: FactionKind,
     pub disposition: Arc<str>,
     /// Middle-level sub-factions grouped under this overall faction.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

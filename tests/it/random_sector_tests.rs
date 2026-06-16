@@ -254,6 +254,92 @@ fn full_preset_loads_validates_and_enables_overlays() {
     }
 }
 
+/// P10 serde-compat guard: every on-disk `route_rules.toml` under `presets/`
+/// and `examples/` must still deserialize now that `RouteCondition`'s fields are
+/// typed enums. A misspelled condition value would make `RouteRulesFile`
+/// deserialization fail — this test would catch a preset that silently broke.
+#[test]
+fn all_preset_route_rules_deserialize_under_typed_conditions() {
+    use sectorforge::routes::RouteRulesFile;
+
+    let root = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let mut checked = 0_usize;
+    for base in ["presets", "examples"] {
+        let dir = root.join(base);
+        if !dir.exists() {
+            continue;
+        }
+        for entry in walkdir(dir.as_std_path()) {
+            if entry.file_name().and_then(|n| n.to_str()) != Some("route_rules.toml") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&entry)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", entry.display()));
+            let parsed: Result<RouteRulesFile, _> = toml::from_str(&text);
+            assert!(
+                parsed.is_ok(),
+                "{} failed to deserialize under typed RouteCondition: {:?}",
+                entry.display(),
+                parsed.err()
+            );
+            checked += 1;
+        }
+    }
+    assert!(
+        checked >= 6,
+        "expected to check several route_rules.toml files, only saw {checked}"
+    );
+}
+
+/// Spot-check that a known PascalCase / snake_case mix in a real preset maps to
+/// the exact typed variants (not just "parses").
+#[test]
+fn full_preset_route_rules_map_to_typed_variants() {
+    use sectorforge::routes::RouteRulesFile;
+    use sectorforge::worlds::{NotableFeature, WorldType};
+
+    let path = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("presets/_full/data/routes/route_rules.toml");
+    if !path.exists() {
+        return;
+    }
+    let text = std::fs::read_to_string(&path).unwrap();
+    let file: RouteRulesFile = toml::from_str(&text).unwrap();
+    let conds: Vec<_> = file.routes.modifiers.iter().map(|m| &m.when).collect();
+    assert!(
+        conds
+            .iter()
+            .any(|c| c.notable_feature == Some(NotableFeature::TradeHub)),
+        "_full route_rules should carry a TradeHub feature condition"
+    );
+    assert!(
+        conds
+            .iter()
+            .any(|c| c.world_type == Some(WorldType::ForgeWorld)),
+        "_full route_rules should carry a ForgeWorld world_type condition"
+    );
+}
+
+/// Minimal recursive directory walk (no extra dev-dependency).
+fn walkdir(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in rd.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else {
+                out.push(path);
+            }
+        }
+    }
+    out
+}
+
 #[test]
 fn internal_presets_hidden_from_gallery() {
     let dir = presets_dir();

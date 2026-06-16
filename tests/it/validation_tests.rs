@@ -879,18 +879,27 @@ fn route_max_distance_nonzero_has_no_warning() {
     assert!(!has_warn(&report, "ROUTE_MAX_DISTANCE_ZERO"));
 }
 
-// ── G23: ROUTE_UNKNOWN_{FEATURE,WORLD_TYPE,GOVERNMENT,ROUTE_TYPE} ────────────
+// ── G23: route-condition values are type-safe at load (P10) ──────────────────
+//
+// `RouteCondition`'s fields are typed enums, so a misspelled value is rejected
+// when the config deserializes (the dedicated unit tests in `src/gen/routes.rs`
+// cover that load-time error). There is therefore no `ROUTE_UNKNOWN_*` warning
+// to raise here: an unknown value can never reach validation. This test pins
+// that a fully-populated, valid typed condition validates cleanly.
 
 #[test]
-fn route_condition_unknown_refs_are_warnings() {
+fn route_condition_valid_typed_fields_have_no_warning() {
+    use sectorforge::sector_model::RouteType;
+    use sectorforge::worlds::{Government, NotableFeature, WorldType};
+
     let mut input = m42();
     let c = std::sync::Arc::make_mut(&mut input.catalogs);
     c.route_rules.modifiers.clear();
     let cond = sectorforge::routes::RouteCondition {
-        notable_feature: Some("no_feat".into()),
-        world_type: Some("no_wt".into()),
-        government: Some("no_gov".into()),
-        route_type: Some("no_rt".into()),
+        notable_feature: Some(NotableFeature::TradeHub),
+        world_type: Some(WorldType::ForgeWorld),
+        government: Some(Government::MilitaryGovernor),
+        route_type: Some(RouteType::Webway),
     };
     c.route_rules
         .modifiers
@@ -900,42 +909,6 @@ fn route_condition_unknown_refs_are_warnings() {
         });
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(report.ok);
-    assert_eq!(
-        find(&report, "ROUTE_UNKNOWN_FEATURE").unwrap().path,
-        Some("routes.modifiers[0].when.notable_feature".to_string())
-    );
-    assert_eq!(
-        find(&report, "ROUTE_UNKNOWN_WORLD_TYPE").unwrap().path,
-        Some("routes.modifiers[0].when.world_type".to_string())
-    );
-    assert_eq!(
-        find(&report, "ROUTE_UNKNOWN_GOVERNMENT").unwrap().path,
-        Some("routes.modifiers[0].when.government".to_string())
-    );
-    assert_eq!(
-        find(&report, "ROUTE_UNKNOWN_ROUTE_TYPE").unwrap().path,
-        Some("routes.modifiers[0].when.route_type".to_string())
-    );
-}
-
-#[test]
-fn route_condition_valid_route_type_has_no_warning() {
-    // "Webway" snake-cases to "webway", a valid RouteType key.
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.route_rules.modifiers.clear();
-    let cond = sectorforge::routes::RouteCondition {
-        route_type: Some("Webway".into()),
-        ..Default::default()
-    };
-    c.route_rules
-        .modifiers
-        .push(sectorforge::routes::RouteModifier {
-            when: cond,
-            multiplier: 1.0,
-        });
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_warn(&report, "ROUTE_UNKNOWN_ROUTE_TYPE"));
 }
 
 // ── G24: NAME_POOL_EMPTY ────────────────────────────────────────────────────

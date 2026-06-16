@@ -5,7 +5,7 @@
 //! a smaller ±0.10 jitter. `disposition` selects a [`FactionBorder`] used by
 //! both renderers to style the territory outline.
 
-use crate::sector_model::GeneratedFaction;
+use crate::sector_model::{FactionKind, GeneratedFaction};
 
 /// Border behaviour driven by faction disposition (§8).
 ///
@@ -69,69 +69,80 @@ fn djb2(s: &str) -> u32 {
     h
 }
 
-fn kind_base_hue(kind: &str) -> (f32, f32, f32) {
-    // (hue 0..360, saturation 0..1, value 0..1)
+fn kind_base_hue(kind: &FactionKind) -> (f32, f32, f32) {
+    // (hue 0..360, saturation 0..1, value 0..1). `Unknown` (and the handful of
+    // known variants with no bespoke hue) fall to the neutral default arm — the
+    // same behaviour as the old `_ =>` string match.
     match kind {
-        "imperial" => (48.0, 0.70, 0.88),
-        "adepta_sororitas" => (350.0, 0.55, 0.85),
-        "inquisition" => (340.0, 0.30, 0.55),
-        "adeptus_astartes" => (210.0, 0.60, 0.78),
-        "imperial_guard" => (90.0, 0.45, 0.65),
-        "imperial_knight" => (35.0, 0.55, 0.80),
-        "collegia_titanica" => (20.0, 0.65, 0.78),
-        "deathwatch" | "grey_knights" | "talons_of_the_emperor" => (220.0, 0.20, 0.45),
-        "mechanicus" => (18.0, 0.75, 0.80),
-        "dark_mechanicum" => (15.0, 0.85, 0.45),
-        "chaos_space_marine" => (320.0, 0.70, 0.65),
-        "chaos_knight" => (305.0, 0.65, 0.55),
-        "traitor_guard" => (300.0, 0.45, 0.55),
-        "traitor_titan_legion" => (290.0, 0.55, 0.55),
-        "daemon" => (280.0, 0.80, 0.55),
-        "cult" => (260.0, 0.50, 0.55),
-        "tau" => (200.0, 0.55, 0.82),
-        "aeldari" => (170.0, 0.55, 0.75),
-        "drukhari" => (335.0, 0.70, 0.55),
-        "harlequin" => (155.0, 0.60, 0.85),
-        "leagues_of_votann" => (200.0, 0.35, 0.65),
-        "ork" => (110.0, 0.75, 0.55),
-        "tyranid" => (75.0, 0.60, 0.50),
-        "necron" => (135.0, 0.55, 0.65),
-        "minor_xenos" | "xenos" => (140.0, 0.40, 0.65),
-        "merchant" => (45.0, 0.60, 0.80),
-        "criminal" => (15.0, 0.40, 0.55),
-        "rebel" => (10.0, 0.55, 0.70),
-        "genestealer_cult" => (155.0, 0.70, 0.55),
-        _ => (210.0, 0.30, 0.60),
+        FactionKind::Imperial => (48.0, 0.70, 0.88),
+        FactionKind::AdeptaSororitas => (350.0, 0.55, 0.85),
+        FactionKind::Inquisition => (340.0, 0.30, 0.55),
+        FactionKind::AdeptusAstartes => (210.0, 0.60, 0.78),
+        FactionKind::ImperialGuard => (90.0, 0.45, 0.65),
+        FactionKind::ImperialKnight => (35.0, 0.55, 0.80),
+        FactionKind::CollegiaTitanica => (20.0, 0.65, 0.78),
+        FactionKind::Deathwatch | FactionKind::GreyKnights | FactionKind::TalonsOfTheEmperor => {
+            (220.0, 0.20, 0.45)
+        }
+        FactionKind::Mechanicus => (18.0, 0.75, 0.80),
+        FactionKind::DarkMechanicum => (15.0, 0.85, 0.45),
+        FactionKind::ChaosSpaceMarine => (320.0, 0.70, 0.65),
+        FactionKind::ChaosKnight => (305.0, 0.65, 0.55),
+        FactionKind::TraitorGuard => (300.0, 0.45, 0.55),
+        FactionKind::TraitorTitanLegion => (290.0, 0.55, 0.55),
+        FactionKind::Daemon => (280.0, 0.80, 0.55),
+        FactionKind::Cult => (260.0, 0.50, 0.55),
+        FactionKind::Tau => (200.0, 0.55, 0.82),
+        FactionKind::Aeldari => (170.0, 0.55, 0.75),
+        FactionKind::Drukhari => (335.0, 0.70, 0.55),
+        FactionKind::Harlequin => (155.0, 0.60, 0.85),
+        FactionKind::LeaguesOfVotann => (200.0, 0.35, 0.65),
+        FactionKind::Ork => (110.0, 0.75, 0.55),
+        FactionKind::Tyranid => (75.0, 0.60, 0.50),
+        FactionKind::Necron => (135.0, 0.55, 0.65),
+        FactionKind::MinorXenos | FactionKind::Xenos => (140.0, 0.40, 0.65),
+        FactionKind::Merchant => (45.0, 0.60, 0.80),
+        FactionKind::Criminal => (15.0, 0.40, 0.55),
+        FactionKind::Rebel => (10.0, 0.55, 0.70),
+        FactionKind::GenestealerCult => (155.0, 0.70, 0.55),
+        FactionKind::Ecclesiarchy | FactionKind::RogueTrader | FactionKind::Unknown(_) => {
+            (210.0, 0.30, 0.60)
+        }
     }
 }
 
-fn glyph_for_kind(kind: &str, salt: u32) -> char {
+fn glyph_for_kind(kind: &FactionKind, salt: u32) -> char {
     let pool: &[char] = match kind {
-        "imperial" | "imperial_guard" => &['I', 'V', 'X', 'Y'],
-        "adepta_sororitas" => &['S', 'T'],
-        "inquisition" => &['Q'],
-        "adeptus_astartes" | "deathwatch" | "grey_knights" | "talons_of_the_emperor" => {
-            &['M', 'A', 'W']
-        }
-        "imperial_knight" | "chaos_knight" => &['K'],
-        "collegia_titanica" | "traitor_titan_legion" => &['T'],
-        "mechanicus" => &['G', 'H', 'O'],
-        "dark_mechanicum" => &['D', 'P'],
-        "chaos_space_marine" | "traitor_guard" => &['C', 'R', 'F'],
-        "daemon" => &['Z'],
-        "cult" | "genestealer_cult" => &['U', 'N'],
-        "tau" => &['L', 'E'],
-        "aeldari" => &['A', 'E'],
-        "drukhari" => &['B'],
-        "harlequin" => &['J'],
-        "leagues_of_votann" => &['V', 'N'],
-        "ork" => &['O', 'X'],
-        "tyranid" => &['Y'],
-        "necron" => &['N'],
-        "merchant" => &['$', '&'],
-        "criminal" => &['?', '!'],
-        "rebel" => &['R'],
-        _ => &['*'],
+        FactionKind::Imperial | FactionKind::ImperialGuard => &['I', 'V', 'X', 'Y'],
+        FactionKind::AdeptaSororitas => &['S', 'T'],
+        FactionKind::Inquisition => &['Q'],
+        FactionKind::AdeptusAstartes
+        | FactionKind::Deathwatch
+        | FactionKind::GreyKnights
+        | FactionKind::TalonsOfTheEmperor => &['M', 'A', 'W'],
+        FactionKind::ImperialKnight | FactionKind::ChaosKnight => &['K'],
+        FactionKind::CollegiaTitanica | FactionKind::TraitorTitanLegion => &['T'],
+        FactionKind::Mechanicus => &['G', 'H', 'O'],
+        FactionKind::DarkMechanicum => &['D', 'P'],
+        FactionKind::ChaosSpaceMarine | FactionKind::TraitorGuard => &['C', 'R', 'F'],
+        FactionKind::Daemon => &['Z'],
+        FactionKind::Cult | FactionKind::GenestealerCult => &['U', 'N'],
+        FactionKind::Tau => &['L', 'E'],
+        FactionKind::Aeldari => &['A', 'E'],
+        FactionKind::Drukhari => &['B'],
+        FactionKind::Harlequin => &['J'],
+        FactionKind::LeaguesOfVotann => &['V', 'N'],
+        FactionKind::Ork => &['O', 'X'],
+        FactionKind::Tyranid => &['Y'],
+        FactionKind::Necron => &['N'],
+        FactionKind::Merchant => &['$', '&'],
+        FactionKind::Criminal => &['?', '!'],
+        FactionKind::Rebel => &['R'],
+        FactionKind::Ecclesiarchy
+        | FactionKind::Xenos
+        | FactionKind::MinorXenos
+        | FactionKind::RogueTrader
+        | FactionKind::Unknown(_) => &['*'],
     };
     pool[(salt as usize) % pool.len()]
 }
@@ -165,7 +176,8 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
 /// Deterministic style for a faction.
 #[must_use]
 pub fn faction_style_rgb(kind: &str, id: &str, disposition: &str) -> FactionStyleRgb {
-    let (h, s, v) = kind_base_hue(kind);
+    let fk = FactionKind::from_slug(kind);
+    let (h, s, v) = kind_base_hue(&fk);
     let hash = djb2(id);
     let hue_shift = (((hash >> 8) & 0xFF) as f32 / 255.0 - 0.5) * 50.0;
     let sat_shift = (((hash >> 16) & 0xFF) as f32 / 255.0 - 0.5) * 0.20;
@@ -176,7 +188,7 @@ pub fn faction_style_rgb(kind: &str, id: &str, disposition: &str) -> FactionStyl
     FactionStyleRgb {
         fill,
         accent,
-        glyph: glyph_for_kind(kind, hash),
+        glyph: glyph_for_kind(&fk, hash),
         border: border_for(disposition),
     }
 }
@@ -249,7 +261,7 @@ pub fn faction_style_rgb_with_overrides(
 #[must_use]
 pub fn faction_style_rgb_by_id(factions: &[GeneratedFaction], id: &str) -> FactionStyleRgb {
     if let Some(f) = factions.iter().find(|f| f.id == id) {
-        return faction_style_rgb(&f.kind, &f.id, &f.disposition);
+        return faction_style_rgb(f.kind.as_slug(), &f.id, &f.disposition);
     }
     FactionStyleRgb {
         fill: (150, 150, 160),

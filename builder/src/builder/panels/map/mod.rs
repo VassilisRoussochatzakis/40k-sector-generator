@@ -1041,7 +1041,7 @@ mod tests {
             .push(sectorforge::sector_model::GeneratedFaction {
                 id: fid.clone(),
                 name: std::sync::Arc::from("Imperium"),
-                kind: std::sync::Arc::from("Imperium"),
+                kind: sectorforge::sector_model::FactionKind::from_slug("Imperium"),
                 disposition: std::sync::Arc::from("Order"),
                 subfactions: Vec::new(),
                 system_presence: Vec::new(),

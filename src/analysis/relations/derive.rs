@@ -241,14 +241,16 @@ fn compute_pair(
     }
 
     // 2) User kind_rules (first symmetric match wins).
-    let base = rules.kind_rule(&a.kind, &b.kind).map(|r| {
-        (
-            r.stance,
-            r.cause.clone().unwrap_or_else(|| match_cause(a, b)),
-        )
-    });
+    let base = rules
+        .kind_rule(a.kind.as_slug(), b.kind.as_slug())
+        .map(|r| {
+            (
+                r.stance,
+                r.cause.clone().unwrap_or_else(|| match_cause(a, b)),
+            )
+        });
     let (base_stance, mut cause) = base.unwrap_or_else(|| {
-        let (s, c) = default_kind_stance(&a.kind, &b.kind);
+        let (s, c) = default_kind_stance(a.kind.as_slug(), b.kind.as_slug());
         (s, c.to_string())
     });
 
@@ -459,7 +461,7 @@ fn directional_metrics(
     secret: RelationAttitude,
     stats: CooccurStats,
 ) -> RelationMetrics {
-    let ideology = ideological_distance(&from.kind, &to.kind, secret.to_stance());
+    let ideology = ideological_distance(from.kind.as_slug(), to.kind.as_slug(), secret.to_stance());
     let to_force = normalized_power(
         to.power
             .logistical

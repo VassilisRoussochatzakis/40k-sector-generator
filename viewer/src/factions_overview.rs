@@ -450,7 +450,7 @@ fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
 fn show_kind_summary(ui: &mut Ui, sector: &GeneratedSector) {
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     for f in &sector.factions {
-        *counts.entry(f.kind.as_ref()).or_default() += 1;
+        *counts.entry(f.kind.as_slug()).or_default() += 1;
     }
     if counts.is_empty() {
         ui.label(RichText::new("no factions in sector").color(palette::chrome_text_dim()));
@@ -484,13 +484,13 @@ fn show_table_header(ui: &mut Ui, edit_mode: bool) {
 }
 
 fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&PresenceStats>) {
-    let style = faction_style(&fac.kind, fac.id.as_str(), &fac.disposition);
+    let style = faction_style(fac.kind.as_slug(), fac.id.as_str(), &fac.disposition);
     let observed = observed.cloned().unwrap_or_default();
     ui.horizontal(|ui| {
         draw_faction_chip(ui, style);
         fixed_text(ui, 180.0, &fac.name.to_uppercase(), palette::chrome_text());
         fixed_text(ui, 150.0, fac.id.as_str(), palette::chrome_text_dim());
-        fixed_text(ui, 120.0, &fac.kind, palette::chrome_text_dim());
+        fixed_text(ui, 120.0, fac.kind.as_slug(), palette::chrome_text_dim());
         fixed_text(ui, 120.0, &fac.disposition, palette::chrome_text_dim());
         fixed_text(
             ui,

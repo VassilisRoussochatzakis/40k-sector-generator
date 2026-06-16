@@ -230,7 +230,7 @@ pub fn derive_route_controls(
 
     let kind_of: BTreeMap<&str, &str> = factions
         .iter()
-        .map(|f| (f.id.as_ref(), f.kind.as_ref()))
+        .map(|f| (f.id.as_ref(), f.kind.as_slug()))
         .collect();
 
     let mut ids: BTreeMap<&str, ()> = BTreeMap::new();

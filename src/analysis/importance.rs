@@ -87,34 +87,6 @@ impl KindGroup {
             KindGroup::Other => "Other Factions",
         }
     }
-
-    #[must_use]
-    pub fn from_kind(kind: &str) -> Self {
-        match kind {
-            "imperial"
-            | "imperial_guard"
-            | "imperial_knight"
-            | "adepta_sororitas"
-            | "adeptus_astartes"
-            | "deathwatch"
-            | "grey_knights"
-            | "talons_of_the_emperor"
-            | "inquisition"
-            | "collegia_titanica" => KindGroup::Imperial,
-            "mechanicus" | "dark_mechanicum" => KindGroup::Mechanicus,
-            "chaos_space_marine"
-            | "chaos_knight"
-            | "traitor_guard"
-            | "traitor_titan_legion"
-            | "daemon"
-            | "cult" => KindGroup::Chaos,
-            "aeldari" | "drukhari" | "harlequin" => KindGroup::Aeldari,
-            "tau" | "ork" | "tyranid" | "necron" | "leagues_of_votann" | "minor_xenos"
-            | "xenos" | "genestealer_cult" => KindGroup::Xenos,
-            "criminal" | "rebel" | "merchant" => KindGroup::Criminal,
-            _ => KindGroup::Other,
-        }
-    }
 }
 
 impl core::fmt::Display for KindGroup {
@@ -170,7 +142,7 @@ pub fn compute_display_buckets(
                 world_count: f.world_presence.len(),
             });
         } else {
-            let g = KindGroup::from_kind(&f.kind);
+            let g = f.kind.group();
             let acc = groups.entry(g).or_default();
             acc.importance += importance;
             acc.system_count += f.system_presence.len();

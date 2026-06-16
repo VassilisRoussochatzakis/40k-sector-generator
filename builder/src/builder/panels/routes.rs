@@ -963,28 +963,33 @@ fn show_route_modifiers(ui: &mut Ui, rules: &mut RouteRules) -> bool {
             ui.end_row();
 
             for (i, modifier) in rules.modifiers.iter_mut().enumerate() {
-                changed |= optional_world_value_combo(
+                changed |= optional_enum_combo(
                     ui,
                     format!("route_mod_feature_{i}"),
                     &mut modifier.when.notable_feature,
-                    feature_options(),
+                    NotableFeature::VARIANTS,
+                    |v| v.display_name(),
                 );
-                changed |= optional_world_value_combo(
+                changed |= optional_enum_combo(
                     ui,
                     format!("route_mod_world_type_{i}"),
                     &mut modifier.when.world_type,
-                    world_type_options(),
+                    WorldType::VARIANTS,
+                    |v| v.display_name(),
                 );
-                changed |= optional_world_value_combo(
+                changed |= optional_enum_combo(
                     ui,
                     format!("route_mod_government_{i}"),
                     &mut modifier.when.government,
-                    government_options(),
+                    Government::VARIANTS,
+                    |v| v.display_name(),
                 );
-                changed |= optional_route_type_key_combo(
+                changed |= optional_enum_combo(
                     ui,
                     format!("route_mod_route_type_{i}"),
                     &mut modifier.when.route_type,
+                    &RouteType::ALL,
+                    |v| v.editor_label(),
                 );
                 changed |= ui
                     .add(
@@ -1017,58 +1022,28 @@ fn show_route_modifiers(ui: &mut Ui, rules: &mut RouteRules) -> bool {
     changed
 }
 
-fn optional_world_value_combo(
+/// A `(any)`-or-one-variant dropdown over a typed `RouteCondition` field. The
+/// stored value is the domain enum itself (`Option<T>`), so an out-of-enum
+/// value is unrepresentable — there is no string to mis-type (P10). Editing the
+/// rules in place follows the existing route-rules direct-write path (the panel
+/// has never routed route_rules through the command bus); `mark_route_rules_changed`
+/// flags the dirty file + schedules the preview.
+fn optional_enum_combo<T: Clone + PartialEq>(
     ui: &mut Ui,
     id: impl std::hash::Hash,
-    value: &mut Option<String>,
-    options: Vec<(String, String)>,
+    value: &mut Option<T>,
+    variants: &[T],
+    label: impl Fn(&T) -> &'static str,
 ) -> bool {
     let before = value.clone();
-    let selected = value.as_deref().unwrap_or("(any)");
+    let selected = value.as_ref().map_or("(any)", &label);
     ui_kit::combo(id, selected).show_ui(ui, |ui| {
         ui.selectable_value(value, None, "(any)");
-        for (stored, label) in options {
-            ui.selectable_value(value, Some(stored), label);
+        for variant in variants {
+            ui.selectable_value(value, Some(variant.clone()), label(variant));
         }
     });
     *value != before
-}
-
-fn optional_route_type_key_combo(
-    ui: &mut Ui,
-    id: impl std::hash::Hash,
-    value: &mut Option<String>,
-) -> bool {
-    let before = value.clone();
-    let selected = value.as_deref().unwrap_or("(any)");
-    ui_kit::combo(id, selected).show_ui(ui, |ui| {
-        ui.selectable_value(value, None, "(any)");
-        for option in RouteType::ALL {
-            ui.selectable_value(value, Some(option.key().to_string()), option.editor_label());
-        }
-    });
-    *value != before
-}
-
-fn world_type_options() -> Vec<(String, String)> {
-    WorldType::VARIANTS
-        .iter()
-        .map(|v| (format!("{v:?}"), v.display_name().to_string()))
-        .collect()
-}
-
-fn government_options() -> Vec<(String, String)> {
-    Government::VARIANTS
-        .iter()
-        .map(|v| (format!("{v:?}"), v.display_name().to_string()))
-        .collect()
-}
-
-fn feature_options() -> Vec<(String, String)> {
-    NotableFeature::VARIANTS
-        .iter()
-        .map(|v| (format!("{v:?}"), v.display_name().to_string()))
-        .collect()
 }
 
 fn mark_route_rules_changed(ui: &Ui, state: &mut BuilderState) {

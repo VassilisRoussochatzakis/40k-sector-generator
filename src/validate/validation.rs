@@ -345,50 +345,10 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                     severity: Severity::Error,
                 });
             }
-            if let Some(s) = &m.when.notable_feature {
-                if taxonomy::parse_notable_feature_variant(s).is_none() {
-                    warnings.push(ValidationIssue {
-                        code: ValidationCode::RouteUnknownFeature.as_slug().to_string(),
-                        message: format!("route condition references unknown feature '{s}'"),
-                        path: Some(format!("routes.modifiers[{i}].when.notable_feature")),
-                        row: None,
-                        severity: Severity::Warning,
-                    });
-                }
-            }
-            if let Some(s) = &m.when.world_type {
-                if taxonomy::parse_world_type_variant(s).is_none() {
-                    warnings.push(ValidationIssue {
-                        code: ValidationCode::RouteUnknownWorldType.as_slug().to_string(),
-                        message: format!("route condition references unknown world type '{s}'"),
-                        path: Some(format!("routes.modifiers[{i}].when.world_type")),
-                        row: None,
-                        severity: Severity::Warning,
-                    });
-                }
-            }
-            if let Some(s) = &m.when.government {
-                if taxonomy::parse_government_variant(s).is_none() {
-                    warnings.push(ValidationIssue {
-                        code: ValidationCode::RouteUnknownGovernment.as_slug().to_string(),
-                        message: format!("route condition references unknown government '{s}'"),
-                        path: Some(format!("routes.modifiers[{i}].when.government")),
-                        row: None,
-                        severity: Severity::Warning,
-                    });
-                }
-            }
-            if let Some(s) = &m.when.route_type {
-                if crate::sector_model::RouteType::from_key(&taxonomy::to_snake_case(s)).is_none() {
-                    warnings.push(ValidationIssue {
-                        code: ValidationCode::RouteUnknownRouteType.as_slug().to_string(),
-                        message: format!("route condition references unknown route type '{s}'"),
-                        path: Some(format!("routes.modifiers[{i}].when.route_type")),
-                        row: None,
-                        severity: Severity::Warning,
-                    });
-                }
-            }
+            // The `when` condition fields (notable_feature / world_type /
+            // government / route_type) are typed enums (P10), so an unknown
+            // value is already a hard deserialize error when the config loads —
+            // there is nothing left to warn about here.
         }
     }
 
@@ -720,10 +680,6 @@ pub enum ValidationCode {
     FactionUnknownGovernment,
     FactionUnknownFeature,
     RouteBadMultiplier,
-    RouteUnknownFeature,
-    RouteUnknownWorldType,
-    RouteUnknownGovernment,
-    RouteUnknownRouteType,
     RelationsKindRuleEmpty,
     RelationsPairUnknownFaction,
     RelationsOverrideUnknownFaction,
@@ -742,10 +698,6 @@ enum_slug!(const ValidationCode {
     FactionUnknownGovernment => "FACTION_UNKNOWN_GOVERNMENT",
     FactionUnknownFeature => "FACTION_UNKNOWN_FEATURE",
     RouteBadMultiplier => "ROUTE_BAD_MULTIPLIER",
-    RouteUnknownFeature => "ROUTE_UNKNOWN_FEATURE",
-    RouteUnknownWorldType => "ROUTE_UNKNOWN_WORLD_TYPE",
-    RouteUnknownGovernment => "ROUTE_UNKNOWN_GOVERNMENT",
-    RouteUnknownRouteType => "ROUTE_UNKNOWN_ROUTE_TYPE",
     RelationsKindRuleEmpty => "RELATIONS_KIND_RULE_EMPTY",
     RelationsPairUnknownFaction => "RELATIONS_PAIR_UNKNOWN_FACTION",
     RelationsOverrideUnknownFaction => "RELATIONS_OVERRIDE_UNKNOWN_FACTION",
@@ -778,10 +730,6 @@ mod code_registry_tests {
         ValidationCode::FactionUnknownGovernment,
         ValidationCode::FactionUnknownFeature,
         ValidationCode::RouteBadMultiplier,
-        ValidationCode::RouteUnknownFeature,
-        ValidationCode::RouteUnknownWorldType,
-        ValidationCode::RouteUnknownGovernment,
-        ValidationCode::RouteUnknownRouteType,
         ValidationCode::RelationsKindRuleEmpty,
         ValidationCode::RelationsPairUnknownFaction,
         ValidationCode::RelationsOverrideUnknownFaction,
@@ -804,10 +752,6 @@ mod code_registry_tests {
             | ValidationCode::FactionUnknownGovernment
             | ValidationCode::FactionUnknownFeature
             | ValidationCode::RouteBadMultiplier
-            | ValidationCode::RouteUnknownFeature
-            | ValidationCode::RouteUnknownWorldType
-            | ValidationCode::RouteUnknownGovernment
-            | ValidationCode::RouteUnknownRouteType
             | ValidationCode::RelationsKindRuleEmpty
             | ValidationCode::RelationsPairUnknownFaction
             | ValidationCode::RelationsOverrideUnknownFaction

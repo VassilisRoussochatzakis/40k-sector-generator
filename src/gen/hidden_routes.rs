@@ -295,7 +295,7 @@ pub fn append_hidden_routes_with_regions_and_progress(
 
     let kinds: BTreeMap<&str, &str> = factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_ref()))
+        .map(|f| (f.id.as_str(), f.kind.as_slug()))
         .collect();
 
     let mut added = 0usize;

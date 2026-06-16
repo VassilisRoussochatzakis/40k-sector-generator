@@ -1513,7 +1513,12 @@ mod route_effect_tests {
         };
 
         let mut routes_capped = lanes();
-        apply_route_effects(&[calm.clone()], &systems, &mut routes_capped, capped_max);
+        apply_route_effects(
+            std::slice::from_ref(&calm),
+            &systems,
+            &mut routes_capped,
+            capped_max,
+        );
 
         let mut routes_raw = lanes();
         apply_route_effects(&[calm], &systems, &mut routes_raw, raw_max);

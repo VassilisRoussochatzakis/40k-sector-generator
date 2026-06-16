@@ -72,7 +72,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | `GEN_FEATURE_POOL_SMALL` (l.250) | int | `world_feature_count=10_000` → warning; default → absent | M |
 | `FACTION_UNKNOWN_WORLD_TYPE/GOV/FEATURE` (l.282/295/308) | int | bogus slugs → 3 warnings w/ paths, `ok==true`; valid → absent | M |
 | `ROUTE_MAX_DISTANCE_ZERO` (l.331) | int | `enabled=true`, max=0 → warning; gated off; 5 → absent | M |
-| `ROUTE_UNKNOWN_FEATURE/WORLD_TYPE/GOV/ROUTE_TYPE` (l.348/359/370/381) | int | bogus values → 4 warnings; route_type via `from_key(to_snake_case)` path; valid → absent | M |
+| route-condition type-safety (P10) | unit | `RouteCondition` fields are typed enums — bogus value → hard deserialize error at load (covered by `route_condition_misspelled_*` in `src/gen/routes.rs`); the old `ROUTE_UNKNOWN_*` warnings were removed | — |
 | `NAME_POOL_EMPTY` (l.397) | int | clear all 3 of prefixes/suffixes/single_names → warning; leaving single_names → absent (AND-conjunction) | M |
 | `RELATIONS_KIND_RULE_EMPTY` both branches (l.444/502) | int | empty `a` with-factions AND no-factions early-return → same code both paths | M |
 | `REGIONS_COUNT_ZERO` (l.525) | int | `enabled=true`, count=0 → warning; gated off; 3 → absent | M |

@@ -1463,7 +1463,12 @@ multiplier = 0.8
 ```
 
 `when` accepts any combination of `notable_feature`, `world_type`,
-`government`, and `route_type` keys. Routes connect systems whose hex distance ≤ `max_distance`.
+`government`, and `route_type` keys. Each is a typed enum: `notable_feature` /
+`world_type` / `government` take a PascalCase variant name (e.g. `"TradeHub"`,
+`"ForgeWorld"`), `route_type` takes a snake_case key (e.g. `"charted_passage"`,
+also accepting the `"dangerous_passage"` alias). A misspelled value is a hard
+config-load error, not a silently-ignored condition (P10). Routes connect
+systems whose hex distance ≤ `max_distance`.
 Weights factor in distance falloff, then the standard
 `prefer_populated_worlds` / `prefer_trade_hubs` / `avoid_warp_phenomena`
 bonuses, then your custom modifiers. With `ensure_connected_graph = true`,

@@ -5,6 +5,7 @@
 //! pipeline consults when the user config is silent.
 
 use super::config::Stance;
+use crate::sector_model::FactionKind;
 
 // ── Built-in stance rules ──────────────────────────────────────────────────────
 
@@ -198,21 +199,17 @@ pub(super) fn default_disposition_delta(a: &str, b: &str) -> i32 {
     0
 }
 
-pub(super) fn cross_kinds(a: &str, b: &str, g1: &[&str], g2: &[&str]) -> bool {
+pub(super) fn cross_kinds(a: &FactionKind, b: &FactionKind, g1: &[&str], g2: &[&str]) -> bool {
+    let (a, b) = (a.as_slug(), b.as_slug());
     (in_group(a, g1) && in_group(b, g2)) || (in_group(a, g2) && in_group(b, g1))
 }
 
-pub(super) fn is_hidden_kind(kind: &str) -> bool {
-    in_group(kind, GSC_KINDS)
-        || in_group(kind, CRIMINAL_KINDS)
-        || in_group(kind, DRUKHARI_KINDS)
-        || in_group(kind, AELDARI_KINDS)
-        || kind == "cult"
-        || kind == "harlequin"
+pub(super) fn is_hidden_kind(kind: &FactionKind) -> bool {
+    kind.is_hidden()
 }
 
-pub(super) fn is_merchant_kind(kind: &str) -> bool {
-    in_group(kind, MERCHANT_KINDS) || kind == "rogue_trader"
+pub(super) fn is_merchant_kind(kind: &FactionKind) -> bool {
+    kind.is_merchant()
 }
 
 fn ideology_group(kind: &str) -> &'static str {

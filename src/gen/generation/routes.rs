@@ -109,30 +109,35 @@ pub(super) fn generate_routes(
 
             let (rt, _) = classify_route(&systems[i], &systems[j], dist, max_distance);
 
-            // Apply config modifiers.
+            // Apply config modifiers. World/feature/government conditions match
+            // against the system's snake_case tag set (the same tag form
+            // `tags_for_world` builds), so the typed enum is rendered to its
+            // snake form for comparison. `route_type` compares the typed enum
+            // directly against this lane's classified type.
             for m in &rules.modifiers {
-                if let Some(s) = &m.when.notable_feature {
-                    let tag = format!("feature:{}", taxonomy::to_snake_case(s));
+                if let Some(feature) = &m.when.notable_feature {
+                    let tag = feature_tag(feature);
                     if combined_tags.iter().any(|t| t.as_ref() == tag) {
                         w *= m.multiplier;
                     }
                 }
-                if let Some(s) = &m.when.world_type {
-                    let tag = format!("world_type:{}", taxonomy::to_snake_case(s));
+                if let Some(world_type) = &m.when.world_type {
+                    let tag = format!(
+                        "world_type:{}",
+                        taxonomy::to_snake_case(&world_type.to_string())
+                    );
                     if combined_tags.iter().any(|t| t.as_ref() == tag) {
                         w *= m.multiplier;
                     }
                 }
-                if let Some(s) = &m.when.government {
-                    let tag = format!("gov:{}", taxonomy::to_snake_case(s));
+                if let Some(government) = &m.when.government {
+                    let tag = format!("gov:{}", taxonomy::to_snake_case(&government.to_string()));
                     if combined_tags.iter().any(|t| t.as_ref() == tag) {
                         w *= m.multiplier;
                     }
                 }
-                if let Some(s) = &m.when.route_type {
-                    if RouteType::from_key(&taxonomy::to_snake_case(s)).is_some_and(|v| v == rt) {
-                        w *= m.multiplier;
-                    }
+                if m.when.route_type == Some(rt) {
+                    w *= m.multiplier;
                 }
             }
 

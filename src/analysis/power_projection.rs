@@ -54,10 +54,10 @@ pub fn project_sector(sector: &GeneratedSector) -> PowerProjectionMap {
         if source_power <= 0.0 {
             continue;
         }
-        let doctrine = doctrine_multiplier(&f.kind);
+        let doctrine = doctrine_multiplier(f.kind.as_slug());
         let mut per_system: BTreeMap<crate::ids::SystemId, f32> = BTreeMap::new();
         for src in source_systems {
-            let dists = bfs_distances(&adj, src, &f.kind, f.id.as_str());
+            let dists = bfs_distances(&adj, src, f.kind.as_slug(), f.id.as_str());
             for (target, hops) in dists {
                 let proj = source_power * doctrine / ((1 + hops * hops) as f32);
                 let entry = per_system.entry(target).or_insert(0.0);

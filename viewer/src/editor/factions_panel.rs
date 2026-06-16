@@ -102,7 +102,7 @@ pub(crate) fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             state
                 .faction_filter_kind
                 .as_deref()
-                .is_none_or(|k| f.kind.as_ref() == k)
+                .is_none_or(|k| f.kind.as_slug() == k)
                 && state
                     .faction_filter_disposition
                     .as_deref()
@@ -150,7 +150,7 @@ pub(crate) fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     // over `factions.iter_mut()`.
     for &i in &visible {
         let fac = &mut sector.factions[i];
-        let style = faction_style(&fac.kind, &fac.id, &fac.disposition);
+        let style = faction_style(fac.kind.as_slug(), &fac.id, &fac.disposition);
         let pinned_now = pinned.contains(&fac.id);
 
         // Header row: chip + name + power + pin + delete.

@@ -37,7 +37,7 @@ fn clamp(v: f32) -> f32 {
 fn kind_map(factions: &[GeneratedFaction]) -> BTreeMap<&str, &str> {
     factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_ref()))
+        .map(|f| (f.id.as_str(), f.kind.as_slug()))
         .collect()
 }
 

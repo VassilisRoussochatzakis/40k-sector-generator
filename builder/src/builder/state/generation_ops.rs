@@ -5,8 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::invariants::check_sector;
-use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{GeneratedSystem, GeneratedWorld};
+use sectorforge::MutationError;
 use sectorforge::SectorError;
 
 use super::super::command::BuilderCommand;

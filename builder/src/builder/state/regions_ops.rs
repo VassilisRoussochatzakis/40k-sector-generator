@@ -12,7 +12,7 @@
 //! drag previews with a ghost and only commits `MoveSystem` on drop.
 
 use sectorforge::invariants::check_sector;
-use sectorforge::sector_model::mutation::MutationError;
+use sectorforge::MutationError;
 
 use super::super::command::BuilderCommand;
 use super::super::errors::BuilderError;

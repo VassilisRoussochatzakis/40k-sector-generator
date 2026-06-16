@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use sectorforge::sector_model::mutation::MutationError;
+use sectorforge::MutationError;
 
 #[derive(Debug, Error)]
 pub enum BuilderError {

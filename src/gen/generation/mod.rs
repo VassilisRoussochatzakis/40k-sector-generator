@@ -22,10 +22,10 @@ mod routes;
 mod systems;
 mod world_placement;
 
-pub use factions::assign_factions_for_systems;
+pub(crate) use factions::assign_factions_for_systems;
 pub use reroll::{RerollNonces, Stage};
 pub(crate) use routes::{distance_base_level, stability_from_level, stability_level};
-pub use systems::{build_system, build_system_with_bias};
+pub(crate) use systems::build_system;
 pub use world_placement::regenerate_world_payload;
 
 /// Progress events emitted by sector generation when a caller opts in through

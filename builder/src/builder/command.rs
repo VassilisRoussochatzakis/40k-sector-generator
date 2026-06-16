@@ -17,13 +17,13 @@ use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::intel::SystemIntel;
 use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
 use sectorforge::regions::{RegionConditionKind, WarpRegion};
-use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem,
     GeneratedWorld, HexCoord, PowerProfile, RouteStability, RouteType,
 };
 use sectorforge::stability::StabilityState;
 use sectorforge::surface_region::SurfaceRegion;
+use sectorforge::MutationError;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 

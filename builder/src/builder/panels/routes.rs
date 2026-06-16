@@ -1,6 +1,6 @@
 //! ROUTES tab (§N1 / §N2) — Phase B §R1..§R7 route editor.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use egui::{Color32, RichText, Ui};
@@ -75,7 +75,8 @@ pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 }
 
 fn show_summary(ui: &mut Ui, state: &BuilderState) {
-    let components = route_component_count(&state.sector, &state.sector.routes);
+    let components =
+        sectorforge::routes::route_component_count(&state.sector.systems, &state.sector.routes);
     ui.horizontal_wrapped(|ui| {
         ui.label(RichText::new(format!("{} route(s)", state.sector.routes.len())).strong());
         ui.label(
@@ -1259,7 +1260,10 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
                     apply_ensure_connected_if_enabled(state);
                 }
             }
-            let components = route_component_count(&state.sector, &state.sector.routes);
+            let components = sectorforge::routes::route_component_count(
+                &state.sector.systems,
+                &state.sector.routes,
+            );
             let added = ensure_connected_routes(state, state.sector.routes.clone()).1;
             if components <= 1 {
                 ui.label(
@@ -1303,133 +1307,19 @@ fn apply_ensure_connected_if_enabled(state: &mut BuilderState) {
     }
 }
 
+/// Thin builder-side adapter over [`sectorforge::routes::ensure_connected_routes`]
+/// (relocated to the lib in REVIEW P15): unpacks the lib-pure inputs the
+/// algorithm needs from the sector + config so panel call sites stay terse.
 fn ensure_connected_routes(
     state: &BuilderState,
-    mut routes: Vec<GeneratedRoute>,
+    routes: Vec<GeneratedRoute>,
 ) -> (Vec<GeneratedRoute>, usize) {
-    let n = state.sector.systems.len();
-    if n < 2 {
-        return (routes, 0);
-    }
-
-    let index: BTreeMap<SystemId, usize> = state
-        .sector
-        .systems
-        .iter()
-        .enumerate()
-        .map(|(i, sys)| (sys.id.clone(), i))
-        .collect();
-    let mut parent: Vec<usize> = (0..n).collect();
-    let mut existing: BTreeSet<(SystemId, SystemId)> = BTreeSet::new();
-    for route in &routes {
-        if let (Some(&a), Some(&b)) = (
-            index.get(&route.from_system_id),
-            index.get(&route.to_system_id),
-        ) {
-            union(&mut parent, a, b);
-        }
-        let (lo, hi) = ordered_pair(&route.from_system_id, &route.to_system_id);
-        existing.insert((lo, hi));
-    }
-
-    let mut candidates = Vec::new();
-    for i in 0..n {
-        for j in (i + 1)..n {
-            let a = &state.sector.systems[i];
-            let b = &state.sector.systems[j];
-            let dist = hex_distance(a.coord, b.coord);
-            candidates.push((dist, a.id.clone(), b.id.clone(), i, j));
-        }
-    }
-    candidates.sort_by(|a, b| {
-        a.0.cmp(&b.0)
-            .then_with(|| a.1.cmp(&b.1))
-            .then_with(|| a.2.cmp(&b.2))
-    });
-
-    let mut added = 0usize;
-    for (dist, a_id, b_id, a_idx, b_idx) in candidates {
-        if find_root(&mut parent, a_idx) == find_root(&mut parent, b_idx) {
-            continue;
-        }
-        let (from, to) = ordered_pair(&a_id, &b_id);
-        if existing.contains(&(from.clone(), to.clone())) {
-            continue;
-        }
-        let stability = if dist <= state.config.generation.routes.max_route_distance {
-            RouteStability::Stable
-        } else {
-            RouteStability::Unstable
-        };
-        let mut route = GeneratedRoute {
-            id: ids::route_id(&from, &to),
-            from_system_id: from.clone(),
-            to_system_id: to.clone(),
-            distance: dist,
-            route_type: RouteType::ChartedPassage,
-            stability,
-            tags: vec![Arc::from("bridge")],
-            controls: Vec::new(),
-        };
-        route.controls = derive_controls(&route, &state.sector);
-        routes.push(route);
-        existing.insert((from, to));
-        union(&mut parent, a_idx, b_idx);
-        added += 1;
-    }
-    routes.sort_by(|a, b| a.id.cmp(&b.id));
-    (routes, added)
-}
-
-fn route_component_count(sector: &GeneratedSector, routes: &[GeneratedRoute]) -> usize {
-    let n = sector.systems.len();
-    if n == 0 {
-        return 0;
-    }
-    let index: BTreeMap<SystemId, usize> = sector
-        .systems
-        .iter()
-        .enumerate()
-        .map(|(i, sys)| (sys.id.clone(), i))
-        .collect();
-    let mut parent: Vec<usize> = (0..n).collect();
-    for route in routes {
-        if let (Some(&a), Some(&b)) = (
-            index.get(&route.from_system_id),
-            index.get(&route.to_system_id),
-        ) {
-            union(&mut parent, a, b);
-        }
-    }
-    let mut roots = BTreeSet::new();
-    for i in 0..n {
-        roots.insert(find_root(&mut parent, i));
-    }
-    roots.len()
-}
-
-fn ordered_pair(a: &SystemId, b: &SystemId) -> (SystemId, SystemId) {
-    if a <= b {
-        (a.clone(), b.clone())
-    } else {
-        (b.clone(), a.clone())
-    }
-}
-
-fn union(parent: &mut [usize], a: usize, b: usize) {
-    let ra = find_root(parent, a);
-    let rb = find_root(parent, b);
-    if ra != rb {
-        parent[ra] = rb;
-    }
-}
-
-fn find_root(parent: &mut [usize], mut i: usize) -> usize {
-    while parent[i] != i {
-        parent[i] = parent[parent[i]];
-        i = parent[i];
-    }
-    i
+    sectorforge::routes::ensure_connected_routes(
+        &state.sector.systems,
+        &state.sector.factions,
+        routes,
+        state.config.generation.routes.max_route_distance,
+    )
 }
 
 #[cfg(test)]
@@ -1441,8 +1331,12 @@ mod tests {
         BuilderState::new_blank("t", "T", "seed", 8, 8)
     }
 
+    // The union-find + MST connectivity algorithm itself now lives in the lib
+    // (`sectorforge::routes`, REVIEW P15) and is unit-tested there. This test
+    // only covers the builder-side adapter: that `&BuilderState` is unpacked
+    // into the lib call correctly (systems + factions + config distance).
     #[test]
-    fn ensure_connected_adds_bridge_between_components() {
+    fn ensure_connected_adapter_unpacks_state() {
         let mut state = blank();
         let a = state
             .sector
@@ -1462,7 +1356,10 @@ mod tests {
             .unwrap();
         let (routes, added) = ensure_connected_routes(&state, state.sector.routes.clone());
         assert_eq!(added, 1);
-        assert_eq!(route_component_count(&state.sector, &routes), 1);
+        assert_eq!(
+            sectorforge::routes::route_component_count(&state.sector.systems, &routes),
+            1
+        );
         assert!(routes
             .iter()
             .any(|r| (r.from_system_id == c || r.to_system_id == c)

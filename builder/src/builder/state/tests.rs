@@ -783,9 +783,9 @@ fn edit_world_round_trip() {
         .unwrap_err();
     assert!(matches!(
         err,
-        crate::builder::errors::BuilderError::Mutation(
-            sectorforge::sector_model::mutation::MutationError::WorldNotFound(_)
-        )
+        crate::builder::errors::BuilderError::Mutation(sectorforge::MutationError::WorldNotFound(
+            _
+        ))
     ));
 }
 
@@ -819,9 +819,9 @@ fn edit_system_round_trip() {
         .unwrap_err();
     assert!(matches!(
         err,
-        crate::builder::errors::BuilderError::Mutation(
-            sectorforge::sector_model::mutation::MutationError::SystemNotFound(_)
-        )
+        crate::builder::errors::BuilderError::Mutation(sectorforge::MutationError::SystemNotFound(
+            _
+        ))
     ));
 }
 
@@ -1058,9 +1058,9 @@ fn run_failed_apply_leaves_state_untouched() {
 
     assert!(matches!(
         err,
-        crate::builder::errors::BuilderError::Mutation(
-            sectorforge::sector_model::mutation::MutationError::SystemNotFound(_)
-        )
+        crate::builder::errors::BuilderError::Mutation(sectorforge::MutationError::SystemNotFound(
+            _
+        ))
     ));
     assert_eq!(
         s.command_log.len(),
@@ -1369,7 +1369,7 @@ fn set_conflict_and_stability_round_trip_and_not_found() {
         assert!(matches!(
             err,
             crate::builder::errors::BuilderError::Mutation(
-                sectorforge::sector_model::mutation::MutationError::WorldNotFound(_)
+                sectorforge::MutationError::WorldNotFound(_)
             )
         ));
     }

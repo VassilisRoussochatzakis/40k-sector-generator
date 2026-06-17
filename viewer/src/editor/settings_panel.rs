@@ -5,6 +5,23 @@ use egui::Ui;
 use super::state::EditorState;
 use super::ui_helpers::{dim, label, section, text_field};
 
+/// Which dimension field the user edited, for [`mirror_square`].
+#[derive(Clone, Copy)]
+enum DimEdit {
+    Width,
+    Height,
+}
+
+/// Geometry invariant (`GEN_SECTOR_NOT_SQUARE`): sectors must be square. After the
+/// user edits one dimension field, copy its value onto the other so
+/// `width == height` always holds; the edited field is authoritative.
+fn mirror_square(sector: &mut sectorforge::sector_model::GeneratedSector, edited: DimEdit) {
+    match edited {
+        DimEdit::Width => sector.height = sector.width,
+        DimEdit::Height => sector.width = sector.height,
+    }
+}
+
 pub(crate) fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     let Some(sector) = state.sector.as_mut() else {
         dim(ui, "no sector loaded");
@@ -40,27 +57,20 @@ pub(crate) fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     });
     ui.horizontal(|ui| {
         label(ui, "WIDTH");
-        if ui
-            .add(egui::DragValue::new(&mut sector.width).range(1..=64))
-            .changed()
-        {
-            dirty = true;
-        }
+        let w_res = ui.add(egui::DragValue::new(&mut sector.width).range(1..=64));
         label(ui, "HEIGHT");
-        if ui
-            .add(egui::DragValue::new(&mut sector.height).range(1..=64))
-            .changed()
-        {
+        let h_res = ui.add(egui::DragValue::new(&mut sector.height).range(1..=64));
+
+        // Geometry invariant: sectors must be square. Mirror width <-> height
+        // unconditionally so the viewer cannot construct a non-square sector.
+        if w_res.changed() {
+            mirror_square(sector, DimEdit::Width);
+            dirty = true;
+        } else if h_res.changed() {
+            mirror_square(sector, DimEdit::Height);
             dirty = true;
         }
     });
-
-    if sector.width != sector.height {
-        ui.colored_label(
-            crate::palette::warning(),
-            "⚠ IRREGULAR DIMENSIONS: Joining sectors in a Segmentum usually requires square (H=W) sectors.",
-        );
-    }
 
     ui.add_space(8.0);
     section(ui, "VIEW");
@@ -115,5 +125,32 @@ pub(crate) fn show_settings(ui: &mut Ui, state: &mut EditorState) {
 
     if dirty {
         state.mark_dirty();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{mirror_square, DimEdit};
+    use sectorforge::sector_model::empty_sector;
+
+    // Regression: the Settings panel must not be able to produce a non-square
+    // sector. Editing WIDTH mirrors onto HEIGHT (edited field authoritative).
+    #[test]
+    fn width_edit_keeps_sector_square() {
+        let mut sector = empty_sector("a", "A", "s", 8, 8);
+        sector.width = 12;
+        mirror_square(&mut sector, DimEdit::Width);
+        assert_eq!(sector.width, sector.height);
+        assert_eq!(sector.height, 12);
+    }
+
+    // Symmetric case: editing HEIGHT mirrors onto WIDTH.
+    #[test]
+    fn height_edit_keeps_sector_square() {
+        let mut sector = empty_sector("a", "A", "s", 8, 8);
+        sector.height = 5;
+        mirror_square(&mut sector, DimEdit::Height);
+        assert_eq!(sector.width, sector.height);
+        assert_eq!(sector.width, 5);
     }
 }

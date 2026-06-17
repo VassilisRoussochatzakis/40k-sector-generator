@@ -129,7 +129,7 @@ fn stable_pattern_hash(route_type: RouteType, key: &str) -> u32 {
     let mut hash = 2_166_136_261_u32;
     feed(&mut hash, b"sectorforge:route-pattern:v1");
     feed(&mut hash, &[0]);
-    feed(&mut hash, route_type.key().as_bytes());
+    feed(&mut hash, route_type.as_slug().as_bytes());
     feed(&mut hash, &[0]);
     feed(&mut hash, key.as_bytes());
     hash

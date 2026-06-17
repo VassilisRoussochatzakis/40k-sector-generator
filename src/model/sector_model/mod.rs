@@ -629,7 +629,7 @@ impl core::fmt::Display for RouteKind {
     }
 }
 
-enum_slug!(RouteType {
+enum_slug!(const RouteType {
     StableWarpLane => "stable_warp_lane",
     ChartedPassage => "charted_passage",
     SecretPassage => "secret_passage",
@@ -653,18 +653,6 @@ impl RouteType {
         match self {
             RouteType::Webway => RouteKind::Webway,
             _ => RouteKind::Warp,
-        }
-    }
-
-    #[must_use]
-    pub const fn key(self) -> &'static str {
-        match self {
-            RouteType::StableWarpLane => "stable_warp_lane",
-            RouteType::ChartedPassage => "charted_passage",
-            RouteType::SecretPassage => "secret_passage",
-            RouteType::Webway => "webway",
-            RouteType::BlackShip => "black_ship",
-            RouteType::SmugglingLane => "smuggling_lane",
         }
     }
 

@@ -517,7 +517,7 @@ fn route_type_combo(ui: &mut Ui, id: &str, value: &mut RouteType) -> bool {
     ui_kit::combo(id, value.editor_label()).show_ui(ui, |ui| {
         for option in RouteType::ALL {
             ui.selectable_value(value, option, option.editor_label())
-                .on_hover_text(format!("schema key: {}", option.key()));
+                .on_hover_text(format!("schema key: {}", option.as_slug()));
         }
     });
     *value != before
@@ -1223,7 +1223,7 @@ fn hidden_kind_combo(ui: &mut Ui, value: &mut RouteType) {
             RouteType::SmugglingLane,
         ] {
             ui.selectable_value(value, option, option.editor_label())
-                .on_hover_text(format!("schema key: {}", option.key()));
+                .on_hover_text(format!("schema key: {}", option.as_slug()));
         }
     });
 }

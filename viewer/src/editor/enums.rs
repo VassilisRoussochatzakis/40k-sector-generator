@@ -34,24 +34,24 @@ pub(crate) fn star_colour_name(code: &str) -> &'static str {
 
 pub const ROUTE_TYPES: &[(&str, &str)] = &[
     (
-        RouteType::StableWarpLane.key(),
+        RouteType::StableWarpLane.as_slug(),
         RouteType::StableWarpLane.editor_label(),
     ),
     (
-        RouteType::ChartedPassage.key(),
+        RouteType::ChartedPassage.as_slug(),
         RouteType::ChartedPassage.editor_label(),
     ),
     (
-        RouteType::SecretPassage.key(),
+        RouteType::SecretPassage.as_slug(),
         RouteType::SecretPassage.editor_label(),
     ),
-    (RouteType::Webway.key(), RouteType::Webway.editor_label()),
+    (RouteType::Webway.as_slug(), RouteType::Webway.editor_label()),
     (
-        RouteType::BlackShip.key(),
+        RouteType::BlackShip.as_slug(),
         RouteType::BlackShip.editor_label(),
     ),
     (
-        RouteType::SmugglingLane.key(),
+        RouteType::SmugglingLane.as_slug(),
         RouteType::SmugglingLane.editor_label(),
     ),
 ];

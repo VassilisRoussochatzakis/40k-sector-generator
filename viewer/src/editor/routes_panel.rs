@@ -147,7 +147,7 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
 }
 
 fn route_type_str(rt: RouteType) -> &'static str {
-    rt.key()
+    rt.as_slug()
 }
 
 fn route_type_from_str(s: &str) -> Option<RouteType> {

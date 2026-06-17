@@ -94,7 +94,7 @@ const TAB_CLUSTERS: &[(&str, &[BuilderTab])] = &[
 
 /// §COLUMNS §6.1 — slim top bar: the nav-rail toggle (`☰`), the §LINK3
 /// back/forward chevrons, and a dim `CLUSTER / Tab` breadcrumb of where you
-/// are. The cluster tab list itself moved to [`show_nav_rail`], so the 26-tab
+/// are. The cluster tab list itself moved to [`show_nav_rail`], so the 27-tab
 /// strip no longer wraps to two or three rows across the top.
 pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {

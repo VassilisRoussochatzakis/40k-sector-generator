@@ -107,10 +107,10 @@ A native desktop window with three obvious regions:
   Subsectors · Regions · Routes), **ENTITIES** (System · World · Factions ·
   Sites), **POWER** (Control · Economy · Relations), **LORE** (History ·
   Personae · Hooks · Missions · Prose · Briefing), **ANALYZE** (Analytics ·
-  Interestingness · Search · Diff), **OUTPUT** (Segmentum · Export), and
-  **CHECK** (Validation · Invariants — the diagnostics surfaces of §12). That is
-  26 tabs in all; don't be alarmed — most are derived views over the same sector
-  and you only need a handful for a basic build.
+  Interestingness · Search · Diff), **OUTPUT** (Segmentum · Iterative · Export),
+  and **CHECK** (Validation · Invariants — the diagnostics surfaces of §12). That
+  is 27 tabs in all; don't be alarmed — most are derived views over the same
+  sector and you only need a handful for a basic build.
 - A **slim top bar** above the workspace with a `☰` button that hides or shows
   the nav rail (hide it to give a tab's own roster the full width), the
   back/forward chevrons (§13.2), and a dim `CLUSTER / Tab` breadcrumb of where
@@ -260,6 +260,42 @@ From there every tab behaves exactly as in the rest of this guide.
 > one bundle that wires *and enables* every overlay (it holds the repo's only
 > `hooks.toml` / `missions.toml` / `prose.toml`), so it is the quickest way to
 > see a "kitchen-sink" sector.
+
+### 1.6 Build it step-by-step (ITERATIVE tab)
+
+§1.5 rolls a whole sector in one shot. When you want to **steer the generator
+stage by stage** — see each layer before the next is drawn, and re-roll any
+stage you don't like — use the **ITERATIVE** tab (in the **OUTPUT** cluster).
+Launch it from the PROJECT tab's **🧭 Iterative sector…** button, next to
+**Random sector…**.
+
+The tab is a 7-step rail; each step exposes the knobs for one slice of the
+pipeline plus a live preview of everything generated so far:
+
+| Step | What you set |
+|------|--------------|
+| **Size & seed** | Grid side length and the root seed (nothing is generated yet). |
+| **System placement** | System count, placement mode, cluster bias, minimum spacing. |
+| **Warp regions** | Whether regions are on, how many, mean size, whether they affect routes, and the per-condition phenomenon pool. |
+| **System contents** | Min/max worlds per system, features per world, world-selection mode and star-colour bias. |
+| **Factions** | Build the roster one faction at a time — pick from the catalogue or author custom ones, each with a spawn weight. |
+| **Routes** | Whether routes are on, density, max jump distance, and whether to force a connected graph. |
+| **Finalize & overlays** | Minimum world presence; switches on relations, economy and the chronicle. |
+
+The preview renders **off-thread** behind a progress bar, so the UI stays
+responsive while a stage recomputes. The action bar carries **🎲 New seed** (on
+the Size step) / **🎲 Re-roll this step** (elsewhere), **◀ Back**, **▶ Next**,
+**✓ Commit…**, and **✕ Cancel**. Re-rolling redraws that stage and the ones
+after it; earlier stages stay put.
+
+**✓ Commit…** asks for a destination folder, runs the full pipeline, writes the
+project there, and re-opens it — landing you on a filled-in MAP exactly as §1.5
+does. For the same size + seed + knobs the output is byte-identical to the
+one-shot path; the iterative flow just lets you watch and tune on the way.
+
+> **Heads-up.** Like **Random sector…**, committing is a **session boundary**: it
+> replaces the active project and clears the undo history (it is not an undoable
+> edit). **✕ Cancel** discards the wizard without touching your current project.
 
 ---
 
@@ -1150,7 +1186,7 @@ save point removed this way cannot be brought back with undo.
 
 ## 13. Navigating between tabs
 
-The builder is built around 26 tabs that share state. To move quickly
+The builder is built around 27 tabs that share state. To move quickly
 between them, every entity name shown anywhere in the UI is a clickable
 link that jumps you to the tab that owns that entity, with the entity
 already selected.
@@ -1260,6 +1296,8 @@ Now that you have built a small sector end-to-end:
 
 - Skip the manual build next time: **PROJECT → Random sector…** (§1.5) rolls a
   complete, fully-featured sector — every overlay enabled — from just a size.
+- Or steer the generator stage by stage with the **ITERATIVE** tab (§1.6),
+  re-rolling any layer before you commit.
 - Use the **SEARCH** tab (§11.6) to find a seed with specific properties and
   apply it straight onto the current project, then keep editing from there.
 - In **PROJECT → Generation (§6)**, click **Open preset launcher…** to
@@ -1268,8 +1306,7 @@ Now that you have built a small sector end-to-end:
   how the tonal knobs change the output without changing the catalogues.
 - Compose multiple sector projects into a super-manifest from the
   **SEGMENTUM** tab (§11.10), or with the `sectorforge compose` CLI.
-- Read [OVERVIEW.md](OVERVIEW.md) for the qualitative tour of the system, then
-  [GUIDE.md](GUIDE.md) for the engineering-level details on every module the
+- Read [GUIDE.md](GUIDE.md) for the engineering-level details on every module the
   builder calls into.
 
 If a tab in this walkthrough still shows a *placeholder* / *Phase E* banner,

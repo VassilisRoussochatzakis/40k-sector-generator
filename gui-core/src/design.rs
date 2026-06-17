@@ -26,7 +26,7 @@
 //! `Color32::lerp` in 0.29). Re-check these on any egui bump.
 
 use egui::epaint::Shadow;
-use egui::{Color32, FontFamily, Mesh, Painter, Rect, Rounding, Ui, Vec2};
+use egui::{Color32, FontFamily, Rounding, Ui, Vec2};
 
 // ── spacing scale — a strict 4px base grid ───────────────────────────────────
 //
@@ -56,20 +56,10 @@ pub const RADIUS_MD: f32 = 8.0;
 /// 12px — large elevated surfaces, modals.
 pub const RADIUS_LG: f32 = 12.0;
 
-/// [`Rounding`] at [`RADIUS_SM`].
-#[must_use]
-pub fn rounding_sm() -> Rounding {
-    Rounding::same(RADIUS_SM)
-}
 /// [`Rounding`] at [`RADIUS_MD`].
 #[must_use]
 pub fn rounding_md() -> Rounding {
     Rounding::same(RADIUS_MD)
-}
-/// [`Rounding`] at [`RADIUS_LG`].
-#[must_use]
-pub fn rounding_lg() -> Rounding {
-    Rounding::same(RADIUS_LG)
 }
 
 // ── type scale — display / title / section / body / caption ──────────────────
@@ -240,24 +230,6 @@ pub const VOID_BOTTOM: Color32 = Color32::from_rgb(7, 8, 18);
 /// Cool starlight — the nav void-plate's stars and hairline border (cold
 /// white-blue, never the warm accent).
 pub const STARLIGHT: Color32 = Color32::from_rgb(198, 214, 255);
-
-// ── gradients — egui has no gradient-fill primitive (BEAUTY.md §5.6) ──────────
-
-/// Paint `rect` with a vertical two-stop gradient (`top` → `bottom`) as a single
-/// `Mesh` quad. egui 0.29 has no gradient primitive, so a per-vertex-colored mesh
-/// is the cheap stand-in for card sheen / a painted brass button face. Corners
-/// are left square — clip or overlay a hairline-rounded border on top if needed.
-pub fn vertical_gradient(painter: &Painter, rect: Rect, top: Color32, bottom: Color32) {
-    let mut mesh = Mesh::default();
-    mesh.colored_vertex(rect.left_top(), top);
-    mesh.colored_vertex(rect.right_top(), top);
-    mesh.colored_vertex(rect.left_bottom(), bottom);
-    mesh.colored_vertex(rect.right_bottom(), bottom);
-    // Two triangles: (LT, RT, LB) and (RT, RB, LB).
-    mesh.add_triangle(0, 1, 2);
-    mesh.add_triangle(1, 3, 2);
-    painter.add(mesh);
-}
 
 #[cfg(test)]
 mod tests {

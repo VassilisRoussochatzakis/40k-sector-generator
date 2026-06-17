@@ -21,7 +21,7 @@ use crate::design;
 use crate::heatmap::HeatCell;
 use crate::map_theme::RenderMapTheme;
 use crate::palette::{darken, draw_route_control_glyph, draw_route_line, star_color};
-use crate::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
+use crate::visual_tokens::{MapRegionOverlay, MapSystemGlyph};
 
 use super::cache::SectorMapCache;
 use super::render::{
@@ -512,7 +512,7 @@ impl<'a> SectorView<'a> {
                 b2,
                 route_thickness,
                 theme.route_color(route.stability),
-                MapRouteVisual::from_route_type(route.route_type, self.route_view_mode).pattern(),
+                route.route_type.pattern(self.route_view_mode),
             );
             draw_route_control_glyph(
                 painter,
@@ -638,8 +638,7 @@ impl<'a> SectorView<'a> {
                     b2,
                     route_thickness * theme.selection_core_mul,
                     theme.selection,
-                    MapRouteVisual::from_route_type(route.route_type, self.route_view_mode)
-                        .pattern(),
+                    route.route_type.pattern(self.route_view_mode),
                 );
             }
         }

@@ -232,9 +232,6 @@ mod slug_parity_tests {
                 Active, Restricted, Abandoned, Quarantined, Sealed, Contested, UnderConstruction,
             ],
 
-            // ── gen::world_ecs ──────────────────────────────────────────
-            crate::world_ecs::EntityKind => [System, World, Faction, Route],
-
             // ── model::sector_model ─────────────────────────────────────
             RouteViewMode => [Detailed, TopLevel],
             SystemKind => [Star, SpecialLocation, BlackHole, WarpAnomaly, SpaceStation],

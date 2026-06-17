@@ -17,7 +17,7 @@ faster.
 The library crate splits into six parent modules:
 
 - [src/model/](../src/model/) — data DTOs + IDs + RNG + taxonomy + errors
-- [src/loading/](../src/loading/) — project / config / presets / sector_save
+- [src/loading/](../src/loading/) — project / config / presets
 - [src/gen/](../src/gen/) — generation pipeline + supporting tables
 - [src/analysis/](../src/analysis/) — pure derivations over a built sector
 - [src/export/](../src/export/) — output writers + render backends
@@ -65,7 +65,6 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/loading/input.rs](../src/loading/input.rs) | `ProjectInput`, `load_project` |
 | [src/loading/config.rs](../src/loading/config.rs) | `sectorforge.toml` schema |
 | [src/loading/presets.rs](../src/loading/presets.rs) | Preset library resolution |
-| [src/loading/sector_save.rs](../src/loading/sector_save.rs) | §13 IDs-only runtime save format |
 
 ### gen/
 
@@ -79,7 +78,6 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/gen/generation/factions.rs](../src/gen/generation/factions.rs) | Faction assignment + `aggregate_factions` + `assign_factions_for_systems` |
 | [src/gen/generation/routes.rs](../src/gen/generation/routes.rs) | Public route graph + `classify_route` + union-find connector |
 | [src/gen/world_pool.rs](../src/gen/world_pool.rs) | GenerationRow → weighted candidate pool (+ authored-feature overlay) |
-| [src/gen/world_ecs.rs](../src/gen/world_ecs.rs) | Lazy ECS projection of a built sector |
 | [src/gen/archetypes.rs](../src/gen/archetypes.rs) | Archetype activations (necron/tyranid/ork/GSC/tau/aeldari/chaos) |
 | [src/gen/faction_style.rs](../src/gen/faction_style.rs) | Per-faction glyph + colour palette |
 | [src/gen/factions.rs](../src/gen/factions.rs) | Faction config + presence math |

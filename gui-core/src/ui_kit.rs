@@ -6,7 +6,7 @@
 //!   framed, bordered box that groups related controls. Replaces the bare
 //!   `CollapsingHeader` + `ui.separator()` pattern that left panels reading as
 //!   one flat wall of widgets.
-//! - **Field rows** — [`field`]: an aligned label-left / control-right row.
+//! - **Field rows** — [`labeled`]: an aligned label-left / control-right row.
 //!
 //! Plus [`combo`] (a pre-sized dropdown) and a set of text helpers
 //! ([`mono_title`], …) for tabular panels like
@@ -94,24 +94,11 @@ pub fn collapsing_section<R>(
 
 // ── tier-3: field row ───────────────────────────────────────────────────────
 
-/// An aligned label-left / control-right row. The label occupies a fixed
-/// column so stacked fields line up; `add` paints the control(s).
-pub fn field(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [150.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        );
-        add(ui);
-    });
-}
-
-/// Like [`field`], but the fixed label column carries a hover tooltip (`help`)
-/// and sits at a slightly tighter 140px width. This is the standard
-/// builder/viewer panel field row (IMPROVEMENT_REVIEW E3 / E-S1): it was
-/// copy-pasted as a private `fn labeled` in 33 panel files before being hoisted
-/// here.
+/// An aligned label-left / control-right row: the fixed label column carries a
+/// hover tooltip (`help`) and sits at a 140px width, so stacked rows line up.
+/// This is the standard builder/viewer panel field row (IMPROVEMENT_REVIEW E3 /
+/// E-S1): it was copy-pasted as a private `fn labeled` in 33 panel files before
+/// being hoisted here.
 pub fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
     ui.horizontal(|ui| {
         let h = ui.spacing().interact_size.y;
@@ -257,9 +244,6 @@ mod tests {
     fn widgets_paint_headless() {
         egui::__run_test_ui(|ui| {
             section(ui, "Identity", |ui| {
-                field(ui, "Name", |ui| {
-                    ui.label("Cadia");
-                });
                 labeled(ui, "Sector", "the sector this world belongs to", |ui| {
                     ui.label("Segmentum Obscurus");
                 });

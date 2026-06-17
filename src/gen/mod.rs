@@ -5,8 +5,7 @@
 //! (`factions` / `faction_style`), route graph + concealed routes (`routes` /
 //! `hidden_routes`), warp regions (`regions`), planetary surface regions
 //! (`surface_region`), orbital assets (`orbital_assets`), authored sites
-//! (`sites`), archetype activations (`archetypes`), and the lazy ECS
-//! projection (`world_ecs`).
+//! (`sites`), and archetype activations (`archetypes`).
 
 pub mod archetypes;
 pub mod faction_style;
@@ -20,5 +19,4 @@ pub mod regions;
 pub mod routes;
 pub mod sites;
 pub mod surface_region;
-pub mod world_ecs;
 pub mod world_pool;

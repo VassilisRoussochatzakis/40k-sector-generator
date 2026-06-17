@@ -2529,11 +2529,11 @@ opt in; the headless snapshot test in
 goldens stay deterministic.
 
 Semantic map tokens live in
-[`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph`,
-`MapRouteVisual`, and `MapRegionOverlay`. `SectorView` converts
-`SystemKind`, `RouteType`, and `RegionConditionKind` into those tokens before
+[`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph` and
+`MapRegionOverlay`. `SectorView` converts
+`SystemKind` and `RegionConditionKind` into those tokens before
 painting, then the renderer and `RenderMapTheme` match on tokens only. When a new
-system kind, route type, or region condition is added, the compiler points at
+system kind or region condition is added, the compiler points at
 the one token conversion / paint match that must be updated, keeping the
 viewer, editor MAP panel, and builder MAP tab from drifting.
 
@@ -3746,15 +3746,11 @@ Public surface:
 | `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / manifest + bitmaps |
 | `inspect_world_workbook(path)` | World-data diagnostics (used by `inspect-worlds`) |
 | `advance_sector(&mut sector)` | §5 NEXT — advance one conflict-simulation tick |
-| `split_sector_save(&sector)` | §13 NEXT — extract IDs-only `SectorSave` from a sector |
-| `merge_sector_save(&mut sector, save)` | §13 NEXT — re-apply runtime state to a fresh-from-catalog sector |
-| `write_sector_save(path, &save)` / `load_sector_save(path)` | §13 NEXT — pretty-JSON save/load |
-| `build_entity_world(&sector)` | §12 NEXT — flat ECS-style entity view (`EntityWorld`) |
 
 Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `ProjectCatalogs`, `InvariantReport`,
 `InvariantViolation`, `GeneratedSector`, `GeneratedSystem`, `HexCoord`,
 `Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
-`ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
+`ConflictState`, `HYSTERESIS_TICKS`,
 `MapTheme`, `MapThemeConfig`, `LabelDensity`, `LegendStyle`,
 `RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`,
 `HistoryConfig`, `SectorChronicle`, `HistoryEvent`, `SectorProgress`,
@@ -4062,8 +4058,6 @@ across runs, so a regression check is a diff away.
 | [src/gen/archetypes.rs](src/gen/archetypes.rs) | §11 NEXT: eight faction archetype rules (Imperial governance stack / Necron phase / Tyranid front / Ork Waaagh! / Genestealer staged uprising / Tau sphere / Aeldari intermittent / Chaos corruption) populated into `GeneratedSystem.archetype` |
 | [src/analysis/power_projection.rs](src/analysis/power_projection.rs) | §4 NEXT: per-faction route-graph BFS projection (`source_power × doctrine ÷ (1+hops²)`). Hidden routes are kind-gated. Exposed as `sector.power_projection` |
 | [src/analysis/influence_field.rs](src/analysis/influence_field.rs) | §9 NEXT: continuous radius-limited influence projection from system anchors with `1/(1+d²)` falloff. Stored on `sector.influence_field` |
-| [src/loading/sector_save.rs](src/loading/sector_save.rs) | §13 NEXT: `SectorSave` — IDs-only runtime state split from the static catalog half; `split` and `merge` for round-tripping |
-| [src/gen/world_ecs.rs](src/gen/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
 | [gui-core/src/lib.rs](gui-core/src/lib.rs) | Shared GUI widget/util crate re-exporting palette, jobs, map/detail widgets, info panel, heatmap |
 | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) | Background job helper shared by viewer/editor and builder |
 | [viewer/src/app/mod.rs](viewer/src/app/mod.rs) | Top-level eframe app + navigation |

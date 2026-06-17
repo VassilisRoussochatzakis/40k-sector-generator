@@ -184,22 +184,6 @@ pub fn toggle(ui: &mut Ui, on: &mut bool) -> Response {
     response
 }
 
-/// [`toggle`] followed by a clickable label, as one row (the label also flips the
-/// value). Returns the toggle's [`Response`]; check `.changed()`.
-pub fn toggle_with_label(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
-    ui.horizontal(|ui| {
-        let mut resp = toggle(ui, on);
-        if ui
-            .add(egui::Label::new(label).sense(Sense::click()))
-            .clicked()
-        {
-            *on = !*on;
-            resp.mark_changed();
-        }
-        resp
-    })
-    .inner
-}
 
 /// A **destructive-action** button (§SPRUCE D3 / §5.2): the danger color as a
 /// label + hairline border over a transparent rest fill, filling with danger on
@@ -341,7 +325,6 @@ mod tests {
             let _ = ghost_button(ui, "+");
             let mut on = false;
             let _ = toggle(ui, &mut on);
-            let _ = toggle_with_label(ui, &mut on, "Faction fill");
         });
     }
 

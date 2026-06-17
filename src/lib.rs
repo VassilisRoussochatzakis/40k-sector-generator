@@ -13,7 +13,7 @@
 //!
 //! - [`model`] — sector output DTOs, IDs, top-level error type, RNG, taxonomy.
 //! - [`loading`] — project loading + serialisation (`input`, `config`,
-//!   `presets`, `sector_save`).
+//!   `presets`).
 //! - [`gen`] — deterministic sector generation pipeline.
 //! - [`analysis`] — pure read-only derivations over a built sector.
 //! - [`export`] — output writers + render backends.
@@ -90,7 +90,6 @@ pub use model::taxonomy;
 pub use loading::config;
 pub use loading::input;
 pub use loading::presets;
-pub use loading::sector_save;
 
 pub use gen::archetypes;
 pub use gen::faction_style;
@@ -104,7 +103,6 @@ pub use gen::regions;
 pub use gen::routes;
 pub use gen::sites;
 pub use gen::surface_region;
-pub use gen::world_ecs;
 pub use gen::world_pool;
 
 pub use analysis::analytics;
@@ -174,7 +172,6 @@ pub use relations::{
 };
 pub use sector_model::mutation::MutationError;
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord, SystemGlyph};
-pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
 pub use segmentum::{
     compose as compose_segmentum, compose_with_progress as compose_segmentum_with_progress,
     load_segmentum_file, BorderOrientation, ChildEntry, FactionMode, InterSectorLink, Segmentum,
@@ -185,7 +182,6 @@ pub use subsectors::{
     build_subsectors, ControlDenominator, Subsector, SubsectorBuildError, SubsectorConfig,
 };
 pub use validation::{ValidationIssue, ValidationReport};
-pub use world_ecs::{build as build_entity_world, EntityWorld};
 
 pub const GENERATOR_NAME: &str = "sectorforge";
 pub const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -493,30 +489,6 @@ pub fn write_system_json(
     system: &GeneratedSystem,
 ) -> Result<(), SectorError> {
     write_json_pretty(path.as_ref(), system)
-}
-
-/// Spec §13 NEXT: write a [`SectorSave`] (IDs-only runtime state) to JSON.
-///
-/// # Errors
-///
-/// Returns [`SectorError::ExportFailed`] when serialisation fails and
-/// [`SectorError::Io`] when the file cannot be written.
-pub fn write_sector_save(path: impl AsRef<Utf8Path>, save: &SectorSave) -> Result<(), SectorError> {
-    write_json_pretty(path.as_ref(), save)
-}
-
-/// Spec §13 NEXT: load a [`SectorSave`] from disk.
-///
-/// # Errors
-///
-/// Returns [`SectorError::Io`] when the file cannot be read and
-/// [`SectorError::ConfigParse`] when the JSON does not match the
-/// [`SectorSave`] schema.
-pub fn load_sector_save(path: impl AsRef<Utf8Path>) -> Result<SectorSave, SectorError> {
-    let p = path.as_ref();
-    let text = fs::read_to_string(p).map_err(|e| SectorError::io(p.as_str(), e))?;
-    serde_json::from_str(&text)
-        .map_err(|e| SectorError::config_parse(p.as_str(), format!("invalid sector save: {e}")))
 }
 
 /// Render and write the Markdown overview for a sector.

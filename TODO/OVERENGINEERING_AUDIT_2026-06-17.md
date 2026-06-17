@@ -35,11 +35,11 @@ scanner as "do not flag" — nothing below touches them (re-confirmed for each `
 
 ## Structural cuts (dead code / single-use abstractions)
 
-- [ ] `yagni` ✓ **−290** `src/gen/world_ecs.rs` — speculative bevy_ecs adapter, zero consumers. Delete file + `pub mod` (gen/mod.rs:23) + lib.rs:107,188 re-exports + slug-parity reg (macros.rs:235-236) + MAP.md:82.
-- [ ] `yagni` ✓ **−175** `src/loading/sector_save.rs` — §13-planned, never built against. Delete module + mod.rs:11 + lib.rs:93,177,504,515 + doc refs (GUIDE.md, MAP.md, TEST_GAPS.md).
+- [x] `yagni` ✓ **−290** `src/gen/world_ecs.rs` — speculative bevy_ecs adapter, zero consumers. Delete file + `pub mod` (gen/mod.rs:23) + lib.rs:107,188 re-exports + slug-parity reg (macros.rs:235-236) + MAP.md:82.
+- [x] `yagni` ✓ **−175** `src/loading/sector_save.rs` — §13-planned, never built against. Delete module + mod.rs:11 + lib.rs:93,177,504,515 + doc refs (GUIDE.md, MAP.md, TEST_GAPS.md).
 - [ ] `delete` ⚠ **−90** `builder/src/builder/session.rs` — hand-rolled base64 + EmbeddedFile + `files` field, all dead. **See ⚠ note above.**
 - [ ] `delete` ✓ **−60** `src/analysis/scores.rs` — `score_newtype!` types never adopted. Delete file + mod.rs:38.
-- [ ] `yagni` ✓ **−55** `gui-core/src/visual_tokens.rs` — `MapRouteVisual` vestigial; `.pattern()` == `route_type.pattern(mode)` (own test proves it). Inline at view.rs:515,641; drop enum+test; edit GUIDE.md:2533. Keep `MapRegionOverlay`.
+- [x] `yagni` ✓ **−55** `gui-core/src/visual_tokens.rs` — `MapRouteVisual` vestigial; `.pattern()` == `route_type.pattern(mode)` (own test proves it). Inline at view.rs:515,641; drop enum+test; edit GUIDE.md:2533. Keep `MapRegionOverlay`.
 - [ ] `native` · **−50** `viewer/src/data_editor.rs` + `editor/file_ops.rs` — `ScratchDir` hand-rolls temp-dir-on-drop, duplicated; comment "no tempfile dep" is false (`tempfile.workspace=true`). Use `tempfile::TempDir`. (Keep `CwdGuard`.)
 - [ ] `delete` ✓ **−35** `src/export/map_theme.rs:161` (+heatmap.rs, segmentum.rs) — 7 dead `Display` impls (RouteLineMode/LabelDensity/LegendStyle/SymbolSet/HeatmapMode/StabilityDimension/BorderOrientation). `as_slug()` already serves output. Keep FactionMode's.
 - [ ] `yagni` ⚠ **−24** `src/lib.rs:694…` — 8 of 9 `derive_*` no-config facades are dead. **See ⚠ note above** (keep `derive_interestingness`).
@@ -47,10 +47,10 @@ scanner as "do not flag" — nothing below touches them (re-confirmed for each `
 - [ ] `yagni` ✓ **−25** `builder/src/builder/panels/factions.rs:660` — `preferred_picker_*` 3 single-caller `pick_multi` shims, called back-to-back at :449-451. Inline (preserve salt literals).
 - [ ] `delete` ✓ **−20** `builder/src/builder/derivation_cache.rs:43` — `DerivationCache get/put/invalidate` always-empty husk superseded by §39 ledger (status-bar "cache: N" always 0). Full removal touches state/mod.rs:180, 7 no-op `.clear()`, status.rs:52. Keep `digest_input` + the ledger.
 - [ ] `delete` ✓ **−15** `src/loading/config.rs:175` — 3 dead `Display` impls (PlacementMode/WorldSelectionMode/HtmlTheme). Keep OutputFormat's.
-- [ ] `delete` ✓ **−14** `gui-core/src/widgets.rs:189` — `toggle_with_label`, zero callers (only bare `toggle` used).
-- [ ] `delete` ✓ **−11** `gui-core/src/ui_kit.rs:99` — `field`, superseded by `labeled`; test-only ref.
-- [ ] `delete` ✓ **−11** `gui-core/src/design.rs:250` — `vertical_gradient` Mesh helper nothing uses (the 2 gradient surfaces deliberately avoid it).
-- [ ] `delete` ✓ **−8** `gui-core/src/design.rs:60` — `rounding_sm` / `rounding_lg` (only `rounding_md` used). Keep the consts.
+- [x] `delete` ✓ **−14** `gui-core/src/widgets.rs:189` — `toggle_with_label`, zero callers (only bare `toggle` used).
+- [x] `delete` ✓ **−11** `gui-core/src/ui_kit.rs:99` — `field`, superseded by `labeled`; test-only ref.
+- [x] `delete` ✓ **−11** `gui-core/src/design.rs:250` — `vertical_gradient` Mesh helper nothing uses (the 2 gradient surfaces deliberately avoid it).
+- [x] `delete` ✓ **−8** `gui-core/src/design.rs:60` — `rounding_sm` / `rounding_lg` (only `rounding_md` used). Keep the consts.
 - [ ] `yagni` ✓ **−7** `src/analysis/history/mod.rs:58` — `derive_with_progress` 1 internal caller; inline into `derive_with`, relink 2 doc-links.
 - [ ] `yagni` ✓ **−6** `src/loading/presets.rs:33` — `PresetMeta.tags` + `default_seed` deserialized, never read.
 - [ ] `delete` ✓ **−6** `builder/src/builder/file_watcher.rs:72` — `root()` + backing field (poll_loop uses its own clone). Also drop unused `Utf8Path` import.

@@ -6,65 +6,12 @@
 //! here instead of app-local paint branches.
 
 use sectorforge::regions::RegionConditionKind;
-use sectorforge::sector_model::{RoutePattern, RouteType, RouteViewMode};
 
 /// System map glyph. Re-exported from the core lib so the live egui renderer
 /// and the PNG/SVG exporters classify systems through one shared
 /// [`sectorforge::sector_model::SystemGlyph`]. The `MapSystemGlyph` alias keeps
 /// the historical gui-core name at existing call sites.
 pub use sectorforge::sector_model::SystemGlyph as MapSystemGlyph;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum MapRouteVisual {
-    StableWarpLane,
-    ChartedPassage,
-    SecretPassage,
-    Webway,
-    BlackShip,
-    SmugglingLane,
-    WarpRoute,
-    WebwayThread,
-}
-
-impl MapRouteVisual {
-    #[must_use]
-    pub fn from_route_type(route_type: RouteType, mode: RouteViewMode) -> Self {
-        match mode {
-            RouteViewMode::Detailed => match route_type {
-                RouteType::StableWarpLane => Self::StableWarpLane,
-                RouteType::ChartedPassage => Self::ChartedPassage,
-                RouteType::SecretPassage => Self::SecretPassage,
-                RouteType::Webway => Self::Webway,
-                RouteType::BlackShip => Self::BlackShip,
-                RouteType::SmugglingLane => Self::SmugglingLane,
-                _ => Self::ChartedPassage,
-            },
-            RouteViewMode::TopLevel => match route_type {
-                RouteType::Webway => Self::WebwayThread,
-                RouteType::StableWarpLane
-                | RouteType::ChartedPassage
-                | RouteType::SecretPassage
-                | RouteType::BlackShip
-                | RouteType::SmugglingLane => Self::WarpRoute,
-                _ => Self::WarpRoute,
-            },
-            _ => Self::WarpRoute,
-        }
-    }
-
-    #[must_use]
-    pub const fn pattern(self) -> RoutePattern {
-        match self {
-            Self::StableWarpLane | Self::WarpRoute => RoutePattern::Solid,
-            Self::ChartedPassage => RoutePattern::Dashed,
-            Self::SecretPassage => RoutePattern::Dotted,
-            Self::Webway | Self::WebwayThread => RoutePattern::Burst,
-            Self::BlackShip => RoutePattern::Quartet,
-            Self::SmugglingLane => RoutePattern::Gravel,
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -99,16 +46,6 @@ impl MapRegionOverlay {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn route_visual_tokens_match_model_defaults() {
-        for route_type in RouteType::ALL {
-            for mode in [RouteViewMode::Detailed, RouteViewMode::TopLevel] {
-                let token = MapRouteVisual::from_route_type(route_type, mode);
-                assert_eq!(token.pattern(), route_type.pattern(mode));
-            }
-        }
-    }
 
     #[test]
     fn region_overlay_tokens_cover_all_conditions() {

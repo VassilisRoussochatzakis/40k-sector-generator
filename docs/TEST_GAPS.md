@@ -23,7 +23,7 @@ Two real **bugs** surfaced as a side effect (not just missing coverage): markdow
 | `src/export` render/svg/html/bitmap | 11 (4/4/3) | Markdown pipe-injection (real bug), SVG escaping, heatmap determinism, empty-sector. |
 | `src/cli` | 8 (4/4/0) | Exit-code table, `resolve_formats`/`parse_heatmap`/`resolve_size`, new `generate-all`. |
 | `src/gen/generation` placement/systems/world_placement | 8 (3/5/0) | No inline tests in `placement.rs`/`systems.rs`; relaxation cascade, sort determinism, name dedup. |
-| `src/loading` + serde round-trips | 9 (2/6/1) | Path-escape guard (security), `SectorSave`/`SectorMeta`/`FactionDef`-alias round-trips. |
+| `src/loading` + serde round-trips | 8 (2/5/1) | Path-escape guard (security), `SectorMeta`/`FactionDef`-alias round-trips. |
 | `builder/.../state` + `command.rs` | 17 (8/7/2) | Apply/revert (`RemoveWorld` position, `AdvanceConflictTicks` dominant-restore), derivation freshness, §R4 carve-out. |
 | `viewer/...` | 14 (5/7/2) | Referential-integrity cascades on delete, save-as guard, `DataEditor` round-trip. |
 | `gui-core/...` | 11 (3/8/0) | `top_route_control` tie-break, history predicates, truncation off-by-ones, `..base` preservation. |
@@ -173,12 +173,11 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | `tags_for_world` sort + namespaces | unit | minimal World → one tag per 8 prefixes; Vec sorted; feature tags `feature:<snake>` | L |
 | `place_systems` i32-overflow guard | unit | `46341*46341` computes without overflow (arithmetic only — extract or assert on math, avoid `Vec::with_capacity`) | L |
 
-### 2h. `src/loading` + serde round-trips (9 gaps)
+### 2h. `src/loading` + serde round-trips (8 gaps)
 | Target | type | What to assert | Pri |
 |---|---|---|---|
 | `read_relative` path-escape guard | unit | `[inputs]` `../escape.toml` & `/abs` → Err "escapes project root"; nested relative loads OK (drive via `load_project`) | **H** |
 | GeneratedSector serde idempotence | rt | `to_string(from_str(to_string(s)))==to_string(s)`; deep-check economy.enabled, chronicle.events.len | **H** |
-| `SectorSave` JSON round-trip | rt | `split` → to_string → from_str → re-serialize equal; `SystemId` map-key serde; `merge` restores | M |
 | `EconomyFile::into_config` no-clobber | unit | nested-only resources survive (false branch); both present → top-level wins (precedence) | M |
 | `FactionDef` serde aliases | unit | `sub_faction`/`subfaction_id` → `.subfaction`; `sub_faction_name` → `.subfaction_name` | M |
 | `examples/big_test`+`big_sparse_test` parse | int | `load_project` Ok; `width==height`; `system_count>0`; `subsector_width.is_some()`; catalogs non-empty | M |
@@ -253,7 +252,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 ### Property-based invariants (highest cross-cutting value)
 - **Monotonicity** — *the* signature property here. (a) `distance_base_level` over `(d1<=d2, max)`; (b) end-to-end route stability post-composition (§2c row 1) — the single most valuable test in the audit; (c) `degrade`/`stability_level` ladders are non-decreasing.
 - **Determinism / idempotence** — (a) `stage_rng` same-key→identical stream, distinct-key→decorrelated; (b) `validate_sector` run twice → byte-identical report (low-value, transitively safe); (c) all command apply→revert→re-apply byte-stability; (d) heatmap-on render ×2 byte-identical (HashMap-iteration trap).
-- **Round-trip** — (a) GeneratedSector serde idempotence (top-10); (b) `SectorSave`, `PresetMeta`, `SegmentumFile`, `FactionDef`-with-aliases; (c) `stability_from_level`↔`stability_level`; (d) `parse_variant`/`route_*_from_str` Display round-trips against `T::VARIANTS`.
+- **Round-trip** — (a) GeneratedSector serde idempotence (top-10); (b) `PresetMeta`, `SegmentumFile`, `FactionDef`-with-aliases; (c) `stability_from_level`↔`stability_level`; (d) `parse_variant`/`route_*_from_str` Display round-trips against `T::VARIANTS`.
 - **Total-function panic-freedom** — `parse_hex_rgb` over arbitrary unicode `\PC*` (the actual invariant commit ab6d2dc established; the `&t[0..2]` mid-char slice was a panic=abort crash). Existing test only has 2 fixed multibyte literals.
 
 ### Regression tests for recent fixes (commit-anchored)

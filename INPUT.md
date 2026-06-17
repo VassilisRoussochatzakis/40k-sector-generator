@@ -12,7 +12,7 @@ High token usage = slow inference. Follow these rules.
 
 ## EXECUTION PHASE
 - **No Refactor:** Fix ONLY requested bug/feat. No "cleanup" or "styling" of unrelated code.
-- **Terse Mode:** Use `caveman` skill if available. 
+- **Concise Output:** Keep responses short and technical.
 - **Direct Output:** No preambles ("I will now...", "Based on my analysis...").
 - **Batch Edits:** Use `replace` once per file. Plan all changes first.
 

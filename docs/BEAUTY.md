@@ -238,14 +238,14 @@ at screenshots and judge beauty**.
 
 | Job | Agent | Mode |
 |---|---|---|
-| Map a surface ("where is the faction card painted? what calls `draw_faction_swatch`?") | `rust-explorer` (Haiku, path:line) or `Explore`, or `cavecrew-investigator` for compressed output | **parallel**, read-only |
+| Map a surface ("where is the faction card painted? what calls `draw_faction_swatch`?") | `rust-explorer` (Haiku, path:line) or `Explore` | **parallel**, read-only |
 | Summarize `docs/UI_OVERHAUL.md` / verify egui-0.29 API via the `egui`/`eframe` skills | `Explore` / `general-purpose` | **parallel**, read-only |
 | Sequence the overall plan | `Plan` | one-shot, read-only |
 | Apply an approved recipe to a **builder panel** | `panel-implementer` (knows `BuilderState`/command pattern) | **parallel**, one panel per agent |
-| Small bounded 1–2 file tweak | `cavecrew-builder` | single |
+| Small bounded 1–2 file tweak | main thread | single |
 | Run golden + unit tests, report failures | `test-runner` | **background** |
 | Work down clippy warnings | `clippy-fixer` | **background** |
-| Review the resulting diff | `cavecrew-reviewer` | single |
+| Review the resulting diff | reviewer | single |
 
 > The hero **custom-paint widget and the token module live in `gui-core`
 > (shared)** — that is **main-thread** work (single-writer, screenshot-iterated),
@@ -273,7 +273,7 @@ at screenshots and judge beauty**.
   invent visuals.
 - **Phase E · Verify (background).** `test-runner` (incl. `cargo test --test it
   -- golden` if any shared/export code was touched — §8) and `clippy-fixer` run
-  in the background; `cavecrew-reviewer` reviews the diff. Fix in the main
+  in the background; reviewer checks the diff. Fix in the main
   thread.
 
 ### Two concrete dispatches

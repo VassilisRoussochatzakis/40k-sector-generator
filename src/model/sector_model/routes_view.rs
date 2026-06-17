@@ -26,11 +26,6 @@ impl GeneratedRoute {
         );
         self.route_type.pattern_for_key(&key, mode)
     }
-
-    #[must_use]
-    pub fn pattern(&self, mode: RouteViewMode) -> RoutePattern {
-        self.pattern_with_salt("", mode)
-    }
 }
 
 impl RouteKind {
@@ -134,16 +129,10 @@ fn stable_pattern_hash(route_type: RouteType, key: &str) -> u32 {
     let mut hash = 2_166_136_261_u32;
     feed(&mut hash, b"sectorforge:route-pattern:v1");
     feed(&mut hash, &[0]);
-    feed(&mut hash, route_type.pattern_key().as_bytes());
+    feed(&mut hash, route_type.key().as_bytes());
     feed(&mut hash, &[0]);
     feed(&mut hash, key.as_bytes());
     hash
-}
-
-impl RouteType {
-    fn pattern_key(self) -> &'static str {
-        self.key()
-    }
 }
 
 /// Visual line pattern used to encode route type plus per-route variety.

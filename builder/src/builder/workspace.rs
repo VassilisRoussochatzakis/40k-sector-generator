@@ -57,7 +57,7 @@ impl BuilderWorkspace {
     }
 
     /// Read-only handle to the focused state. Panics when the workspace is
-    /// empty — callers must `push` first or use [`Self::try_active`].
+    /// empty — callers must `push` first.
     #[must_use]
     pub fn active(&self) -> &BuilderState {
         &self.states[self.active]
@@ -66,12 +66,6 @@ impl BuilderWorkspace {
     /// Mutable handle to the focused state.
     pub fn active_mut(&mut self) -> &mut BuilderState {
         &mut self.states[self.active]
-    }
-
-    /// Read-only handle to a specific slot.
-    #[must_use]
-    pub fn get(&self, idx: usize) -> Option<&BuilderState> {
-        self.states.get(idx)
     }
 
     /// Iterator over `(index, &BuilderState)` so the host tab strip can render

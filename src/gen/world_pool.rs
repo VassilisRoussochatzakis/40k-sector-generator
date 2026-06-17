@@ -373,7 +373,7 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
 
 fn top_by_weight(map: BTreeMap<String, f64>, n: usize) -> Vec<(String, f64)> {
     let mut v: Vec<(String, f64)> = map.into_iter().collect();
-    v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    v.sort_by(|a, b| b.1.total_cmp(&a.1));
     v.truncate(n);
     v
 }

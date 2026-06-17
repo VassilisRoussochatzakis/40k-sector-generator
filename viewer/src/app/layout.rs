@@ -3,35 +3,7 @@ use crate::app::{App, View};
 use egui::{RichText, TopBottomPanel};
 use sectorforge::sector_model::RouteViewMode;
 
-pub struct TopBar<'a> {
-    app: &'a mut App,
-}
-
-impl<'a> TopBar<'a> {
-    pub fn new(app: &'a mut App) -> Self {
-        Self { app }
-    }
-
-    pub fn show(self, ctx: &egui::Context) {
-        draw_top_bar(self.app, ctx);
-    }
-}
-
-pub struct MainView<'a> {
-    app: &'a mut App,
-}
-
-impl<'a> MainView<'a> {
-    pub fn new(app: &'a mut App) -> Self {
-        Self { app }
-    }
-
-    pub fn show(self, ctx: &egui::Context) {
-        draw_main_view(self.app, ctx);
-    }
-}
-
-fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
+pub(crate) fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
     TopBottomPanel::top("top_bar")
         .frame(
             egui::Frame::none()
@@ -214,7 +186,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
         });
 }
 
-fn draw_main_view(app: &mut App, ctx: &egui::Context) {
+pub(crate) fn draw_main_view(app: &mut App, ctx: &egui::Context) {
     match app.view.clone() {
         View::Sector => app.draw_sector_layout(ctx),
         View::System {

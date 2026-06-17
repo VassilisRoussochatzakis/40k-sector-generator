@@ -379,8 +379,8 @@ fn system_slot_factions(sys: &GeneratedSystem) -> Vec<(SystemSlot, crate::ids::F
 
 /// Presence count used to gate org-leadership personae: the broader of the
 /// node's system and world footprints.
-fn node_presence<S, W>(systems: &[S], worlds: &[W]) -> usize {
-    systems.len().max(worlds.len())
+fn node_presence(system_count: usize, world_count: usize) -> usize {
+    system_count.max(world_count)
 }
 
 /// Derive one leader per qualifying org node: overall faction, then each
@@ -401,7 +401,7 @@ fn derive_faction_leaders(
         let kind = f.kind.as_slug();
         let fac_id = f.id.as_str();
 
-        if node_presence(&f.system_presence, &f.world_presence) >= min {
+        if node_presence(f.system_presence.len(), f.world_presence.len()) >= min {
             out.push(build_faction_leader(
                 FactionLeaderParams {
                     sector,
@@ -425,7 +425,7 @@ fn derive_faction_leaders(
         let mut subs: Vec<&GeneratedSubfaction> = f.subfactions.iter().collect();
         subs.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
         for sf in subs {
-            if node_presence(&sf.system_presence, &sf.world_presence) >= min {
+            if node_presence(sf.system_presence.len(), sf.world_presence.len()) >= min {
                 out.push(build_faction_leader(
                     FactionLeaderParams {
                         sector,
@@ -449,7 +449,7 @@ fn derive_faction_leaders(
             let mut forces: Vec<&GeneratedForce> = sf.forces.iter().collect();
             forces.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
             for force in forces {
-                if node_presence(&force.system_presence, &force.world_presence) >= min {
+                if node_presence(force.system_presence.len(), force.world_presence.len()) >= min {
                     out.push(build_faction_leader(
                         FactionLeaderParams {
                             sector,

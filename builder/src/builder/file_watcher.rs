@@ -39,7 +39,6 @@ pub struct FileChange {
 /// Polling watcher rooted at a project directory. Drops cancel the background
 /// thread.
 pub struct FileWatcher {
-    root: Utf8PathBuf,
     rx: Receiver<FileChange>,
     cancel: Arc<AtomicBool>,
     join: Option<JoinHandle<()>>,
@@ -53,10 +52,8 @@ impl FileWatcher {
         let (tx, rx) = channel();
         let cancel = Arc::new(AtomicBool::new(false));
         let cancel_clone = Arc::clone(&cancel);
-        let root_clone = root.clone();
-        let join = thread::spawn(move || poll_loop(root_clone, baseline, tx, cancel_clone));
+        let join = thread::spawn(move || poll_loop(root, baseline, tx, cancel_clone));
         Self {
-            root,
             rx,
             cancel,
             join: Some(join),
@@ -67,10 +64,6 @@ impl FileWatcher {
     /// every frame from the UI loop.
     pub fn try_recv(&self) -> Option<FileChange> {
         self.rx.try_recv().ok()
-    }
-
-    pub fn root(&self) -> &Utf8Path {
-        &self.root
     }
 }
 

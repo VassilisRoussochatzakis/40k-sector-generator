@@ -709,12 +709,6 @@ enum_slug!(const ValidationCode {
     ResourceSupplyResilienceBad => "RESOURCE_SUPPLY_RESILIENCE_BAD",
 });
 
-impl std::fmt::Display for ValidationCode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 #[cfg(test)]
 mod code_registry_tests {
     use super::ValidationCode;

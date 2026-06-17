@@ -52,18 +52,10 @@ pub fn derive(sector: &GeneratedSector) -> HistoryReport {
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryReport {
-    derive_with_progress(sector, cfg, |_| {})
+    derive_with_progress_reroll(sector, cfg, "", |_| {})
 }
 
-pub fn derive_with_progress(
-    sector: &GeneratedSector,
-    cfg: &HistoryConfig,
-    progress: impl FnMut(HistoryProgress),
-) -> HistoryReport {
-    derive_with_progress_reroll(sector, cfg, "", progress)
-}
-
-/// Like [`derive_with_progress`] but folds a re-roll suffix into the per-event
+/// Like [`derive_with`] but takes a progress callback and folds a re-roll suffix into the per-event
 /// `("history-event",…)` RNG discriminator. An empty suffix reproduces the
 /// legacy key byte-for-byte (golden-safe, invariant #2); a `":r{n}"` suffix
 /// yields a deterministically distinct chronicle. Used by the iterative

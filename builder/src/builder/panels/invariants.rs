@@ -310,9 +310,8 @@ fn jump_to(state: &mut BuilderState, vio: &InvariantViolation) {
 /// Extract `systems.<sys>.worlds.<world>` if `path` matches.
 fn parse_system_world(path: &str) -> Option<(String, String)> {
     let rest = path.strip_prefix("systems.")?;
-    let mut parts = rest.splitn(2, '.');
-    let system = parts.next()?.to_string();
-    let after = parts.next()?;
+    let (system, after) = rest.split_once('.')?;
+    let system = system.to_string();
     let world = after.strip_prefix("worlds.")?;
     let world_id = world.split('.').next()?.to_string();
     Some((system, world_id))

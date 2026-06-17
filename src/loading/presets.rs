@@ -28,12 +28,6 @@ pub struct PresetMeta {
     pub title: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
-    /// Optional human-readable tag list.
-    #[serde(default)]
-    pub tags: Vec<String>,
-    /// Suggested seed when not overridden by `--seed`.
-    #[serde(default)]
-    pub default_seed: Option<String>,
     /// Optional path (relative to `presets_dir`) of a base project tree to
     /// overlay onto. The preset's own files take precedence on overlap. Lets
     /// thin variant presets reuse one shared data tree.

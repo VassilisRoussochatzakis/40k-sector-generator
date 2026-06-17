@@ -172,12 +172,6 @@ enum_slug!(PlacementMode {
     Clustered => "clustered",
 });
 
-impl core::fmt::Display for PlacementMode {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 fn default_placement_mode() -> PlacementMode {
     PlacementMode::UniformGrid
 }
@@ -226,12 +220,6 @@ pub enum WorldSelectionMode {
 enum_slug!(WorldSelectionMode {
     WeightedRows => "weighted_rows",
 });
-
-impl core::fmt::Display for WorldSelectionMode {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
 
 fn default_selection_mode() -> WorldSelectionMode {
     WorldSelectionMode::WeightedRows
@@ -506,12 +494,6 @@ enum_slug!(HtmlTheme {
     Parchment => "parchment",
     Hololithic => "hololithic",
 });
-
-impl core::fmt::Display for HtmlTheme {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
 
 fn default_html_theme() -> HtmlTheme {
     HtmlTheme::Dark

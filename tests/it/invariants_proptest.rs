@@ -4,13 +4,10 @@
 //! parameters across random seeds + sector sizes + system counts and asserts
 //! every resulting sector passes invariants.
 
-use camino::Utf8PathBuf;
 use proptest::prelude::*;
 use sectorforge::{generate_sector, load_project, validate_sector};
 
-fn fixture_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
+use crate::shared::fixture_dir;
 
 fn run_one(
     seed: &str,

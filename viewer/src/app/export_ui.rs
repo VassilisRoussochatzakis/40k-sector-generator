@@ -98,7 +98,7 @@ impl App {
             .as_ref()
             .and_then(|job| match job.receiver.try_recv() {
                 Ok(result) => Some(result),
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(ExportJobResult::Failed(
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(ExportJobResult(
                     format!("export failed: worker disconnected ({})", job.description),
                 )),
                 Err(std::sync::mpsc::TryRecvError::Empty) => None,
@@ -176,9 +176,9 @@ impl App {
                         ) {
                             Ok(()) => {
                                 job_ctx.set_progress(1.0);
-                                ExportJobResult::Completed(format!("exported {}", status_path))
+                                ExportJobResult(format!("exported {}", status_path))
                             }
-                            Err(e) => ExportJobResult::Failed(format!("export failed: {}", e)),
+                            Err(e) => ExportJobResult(format!("export failed: {}", e)),
                         }
                     },
                 );
@@ -201,12 +201,12 @@ impl App {
                     move |job_ctx| {
                         job_ctx.set_progress(0.0);
                         if job_ctx.is_cancelled() {
-                            return ExportJobResult::Cancelled(
+                            return ExportJobResult(
                                 "cancelled all-system PNG export".into(),
                             );
                         }
                         if let Err(e) = fs::create_dir_all(&systems_dir) {
-                            return ExportJobResult::Failed(format!(
+                            return ExportJobResult(format!(
                                 "export failed: create {}: {}",
                                 systems_dir, e
                             ));
@@ -214,14 +214,14 @@ impl App {
                         let total = sector.systems.len();
                         if total == 0 {
                             job_ctx.set_progress(1.0);
-                            return ExportJobResult::Completed(format!(
+                            return ExportJobResult(format!(
                                 "exported 0 system PNGs to {}",
                                 status_dir
                             ));
                         }
                         for (idx, sys) in sector.systems.iter().enumerate() {
                             if job_ctx.is_cancelled() {
-                                return ExportJobResult::Cancelled(format!(
+                                return ExportJobResult(format!(
                                     "cancelled all-system PNG export after {}/{} systems",
                                     idx, total
                                 ));
@@ -234,11 +234,11 @@ impl App {
                                 scale,
                                 sys_opts.clone(),
                             ) {
-                                return ExportJobResult::Failed(format!("export failed: {}", e));
+                                return ExportJobResult(format!("export failed: {}", e));
                             }
                             job_ctx.set_progress((idx + 1) as f32 / total as f32);
                         }
-                        ExportJobResult::Completed(format!(
+                        ExportJobResult(format!(
                             "exported {} system PNGs to {}",
                             total, status_dir
                         ))
@@ -271,7 +271,7 @@ impl App {
                     move |job_ctx| {
                         job_ctx.set_progress(0.05);
                         let Some(sys) = sector.systems.iter().find(|s| s.id == id) else {
-                            return ExportJobResult::Failed(format!("system {} not found", id));
+                            return ExportJobResult(format!("system {} not found", id));
                         };
                         match sectorforge::system_map::write_one_system_png(
                             sys,
@@ -282,9 +282,9 @@ impl App {
                         ) {
                             Ok(()) => {
                                 job_ctx.set_progress(1.0);
-                                ExportJobResult::Completed(format!("exported {}", status_path))
+                                ExportJobResult(format!("exported {}", status_path))
                             }
-                            Err(e) => ExportJobResult::Failed(format!("export failed: {}", e)),
+                            Err(e) => ExportJobResult(format!("export failed: {}", e)),
                         }
                     },
                 );
@@ -327,9 +327,9 @@ impl App {
                 match sectorforge::svg_export::write_sector_svg_to_with(&sector, &p, subs, &opts) {
                     Ok(()) => {
                         job_ctx.set_progress(1.0);
-                        ExportJobResult::Completed(format!("exported {}", status_path))
+                        ExportJobResult(format!("exported {}", status_path))
                     }
-                    Err(e) => ExportJobResult::Failed(format!("export failed: {}", e)),
+                    Err(e) => ExportJobResult(format!("export failed: {}", e)),
                 }
             },
         );
@@ -371,9 +371,9 @@ impl App {
                 match sectorforge::html_export::write_html_to(&sector, &p, &cfg) {
                     Ok(()) => {
                         job_ctx.set_progress(1.0);
-                        ExportJobResult::Completed(format!("exported {}", status_path))
+                        ExportJobResult(format!("exported {}", status_path))
                     }
-                    Err(e) => ExportJobResult::Failed(format!("export failed: {}", e)),
+                    Err(e) => ExportJobResult(format!("export failed: {}", e)),
                 }
             },
         );
@@ -448,9 +448,9 @@ impl App {
                             sector_subdir
                         )
                     };
-                    ExportJobResult::Completed(status)
+                    ExportJobResult(status)
                 }
-                Err(e) => ExportJobResult::Failed(format!("export failed: {}", e)),
+                Err(e) => ExportJobResult(format!("export failed: {}", e)),
             }
         });
     }

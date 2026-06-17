@@ -17,32 +17,10 @@ use std::path::PathBuf;
 
 use camino::Utf8PathBuf;
 
-use crate::shared::fixture_sector;
+use crate::shared::{assert_blake3_golden, fixture_sector};
 
 fn goldens_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens")
-}
-
-/// Self-blessing blake3 pin (mirrors `golden_png.rs` /
-/// `svg_export_tests.rs`). With `env` set, (re)writes `file_name` and returns;
-/// otherwise asserts the freshly-computed hash matches the committed one.
-fn assert_blake3_golden(file_name: &str, env: &str, bytes: &[u8]) {
-    let hash = blake3::hash(bytes).to_hex().to_string();
-    let pin = goldens_dir().join(file_name);
-    if std::env::var_os(env).is_some() {
-        std::fs::create_dir_all(pin.parent().unwrap()).unwrap();
-        std::fs::write(&pin, format!("{hash}\n")).unwrap();
-        return;
-    }
-    let expected = std::fs::read_to_string(&pin).unwrap_or_else(|_| {
-        panic!("missing pinned hash {file_name}; bless with `{env}=1 cargo test --test it -- export_byte_goldens`")
-    });
-    assert_eq!(
-        expected.trim(),
-        hash,
-        "{file_name} drifted from the pinned hash ({} bytes); if intentional, rerun with `{env}=1`",
-        bytes.len(),
-    );
 }
 
 // ── heatmap ──────────────────────────────────────────────────────────────────

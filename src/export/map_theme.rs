@@ -158,12 +158,6 @@ enum_slug!(RouteLineMode {
     HazardWeighted => "hazard_weighted",
 });
 
-impl core::fmt::Display for RouteLineMode {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -178,12 +172,6 @@ enum_slug!(LabelDensity {
     ImportantOnly => "important_only",
     None => "none",
 });
-
-impl core::fmt::Display for LabelDensity {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -200,12 +188,6 @@ enum_slug!(LegendStyle {
     Hidden => "hidden",
 });
 
-impl core::fmt::Display for LegendStyle {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -220,12 +202,6 @@ enum_slug!(SymbolSet {
     Tactical => "tactical",
     Redacted => "redacted",
 });
-
-impl core::fmt::Display for SymbolSet {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct MapTheme {

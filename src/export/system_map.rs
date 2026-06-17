@@ -39,12 +39,6 @@ impl Default for SystemRenderOptions {
     }
 }
 
-/// Common resolution presets. Map area is 720 × scale pixels tall; legend adds 360 × scale wide.
-/// Scale 1 = ~720p (1080px total width). Scale 2 = 1440p. Scale 3 = 4K (2160px).
-pub const RESOLUTION_720P: u32 = 1;
-pub const RESOLUTION_1440P: u32 = 2;
-pub const RESOLUTION_4K: u32 = 3;
-
 /// Maximum supported scale. Cap prevents memory issues at extreme scales.
 pub const MAX_SCALE: u32 = 5;
 
@@ -500,14 +494,8 @@ mod tests {
     fn resolution_presets_produce_expected_heights() {
         let sys = sample_system();
         let opts = SystemRenderOptions::default();
-        assert_eq!(
-            render_system(&sys, &[], RESOLUTION_720P, opts.clone()).height(),
-            720
-        );
-        assert_eq!(
-            render_system(&sys, &[], RESOLUTION_1440P, opts.clone()).height(),
-            1440
-        );
-        assert_eq!(render_system(&sys, &[], RESOLUTION_4K, opts).height(), 2160);
+        assert_eq!(render_system(&sys, &[], 1, opts.clone()).height(), 720);
+        assert_eq!(render_system(&sys, &[], 2, opts.clone()).height(), 1440);
+        assert_eq!(render_system(&sys, &[], 3, opts).height(), 2160);
     }
 }

@@ -188,8 +188,8 @@ impl eframe::App for App {
         self.handle_preview_logic(ctx);
         self.handle_export_job();
 
-        layout::TopBar::new(self).show(ctx);
-        layout::MainView::new(self).show(ctx);
+        layout::draw_top_bar(self, ctx);
+        layout::draw_main_view(self, ctx);
 
         self.draw_preset_gallery(ctx);
         self.draw_export_dialog(ctx);

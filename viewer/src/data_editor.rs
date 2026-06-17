@@ -302,41 +302,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicU64, Ordering};
 
-    // Scratch directory under the OS temp dir, removed on drop. The viewer crate
-    // has no `tempfile` dev-dependency, so we hand-roll a unique dir from the OS
-    // temp root using a static counter + pid + nanos to avoid collisions across
-    // concurrently-running tests. These data_editor tests use ABSOLUTE paths and
-    // never mutate the process CWD, so they need no serialization guard.
-    struct ScratchDir(PathBuf);
-
-    impl ScratchDir {
-        fn new(tag: &str) -> Self {
-            static COUNTER: AtomicU64 = AtomicU64::new(0);
-            let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-            let nanos = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos())
-                .unwrap_or(0);
-            let dir = std::env::temp_dir().join(format!(
-                "sectorforge-viewer-{tag}-{}-{n}-{nanos}",
-                std::process::id()
-            ));
-            fs::create_dir_all(&dir).unwrap();
-            ScratchDir(dir)
-        }
-
-        fn path(&self) -> &Path {
-            &self.0
-        }
-    }
-
-    impl Drop for ScratchDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
+    // Scratch dir under the OS temp root, removed on drop (`tempfile::TempDir`).
+    // These data_editor tests use ABSOLUTE paths and never mutate the process
+    // CWD, so they need no serialization guard.
 
     fn write_minimal_project(proj: &Path) {
         fs::write(
@@ -354,7 +323,7 @@ mod tests {
     // resolved worlds.toml location.
     #[test]
     fn load_from_project_populates_fields() {
-        let scratch = ScratchDir::new("load");
+        let scratch = tempfile::tempdir().unwrap();
         let proj = scratch.path();
         write_minimal_project(proj);
 
@@ -374,7 +343,7 @@ mod tests {
     // Gap 223: mutate → save → reload persists the change; save clears dirty.
     #[test]
     fn save_then_reload_persists_generation_rows() {
-        let scratch = ScratchDir::new("save");
+        let scratch = tempfile::tempdir().unwrap();
         let proj = scratch.path();
         write_minimal_project(proj);
 

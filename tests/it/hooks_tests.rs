@@ -9,22 +9,9 @@
 //! 3. Golden markdown — stable headings + per-hook attribute lines.
 
 use proptest::prelude::*;
-use sectorforge::{
-    generate_sector,
-    hooks::{self, HookAnchor, HooksConfig},
-    load_project, GeneratedSector,
-};
+use sectorforge::hooks::{self, HookAnchor, HooksConfig};
 
-use crate::shared::{fixture_dir, fixture_sector};
-
-/// G1: generate a fresh sector from `seed`, independent of the memoised
-/// [`fixture_sector`], so the proptest genuinely exercises seed variance
-/// rather than re-deriving on one cached sector.
-fn gen_sector(seed: &str) -> GeneratedSector {
-    let mut input = load_project(fixture_dir()).expect("load fixture");
-    input.config.generation.seed = seed.to_string();
-    generate_sector(input).expect("generate fixture")
-}
+use crate::shared::{fixture_sector, gen_sector};
 
 #[test]
 fn report_metadata_mirrors_sector() {

@@ -19,6 +19,8 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 
+use crate::shared::copy_dir_all;
+
 /// Absolute path to the freshly built `sectorforge` binary.
 fn bin() -> &'static str {
     env!("CARGO_BIN_EXE_sectorforge")
@@ -28,22 +30,6 @@ fn bin() -> &'static str {
 /// 0 warnings and generates cleanly. Used as the cheapest valid fixture.
 fn m42_source() -> Utf8PathBuf {
     Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
-/// Recursively copy a directory tree (no external dep; m42 has nested data
-/// subdirs so this must recurse).
-fn copy_dir_all(src: &Path, dst: &Path) {
-    std::fs::create_dir_all(dst).expect("create dst dir");
-    for entry in std::fs::read_dir(src).expect("read src dir") {
-        let entry = entry.expect("dir entry");
-        let from = entry.path();
-        let to = dst.join(entry.file_name());
-        if entry.file_type().expect("file type").is_dir() {
-            copy_dir_all(&from, &to);
-        } else {
-            std::fs::copy(&from, &to).expect("copy file");
-        }
-    }
 }
 
 /// Copy `examples/m42_project` into `<base>/<name>` and return its path. Any

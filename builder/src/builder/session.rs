@@ -1,10 +1,7 @@
 //! `.sgforge` session file (D6).
 //!
 //! The session is a JSON envelope. The sector + command log + side-tables
-//! live as native serialised values. Project files (worlds.toml, factions.toml,
-//! ...) are embedded as `EmbeddedFile` entries — base64-encoded bytes so the
-//! envelope round-trips arbitrary byte sequences without requiring a new
-//! dependency.
+//! live as native serialised values.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -35,8 +32,6 @@ pub struct SessionFile {
     pub pinned_systems: BTreeSet<SystemId>,
     pub pinned_worlds: BTreeSet<WorldId>,
     pub project_path: Option<Utf8PathBuf>,
-    /// Embedded mirrors of every project file the builder was editing.
-    pub files: Vec<EmbeddedFile>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,16 +61,8 @@ impl From<SerializableSnapshot> for Snapshot {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EmbeddedFile {
-    /// Path relative to the project root.
-    pub path: String,
-    /// Base64 (standard alphabet, no padding stripping) of the file's bytes.
-    pub data_b64: String,
-}
-
 impl SessionFile {
-    pub fn from_state(state: &BuilderState, files: Vec<EmbeddedFile>) -> Self {
+    pub fn from_state(state: &BuilderState) -> Self {
         Self {
             version: SESSION_VERSION,
             sector: (*state.sector).clone(),
@@ -86,13 +73,12 @@ impl SessionFile {
             pinned_systems: state.pinned_systems.clone(),
             pinned_worlds: state.pinned_worlds.clone(),
             project_path: state.project_path.clone(),
-            files,
         }
     }
 
     pub fn into_state(self) -> BuilderState {
         use super::data_catalogs::DataCatalogs;
-        use super::derivation_cache::{DerivationCache, DerivationLedger};
+        use super::derivation_cache::DerivationLedger;
         use super::index::BuilderIndex;
 
         let index = BuilderIndex::rebuild(&self.sector);
@@ -108,7 +94,6 @@ impl SessionFile {
             command_log_capacity: super::state::DEFAULT_COMMAND_LOG_CAPACITY,
             pinned_systems: self.pinned_systems,
             pinned_worlds: self.pinned_worlds,
-            derivation_cache: DerivationCache::new(),
             derivations: DerivationLedger::new(),
             derivation_jobs: super::derivation_jobs::DerivationJobs::default(),
             dirty: false,
@@ -184,7 +169,7 @@ impl SessionFile {
 }
 
 pub fn save_session(path: &Path, state: &BuilderState) -> Result<(), BuilderError> {
-    let file = SessionFile::from_state(state, Vec::new());
+    let file = SessionFile::from_state(state);
     let text = serde_json::to_string_pretty(&file)?;
     fs::write(path, text).map_err(BuilderError::from)
 }
@@ -207,104 +192,14 @@ pub fn load_session(path: &Path) -> Result<BuilderState, BuilderError> {
     Ok(file.into_state())
 }
 
-// ── Base64 (standard alphabet) ─────────────────────────────────────────────
-//
-// Tiny inline encoder/decoder. Used by [`EmbeddedFile`] so the envelope can
-// carry arbitrary bytes — including TOML, JSON, or binaries — without adding
-// a `base64` crate (R9: no new crates).
-
-const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-pub fn encode_base64(bytes: &[u8]) -> String {
-    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
-    let mut chunks = bytes.chunks_exact(3);
-    for c in &mut chunks {
-        let n = (u32::from(c[0]) << 16) | (u32::from(c[1]) << 8) | u32::from(c[2]);
-        out.push(ALPHABET[((n >> 18) & 0x3f) as usize] as char);
-        out.push(ALPHABET[((n >> 12) & 0x3f) as usize] as char);
-        out.push(ALPHABET[((n >> 6) & 0x3f) as usize] as char);
-        out.push(ALPHABET[(n & 0x3f) as usize] as char);
-    }
-    let rem = chunks.remainder();
-    match rem.len() {
-        1 => {
-            let n = u32::from(rem[0]) << 16;
-            out.push(ALPHABET[((n >> 18) & 0x3f) as usize] as char);
-            out.push(ALPHABET[((n >> 12) & 0x3f) as usize] as char);
-            out.push('=');
-            out.push('=');
-        }
-        2 => {
-            let n = (u32::from(rem[0]) << 16) | (u32::from(rem[1]) << 8);
-            out.push(ALPHABET[((n >> 18) & 0x3f) as usize] as char);
-            out.push(ALPHABET[((n >> 12) & 0x3f) as usize] as char);
-            out.push(ALPHABET[((n >> 6) & 0x3f) as usize] as char);
-            out.push('=');
-        }
-        _ => {}
-    }
-    out
-}
-
-pub fn decode_base64(input: &str) -> Result<Vec<u8>, String> {
-    let mut bytes = Vec::with_capacity(input.len() / 4 * 3);
-    let mut buf = [0u32; 4];
-    let mut pad = [false; 4];
-    let mut i = 0;
-    for ch in input.bytes() {
-        if ch == b'\n' || ch == b'\r' || ch == b' ' {
-            continue;
-        }
-        let (v, is_pad) = match ch {
-            b'A'..=b'Z' => (u32::from(ch - b'A'), false),
-            b'a'..=b'z' => (26 + u32::from(ch - b'a'), false),
-            b'0'..=b'9' => (52 + u32::from(ch - b'0'), false),
-            b'+' => (62, false),
-            b'/' => (63, false),
-            b'=' => (0, true),
-            _ => return Err(format!("invalid base64 byte: {ch:#x}")),
-        };
-        buf[i] = v;
-        pad[i] = is_pad;
-        i += 1;
-        if i == 4 {
-            let n = (buf[0] << 18) | (buf[1] << 12) | (buf[2] << 6) | buf[3];
-            bytes.push((n >> 16) as u8);
-            if !pad[2] {
-                bytes.push((n >> 8) as u8);
-            }
-            if !pad[3] {
-                bytes.push(n as u8);
-            }
-            i = 0;
-            pad = [false; 4];
-        }
-    }
-    Ok(bytes)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn base64_round_trip() {
-        let cases: &[&[u8]] = &[b"", b"f", b"fo", b"foo", b"foob", b"fooba", b"foobar"];
-        let expected = [
-            "", "Zg==", "Zm8=", "Zm9v", "Zm9vYg==", "Zm9vYmE=", "Zm9vYmFy",
-        ];
-        for (i, bytes) in cases.iter().enumerate() {
-            let enc = encode_base64(bytes);
-            assert_eq!(enc, expected[i], "encode {}", i);
-            let dec = decode_base64(&enc).unwrap();
-            assert_eq!(&dec, bytes, "decode {}", i);
-        }
-    }
-
-    #[test]
     fn round_trip_empty_state() {
         let state = BuilderState::new_blank("t", "T", "seed", 4, 4);
-        let file = SessionFile::from_state(&state, Vec::new());
+        let file = SessionFile::from_state(&state);
         let text = serde_json::to_string(&file).unwrap();
         let back: SessionFile = serde_json::from_str(&text).unwrap();
         let restored = back.into_state();

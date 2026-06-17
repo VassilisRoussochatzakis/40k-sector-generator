@@ -10,23 +10,13 @@
 
 use proptest::prelude::*;
 use sectorforge::{
-    generate_sector, load_project,
     relations::{
         self, load_relations_file, RelationAttitude, RelationsConfig, RelationsReport, Stance,
     },
     GeneratedSector,
 };
 
-use crate::shared::{fixture_dir, fixture_sector};
-
-/// G1: generate a fresh sector from `seed`, independent of the memoised
-/// [`fixture_sector`], so the proptest genuinely exercises seed variance
-/// rather than re-deriving on one cached sector.
-fn gen_sector(seed: &str) -> GeneratedSector {
-    let mut input = load_project(fixture_dir()).expect("load fixture");
-    input.config.generation.seed = seed.to_string();
-    generate_sector(input).expect("generate fixture")
-}
+use crate::shared::{fixture_dir, fixture_sector, gen_sector};
 
 fn build_report(sector: &GeneratedSector, cfg: &RelationsConfig) -> RelationsReport {
     RelationsReport {

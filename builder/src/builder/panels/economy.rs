@@ -810,8 +810,20 @@ fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
         );
 
         show_world_type_rows(ui, &mut cfg, &mut changed);
-        show_tech_rows(ui, &mut cfg, &mut changed);
-        show_pop_rows(ui, &mut cfg, &mut changed);
+        show_multiplier_rows(
+            ui,
+            &mut cfg.by_tech_level,
+            "tech level",
+            "Per tech level, a multiplier on that world's output (schema: by_tech_level).",
+            &mut changed,
+        );
+        show_multiplier_rows(
+            ui,
+            &mut cfg.by_population,
+            "population",
+            "Per population band, a multiplier on that world's output (schema: by_population).",
+            &mut changed,
+        );
 
         ui.horizontal(|ui| {
             if ui
@@ -918,21 +930,23 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
     );
 }
 
-fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
+/// Render an "Output multiplier by …" collapsing section over a
+/// `BTreeMap<String, f32>` rule table (§E5). `show_tech_rows` and
+/// `show_pop_rows` were byte-identical but for the `cfg` field they edited and
+/// the header/description text, so both now route through this one helper.
+fn show_multiplier_rows(
+    ui: &mut Ui,
+    map: &mut std::collections::BTreeMap<String, f32>,
+    header_noun: &str,
+    description: &str,
+    changed: &mut bool,
+) {
     ui.collapsing(
-        format!(
-            "Output multiplier by tech level ({})",
-            cfg.by_tech_level.len()
-        ),
+        format!("Output multiplier by {header_noun} ({})", map.len()),
         |ui| {
-            ui.label(
-                RichText::new(
-                    "Per tech level, a multiplier on that world's output (schema: by_tech_level).",
-                )
-                .color(Color32::DARK_GRAY),
-            );
+            ui.label(RichText::new(description).color(Color32::DARK_GRAY));
             let mut remove: Option<String> = None;
-            for (key, v) in cfg.by_tech_level.iter_mut() {
+            for (key, v) in map.iter_mut() {
                 ui.horizontal(|ui| {
                     ui.monospace(key);
                     if ui
@@ -951,42 +965,7 @@ fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
                 });
             }
             if let Some(k) = remove {
-                cfg.by_tech_level.remove(&k);
-                *changed = true;
-            }
-        },
-    );
-}
-
-fn show_pop_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
-    ui.collapsing(
-        format!("Output multiplier by population ({})", cfg.by_population.len()),
-        |ui| {
-            ui.label(
-                RichText::new("Per population band, a multiplier on that world's output (schema: by_population).")
-                    .color(Color32::DARK_GRAY),
-            );
-            let mut remove: Option<String> = None;
-            for (key, v) in cfg.by_population.iter_mut() {
-                ui.horizontal(|ui| {
-                    ui.monospace(key);
-                    if ui
-                        .add(egui::DragValue::new(v).range(0.0..=4.0).speed(0.05))
-                        .changed()
-                    {
-                        *changed = true;
-                    }
-                    if ui
-                        .button(RichText::new("🗑").color(palette::danger()))
-                        .on_hover_text(format!("Remove the “{key}” row"))
-                        .clicked()
-                    {
-                        remove = Some(key.clone());
-                    }
-                });
-            }
-            if let Some(k) = remove {
-                cfg.by_population.remove(&k);
+                map.remove(&k);
                 *changed = true;
             }
         },

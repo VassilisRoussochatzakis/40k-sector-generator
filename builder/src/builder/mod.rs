@@ -37,7 +37,7 @@ pub use analytics_run::AnalyticsState;
 pub use command::BuilderCommand;
 pub use data_catalogs::{CatalogSnapshot, DataCatalogs};
 pub use derivation_cache::{
-    digest_input, DepClass, DerivationCache, DerivationKind, DerivationLedger, DerivationStatus,
+    digest_input, DepClass, DerivationKind, DerivationLedger, DerivationStatus,
 };
 pub use diff_run::{DiffMode, DiffState, LoadedFile, SlotKind};
 pub use errors::BuilderError;

@@ -1,4 +1,4 @@
-//! Streaming progress events emitted by [`derive_with_progress`].
+//! Streaming progress events emitted by [`derive_with_progress_reroll`].
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]

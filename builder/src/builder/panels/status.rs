@@ -8,7 +8,7 @@
 //! or no report yet, red = at least one error or violation.
 //!
 //! §SPRUCE D4 / D7: the bar is telemetry, so every segment is set in **monospace**
-//! (counts, cursor, cache, deriv tags align into a scannable strip), and every
+//! (counts, cursor, deriv tags align into a scannable strip), and every
 //! status colour comes from the theme-aware [`palette`] status set — never a raw
 //! amber/red literal — so the warning hue stays distinct from the brand accent.
 
@@ -45,11 +45,6 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             "cmd {}/{}",
             state.command_cursor,
             state.command_log.len()
-        )));
-        ui.separator();
-        ui.label(mono(format!(
-            "cache: {}",
-            state.derivation_cache.entries.len()
         )));
         // §39 LD3: live-derivation freshness — fresh count + stale/deriving tags.
         render_derivations(ui, state);

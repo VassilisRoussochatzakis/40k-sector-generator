@@ -4,7 +4,7 @@
 //!
 //! ```ignore
 //! pub fn show(ui: &mut egui::Ui, state: &mut crate::builder::BuilderState) {
-//!     // read state.sector / state.config / state.derivation_cache
+//!     // read state.sector / state.config / state.derivations
 //!     // mutate via state.run(BuilderCommand::...)
 //!     // never hold module-level mutable state
 //!     // never carry raw String IDs across boundaries — use the typed

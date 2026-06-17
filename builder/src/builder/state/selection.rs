@@ -11,6 +11,17 @@ use super::BuilderState;
 
 const NAV_STACK_CAP: usize = 64;
 
+/// Push `entry` onto a nav stack, evicting the oldest entry once the stack
+/// exceeds [`NAV_STACK_CAP`]. Factors the cap idiom shared by `focus_entity`,
+/// `nav_back`, and `nav_forward` (§LINK2 §LINK3). The `remove(0)` eviction
+/// preserves the historical oldest-first drop order.
+fn push_capped(stack: &mut Vec<EntityRef>, entry: EntityRef) {
+    stack.push(entry);
+    if stack.len() > NAV_STACK_CAP {
+        stack.remove(0);
+    }
+}
+
 impl BuilderState {
     /// §S1: focus a single system. Replaces any multi-selection with `{id}`.
     pub fn focus_system(&mut self, id: SystemId) {
@@ -62,10 +73,7 @@ impl BuilderState {
             return;
         }
         if let Some(prev) = prev {
-            self.selection.nav_back_stack.push(prev);
-            if self.selection.nav_back_stack.len() > NAV_STACK_CAP {
-                self.selection.nav_back_stack.remove(0);
-            }
+            push_capped(&mut self.selection.nav_back_stack, prev);
             self.selection.nav_forward_stack.clear();
         }
         self.apply_focus(target);
@@ -78,10 +86,7 @@ impl BuilderState {
             return;
         };
         if let Some(cur) = self.current_focus() {
-            self.selection.nav_forward_stack.push(cur);
-            if self.selection.nav_forward_stack.len() > NAV_STACK_CAP {
-                self.selection.nav_forward_stack.remove(0);
-            }
+            push_capped(&mut self.selection.nav_forward_stack, cur);
         }
         self.apply_focus(prev);
     }
@@ -92,10 +97,7 @@ impl BuilderState {
             return;
         };
         if let Some(cur) = self.current_focus() {
-            self.selection.nav_back_stack.push(cur);
-            if self.selection.nav_back_stack.len() > NAV_STACK_CAP {
-                self.selection.nav_back_stack.remove(0);
-            }
+            push_capped(&mut self.selection.nav_back_stack, cur);
         }
         self.apply_focus(next);
     }

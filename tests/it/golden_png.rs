@@ -13,16 +13,10 @@
 //! pipeline trips the test (the run-to-run check alone could not catch a
 //! deterministic-but-changed render). Pass `UPDATE_GOLDEN_PNG=1` to refresh.
 
-use std::path::PathBuf;
-
 use camino::Utf8PathBuf;
 use sectorforge::bitmap::{encode_png_bytes, render_sector_image, RenderOptions};
 
-const PIN_ENV: &str = "UPDATE_GOLDEN_PNG";
-
-fn pinned_hash_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens/png_m42_default.blake3")
-}
+use crate::shared::assert_blake3_golden;
 
 #[test]
 fn png_export_is_deterministic_for_fixed_seed() {
@@ -90,19 +84,5 @@ fn png_export_matches_pinned_blake3_hash() {
     let sector = sectorforge::generate_sector(proj).expect("generate");
     let img = render_sector_image(&sector, 2, None, RenderOptions::default());
     let png = encode_png_bytes(&img).expect("encode");
-    let hash = blake3::hash(&png).to_hex().to_string();
-    let pin = pinned_hash_path();
-    if std::env::var_os(PIN_ENV).is_some() {
-        std::fs::create_dir_all(pin.parent().unwrap()).unwrap();
-        std::fs::write(&pin, format!("{hash}\n")).unwrap();
-        return;
-    }
-    let expected = std::fs::read_to_string(&pin).unwrap_or_else(|_| {
-        panic!("missing pinned hash; run `{PIN_ENV}=1 cargo test --test it -- golden_png` to bless")
-    });
-    assert_eq!(
-        expected.trim(),
-        hash,
-        "PNG bytes drifted from pinned hash; if intentional, rerun with `{PIN_ENV}=1` to refresh"
-    );
+    assert_blake3_golden("png_m42_default.blake3", "UPDATE_GOLDEN_PNG", &png);
 }

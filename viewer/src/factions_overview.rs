@@ -74,9 +74,9 @@ impl Default for FactionDesignerState {
             new_kind: p.kind.to_string(),
             new_disposition: p.disposition.to_string(),
             new_weight: p.weight,
-            new_world_types: join_static_list(p.world_types),
-            new_governments: join_static_list(p.governments),
-            new_features: join_static_list(p.features),
+            new_world_types: p.world_types.join(", "),
+            new_governments: p.governments.join(", "),
+            new_features: p.features.join(", "),
             status: String::new(),
             status_is_error: false,
         }
@@ -775,9 +775,9 @@ fn apply_preset_to_builder(state: &mut FactionDesignerState, p: OverallPreset) {
     state.new_kind = p.kind.to_string();
     state.new_disposition = p.disposition.to_string();
     state.new_weight = p.weight;
-    state.new_world_types = join_static_list(p.world_types);
-    state.new_governments = join_static_list(p.governments);
-    state.new_features = join_static_list(p.features);
+    state.new_world_types = p.world_types.join(", ");
+    state.new_governments = p.governments.join(", ");
+    state.new_features = p.features.join(", ");
 }
 
 fn add_builder_row(state: &mut FactionDesignerState) -> Result<(), FactionDesignerError> {
@@ -927,10 +927,6 @@ fn parse_list(text: &str) -> Vec<String> {
 
 fn clean_list_text(text: &str) -> String {
     parse_list(text).join(", ")
-}
-
-fn join_static_list(values: &[&str]) -> String {
-    values.join(", ")
 }
 
 fn slug_id(value: &str) -> String {

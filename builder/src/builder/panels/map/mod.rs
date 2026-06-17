@@ -1143,7 +1143,7 @@ mod tests {
         use crate::builder::session::SessionFile;
         let mut state = blank(4, 4);
         state.map_view.partial_regen_anchor = Some(HexCoord { q: 2, r: 2 });
-        let file = SessionFile::from_state(&state, Vec::new());
+        let file = SessionFile::from_state(&state);
         let round_tripped = file.into_state();
         assert!(round_tripped.map_view.partial_regen_anchor.is_none());
     }
@@ -1474,7 +1474,7 @@ mod tests {
             .unwrap();
         apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id });
         assert!(state.feedback.last_menu_action.is_some());
-        let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
+        let file = crate::builder::session::SessionFile::from_state(&state);
         let restored = file.into_state();
         assert!(restored.feedback.last_menu_action.is_none());
     }
@@ -1651,7 +1651,7 @@ mod tests {
             },
             bulk_delete_confirm: false,
         });
-        let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
+        let file = crate::builder::session::SessionFile::from_state(&state);
         let restored = file.into_state();
         assert!(restored.map_view.sector_context_menu.is_none());
     }

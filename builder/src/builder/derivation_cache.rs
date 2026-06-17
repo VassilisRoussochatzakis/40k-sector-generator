@@ -1,66 +1,24 @@
-//! BLAKE3-keyed derivation cache (LD1, R5). Each overlay (analytics,
-//! relations, history, ...) is cached by digest over the slice of sector
-//! state it consumes. Mutations invalidate entries via [`Self::invalidate`].
+//! §39 live-derivation ledger (LD1..LD4) plus the [`digest_input`] BLAKE3
+//! fingerprint helper (R5).
 //!
 //! Per R5 derivations must be pure functions of their input slice. Callers
-//! compute the digest with [`digest_input`] over the canonical JSON of that
-//! slice and look up cached results with [`Self::get`]. On a miss, compute
-//! the derivation and store it with [`Self::put`].
+//! compute the input fingerprint with [`digest_input`] over the canonical JSON
+//! of that slice; the [`DerivationLedger`] tracks, per overlay, whether the
+//! currently-cached value still matches that fingerprint.
 //!
-//! On top of the generic key→value store this module also defines the §39
-//! **live-derivation ledger** (LD1..LD4): the [`DerivationKind`] catalogue of
-//! the sixteen tracked overlays, the [`DepClass`] mutation-input classes, the
-//! LD2 dependency table wiring the two together, and the [`DerivationLedger`]
-//! that records per-kind input fingerprints (LD1), staleness (LD2), and
-//! in-flight background recomputes (LD3). [`super::BuilderState`] drives the
-//! ledger from the command bus and the overlay panels read freshness through
-//! it (LD4).
+//! This module defines the §39 **live-derivation ledger** (LD1..LD4): the
+//! [`DerivationKind`] catalogue of the sixteen tracked overlays, the
+//! [`DepClass`] mutation-input classes, the LD2 dependency table wiring the two
+//! together, and the [`DerivationLedger`] that records per-kind input
+//! fingerprints (LD1), staleness (LD2), and in-flight background recomputes
+//! (LD3). [`super::BuilderState`] drives the ledger from the command bus and
+//! the overlay panels read freshness through it (LD4).
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
 
 use sectorforge::rng::digest_bytes;
-
-#[derive(Debug, Clone, Default)]
-pub struct DerivationCache {
-    pub entries: BTreeMap<String, CacheEntry>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CacheEntry {
-    /// Hex-encoded BLAKE3 digest of the input slice that produced the value.
-    pub digest: String,
-    /// Serialised value blob (JSON). Concrete types decode on demand.
-    pub value: String,
-}
-
-impl DerivationCache {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn invalidate(&mut self, key: &str) {
-        self.entries.remove(key);
-    }
-
-    pub fn clear(&mut self) {
-        self.entries.clear();
-    }
-
-    pub fn get(&self, key: &str, digest: &str) -> Option<&str> {
-        let e = self.entries.get(key)?;
-        if e.digest == digest {
-            Some(&e.value)
-        } else {
-            None
-        }
-    }
-
-    pub fn put(&mut self, key: String, digest: String, value: String) {
-        self.entries.insert(key, CacheEntry { digest, value });
-    }
-}
 
 /// Compute the BLAKE3 hex digest of a serializable input slice. Used as the
 /// cache key for an overlay. Determinism relies on the slice serializing in a
@@ -281,8 +239,7 @@ impl DerivationLedger {
     }
 
     /// LD2 — precise invalidation. Mark every *already-derived* derivation
-    /// downstream of any of `classes` stale. Replaces the blanket
-    /// `DerivationCache::clear` for the sixteen tracked overlays.
+    /// downstream of any of `classes` stale, for the sixteen tracked overlays.
     ///
     /// Kinds with no recorded fingerprint (never derived this session) are
     /// left cold rather than flagged stale, so `stale ⊆ fingerprints` always
@@ -352,9 +309,6 @@ impl DerivationLedger {
         }
         match self.fingerprints.get(&kind) {
             None => DerivationStatus::Cold,
-            Some(stored) if stored == current && !self.stale.contains(&kind) => {
-                DerivationStatus::Fresh
-            }
             Some(stored) if stored == current => DerivationStatus::Fresh,
             Some(_) => DerivationStatus::Stale,
         }
@@ -378,17 +332,6 @@ impl DerivationLedger {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn put_get_round_trip() {
-        let mut c = DerivationCache::new();
-        let key = "analytics".to_string();
-        let digest = digest_input(&vec![1u32, 2, 3]);
-        c.put(key.clone(), digest.clone(), "{\"score\":42}".into());
-        assert_eq!(c.get(&key, &digest), Some("{\"score\":42}"));
-        let stale = digest_input(&vec![1u32, 2, 4]);
-        assert_eq!(c.get(&key, &stale), None);
-    }
 
     #[test]
     fn digest_input_is_stable() {

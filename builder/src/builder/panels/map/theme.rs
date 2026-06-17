@@ -529,7 +529,11 @@ fn colour_row(
 ) -> bool {
     let mut changed = false;
     labeled(ui, label, help, |ui| {
-        let mut rgb = slot.as_deref().and_then(parse_hex).unwrap_or(default_rgb);
+        let mut rgb = slot
+            .as_deref()
+            .and_then(|s| Color32::from_hex(s).ok())
+            .map(|c| [c.r(), c.g(), c.b()])
+            .unwrap_or(default_rgb);
         if ui.color_edit_button_srgb(&mut rgb).changed() {
             *slot = Some(to_hex(rgb));
             changed = true;
@@ -750,17 +754,6 @@ fn px3([r, g, b, _a]: [u8; 4]) -> [u8; 3] {
 
 fn c32([r, g, b, a]: [u8; 4]) -> Color32 {
     Color32::from_rgba_unmultiplied(r, g, b, a)
-}
-
-fn parse_hex(s: &str) -> Option<[u8; 3]> {
-    let h = s.trim().strip_prefix('#').unwrap_or(s.trim());
-    if h.len() < 6 || !h.is_ascii() {
-        return None;
-    }
-    let r = u8::from_str_radix(&h[0..2], 16).ok()?;
-    let g = u8::from_str_radix(&h[2..4], 16).ok()?;
-    let b = u8::from_str_radix(&h[4..6], 16).ok()?;
-    Some([r, g, b])
 }
 
 fn to_hex([r, g, b]: [u8; 3]) -> String {

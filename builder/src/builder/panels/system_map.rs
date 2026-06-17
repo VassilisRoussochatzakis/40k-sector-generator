@@ -1120,7 +1120,7 @@ mod tests {
             screen_pos: egui::Pos2::ZERO,
             target: SystemMenuTarget::Star { system: sys },
         });
-        let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
+        let file = crate::builder::session::SessionFile::from_state(&state);
         let restored = file.into_state();
         assert!(restored.map_view.system_context_menu.is_none());
     }

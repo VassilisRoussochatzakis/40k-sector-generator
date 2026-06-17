@@ -206,7 +206,7 @@ pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderStat
         return;
     };
     let mut close = false;
-    let mut action: Option<CollisionAction> = None;
+    let mut swap = false;
     egui::Window::new("Hex occupied")
         .collapsible(false)
         .resizable(false)
@@ -218,7 +218,7 @@ pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderStat
             ));
             ui.horizontal(|ui| {
                 if ui.button("Swap").clicked() {
-                    action = Some(CollisionAction::Swap);
+                    swap = true;
                     close = true;
                 }
                 if ui.button("Cancel").clicked() {
@@ -226,7 +226,7 @@ pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderStat
                 }
             });
         });
-    if let Some(CollisionAction::Swap) = action {
+    if swap {
         let cmd = BuilderCommand::SwapSystems {
             a: pending.dragging.clone(),
             b: pending.occupant.clone(),
@@ -238,8 +238,4 @@ pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderStat
     if close {
         state.drag.pending_collision = None;
     }
-}
-
-enum CollisionAction {
-    Swap,
 }

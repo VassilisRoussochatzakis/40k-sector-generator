@@ -754,7 +754,7 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
                             ui.label(
                                 RichText::new(format!(
                                     "{} → {}  ({})",
-                                    link.from_child_id, link.to_child_id, link.orientation
+                                    link.from_child_id, link.to_child_id, link.orientation.as_slug()
                                 ))
                                 .weak(),
                             );

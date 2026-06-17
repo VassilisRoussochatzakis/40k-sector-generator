@@ -1,27 +1,10 @@
 //! Project-loading guards: `read_relative` path-escape security (driven via
 //! `load_project`) and the large `big_test` / `big_sparse_test` example parse.
 
-use std::path::Path;
-
 use camino::Utf8PathBuf;
 use sectorforge::{load_project, ProjectInput, SectorError};
 
-use crate::shared::fixture_dir;
-
-/// Recursively copy `src` into `dst` (both real filesystem paths).
-fn copy_dir_all(src: &Path, dst: &Path) {
-    std::fs::create_dir_all(dst).unwrap();
-    for entry in std::fs::read_dir(src).unwrap() {
-        let entry = entry.unwrap();
-        let from = entry.path();
-        let to = dst.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir_all(&from, &to);
-        } else {
-            std::fs::copy(&from, &to).unwrap();
-        }
-    }
-}
+use crate::shared::{copy_dir_all, fixture_dir};
 
 /// Copy the canonical m42 fixture into a fresh tempdir, inject a chosen
 /// `theme_file` value under the existing `[outputs.bitmap]` table, and return

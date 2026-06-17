@@ -212,13 +212,13 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
         factions: default_starter_roster(),
     };
     let text =
-        toml::to_string_pretty(&factions).map_err(parse_err("data/factions/factions.toml"))?;
+        toml::to_string_pretty(&factions).map_err(toml_err("data/factions/factions.toml"))?;
     atomic_write(&factions_dir.join("factions.toml"), text.as_bytes())?;
     let relations = RelationsFile {
         relations: Default::default(),
     };
     let text =
-        toml::to_string_pretty(&relations).map_err(parse_err("data/factions/relations.toml"))?;
+        toml::to_string_pretty(&relations).map_err(toml_err("data/factions/relations.toml"))?;
     atomic_write(&factions_dir.join("relations.toml"), text.as_bytes())?;
 
     // route_rules.toml under data/routes/.
@@ -228,7 +228,7 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
         routes: Default::default(),
     };
     let text = toml::to_string_pretty(&route_rules_file)
-        .map_err(parse_err("data/routes/route_rules.toml"))?;
+        .map_err(toml_err("data/routes/route_rules.toml"))?;
     atomic_write(&routes_dir.join("route_rules.toml"), text.as_bytes())?;
 
     // regions.toml under data/regions/.
@@ -238,7 +238,7 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
         regions: Default::default(),
     };
     let text =
-        toml::to_string_pretty(&regions_file).map_err(parse_err("data/regions/regions.toml"))?;
+        toml::to_string_pretty(&regions_file).map_err(toml_err("data/regions/regions.toml"))?;
     atomic_write(&regions_dir.join("regions.toml"), text.as_bytes())?;
 
     // economy.toml shares data/worlds/.
@@ -247,7 +247,7 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
         resources: sectorforge::economy::ResourceModelConfig::default(),
     };
     let text =
-        toml::to_string_pretty(&economy_file).map_err(parse_err("data/worlds/economy.toml"))?;
+        toml::to_string_pretty(&economy_file).map_err(toml_err("data/worlds/economy.toml"))?;
     atomic_write(&worlds_dir.join("economy.toml"), text.as_bytes())?;
 
     // history.toml at data/ root.
@@ -255,7 +255,7 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
     let history_file = HistoryFile {
         history: Default::default(),
     };
-    let text = toml::to_string_pretty(&history_file).map_err(parse_err("data/history.toml"))?;
+    let text = toml::to_string_pretty(&history_file).map_err(toml_err("data/history.toml"))?;
     atomic_write(&dest.join("data/history.toml"), text.as_bytes())?;
 
     // Empty `out/sector.json` so the project loads with a baseline sector
@@ -268,13 +268,6 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
     atomic_write(&out_dir.join("sector.json"), sector_text.as_bytes())?;
 
     Ok(())
-}
-
-fn parse_err(rel: &'static str) -> impl Fn(toml::ser::Error) -> BuilderError {
-    move |e| BuilderError::ParseFailed {
-        file: rel.to_string(),
-        message: e.to_string(),
-    }
 }
 
 /// Small Imperium/Chaos/xenos/cult/trader roster the §P1 wizard drops into a
@@ -784,7 +777,10 @@ fn write_and_digest(
         fs::create_dir_all(Path::new(parent.as_str()))?;
     }
     atomic_write(&target, bytes)?;
-    digests.insert(rel.to_string(), blake3_digest(bytes));
+    digests.insert(
+        rel.to_string(),
+        format!("blake3:{}", sectorforge::rng::digest_bytes(bytes)),
+    );
     Ok(())
 }
 
@@ -806,10 +802,6 @@ pub(crate) fn atomic_write(target: &Utf8Path, bytes: &[u8]) -> std::io::Result<(
         fs::write(Path::new(tmp.as_str()), bytes)?;
     }
     fs::rename(Path::new(tmp.as_str()), Path::new(target.as_str()))
-}
-
-fn blake3_digest(bytes: &[u8]) -> String {
-    format!("blake3:{}", sectorforge::rng::digest_bytes(bytes))
 }
 
 fn collect_mtimes<'a, I>(root: &Utf8Path, rels: I) -> BTreeMap<String, std::time::SystemTime>

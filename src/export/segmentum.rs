@@ -220,12 +220,6 @@ enum_slug!(BorderOrientation {
     NorthSouth => "north_south",
 });
 
-impl core::fmt::Display for BorderOrientation {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SegmentumManifest {
     pub segmentum_id: String,

@@ -43,7 +43,6 @@ pub fn state_from_generated_sector(
         pinned_systems: std::collections::BTreeSet::new(),
         pinned_worlds: std::collections::BTreeSet::new(),
         project_path: None,
-        files: Vec::new(),
     }
     .into_state()
 }

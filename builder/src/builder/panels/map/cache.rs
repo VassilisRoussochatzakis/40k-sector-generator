@@ -19,8 +19,7 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
         .map_view
         .cache
         .as_ref()
-        .map(|c| c.digest != digest)
-        .unwrap_or(true);
+        .is_none_or(|c| c.digest != digest);
     if !stale {
         return;
     }

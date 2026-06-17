@@ -37,7 +37,7 @@ use std::collections::BTreeMap;
 use egui::{Color32, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::interestingness::{
-    InterestingnessConfig, InterestingnessReport, MetricScore, MetricTarget, ProfileId,
+    InterestingnessConfig, MetricScore, MetricTarget, ProfileId,
 };
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
@@ -584,10 +584,6 @@ fn fit_color(fit: f32) -> Color32 {
         palette::danger()
     }
 }
-
-// silence unused warning for the report alias when feature-gated tests are off
-#[allow(dead_code)]
-fn _force_report_use(_: &InterestingnessReport) {}
 
 #[cfg(test)]
 mod tests {

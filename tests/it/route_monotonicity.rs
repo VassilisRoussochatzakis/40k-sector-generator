@@ -17,14 +17,11 @@
 
 use std::collections::BTreeMap;
 
-use camino::Utf8PathBuf;
 use proptest::prelude::*;
 use sectorforge::sector_model::{GeneratedRoute, GeneratedSystem, RouteStability, RouteType};
 use sectorforge::{generate_sector, load_project};
 
-fn fixture_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
+use crate::shared::fixture_dir;
 
 /// Severity rank mirrored from `crate::generation::stability_level` (which is
 /// `pub(crate)` and therefore invisible to this external integration crate).

@@ -99,7 +99,6 @@ mod tests {
     use super::*;
     use sectorforge::sector_model::{empty_sector, GeneratedSector};
     use std::path::Path;
-    use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::Mutex;
 
     // The process CWD is global and shared across all tests in the binary.
@@ -110,37 +109,6 @@ mod tests {
     // this lock for its whole body. (`unwrap_or_else(into_inner)` tolerates a
     // poisoned lock from an unrelated panicking test so failures don't cascade.)
     static CWD_LOCK: Mutex<()> = Mutex::new(());
-
-    // Unique scratch dir under the OS temp root, removed on drop. (Viewer has no
-    // `tempfile` dev-dependency, so this is hand-rolled.)
-    struct ScratchDir(PathBuf);
-
-    impl ScratchDir {
-        fn new(tag: &str) -> Self {
-            static COUNTER: AtomicU64 = AtomicU64::new(0);
-            let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-            let nanos = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos())
-                .unwrap_or(0);
-            let dir = std::env::temp_dir().join(format!(
-                "sectorforge-viewer-{tag}-{}-{n}-{nanos}",
-                std::process::id()
-            ));
-            fs::create_dir_all(&dir).unwrap();
-            ScratchDir(dir)
-        }
-
-        fn path(&self) -> &Path {
-            &self.0
-        }
-    }
-
-    impl Drop for ScratchDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
 
     // RAII CWD guard: capture current dir, switch to `new`, restore on drop
     // (restores even on panic, so the lock-holder always leaves CWD as it found
@@ -197,7 +165,7 @@ mod tests {
     #[test]
     fn save_list_load_round_trip_under_examples() {
         let _lock = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let scratch = ScratchDir::new("examples-cwd");
+        let scratch = tempfile::tempdir().unwrap();
         let _cwd = CwdGuard::enter(scratch.path());
 
         // --- discovery filtering: alpha/beta valid, gamma has no out/sector.json ---

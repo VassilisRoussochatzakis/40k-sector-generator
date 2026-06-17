@@ -119,12 +119,6 @@ enum_slug!(HeatmapMode {
     ConflictIntensity => "conflict_intensity",
 });
 
-impl core::fmt::Display for HeatmapMode {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 /// §35 T3: the per-dimension stability heatmap family. Each variant maps to one
 /// 0.0..=100.0 field of [`crate::stability::StabilityState`].
 ///
@@ -205,12 +199,6 @@ enum_slug!(StabilityDimension {
     WarpInstability => "warp_instability",
     FamineResourceStress => "famine_resource_stress",
 });
-
-impl core::fmt::Display for StabilityDimension {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
 
 /// Per-system raw score + optional dominant faction id (for `Control` mode).
 #[derive(Debug, Clone)]

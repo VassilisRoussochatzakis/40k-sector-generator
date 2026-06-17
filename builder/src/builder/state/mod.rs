@@ -49,7 +49,7 @@ use sectorforge::{InvariantReport, ValidationReport};
 use super::analytics_run::AnalyticsState;
 use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
-use super::derivation_cache::{DerivationCache, DerivationLedger};
+use super::derivation_cache::DerivationLedger;
 use super::diff_run::DiffState;
 use super::export_run::ExportState;
 use super::file_watcher::FileWatcher;
@@ -177,7 +177,6 @@ pub struct BuilderState {
     /// §Q1: pinned systems live in this side-table — never written to JSON.
     pub(crate) pinned_systems: BTreeSet<SystemId>,
     pub(crate) pinned_worlds: BTreeSet<WorldId>,
-    pub(crate) derivation_cache: DerivationCache,
     /// §39 (LD1..LD4) live-derivation ledger. Tracks per-kind input
     /// fingerprints, staleness, and in-flight recomputes so the command bus can
     /// invalidate exactly the overlays a mutation touches (LD2) and the overlay
@@ -496,7 +495,6 @@ impl BuilderState {
             command_log_capacity: DEFAULT_COMMAND_LOG_CAPACITY,
             pinned_systems: BTreeSet::new(),
             pinned_worlds: BTreeSet::new(),
-            derivation_cache: DerivationCache::new(),
             derivations: DerivationLedger::new(),
             derivation_jobs: super::derivation_jobs::DerivationJobs::default(),
             dirty: false,

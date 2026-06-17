@@ -659,13 +659,6 @@ pub fn write_diff(
     diff::write_diff(output_dir.as_ref(), d, cfg)
 }
 
-/// §1 NEW.md: deterministic chronicle of in-universe events explaining
-/// the present sector configuration.
-#[must_use]
-pub fn derive_history(sector: &GeneratedSector) -> history::HistoryReport {
-    history::derive(sector)
-}
-
 /// §1 NEW.md: chronicle with explicit config.
 #[must_use]
 pub fn derive_history_with(
@@ -687,12 +680,6 @@ pub fn write_history(
     cfg: &history::HistoryConfig,
 ) -> Result<(), SectorError> {
     history::write_report(output_dir.as_ref(), report, cfg)
-}
-
-/// §3 NEW.md: deterministic dramatis personae overlay.
-#[must_use]
-pub fn derive_personae(sector: &GeneratedSector) -> personae::PersonaeReport {
-    personae::derive(sector)
 }
 
 /// §3 NEW.md: personae with explicit config.
@@ -717,12 +704,6 @@ pub fn write_personae(
     personae::write_report(output_dir.as_ref(), report)
 }
 
-/// §7 NEW.md: adventure / plot-hook derivation.
-#[must_use]
-pub fn derive_hooks(sector: &GeneratedSector) -> hooks::HooksReport {
-    hooks::derive(sector)
-}
-
 /// §7 NEW.md: hooks with explicit config.
 #[must_use]
 pub fn derive_hooks_with(sector: &GeneratedSector, cfg: &hooks::HooksConfig) -> hooks::HooksReport {
@@ -743,12 +724,6 @@ pub fn write_hooks(
     hooks::write_report(output_dir.as_ref(), report, cfg)
 }
 
-/// §6 NEW.md: deterministic gazetteer prose generator.
-#[must_use]
-pub fn derive_prose(sector: &GeneratedSector) -> prose::ProseReport {
-    prose::derive(sector)
-}
-
 /// §6 NEW.md: prose with explicit config.
 #[must_use]
 pub fn derive_prose_with(sector: &GeneratedSector, cfg: &prose::ProseConfig) -> prose::ProseReport {
@@ -766,13 +741,6 @@ pub fn write_prose(
     report: &prose::ProseReport,
 ) -> Result<(), SectorError> {
     prose::write_report(output_dir.as_ref(), report)
-}
-
-/// §5 NEW2.md: derive the inter-faction diplomacy matrix for a generated
-/// sector. Pure read-only over `sector.factions` + co-occurrence in worlds.
-#[must_use]
-pub fn derive_relations(sector: &GeneratedSector) -> relations::RelationsMatrix {
-    relations::derive(sector)
 }
 
 /// §5 NEW2.md: derive the matrix with an explicit configuration (rules /
@@ -822,12 +790,6 @@ pub fn write_regions(
     regs: &[regions::WarpRegion],
 ) -> Result<(), SectorError> {
     regions::write_report(output_dir.as_ref(), sector_id, regs)
-}
-
-/// §12 NEW.md: derive the per-world / per-system / sector economy snapshot.
-#[must_use]
-pub fn derive_economy(sector: &GeneratedSector) -> economy::EconomyReport {
-    economy::derive(sector)
 }
 
 /// §12 NEW.md: derive with explicit config.
@@ -919,12 +881,6 @@ pub fn write_briefing(
     briefing::write_pack(output_dir.as_ref(), pack, profile)
 }
 
-/// §3 NEW2.md: derive mission seeds for a sector.
-#[must_use]
-pub fn derive_missions(sector: &GeneratedSector) -> missions::MissionsReport {
-    missions::derive(sector)
-}
-
 /// §3 NEW2.md: derive missions with explicit config.
 #[must_use]
 pub fn derive_missions_with(
@@ -945,12 +901,6 @@ pub fn write_missions(
     cfg: &missions::MissionsConfig,
 ) -> Result<(), SectorError> {
     missions::write_report(output_dir.as_ref(), report, cfg)
-}
-
-/// §7 NEW2.md: derive planetary sites for a sector.
-#[must_use]
-pub fn derive_sites(sector: &GeneratedSector) -> sites::SitesReport {
-    sites::derive(sector)
 }
 
 /// §7 NEW2.md: derive sites with explicit config.

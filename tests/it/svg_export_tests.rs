@@ -1,16 +1,8 @@
 //! Smoke test for the SVG exporter against the bundled m42 fixture.
 
-use std::path::PathBuf;
-
 use camino::Utf8PathBuf;
 
-use crate::shared::fixture_sector;
-
-const PIN_ENV: &str = "UPDATE_GOLDEN_SVG";
-
-fn pinned_hash_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens/svg_m42_default.blake3")
-}
+use crate::shared::{assert_blake3_golden, fixture_sector};
 
 #[test]
 fn renders_m42_sector_as_well_formed_svg() {
@@ -53,21 +45,7 @@ fn svg_export_matches_pinned_blake3_hash() {
     let sector = fixture_sector();
     let opts = sectorforge::bitmap::RenderOptions::default();
     let svg = sectorforge::svg_export::render_sector_svg(sector, None, &opts);
-    let hash = blake3::hash(svg.as_bytes()).to_hex().to_string();
-    let pin = pinned_hash_path();
-    if std::env::var_os(PIN_ENV).is_some() {
-        std::fs::create_dir_all(pin.parent().unwrap()).unwrap();
-        std::fs::write(&pin, format!("{hash}\n")).unwrap();
-        return;
-    }
-    let expected = std::fs::read_to_string(&pin).unwrap_or_else(|_| {
-        panic!("missing pinned hash; run `{PIN_ENV}=1 cargo test --test it -- svg_export` to bless")
-    });
-    assert_eq!(
-        expected.trim(),
-        hash,
-        "SVG bytes drifted from pinned hash; if intentional, rerun with `{PIN_ENV}=1` to refresh"
-    );
+    assert_blake3_golden("svg_m42_default.blake3", "UPDATE_GOLDEN_SVG", svg.as_bytes());
 }
 
 // GAP 141: with a non-`Off` heatmap, the renderers consume a `HashMap` of

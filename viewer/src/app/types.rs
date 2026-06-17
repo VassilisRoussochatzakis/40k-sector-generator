@@ -11,23 +11,17 @@ pub enum PendingExport {
 }
 
 #[derive(Debug)]
-pub enum ExportJobResult {
-    Completed(String),
-    Failed(String),
-    Cancelled(String),
-}
+pub struct ExportJobResult(pub String);
 
 impl ExportJobResult {
     pub fn into_status(self) -> String {
-        match self {
-            Self::Completed(status) | Self::Failed(status) | Self::Cancelled(status) => status,
-        }
+        self.0
     }
 }
 
 impl sectorforge_gui_core::jobs::FromJobPanic for ExportJobResult {
     fn from_job_panic(message: String) -> Option<Self> {
-        Some(Self::Failed(format!("export panicked: {message}")))
+        Some(Self(format!("export panicked: {message}")))
     }
 }
 

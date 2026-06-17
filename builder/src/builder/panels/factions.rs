@@ -446,9 +446,36 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                         "Spawn preferences",
                         false,
                         |ui| {
-                            preferred_picker_world_types(ui, &mut draft);
-                            preferred_picker_governments(ui, &mut draft);
-                            preferred_picker_features(ui, &mut draft);
+                            pick_multi(
+                                ui,
+                                "preferred_world_types",
+                                "Preferred world types",
+                                &mut draft.preferred_world_types,
+                                WorldType::VARIANTS
+                                    .iter()
+                                    .map(|v| (format!("{v:?}"), v.display_name().to_string()))
+                                    .collect(),
+                            );
+                            pick_multi(
+                                ui,
+                                "preferred_governments",
+                                "Preferred governments",
+                                &mut draft.preferred_governments,
+                                Government::VARIANTS
+                                    .iter()
+                                    .map(|v| (format!("{v:?}"), v.display_name().to_string()))
+                                    .collect(),
+                            );
+                            pick_multi(
+                                ui,
+                                "preferred_notable_features",
+                                "Preferred notable features",
+                                &mut draft.preferred_notable_features,
+                                NotableFeature::VARIANTS
+                                    .iter()
+                                    .map(|v| (format!("{v:?}"), v.display_name().to_string()))
+                                    .collect(),
+                            );
                         },
                     );
                 }
@@ -656,45 +683,6 @@ fn editable_combo(ui: &mut Ui, salt: &str, value: &mut String, presets: &[&str])
 }
 
 // ── preferences (multi-pickers) ─────────────────────────────────────────────
-
-fn preferred_picker_world_types(ui: &mut Ui, draft: &mut FactionDef) {
-    pick_multi(
-        ui,
-        "preferred_world_types",
-        "Preferred world types",
-        &mut draft.preferred_world_types,
-        WorldType::VARIANTS
-            .iter()
-            .map(|v| (format!("{v:?}"), v.display_name().to_string()))
-            .collect(),
-    );
-}
-
-fn preferred_picker_governments(ui: &mut Ui, draft: &mut FactionDef) {
-    pick_multi(
-        ui,
-        "preferred_governments",
-        "Preferred governments",
-        &mut draft.preferred_governments,
-        Government::VARIANTS
-            .iter()
-            .map(|v| (format!("{v:?}"), v.display_name().to_string()))
-            .collect(),
-    );
-}
-
-fn preferred_picker_features(ui: &mut Ui, draft: &mut FactionDef) {
-    pick_multi(
-        ui,
-        "preferred_notable_features",
-        "Preferred notable features",
-        &mut draft.preferred_notable_features,
-        NotableFeature::VARIANTS
-            .iter()
-            .map(|v| (format!("{v:?}"), v.display_name().to_string()))
-            .collect(),
-    );
-}
 
 fn pick_multi(
     ui: &mut Ui,

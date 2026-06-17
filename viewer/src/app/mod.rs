@@ -39,6 +39,21 @@ mod regions_view;
 mod relations_view;
 mod trade_view;
 
+/// Shared empty-state for the read-only feature views: returns the live sector
+/// snapshot, or paints the "no sector loaded" panel and returns `None` so the
+/// caller can early-return.
+fn require_sector(app: &App, ctx: &egui::Context) -> Option<Arc<GeneratedSector>> {
+    let sector = app.sector.clone();
+    if sector.is_none() {
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
+            .show(ctx, |ui| {
+                ui.label(egui::RichText::new("no sector loaded").color(palette::chrome_text_dim()));
+            });
+    }
+    sector
+}
+
 pub struct App {
     /// Derived read snapshot of the editor's source-of-truth sector (F-S1).
     /// Rebuilt only by the frame bridge / explicit load — never mutated in place.
@@ -334,35 +349,6 @@ mod tests {
 
     // ── Gap 226: sync_derived_sector auto-save ──────────────────────────────
 
-    /// A dependency-free scratch directory under `std::env::temp_dir()`. The viewer
-    /// crate has no `tempfile` dev-dep, so we hand-roll a unique dir (process id +
-    /// atomic counter — no RNG, keeping the determinism invariant intact) and clean
-    /// it up on drop. Used by the auto-save tests, which must write a real file.
-    struct ScratchDir {
-        path: std::path::PathBuf,
-    }
-
-    impl ScratchDir {
-        fn new() -> Self {
-            use std::sync::atomic::{AtomicU64, Ordering};
-            static COUNTER: AtomicU64 = AtomicU64::new(0);
-            let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!(
-                "sectorforge-viewer-test-{}-{}",
-                std::process::id(),
-                n
-            ));
-            std::fs::create_dir_all(&path).unwrap();
-            Self { path }
-        }
-    }
-
-    impl Drop for ScratchDir {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.path);
-        }
-    }
-
     /// With `auto_save = true` and a `loaded_from` path, `sync_derived_sector`
     /// writes the source-of-truth sector to disk on the change frame and clears the
     /// dirty flag after a successful write; the derived snapshot is re-synced.
@@ -373,8 +359,8 @@ mod tests {
             empty_sector, empty_system, GeneratedSector, HexCoord, SystemKind,
         };
 
-        let dir = ScratchDir::new();
-        let path = dir.path.join("sector.json");
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sector.json");
         let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
         app.editor.loaded_from = Some(path.to_string_lossy().to_string());
         app.editor.auto_save = true;
@@ -410,8 +396,8 @@ mod tests {
         use sectorforge::ids::system_id;
         use sectorforge::sector_model::{empty_sector, empty_system, HexCoord, SystemKind};
 
-        let dir = ScratchDir::new();
-        let path = dir.path.join("sector.json");
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sector.json");
         let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
         app.editor.loaded_from = Some(path.to_string_lossy().to_string());
         app.editor.auto_save = false;

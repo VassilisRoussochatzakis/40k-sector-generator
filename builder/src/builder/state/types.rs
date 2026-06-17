@@ -31,16 +31,6 @@ pub enum ModalKind {
     OpenProject {
         path: Option<Utf8PathBuf>,
     },
-    SaveAs {
-        path: Utf8PathBuf,
-    },
-    PlaceSystem {
-        coord: sectorforge::sector_model::HexCoord,
-        name: String,
-    },
-    ConfirmRevertSnapshot {
-        snapshot_name: String,
-    },
     /// §G6: "New sector from preset" modal opened from the generation panel.
     /// On confirm the host scaffolds the project and pushes the resulting
     /// state onto a [`crate::builder::workspace::BuilderWorkspace`].

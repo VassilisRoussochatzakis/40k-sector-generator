@@ -3,12 +3,7 @@ use crate::{factions_overview, palette};
 use egui::{RichText, ScrollArea, TopBottomPanel};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
-    let Some(sector) = app.sector.clone() else {
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::chrome_bg()))
-            .show(ctx, |ui| {
-                ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
-            });
+    let Some(sector) = super::require_sector(app, ctx) else {
         return;
     };
 

@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::{emit_report, load_or_regenerate};
+use super::common::{emit_report, resolve_sector_with_cfg};
 
 pub(crate) fn run_prose(
     project: Option<&Utf8PathBuf>,
@@ -17,18 +17,8 @@ pub(crate) fn run_prose(
     // entry so per-sector / per-system overrides authored via the builder
     // survive on the CLI path too. Falls back to defaults when no project is
     // available or when the project leaves `inputs.prose` unset.
-    let (sec, base_cfg) = match project.cloned() {
-        Some(project_dir) => {
-            let input = sectorforge::load_project(&project_dir)?;
-            let cfg = input.catalogs.prose.clone();
-            let sec = sectorforge::generate_sector(input)?;
-            (sec, cfg)
-        }
-        None => (
-            load_or_regenerate(None, sector.cloned())?,
-            sectorforge::prose::ProseConfig::default(),
-        ),
-    };
+    let (sec, base_cfg) =
+        resolve_sector_with_cfg(project, sector, |input| input.catalogs.prose.clone())?;
     let cfg = sectorforge::prose::ProseConfig {
         tone: if dispatch {
             sectorforge::prose::ProseTone::Dispatch

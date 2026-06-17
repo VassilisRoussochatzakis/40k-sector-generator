@@ -236,9 +236,9 @@ impl BuilderApp {
         let Some(modal) = modal else {
             return;
         };
-        // SaveAs / PlaceSystem / ConfirmRevertSnapshot / NewFromPreset are
-        // panel-managed transient state — they render inside their owning
-        // panel (map.rs, generation.rs, etc.) and do not need an outer window.
+        // NewFromPreset (and other panel-managed transient modals) render
+        // inside their owning panel (generation.rs, etc.) and do not need an
+        // outer window.
         let title: String = match &modal {
             ModalKind::NewProject { .. } => "New project".into(),
             ModalKind::OpenProject { .. } => "Open project".into(),

@@ -5,12 +5,7 @@ use egui::{RichText, ScrollArea};
 // (public/secret attitude via `{:?}`). No filter/sort/selection is provided by design — it is a
 // glanceable diplomacy overview, not an editor. Leave behaviour as-is unless a feature is requested.
 pub fn ui(app: &mut App, ctx: &egui::Context) {
-    let Some(sector) = app.sector.clone() else {
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::chrome_bg()))
-            .show(ctx, |ui| {
-                ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
-            });
+    let Some(sector) = super::require_sector(app, ctx) else {
         return;
     };
     egui::CentralPanel::default()

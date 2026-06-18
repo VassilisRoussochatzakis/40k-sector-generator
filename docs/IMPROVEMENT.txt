@@ -24,7 +24,7 @@ Tag appended to each finding header below:
 Roll-up:
 
   P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [DONE]
-  P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [IN PROGRESS]
+  P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [DONE]
   P0-3 [DONE]          P1-3 [DONE]          P2-3 [DONE]          P3-3 [DONE]
   P0-4 [DONE]                               P2-4 [DONE]          P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
@@ -36,7 +36,7 @@ PR-roadmap status (see "REFACTORING ROADMAP" below):
   PR 1  — DONE           PR 6  — DONE
   PR 2  — DONE           PR 7  — DONE
   PR 3  — DONE           PR 8  — DONE
-  PR 4  — DONE           PR 9  — IN PROGRESS
+  PR 4  — DONE           PR 9  — DONE
   PR 5  — DONE           PR 10 — IN PROGRESS
 
 ================================================================================
@@ -610,7 +610,7 @@ Status:
   defining crate.
 
 ────────────────────────────────────────────────────────────────────────────────
-P3-2  src/main.rs is 1809 LOC in one file  [IN PROGRESS]
+P3-2  src/main.rs is 1809 LOC in one file  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    src/main.rs
 
@@ -633,6 +633,19 @@ Recommendation:
 
   Same treatment is reasonable for the 27-variant SectorProgress and its
   300-line `log_sector_progress` match — extract to `src/cli/progress.rs`.
+
+Status:
+  STALE — already done. The CLI was already split in a prior refactor.
+  src/main.rs is now 40 LOC (thin parse+dispatch), and src/cli/ holds 22
+  per-command modules (analyze, briefing, common, compose, diff, economy,
+  exit_code, generate, generate_all, history, hooks, interestingness,
+  missions, personae, presets, prose, random, regions, relations, search,
+  sites, validate) with the clap Command enum + dispatch match in
+  src/cli/mod.rs:43 / :489. The 300-line log_sector_progress is extracted to
+  src/cli/common.rs:339 (the finding suggested a dedicated src/cli/progress.rs,
+  but it lives cohesively in common.rs alongside the other shared CLI helpers
+  — the intent of getting it out of main.rs is met; not worth a cosmetic
+  move). Verified: wc -l src/main.rs == 40; ls src/cli/.
 
 ────────────────────────────────────────────────────────────────────────────────
 P3-3  No MSRV pinned  [DONE]
@@ -807,7 +820,7 @@ PR 8 — Public API hygiene  [DONE]
   Risk: minor SemVer impact for downstream `match` callers — call out
   in CHANGELOG.
 
-PR 9 — CLI split  [IN PROGRESS]
+PR 9 — CLI split  [DONE]
   - src/cli/commands/*.rs per subcommand                           P3-2
   - extract log_sector_progress
   Risk: none (pure move).

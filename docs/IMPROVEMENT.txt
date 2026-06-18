@@ -23,9 +23,9 @@ Tag appended to each finding header below:
 
 Roll-up:
 
-  P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
+  P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [DONE]
   P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [IN PROGRESS]
-  P0-3 [DONE]          P1-3 [DONE]          P2-3 [DONE]          P3-3 [IN PROGRESS]
+  P0-3 [DONE]          P1-3 [DONE]          P2-3 [DONE]          P3-3 [DONE]
   P0-4 [DONE]                               P2-4 [DONE]          P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
                                             P2-6 [DONE]          P3-6 [NO ACTION]
@@ -35,7 +35,7 @@ PR-roadmap status (see "REFACTORING ROADMAP" below):
 
   PR 1  — DONE           PR 6  — DONE
   PR 2  — DONE           PR 7  — DONE
-  PR 3  — DONE           PR 8  — IN PROGRESS
+  PR 3  — DONE           PR 8  — DONE
   PR 4  — DONE           PR 9  — IN PROGRESS
   PR 5  — DONE           PR 10 — IN PROGRESS
 
@@ -578,7 +578,7 @@ Recommendation:
   the snapshot/session paths become a hotspot per P2-5.
 
 ────────────────────────────────────────────────────────────────────────────────
-P3-1  Public enums lack #[non_exhaustive]  [IN PROGRESS]
+P3-1  Public enums lack #[non_exhaustive]  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 Files:
     src/errors.rs           SectorError, MutationError
@@ -597,6 +597,17 @@ Recommendation:
   to grow (SectorError, MutationError, SectorProgress for sure; the others
   case-by-case). This is itself a breaking change for `match` callers but is
   cheap to land while the public-API consumer set is small.
+
+Status:
+  STALE — already done. All target public enums already carry
+  #[non_exhaustive], verified by grep (10/10): SectorError
+  (src/model/errors.rs), MutationError (src/model/sector_model/mutation.rs),
+  SectorProgress (src/gen/generation/mod.rs), and the model enums RouteType /
+  RouteKind / RouteStability / FactionInfluence / DominanceState / SystemKind /
+  RouteViewMode (src/model/sector_model/). The intra-crate exhaustive matches
+  on RouteViewMode (export legends in src/export/{svg_export,bitmap}/legend.rs)
+  compile fine — #[non_exhaustive] only constrains OTHER crates, not the
+  defining crate.
 
 ────────────────────────────────────────────────────────────────────────────────
 P3-2  src/main.rs is 1809 LOC in one file  [IN PROGRESS]
@@ -624,7 +635,7 @@ Recommendation:
   300-line `log_sector_progress` match — extract to `src/cli/progress.rs`.
 
 ────────────────────────────────────────────────────────────────────────────────
-P3-3  No MSRV pinned  [IN PROGRESS]
+P3-3  No MSRV pinned  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    Cargo.toml (workspace + member manifests)
 
@@ -632,6 +643,16 @@ Recommendation:
   Add `rust-version = "1.78"` (or the actual minimum that builds today) to
   all four manifests. Add a CI job that builds with that toolchain. Documents
   the contract for anyone depending on `sectorforge` as a library.
+
+Status:
+  STALE — already done. rust-version = "1.87" is pinned in the workspace root
+  Cargo.toml:17 and inherited by all four members via rust-version.workspace =
+  true (builder/viewer/gui-core Cargo.toml:5). Note: 1.87 is a conservative
+  policy pin, higher than the true feature floor (~1.65, set by let-else
+  usage) — left as-is (declaring support for a newer baseline is a valid
+  choice). The finding's remaining 'CI job building with that toolchain' is
+  deferred to PR 10's .github/workflows/ci.yml, where the CI workflow is
+  created.
 
 ────────────────────────────────────────────────────────────────────────────────
 P3-4  No cargo-deny / cargo-audit, no CI workflow file visible  [IN PROGRESS]
@@ -779,7 +800,7 @@ PR 7 — Lock-free progress + ordering  [DONE]
   Risk: low; the existing tests in gui-core/src/jobs.rs cover the
   observable behaviour.
 
-PR 8 — Public API hygiene  [IN PROGRESS]
+PR 8 — Public API hygiene  [DONE]
   - #[non_exhaustive] on SectorError, MutationError, SectorProgress,
     growable model enums                                           P3-1
   - add rust-version to all Cargo.toml manifests                   P3-3

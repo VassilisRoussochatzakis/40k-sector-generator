@@ -750,10 +750,10 @@ Files:   src/main.rs throughout, builder/src/main.rs
 OPTIMIZE.txt RECONCILIATION
 ================================================================================
 
-OPTIMIZE.txt #3 (derivation_cache digest)           → IN PROGRESS → P0-1
-OPTIMIZE.txt #4 (settings_digest narrow)            → IN PROGRESS → P0-2
-OPTIMIZE.txt #5 (bench phases)                      → IN PROGRESS → P1-2
-OPTIMIZE.txt #6 (PNG golden / pixel hash)           → IN PROGRESS → P1-1
+OPTIMIZE.txt #3 (derivation_cache digest)           → DONE        → P0-1
+OPTIMIZE.txt #4 (settings_digest narrow)            → DONE        → P0-2
+OPTIMIZE.txt #5 (bench phases)                      → DONE        → P1-2
+OPTIMIZE.txt #6 (PNG golden / pixel hash)           → DONE        → P1-1
 OPTIMIZE.txt #7 (whole-sector clones in GUI export) → DONE: viewer/src/app/mod.rs
                                                        already holds the sector
                                                        as Option<Arc<GeneratedSector>>;
@@ -761,7 +761,7 @@ OPTIMIZE.txt #7 (whole-sector clones in GUI export) → DONE: viewer/src/app/mod
                                                        in export_ui.rs are
                                                        Arc-clones. Remove the
                                                        item from OPTIMIZE.txt.
-OPTIMIZE.txt #8 (one job model)                     → IN PROGRESS → P1-3
+OPTIMIZE.txt #8 (one job model)                     → DONE        → P1-3
 OPTIMIZE.txt #9 (GUI responsiveness regression)     → IN PROGRESS (partial):
                                                        preview.rs already has
                                                        schedule/revision/stale

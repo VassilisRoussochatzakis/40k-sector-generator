@@ -13,7 +13,10 @@ use sectorforge::economy::{
     StrategicOutputRule, RESOURCE_KEYS, STRATEGIC_RESOURCE_KEYS,
 };
 
-use crate::shared::{fixture_dir, fixture_sector, gen_sector};
+use crate::shared::{
+    assert_derive_deterministic, derivation_proptest_config, fixture_dir, fixture_sector,
+    gen_sector, world_keys,
+};
 
 fn enabled_cfg() -> EconomyConfig {
     EconomyConfig {
@@ -47,15 +50,7 @@ fn enabled_derive_populates_per_world_and_per_system_entries() {
     assert_eq!(report.routes.len(), sector.routes.len());
 
     // Every per-world entry references a real system+world id from the sector.
-    let world_ids: std::collections::BTreeSet<(String, String)> = sector
-        .systems
-        .iter()
-        .flat_map(|s| {
-            s.worlds
-                .iter()
-                .map(move |w| (s.id.to_string(), w.id.to_string()))
-        })
-        .collect();
+    let world_ids = world_keys(sector);
     for w in &report.worlds {
         assert!(
             world_ids.contains(&(w.system_id.to_string(), w.world_id.to_string())),
@@ -137,11 +132,7 @@ fn render_markdown_disabled_message_when_no_derivation() {
 
 #[test]
 fn derive_is_deterministic_for_fixture() {
-    let a = economy::derive_with(fixture_sector(), &enabled_cfg());
-    let b = economy::derive_with(fixture_sector(), &enabled_cfg());
-    let ja = serde_json::to_string(&a).unwrap();
-    let jb = serde_json::to_string(&b).unwrap();
-    assert_eq!(ja, jb, "economy report not deterministic for fixture");
+    assert_derive_deterministic(|| economy::derive_with(fixture_sector(), &enabled_cfg()));
 }
 
 /// D2: `load_economy_file` parses the bundled `economy.toml`, the loaded config
@@ -238,11 +229,7 @@ fn economy_file_into_config_toplevel_resources_clobber_nested() {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 24,
-        max_shrink_iters: 32,
-        ..ProptestConfig::default()
-    })]
+    #![proptest_config(derivation_proptest_config())]
 
     /// G1: vary the generation seed and confirm the economy derivation is a pure
     /// function of the resulting sector — two independent generations from the

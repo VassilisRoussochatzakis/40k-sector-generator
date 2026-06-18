@@ -12,9 +12,6 @@ fn empty_sector() -> GeneratedSector {
         generator_version: "0".into(),
         width: 1,
         height: 1,
-        systems: vec![],
-        routes: vec![],
-        factions: vec![],
         manifest: GenerationManifest {
             project_id: "p".into(),
             generated_at_policy: "n".into(),
@@ -32,12 +29,6 @@ fn empty_sector() -> GeneratedSector {
             world_count: 0,
             route_count: 0,
         },
-        influence_field: Default::default(),
-        power_projection: Default::default(),
-        relations: Default::default(),
-        regions: Default::default(),
-        economy: Default::default(),
-        chronicle: Default::default(),
         ..Default::default()
     }
 }

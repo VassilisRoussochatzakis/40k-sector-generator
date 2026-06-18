@@ -9,6 +9,8 @@
 
 use std::process::Command;
 
+use crate::shared::bin;
+
 const SUBCOMMANDS: &[&str] = &[
     "validate",
     "generate",
@@ -35,10 +37,6 @@ const SUBCOMMANDS: &[&str] = &[
     "sites",
     "diff",
 ];
-
-fn bin() -> &'static str {
-    env!("CARGO_BIN_EXE_sectorforge")
-}
 
 #[test]
 fn every_subcommand_responds_to_help() {

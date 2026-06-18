@@ -40,8 +40,7 @@ formats = ["json"]
 
 #[test]
 fn no_factions_is_ok() {
-    let project = manifest_dir().join("examples/m42_project");
-    let mut input = sectorforge::load_project(project).unwrap();
+    let mut input = m42();
     // §TF-P-1: catalogs live behind `Arc`; mutating a single field requires
     // either `Arc::make_mut` (clones-on-write) or rebuilding the `Arc`. The
     // test owns the sole reference at this point, so `make_mut` is cheap.
@@ -57,8 +56,7 @@ fn majority_excluded_rows_is_severe_error() {
     // Regression guard: a column-truncated workbook (most rows missing fields)
     // must fail loudly, not silently generate from the surviving fraction.
     // See WB_EXCLUDED_ROWS_SEVERE in src/validate/validation.rs.
-    let project = manifest_dir().join("examples/m42_project");
-    let mut input = sectorforge::load_project(project).unwrap();
+    let mut input = m42();
 
     let cat = std::sync::Arc::make_mut(&mut input.catalogs);
     let valid = cat.world_rows[0].clone();
@@ -89,8 +87,7 @@ fn oversized_sector_dims_fail_validation() {
     // Regression guard: a hand-edited `sectorforge.toml` with absurd dimensions
     // must be rejected before generation allocates a multi-gigabyte cell grid.
     // See GEN_SECTOR_TOO_LARGE / MAX_SECTOR_DIM in src/validate/validation.rs.
-    let project = manifest_dir().join("examples/m42_project");
-    let mut input = sectorforge::load_project(project).unwrap();
+    let mut input = m42();
     input.config.generation.sector_width = 2000;
     input.config.generation.sector_height = 2000;
     let report = sectorforge::validate_project(&input).unwrap();

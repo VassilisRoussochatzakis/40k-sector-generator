@@ -7,7 +7,7 @@
 use proptest::prelude::*;
 use sectorforge::{generate_sector, load_project, validate_sector};
 
-use crate::shared::fixture_dir;
+use crate::shared::{derivation_proptest_config, fixture_dir, square_dim_and_count};
 
 fn run_one(
     seed: &str,
@@ -39,23 +39,14 @@ fn run_one(
 }
 
 // G7: `invariants_hold_across_random_inputs` derives system_count from
-// width*height, so extreme densities are never reached. This strategy varies
-// system_count independently while keeping dims SQUARE (one `dim` feeds both
-// width and height — the sector geometry invariant), bounded by total cells.
-prop_compose! {
-    fn square_dim_and_count()(dim in 4u32..=20)
-        (system_count in 2usize..=((dim as usize) * (dim as usize)), dim in Just(dim))
-        -> (u32, usize) {
-        (dim, system_count)
-    }
-}
+// width*height, so extreme densities are never reached. The shared
+// `square_dim_and_count` strategy varies system_count independently while
+// keeping dims SQUARE (one `dim` feeds both width and height — the sector
+// geometry invariant), bounded by total cells. Called here with dim 4..=20,
+// min system_count 2.
 
 proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 24,
-        max_shrink_iters: 32,
-        .. ProptestConfig::default()
-    })]
+    #![proptest_config(derivation_proptest_config())]
 
     #[test]
     fn invariants_hold_across_random_inputs(
@@ -76,7 +67,7 @@ proptest! {
     #[test]
     fn invariants_hold_across_system_counts(
         seed in "[a-z0-9]{4,12}",
-        (dim, system_count) in square_dim_and_count(),
+        (dim, system_count) in square_dim_and_count(4u32..=20, 2),
     ) {
         // Square sector: width == height == dim (geometry invariant).
         run_one(&seed, dim, dim, system_count, 1, 3, 0.2)

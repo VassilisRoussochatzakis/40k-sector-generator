@@ -11,7 +11,9 @@
 use proptest::prelude::*;
 use sectorforge::hooks::{self, HookAnchor, HooksConfig};
 
-use crate::shared::{fixture_sector, gen_sector};
+use crate::shared::{
+    assert_derive_deterministic, derivation_proptest_config, fixture_sector, gen_sector, world_keys,
+};
 
 #[test]
 fn report_metadata_mirrors_sector() {
@@ -30,15 +32,7 @@ fn every_hook_anchors_to_a_real_target_and_id_is_unique() {
         sector.systems.iter().map(|s| s.id.as_str()).collect();
     let route_ids: std::collections::BTreeSet<&str> =
         sector.routes.iter().map(|r| r.id.as_str()).collect();
-    let world_keys: std::collections::BTreeSet<(String, String)> = sector
-        .systems
-        .iter()
-        .flat_map(|s| {
-            s.worlds
-                .iter()
-                .map(move |w| (s.id.to_string(), w.id.to_string()))
-        })
-        .collect();
+    let world_keys = world_keys(sector);
 
     let mut seen_ids = std::collections::BTreeSet::new();
     for h in &report.hooks {
@@ -133,19 +127,11 @@ fn render_markdown_includes_stable_anchors() {
 
 #[test]
 fn derive_is_deterministic_for_fixture() {
-    let a = hooks::derive(fixture_sector());
-    let b = hooks::derive(fixture_sector());
-    let ja = serde_json::to_string(&a).unwrap();
-    let jb = serde_json::to_string(&b).unwrap();
-    assert_eq!(ja, jb, "hooks report not deterministic for fixture");
+    assert_derive_deterministic(|| hooks::derive(fixture_sector()));
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 24,
-        max_shrink_iters: 32,
-        ..ProptestConfig::default()
-    })]
+    #![proptest_config(derivation_proptest_config())]
 
     /// G1: vary the generation seed and confirm the hooks derivation is a pure
     /// function of the resulting sector — two independent generations from the

@@ -21,7 +21,7 @@ use proptest::prelude::*;
 use sectorforge::sector_model::{GeneratedRoute, GeneratedSystem, RouteStability, RouteType};
 use sectorforge::{generate_sector, load_project};
 
-use crate::shared::fixture_dir;
+use crate::shared::{derivation_proptest_config, fixture_dir, square_dim_and_count};
 
 /// Severity rank mirrored from `crate::generation::stability_level` (which is
 /// `pub(crate)` and therefore invisible to this external integration crate).
@@ -168,30 +168,16 @@ fn assert_webways_stable(set: &RouteSet) -> Result<(), TestCaseError> {
     Ok(())
 }
 
-// Vary system_count independently of dims while keeping the sector SQUARE — one
-// `dim` feeds both width and height (geometry invariant). Mirrors
-// `invariants_proptest.rs::square_dim_and_count`.
-prop_compose! {
-    fn square_dim_and_count()(dim in 6u32..=16)
-        (system_count in 4usize..=((dim as usize) * (dim as usize)), dim in Just(dim))
-        -> (u32, usize) {
-        (dim, system_count)
-    }
-}
-
 proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 24,
-        max_shrink_iters: 32,
-        .. ProptestConfig::default()
-    })]
+    #![proptest_config(derivation_proptest_config())]
 
     // Single-sector clauses: within each generated sector, buckets are
-    // monotone and every webway is Stable.
+    // monotone and every webway is Stable. Square sector: one `dim` feeds both
+    // width and height (geometry invariant), system_count varies in 4..=dim².
     #[test]
     fn route_monotonicity_holds_within_a_sector(
         seed in "[a-z0-9]{4,12}",
-        (dim, system_count) in square_dim_and_count(),
+        (dim, system_count) in square_dim_and_count(6u32..=16, 4),
         density in 0.05f64..=0.6,
     ) {
         let set = generate_at(&seed, dim, system_count, density);
@@ -205,7 +191,7 @@ proptest! {
     #[test]
     fn route_monotonicity_holds_across_two_densities(
         seed in "[a-z0-9]{4,12}",
-        (dim, system_count) in square_dim_and_count(),
+        (dim, system_count) in square_dim_and_count(6u32..=16, 4),
         d_lo in 0.05f64..=0.30,
         d_extra in 0.05f64..=0.30,
     ) {

@@ -6,6 +6,20 @@ use sectorforge::search::{Constraint, SearchConfig, WishesFile};
 
 use crate::shared::{fixture_dir as fixture_project, fixture_sector};
 
+/// Build a `WishesFile` from the repeated `search: SearchConfig { .. }` skeleton.
+/// Each test supplies its own distinct `base_seed`, `budget`, `report_top`, and
+/// `constraints`; only the boilerplate is factored here.
+fn wishes(base_seed: &str, budget: u32, report_top: u32, constraints: Vec<Constraint>) -> WishesFile {
+    WishesFile {
+        search: SearchConfig {
+            base_seed: Some(base_seed.into()),
+            budget,
+            report_top,
+        },
+        constraints,
+    }
+}
+
 // ── §2 SEARCH ──────────────────────────────────────────────────────────────────
 
 #[test]
@@ -14,14 +28,7 @@ fn search_trivial_wishes_wins_immediately() {
     // of them). The winner is the n=0 candidate = the base seed verbatim.
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("trivial".into()),
-            budget: 4,
-            report_top: 5,
-        },
-        constraints: Vec::new(),
-    };
+    let wishes = wishes("trivial", 4, 5, Vec::new());
     let outcome = sectorforge::run_seed_search(&input, &wishes).unwrap();
     let win = outcome.winning.expect("trivial search must find a seed");
     assert_eq!(win.n, 0);
@@ -33,17 +40,15 @@ fn search_trivial_wishes_wins_immediately() {
 fn search_unknown_faction_reports_preflight_error() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("preflight".into()),
-            budget: 1,
-            report_top: 1,
-        },
-        constraints: vec![Constraint::FactionShareMin {
+    let wishes = wishes(
+        "preflight",
+        1,
+        1,
+        vec![Constraint::FactionShareMin {
             faction_id: "no_such_faction".into(),
             min: 0.10,
         }],
-    };
+    );
     let outcome = sectorforge::run_seed_search(&input, &wishes).unwrap();
     assert!(outcome.winning.is_none());
     assert!(!outcome.preflight_errors.is_empty());
@@ -52,18 +57,10 @@ fn search_unknown_faction_reports_preflight_error() {
 #[test]
 fn search_is_deterministic_for_same_inputs() {
     let project = fixture_project();
-    let input1 = sectorforge::load_project(&project).unwrap();
-    let input2 = sectorforge::load_project(&project).unwrap();
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("repeat".into()),
-            budget: 4,
-            report_top: 5,
-        },
-        constraints: vec![Constraint::RouteGraphConnected],
-    };
-    let a = sectorforge::run_seed_search(&input1, &wishes).unwrap();
-    let b = sectorforge::run_seed_search(&input2, &wishes).unwrap();
+    let input = sectorforge::load_project(&project).unwrap();
+    let wishes = wishes("repeat", 4, 5, vec![Constraint::RouteGraphConnected]);
+    let a = sectorforge::run_seed_search(&input, &wishes).unwrap();
+    let b = sectorforge::run_seed_search(&input, &wishes).unwrap();
     let aj = serde_json::to_string_pretty(&a).unwrap();
     let bj = serde_json::to_string_pretty(&b).unwrap();
     assert_eq!(aj, bj);
@@ -84,30 +81,28 @@ fn search_near_misses_are_byte_identical_single_vs_multi_thread() {
     // A faction share of >= 0.99 for a single faction is unreachable on the m42
     // fixture, so no candidate wins and every evaluated candidate lands in
     // `near_misses` (capped at `report_top`).
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("near-miss-determinism".into()),
-            budget: 6,
-            report_top: 5,
-        },
-        constraints: vec![Constraint::FactionShareMin {
+    let wishes = wishes(
+        "near-miss-determinism",
+        6,
+        5,
+        vec![Constraint::FactionShareMin {
             faction_id: "imperial_administration".into(),
             min: 0.99,
         }],
-    };
+    );
+
+    let input = sectorforge::load_project(&project).unwrap();
 
     // (a) Forced single-thread: a 1-thread rayon pool. `into_par_iter` inside
     // `install` runs on this pool, so the parallel enumeration is serialised.
-    let input_single = sectorforge::load_project(&project).unwrap();
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(1)
         .build()
         .unwrap();
-    let single = pool.install(|| sectorforge::run_seed_search(&input_single, &wishes).unwrap());
+    let single = pool.install(|| sectorforge::run_seed_search(&input, &wishes).unwrap());
 
     // (b) Default parallel: the global rayon pool (multi-threaded on CI/dev).
-    let input_multi = sectorforge::load_project(&project).unwrap();
-    let multi = sectorforge::run_seed_search(&input_multi, &wishes).unwrap();
+    let multi = sectorforge::run_seed_search(&input, &wishes).unwrap();
 
     // The search must have produced near-misses (no winner for an impossible
     // constraint) — otherwise this test would be vacuous.
@@ -132,8 +127,7 @@ fn search_near_misses_are_byte_identical_single_vs_multi_thread() {
 
     // Belt-and-braces: a second default-pool run is also identical, guarding the
     // run-to-run determinism the parallel collect promises.
-    let input_multi2 = sectorforge::load_project(&project).unwrap();
-    let multi2 = sectorforge::run_seed_search(&input_multi2, &wishes).unwrap();
+    let multi2 = sectorforge::run_seed_search(&input, &wishes).unwrap();
     assert_eq!(
         multi_json,
         serde_json::to_string(&multi2).unwrap(),
@@ -150,14 +144,7 @@ fn search_with_progress_matches_run_search_and_reports() {
 
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("progress".into()),
-            budget: 4,
-            report_top: 5,
-        },
-        constraints: vec![Constraint::RouteGraphConnected],
-    };
+    let wishes = wishes("progress", 4, 5, vec![Constraint::RouteGraphConnected]);
 
     let plain = sectorforge::run_seed_search(&input, &wishes).unwrap();
 
@@ -185,14 +172,7 @@ fn search_with_progress_matches_run_search_and_reports() {
 fn search_writes_markdown_and_json() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("emit".into()),
-            budget: 2,
-            report_top: 2,
-        },
-        constraints: Vec::new(),
-    };
+    let wishes = wishes("emit", 2, 2, Vec::new());
     let outcome = sectorforge::run_seed_search(&input, &wishes).unwrap();
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
@@ -211,13 +191,11 @@ fn search_story_beat_constraints() {
 
     use sectorforge::search::{PresenceName, SystemStateFilter, SystemStateName};
 
-    let wishes = WishesFile {
-        search: SearchConfig {
-            base_seed: Some("story".into()),
-            budget: 10,
-            report_top: 5,
-        },
-        constraints: vec![
+    let wishes = wishes(
+        "story",
+        10,
+        5,
+        vec![
             Constraint::FactionPresenceCountMin {
                 faction_id: "imperial_administration".into(),
                 min: 1,
@@ -232,7 +210,7 @@ fn search_story_beat_constraints() {
                 },
             },
         ],
-    };
+    );
 
     let outcome = sectorforge::run_seed_search(&input, &wishes).unwrap();
     // We don't necessarily need a winner to verify evaluation logic doesn't crash,

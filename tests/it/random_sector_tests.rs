@@ -12,6 +12,8 @@ use sectorforge::random_sector::{
     RandomReport, SectorSize,
 };
 
+use crate::shared::presets_dir;
+
 /// The four themed gallery presets, all usable as `random --baseline` sources.
 const THEMED_BASELINES: [&str; 4] = [
     "m42-classic",
@@ -20,9 +22,24 @@ const THEMED_BASELINES: [&str; 4] = [
     "mercantile-crossroads",
 ];
 
-fn presets_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("presets")
-}
+/// The 14 `[inputs]` files a fully-overlaid (`_full`) project ships — asserted
+/// to exist after `_full` scaffold and after a themed-baseline scaffold.
+const FULL_INPUT_FILES: [&str; 14] = [
+    "data/worlds/worlds.toml",
+    "data/names/system_names.toml",
+    "data/names/world_names.toml",
+    "data/factions/factions.toml",
+    "data/routes/route_rules.toml",
+    "data/factions/relations.toml",
+    "data/routes/regions.toml",
+    "data/worlds/economy.toml",
+    "data/history.toml",
+    "data/personae.toml",
+    "data/sites.toml",
+    "data/hooks.toml",
+    "data/missions.toml",
+    "data/prose.toml",
+];
 
 fn fresh_dest(tmp: &tempfile::TempDir, name: &str) -> Utf8PathBuf {
     Utf8PathBuf::from_path_buf(tmp.path().join(name)).expect("utf8 tempdir path")
@@ -234,22 +251,7 @@ fn full_preset_loads_validates_and_enables_overlays() {
     );
 
     // Every [inputs] file resolves on disk.
-    for rel in [
-        "data/worlds/worlds.toml",
-        "data/names/system_names.toml",
-        "data/names/world_names.toml",
-        "data/factions/factions.toml",
-        "data/routes/route_rules.toml",
-        "data/factions/relations.toml",
-        "data/routes/regions.toml",
-        "data/worlds/economy.toml",
-        "data/history.toml",
-        "data/personae.toml",
-        "data/sites.toml",
-        "data/hooks.toml",
-        "data/missions.toml",
-        "data/prose.toml",
-    ] {
+    for rel in FULL_INPUT_FILES {
         assert!(dest.join(rel).exists(), "_full is missing {rel}");
     }
 }
@@ -428,22 +430,7 @@ fn themed_baselines_scaffold_load_validate_and_enable_overlays() {
             report.errors
         );
 
-        for rel in [
-            "data/worlds/worlds.toml",
-            "data/names/system_names.toml",
-            "data/names/world_names.toml",
-            "data/factions/factions.toml",
-            "data/routes/route_rules.toml",
-            "data/factions/relations.toml",
-            "data/routes/regions.toml",
-            "data/worlds/economy.toml",
-            "data/history.toml",
-            "data/personae.toml",
-            "data/sites.toml",
-            "data/hooks.toml",
-            "data/missions.toml",
-            "data/prose.toml",
-        ] {
+        for rel in FULL_INPUT_FILES {
             assert!(
                 dest.join(rel).exists(),
                 "{preset} is missing {rel} after scaffold (needed as a random baseline)"

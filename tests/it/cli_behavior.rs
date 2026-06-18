@@ -19,12 +19,7 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 
-use crate::shared::copy_dir_all;
-
-/// Absolute path to the freshly built `sectorforge` binary.
-fn bin() -> &'static str {
-    env!("CARGO_BIN_EXE_sectorforge")
-}
+use crate::shared::{bin, copy_dir_all};
 
 /// The checked-in `examples/m42_project` — a valid project that validates with
 /// 0 warnings and generates cleanly. Used as the cheapest valid fixture.

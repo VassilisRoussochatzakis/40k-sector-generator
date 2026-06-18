@@ -13,15 +13,9 @@
 //! run. None of these iterate an `FxHashMap`/`FxHashSet` for emission — the
 //! producers already emit in deterministic (grid / BTreeMap) order.
 
-use std::path::PathBuf;
-
 use camino::Utf8PathBuf;
 
-use crate::shared::{assert_blake3_golden, fixture_sector};
-
-fn goldens_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens")
-}
+use crate::shared::{assert_blake3_golden, fixture_dir, fixture_sector, goldens_dir};
 
 // ── heatmap ──────────────────────────────────────────────────────────────────
 //
@@ -136,10 +130,6 @@ fn html_export_matches_pinned_blake3_hash() {
 // paths). A full committed JSON golden (mirroring `sector_m42_default.json`)
 // surfaces the exact field that drifted under `git diff tests/goldens/`.
 
-fn segmentum_fixture_project() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
 fn segmentum_base_file() -> sectorforge::segmentum::SegmentumFile {
     use sectorforge::segmentum::{
         ChildEntry, FactionMode, SegmentumConfig, SegmentumFile, StitchConfig,
@@ -161,7 +151,7 @@ fn segmentum_base_file() -> sectorforge::segmentum::SegmentumFile {
         children: vec![
             ChildEntry {
                 id: "alpha".into(),
-                project: segmentum_fixture_project(),
+                project: fixture_dir(),
                 column: 0,
                 row: 0,
                 seed: Some("alpha-seed".into()),
@@ -169,7 +159,7 @@ fn segmentum_base_file() -> sectorforge::segmentum::SegmentumFile {
             },
             ChildEntry {
                 id: "beta".into(),
-                project: segmentum_fixture_project(),
+                project: fixture_dir(),
                 column: 1,
                 row: 0,
                 seed: Some("beta-seed".into()),

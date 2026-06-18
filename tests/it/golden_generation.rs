@@ -9,6 +9,8 @@ use sectorforge::{
     GeneratedSector, GeneratedSystem, ProjectInput,
 };
 
+use crate::shared::{fixture_dir, goldens_dir};
+
 #[test]
 fn generate_fixture_project_succeeds() {
     let report = sectorforge::validate_project(fixture_input()).expect("validate");
@@ -167,7 +169,7 @@ fn worlds_per_system_min_equals_max_is_exact() {
 
 fn fixture_input() -> &'static ProjectInput {
     static INPUT: OnceLock<ProjectInput> = OnceLock::new();
-    INPUT.get_or_init(|| sectorforge::load_project(fixture_project()).expect("load_project"))
+    INPUT.get_or_init(|| sectorforge::load_project(fixture_dir()).expect("load_project"))
 }
 
 fn fixture_sector() -> &'static GeneratedSector {
@@ -269,13 +271,8 @@ fn assert_exported_system_matches(output_dir: &Utf8PathBuf, expected: &Generated
     assert_eq!(system.worlds.len(), expected.worlds.len());
 }
 
-fn fixture_project() -> Utf8PathBuf {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
-    Utf8PathBuf::from(manifest_dir).join("examples/m42_project")
-}
-
 fn fixture_world_data_dir() -> Utf8PathBuf {
-    fixture_project().join("data/worlds")
+    fixture_dir().join("data/worlds")
 }
 
 // ── G2 content goldens (IMPROVEMENT_REVIEW G2 / G-S3) ────────────────────────
@@ -287,10 +284,6 @@ fn fixture_world_data_dir() -> Utf8PathBuf {
 //
 // Bless / refresh after an intentional output change:
 //   UPDATE_GOLDEN_JSON=1 UPDATE_GOLDEN_MD=1 cargo test --test it -- golden
-
-fn goldens_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens")
-}
 
 /// Export the memoized fixture sector to a tempdir and return the raw
 /// `(sector.json, sector.md)` bytes-as-text exactly as written to disk.

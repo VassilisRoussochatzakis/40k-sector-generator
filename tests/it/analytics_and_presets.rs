@@ -2,12 +2,7 @@
 
 use camino::Utf8PathBuf;
 
-use crate::shared::fixture_sector;
-
-fn presets_dir() -> Utf8PathBuf {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
-    Utf8PathBuf::from(manifest_dir).join("presets")
-}
+use crate::shared::{fixture_sector, presets_dir};
 
 #[test]
 fn analyze_real_sector_produces_complete_report() {

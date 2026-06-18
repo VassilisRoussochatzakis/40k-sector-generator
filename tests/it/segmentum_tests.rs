@@ -5,10 +5,7 @@ use sectorforge::segmentum::{
     ChildEntry, FactionMode, SegmentumConfig, SegmentumFile, StitchConfig,
 };
 
-fn fixture_project() -> Utf8PathBuf {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
-    Utf8PathBuf::from(manifest_dir).join("examples/m42_project")
-}
+use crate::shared::fixture_dir;
 
 fn base_file() -> SegmentumFile {
     SegmentumFile {
@@ -28,7 +25,7 @@ fn base_file() -> SegmentumFile {
         children: vec![
             ChildEntry {
                 id: "alpha".into(),
-                project: fixture_project(),
+                project: fixture_dir(),
                 column: 0,
                 row: 0,
                 seed: Some("alpha-seed".into()),
@@ -36,7 +33,7 @@ fn base_file() -> SegmentumFile {
             },
             ChildEntry {
                 id: "beta".into(),
-                project: fixture_project(),
+                project: fixture_dir(),
                 column: 1,
                 row: 0,
                 seed: Some("beta-seed".into()),

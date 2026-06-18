@@ -16,7 +16,9 @@ use sectorforge::{
     GeneratedSector,
 };
 
-use crate::shared::{fixture_dir, fixture_sector, gen_sector};
+use crate::shared::{
+    assert_derive_deterministic, derivation_proptest_config, fixture_dir, fixture_sector, gen_sector,
+};
 
 fn build_report(sector: &GeneratedSector, cfg: &RelationsConfig) -> RelationsReport {
     RelationsReport {
@@ -149,11 +151,7 @@ fn render_markdown_includes_stable_anchors() {
 
 #[test]
 fn derive_is_deterministic_for_fixture() {
-    let a = relations::derive(fixture_sector());
-    let b = relations::derive(fixture_sector());
-    let ja = serde_json::to_string(&a).unwrap();
-    let jb = serde_json::to_string(&b).unwrap();
-    assert_eq!(ja, jb, "relations matrix not deterministic for fixture");
+    assert_derive_deterministic(|| relations::derive(fixture_sector()));
 }
 
 /// D1: `load_relations_file` parses the bundled `relations.toml`, the loaded
@@ -209,11 +207,7 @@ fn load_relations_file_changes_derivation_deterministically() {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 24,
-        max_shrink_iters: 32,
-        ..ProptestConfig::default()
-    })]
+    #![proptest_config(derivation_proptest_config())]
 
     /// G1: vary the generation seed and confirm the relations derivation is a
     /// pure function of the resulting sector — two independent generations from

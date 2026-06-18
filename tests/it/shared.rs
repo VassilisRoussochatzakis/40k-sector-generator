@@ -5,14 +5,93 @@
 //! the result instead of regenerating per-test (~20-25 redundant generations
 //! saved per run).
 
+use std::collections::BTreeSet;
+use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use camino::Utf8PathBuf;
+use proptest::prelude::*;
 use sectorforge::{generate_sector, load_project, GeneratedSector};
 
 pub fn fixture_dir() -> Utf8PathBuf {
     Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
+}
+
+/// The bundled starter-preset gallery (`presets/`). Shared by the
+/// analytics/presets and random-sector suites.
+pub fn presets_dir() -> Utf8PathBuf {
+    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("presets")
+}
+
+/// `tests/goldens/` — the committed byte-golden directory. Shared by the
+/// full-file and blake3 export goldens. `Utf8Path`/`Utf8PathBuf` implement
+/// `AsRef<Path>`, so the result works directly with `std::fs`.
+pub fn goldens_dir() -> Utf8PathBuf {
+    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens")
+}
+
+/// Absolute path to the freshly built `sectorforge` binary (the
+/// `CARGO_BIN_EXE_*` cargo-test env var). Shared by the CLI smoke + behaviour
+/// suites that drive the binary as a subprocess.
+pub fn bin() -> &'static str {
+    env!("CARGO_BIN_EXE_sectorforge")
+}
+
+/// The shared `ProptestConfig` for the derivation/invariant proptest suites:
+/// `cases: 24`, `max_shrink_iters: 32`, defaults otherwise. Used by the
+/// economy/relations/hooks/personae/route-monotonicity/invariants suites.
+pub fn derivation_proptest_config() -> ProptestConfig {
+    ProptestConfig {
+        cases: 24,
+        max_shrink_iters: 32,
+        ..ProptestConfig::default()
+    }
+}
+
+/// The set of `(system_id, world_id)` keys for every world in the sector, as a
+/// canonical `BTreeSet`. Shared by the economy/hooks/personae structural tests
+/// that check report entries reference real worlds.
+pub fn world_keys(sector: &GeneratedSector) -> BTreeSet<(String, String)> {
+    sector
+        .systems
+        .iter()
+        .flat_map(|s| {
+            s.worlds
+                .iter()
+                .map(move |w| (s.id.to_string(), w.id.to_string()))
+        })
+        .collect()
+}
+
+/// Assert a derivation is deterministic for the cached fixture: run `derive`
+/// twice and confirm the two results serialise to byte-identical JSON. Shared
+/// by the economy/relations/hooks/personae `derive_is_deterministic_for_fixture`
+/// tests, each passing its own module's derive closure.
+pub fn assert_derive_deterministic<T, F>(derive: F)
+where
+    T: serde::Serialize,
+    F: Fn() -> T,
+{
+    let a = derive();
+    let b = derive();
+    let ja = serde_json::to_string(&a).unwrap();
+    let jb = serde_json::to_string(&b).unwrap();
+    assert_eq!(ja, jb, "derivation not deterministic for fixture");
+}
+
+prop_compose! {
+    /// Draw a SQUARE sector `dim` from `dim_range` and a `system_count` in
+    /// `min_count..=dim*dim`, keeping the sector square (one `dim` feeds both
+    /// width and height — the geometry invariant). Shared by the invariants and
+    /// route-monotonicity suites, which differ only in `dim_range` / `min_count`
+    /// and pass their own originals.
+    pub fn square_dim_and_count(dim_range: RangeInclusive<u32>, min_count: usize)
+        (dim in dim_range)
+        (system_count in min_count..=((dim as usize) * (dim as usize)), dim in Just(dim))
+        -> (u32, usize) {
+        (dim, system_count)
+    }
 }
 
 pub fn fixture_sector() -> &'static GeneratedSector {

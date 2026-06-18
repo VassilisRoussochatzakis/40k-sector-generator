@@ -26,8 +26,8 @@ Roll-up:
   P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [DONE]
   P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [DONE]
   P0-3 [DONE]          P1-3 [DONE]          P2-3 [DONE]          P3-3 [DONE]
-  P0-4 [DONE]                               P2-4 [DONE]          P3-4 [IN PROGRESS]
-                                            P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
+  P0-4 [DONE]                               P2-4 [DONE]          P3-4 [DONE]
+                                            P2-5 [NO ACTION]     P3-5 [IN PROGRESS]
                                             P2-6 [DONE]          P3-6 [NO ACTION]
                                                                  P3-7 [NO ACTION]
 
@@ -37,7 +37,7 @@ PR-roadmap status (see "REFACTORING ROADMAP" below):
   PR 2  — DONE           PR 7  — DONE
   PR 3  — DONE           PR 8  — DONE
   PR 4  — DONE           PR 9  — DONE
-  PR 5  — DONE           PR 10 — IN PROGRESS
+  PR 5  — DONE           PR 10 — DONE
 
 ================================================================================
 EXECUTIVE SUMMARY
@@ -540,7 +540,7 @@ Status:
   (423) green; gui-core map-snapshots unaffected.
 
 ────────────────────────────────────────────────────────────────────────────────
-P2-5  Builder snapshot deep-clones the full sector  [IN PROGRESS]
+P2-5  Builder snapshot deep-clones the full sector  [NO ACTION]
 ────────────────────────────────────────────────────────────────────────────────
 File:    builder/src/builder/snapshot.rs:7-12, builder/src/builder/state.rs:992
 Current:
@@ -563,6 +563,14 @@ Recommendation:
 
   Defer until a profile shows this matters; documented here as the obvious
   next step if memory becomes a concern on large sectors.
+
+Status:
+  DEFERRED BY DESIGN (profile-gated) — no change. builder/src/builder/snapshot.rs
+  still holds `sector: GeneratedSector` (a deep clone via #[derive(Clone)]), but
+  the finding itself gates the Arc<GeneratedSector> + Arc::make_mut CoW on 'a
+  profile shows it matters,' and no profile yet justifies it. Revisit when a
+  large-sector memory profile flags snapshot clones as a real cost. (ponytail:
+  don't optimize without a measurement.)
 
 ────────────────────────────────────────────────────────────────────────────────
 P2-6  OPTIMIZE.txt #7 is already addressed — close out  [DONE]
@@ -668,7 +676,7 @@ Status:
   created.
 
 ────────────────────────────────────────────────────────────────────────────────
-P3-4  No cargo-deny / cargo-audit, no CI workflow file visible  [IN PROGRESS]
+P3-4  No cargo-deny / cargo-audit, no CI workflow file visible  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    .github/ — no workflows checked in (the repo has .git but no
                     .github/ directory).
@@ -684,6 +692,21 @@ Recommendation:
   cargo tree -d reports four legitimate dev-time duplicates (rand_core
   0.6/0.9, rand 0.8/0.9, rand_chacha 0.3/0.9, getrandom 0.2/0.3/0.4) — all
   pulled by proptest. None affect release artifacts.
+
+Status:
+  DONE (CI present; cargo-deny deliberately skipped per user decision). The CI
+  workflow already exists at .github/workflows/ci.yml: cargo fmt --all --check,
+  cargo clippy --workspace --all-targets --locked -D warnings, cargo test
+  --workspace + golden tests, all on the MSRV 1.87 toolchain
+  (dtolnay/rust-toolchain@1.87), plus an integration-ignored job (cargo test
+  --include-ignored: segmentum + export-byte goldens) and a rustsec/audit-check
+  advisory job (cargo-audit equivalent). This also satisfies PR 1/§P2-1's
+  deferred 'cargo fmt --check CI step' and PR 8/§P3-3's deferred 'MSRV CI job'.
+  cargo-deny + deny.toml were NOT added (user decision): advisories are already
+  covered by the audit job, and cargo-deny's unique license/duplicate-version
+  gating is marginal for this unpublished internal tool while adding deny.toml
+  allowlist upkeep (the dep graph carries known dev-only dups: rand 0.8 vs 0.9,
+  getrandom 0.2/0.3/0.4 via proptest/tempfile).
 
 ────────────────────────────────────────────────────────────────────────────────
 P3-5  PreviewJobResult large_enum_variant allow can be replaced with Box  [IN PROGRESS]
@@ -825,7 +848,7 @@ PR 9 — CLI split  [DONE]
   - extract log_sector_progress
   Risk: none (pure move).
 
-PR 10 — Snapshot CoW + cargo-deny (optional, profile first)  [IN PROGRESS]
+PR 10 — Snapshot CoW + cargo-deny (optional, profile first)  [DONE]
   - Snapshot.sector → Arc<GeneratedSector> with Arc::make_mut       P2-5
   - .github/workflows/ci.yml with fmt/clippy/test/deny             P3-4
   - deny.toml allowing known dev-only duplicates

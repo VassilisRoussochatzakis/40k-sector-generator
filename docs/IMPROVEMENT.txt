@@ -25,7 +25,7 @@ Roll-up:
 
   P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
   P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [IN PROGRESS]
-  P0-3 [DONE]          P1-3 [IN PROGRESS]   P2-3 [DONE]          P3-3 [IN PROGRESS]
+  P0-3 [DONE]          P1-3 [DONE]          P2-3 [DONE]          P3-3 [IN PROGRESS]
   P0-4 [DONE]                               P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
                                             P2-6 [DONE]          P3-6 [NO ACTION]
@@ -33,7 +33,7 @@ Roll-up:
 
 PR-roadmap status (see "REFACTORING ROADMAP" below):
 
-  PR 1  — DONE           PR 6  — IN PROGRESS
+  PR 1  — DONE           PR 6  — DONE
   PR 2  — DONE           PR 7  — IN PROGRESS
   PR 3  — DONE           PR 8  — IN PROGRESS
   PR 4  — DONE           PR 9  — IN PROGRESS
@@ -350,7 +350,7 @@ Status:
   cargo clippy --bench generation -D warnings clean.
 
 ────────────────────────────────────────────────────────────────────────────────
-P1-3  GUI job-model split is real (gui-core typed vs builder stub)  [IN PROGRESS]
+P1-3  GUI job-model split is real (gui-core typed vs builder stub)  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 Files:
     gui-core/src/jobs.rs                — real JobHandle<T> with cancel, progress,
@@ -378,6 +378,25 @@ Recommendation:
   stale-revision discarded — at the JobHandle layer. The preview path
   already has the stale-revision case (builder/src/builder/preview.rs:223);
   promote that pattern up.
+
+Status:
+  STALE — no action needed; the job-model split was already consolidated. The
+  'builder JobHandle stub' this finding targets does NOT exist: the builder
+  already uses the generic sectorforge_gui_core::jobs::JobHandle<T> directly in
+  every runner (derivation_jobs / export_run / preview / random_run /
+  search_run / segmentum_run / iterative_gen), with no parallel
+  {id, description} stub and no re-export. The 'pending_jobs' field was already
+  removed by the a6cecd6 ponytail audit ('delete dead code'). The requested
+  tests already exist in gui-core/src/jobs.rs: cancel + revision
+  (job_handle_carries_revision_and_cancel_flag), complete
+  (spawn_job_dispatch_returns_before_worker_finishes asserts the delivered
+  result value), error (worker_panic_becomes_surfaced_failed_result +
+  worker_panic_on_non_representable_type_disconnects). The stale-revision
+  DISCARD logic lives in the builder consumer (the gui-core handle only carries
+  the revision field, which is asserted) and is tested by
+  background_drain_discards_result_when_fingerprint_changed. Verified by grep:
+  the only `struct JobHandle` in the workspace is the gui-core generic; zero
+  hits for pending_jobs / JobSummary / JobStatus.
 
 ────────────────────────────────────────────────────────────────────────────────
 P2-1  cargo fmt --check fails  [DONE]
@@ -727,7 +746,7 @@ PR 5 — Bench phases  [DONE]
   - one group per phase listed in P1-2
   Risk: none (bench-only).
 
-PR 6 — Job model consolidation  [IN PROGRESS]
+PR 6 — Job model consolidation  [DONE]
   - rename builder::state::JobHandle → JobSummary                   P1-3
   - drop pending_jobs field if unused, or wire to gui-core handles
   - add cancel/complete/error/stale tests at the JobHandle layer

@@ -23,9 +23,9 @@ Tag appended to each finding header below:
 
 Roll-up:
 
-  P0-1 [IN PROGRESS]   P1-1 [IN PROGRESS]   P2-1 [IN PROGRESS]   P3-1 [IN PROGRESS]
-  P0-2 [IN PROGRESS]   P1-2 [IN PROGRESS]   P2-2 [IN PROGRESS]   P3-2 [IN PROGRESS]
-  P0-3 [IN PROGRESS]   P1-3 [IN PROGRESS]   P2-3 [IN PROGRESS]   P3-3 [IN PROGRESS]
+  P0-1 [IN PROGRESS]   P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
+  P0-2 [IN PROGRESS]   P1-2 [IN PROGRESS]   P2-2 [DONE]          P3-2 [IN PROGRESS]
+  P0-3 [IN PROGRESS]   P1-3 [IN PROGRESS]   P2-3 [DONE]          P3-3 [IN PROGRESS]
   P0-4 [IN PROGRESS]                        P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
                                             P2-6 [DONE]          P3-6 [NO ACTION]
@@ -33,10 +33,10 @@ Roll-up:
 
 PR-roadmap status (see "REFACTORING ROADMAP" below):
 
-  PR 1  — IN PROGRESS    PR 6  — IN PROGRESS
+  PR 1  — DONE           PR 6  — IN PROGRESS
   PR 2  — IN PROGRESS    PR 7  — IN PROGRESS
   PR 3  — IN PROGRESS    PR 8  — IN PROGRESS
-  PR 4  — IN PROGRESS    PR 9  — IN PROGRESS
+  PR 4  — DONE           PR 9  — IN PROGRESS
   PR 5  — IN PROGRESS    PR 10 — IN PROGRESS
 
 ================================================================================
@@ -321,7 +321,7 @@ Recommendation:
   promote that pattern up.
 
 ────────────────────────────────────────────────────────────────────────────────
-P2-1  cargo fmt --check fails  [IN PROGRESS]
+P2-1  cargo fmt --check fails  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 Files (representative — `cargo fmt --all` to fix all):
     builder/src/builder/panels/control.rs   (multiple hunks)
@@ -333,8 +333,13 @@ Recommendation:
   multi-line-arg formatting; no logic touched. Add a `cargo fmt --check`
   step in CI to keep it from drifting.
 
+Status:
+  Landed via `cargo fmt --all` (9 files, pure import-list rewrapping + one
+  blank line, no logic), commit f2115e5. The "add a `cargo fmt --check` CI
+  step" half is deferred to PR 10's .github/workflows/ci.yml.
+
 ────────────────────────────────────────────────────────────────────────────────
-P2-2  Clippy: 10 default warnings + ~430 pedantic, ~6 mechanical buckets  [IN PROGRESS]
+P2-2  Clippy: 10 default warnings + ~430 pedantic, ~6 mechanical buckets  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 Default-level (visible without --pedantic):
   - items_after_test_module     src/factions.rs:162, viewer/src/editor/state.rs:246
@@ -366,8 +371,17 @@ Recommendation:
       large_enum_variant = "warn"
       needless_pass_by_value = "warn"
 
+Status:
+  Default-level clippy is clean across the workspace —
+  `cargo clippy --workspace --all-targets -- -D warnings` passes (the cited
+  default warnings items_after_test_module @ factions.rs/state.rs and
+  needless_borrow @ golden_generation.rs are already resolved).
+  DEFERRED / NOT in this PR (opt-in; the finding itself flags them as
+  "recommends" / "separate PR"): the ~430 pedantic-lint sweep, the
+  [workspace.lints] config above, and the format!-append → write! change.
+
 ────────────────────────────────────────────────────────────────────────────────
-P2-3  file_watcher clones the baseline map every tick  [IN PROGRESS]
+P2-3  file_watcher clones the baseline map every tick  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    builder/src/builder/file_watcher.rs:97, 122
 Current:
@@ -395,6 +409,13 @@ Recommendation:
       }
   Drop `shutdown_check`. Make the sleep cadence (`tick`) a const in the
   module so the test doesn't need to know it.
+
+Status:
+  scan_once refactored to a read-only scan then write-back (no per-tick
+  full-key clone; the common no-change tick now allocates nothing); the
+  1000ms `tick` hoisted to module consts POLL_INTERVAL + POLL_SLICES
+  (coupled loop-count/divisor). The "dead shutdown_check" sub-item was
+  already absent from the current code (stale). file_watcher tests green.
 
 ────────────────────────────────────────────────────────────────────────────────
 P2-4  Lock-on-progress JobHandle is heavier than needed  [IN PROGRESS]
@@ -614,7 +635,7 @@ Open questions from OPTIMIZE.txt:
 REFACTORING ROADMAP (PRs in order)
 ================================================================================
 
-PR 1 — Mechanical cleanup, no behaviour change  [IN PROGRESS]
+PR 1 — Mechanical cleanup, no behaviour change  [DONE]
   - cargo fmt --all                                                P2-1
   - cargo clippy --fix for autofixable categories                  P2-2
   - drop dead `shutdown_check` accumulator in file_watcher         P2-3
@@ -637,7 +658,7 @@ PR 3 — settings_digest_v2  [IN PROGRESS]
   - update GUIDE.md / OVERVIEW.md
   Risk: medium — changes manifest contents. Document the version bump.
 
-PR 4 — PNG/SVG golden tests  [IN PROGRESS]
+PR 4 — PNG/SVG golden tests  [DONE]
   - tests/png_golden.rs with two small fixtures                    P1-1
   - tests/svg_golden.rs deterministic-text hash
   Risk: low; tests only. Provides the safety net for PR 5.

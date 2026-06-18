@@ -26,6 +26,12 @@ use std::time::{Duration, SystemTime};
 
 use camino::{Utf8Path, Utf8PathBuf};
 
+/// Poll cadence: one mtime scan per [`POLL_INTERVAL`], slept in [`POLL_SLICES`]
+/// equal slices so a cancel signal is honoured within roughly a tenth of the
+/// interval. Named together so the loop count and the sleep divisor can't drift.
+const POLL_INTERVAL: Duration = Duration::from_millis(1000);
+const POLL_SLICES: u32 = 10;
+
 /// One change event posted by the polling thread. `mtime` lets the consumer
 /// update its mtime baseline without a second `stat`.
 #[derive(Debug, Clone)]
@@ -83,22 +89,29 @@ pub(crate) fn scan_once(
     root: &Utf8Path,
     baseline: &mut BTreeMap<String, SystemTime>,
 ) -> Vec<FileChange> {
-    let mut out = Vec::new();
-    let snapshot: Vec<(String, SystemTime)> =
-        baseline.iter().map(|(k, v)| (k.clone(), *v)).collect();
-    for (rel, last) in snapshot {
-        let abs = root.join(&rel);
+    // Read-only scan first — we can't mutate `baseline` while iterating it —
+    // then write the advances back. A tick with no changes (the common case)
+    // allocates nothing and clones no keys.
+    let mut updates: Vec<(String, SystemTime)> = Vec::new();
+    for (rel, last) in baseline.iter() {
+        let abs = root.join(rel);
         let Ok(meta) = std::fs::metadata(Path::new(abs.as_str())) else {
             continue;
         };
         let Ok(now) = meta.modified() else { continue };
-        if now > last {
-            baseline.insert(rel.clone(), now);
-            out.push(FileChange {
-                rel_path: rel,
-                mtime: now,
-            });
+        if now > *last {
+            updates.push((rel.clone(), now));
         }
+    }
+    let mut out = Vec::with_capacity(updates.len());
+    for (rel, now) in updates {
+        if let Some(slot) = baseline.get_mut(&rel) {
+            *slot = now;
+        }
+        out.push(FileChange {
+            rel_path: rel,
+            mtime: now,
+        });
     }
     out
 }
@@ -109,7 +122,6 @@ fn poll_loop(
     tx: Sender<FileChange>,
     cancel: Arc<AtomicBool>,
 ) {
-    let tick = Duration::from_millis(1000);
     while !cancel.load(Ordering::Acquire) {
         for ev in scan_once(&root, &mut baseline) {
             if cancel.load(Ordering::Acquire) {
@@ -120,11 +132,11 @@ fn poll_loop(
             }
         }
         // Sleep in small slices so cancel signals are honoured quickly.
-        for _ in 0..10 {
+        for _ in 0..POLL_SLICES {
             if cancel.load(Ordering::Acquire) {
                 return;
             }
-            thread::sleep(tick / 10);
+            thread::sleep(POLL_INTERVAL / POLL_SLICES);
         }
     }
 }

@@ -4,6 +4,56 @@
 > The audit was read-only; **no code was changed**. Your job is to execute the tasks below.
 > The user's directive: **resolve every stub — dead *and* weak.**
 
+## Execution status — 2026-06-18 (FINAL)
+
+**All actionable tasks are resolved.** The code edits for the DELETE/EXPOSE group
+(Tasks 1–8) have landed and gone green, the doc scrub has run, and the
+KEEP group (Tasks 9–12) is a confirmed conscious no-op. Net outcome, verified
+against the live tree on this date:
+
+- **Task 1 — `PlacementConfig.mode` — DONE.** The field, the `PlacementMode` enum,
+  its `as_slug`, and all UI sites are gone from the code (the removal landed
+  alongside the `cluster_bias` clustering work). `grep PlacementMode` returns zero
+  hits across `src/`, `builder/src/`, `viewer/src/`, and `presets/`/`examples/`;
+  `PlacementConfig` now carries only `cluster_bias` + `minimum_system_distance`.
+  Stale `PlacementMode` doc mentions were corrected.
+- **Task 2 — `WorldSelectionConfig.mode` — DONE.** The field, the single-variant
+  `WorldSelectionMode` enum, and both combos (`iterative_gen.rs`, `generation.rs`)
+  are gone; `grep WorldSelectionMode` returns zero hits across the crate trees.
+  `mode =` is stripped from every `world_selection` TOML table in `presets/` /
+  `examples/`. Stale doc mentions (`GUIDE.md` G1 parity table, `BUILDER_REQS.txt`
+  field list) scrubbed.
+- **Tasks 3–6 — `subsector_width` / `subsector_height` / `strict_world_rows` /
+  `allow_partial_rows` — DONE.** All four dead fields, their G1 widgets, and their
+  default-write literals are removed; `grep` returns zero hits across the crate
+  trees, `presets/`, and `examples/`. Stale doc mentions in `GUIDE.md` (sample
+  `sectorforge.toml`, the subsector note) and `BUILDER_REQS.txt` (G1 field list)
+  scrubbed; the `subsector_width.is_some()` assertion in `docs/TEST_GAPS.md` was
+  corrected.
+- **Task 7 — `WorldSelectionConfig.require_complete_rows` — DONE.** The field and
+  its checkbox are gone; the engine hardcodes the strict-exclusion path in
+  `world_pool.rs` (`build_pool` always excludes rows missing a required field or
+  carrying a non-positive/non-finite weight). Generated output is unchanged — only
+  the now-redundant `ExclusionReason` branch collapsed. Stale doc mentions in
+  `GUIDE.md` (sample TOML + the `worlds.toml` "usable row" prose) scrubbed.
+- **Task 8 — `RouteGenerationConfig.stability_targets` — DONE (EXPOSED).** A control
+  now lives in the **Routes** wizard step (`iterative_gen.rs` `show_routes_form`):
+  an off-by-default "Target a mix" checkbox that writes
+  `Some(StabilityTargets { stable, unstable, hazardous, perilous })` with four
+  relative-weight DragValues. Routed through the transient session (the command-bus
+  carve-out — `iterative_gen` is view state). Default stays `None` → byte-identical
+  → goldens green. `GUIDE.md` gains a line for the new control in the iterative
+  wizard section (the TOML-key prose was already correct).
+- **Golden re-pin — DONE.** The only golden movement from this work was the
+  `input_digests["sectorforge.toml"]` line, which flips on *any* config-text edit
+  (the deleted serde keys left the checked-in TOML). That diff was proven confined
+  to `input_digests` and the affected golden(s) were re-pinned in the dedicated
+  re-pin phase. No generation-content bytes changed.
+- **Tasks 9–12 — DONE (KEEP / conscious no-op).** Provenance passthroughs
+  (`search_base_seed` / `search_candidate_index` / `search_constraints_digest`) and
+  the `allow_empty_hexes` validation gate were confirmed *not* stubs and kept per
+  the rationale below. No code required.
+
 ## How this was produced
 
 A 53-agent workflow enumerated all 33 serde/`pub` knobs of `GenerationConfig` + nested
@@ -81,7 +131,10 @@ The two that matter most are **#1 and #2**: dropdowns a user can change in the w
 
 ## GROUP A — DELETE (dead stubs)
 
-### Task 1 — `PlacementConfig.mode` (DEAD, wizard step 2) — DELETE  ☐
+### Task 1 — `PlacementConfig.mode` (DEAD, wizard step 2) — DELETE  ✅ DONE
+> **DONE (verified 2026-06-18).** Field, `PlacementMode` enum, `as_slug`, and all UI
+> sites are gone from the tree; zero `PlacementMode` hits remain in code or presets.
+> Stale `PlacementMode` doc mentions corrected the same day.
 The known suspect. Engine reads only `cluster_bias` + `minimum_system_distance`; clustering is
 gated on `cluster_bias > 0.0` (`placement.rs:59`), **never** on `mode`. Empirically
 byte-identical uniform-vs-clustered. The live lever is the `cluster_bias` slider, which already
@@ -109,7 +162,11 @@ sits next to this dropdown — `mode` is a redundant coarse duplicate.
   `presets/`+`examples/`; `cargo check --workspace` clean; golden suite green **without update**;
   fixed-seed before/after sector diff identical.
 
-### Task 2 — `WorldSelectionConfig.mode` (DEAD, wizard step 4) — DELETE  ☐
+### Task 2 — `WorldSelectionConfig.mode` (DEAD, wizard step 4) — DELETE  ✅ DONE
+> **DONE (verified 2026-06-18).** Field, single-variant `WorldSelectionMode` enum,
+> parity test, and both combos (`iterative_gen.rs`, `generation.rs`) removed; zero
+> `WorldSelectionMode` hits remain in code or presets. `mode =` stripped from
+> `world_selection` TOML tables; stale doc mentions scrubbed. Golden green.
 Never read **and** the enum has a single variant (`WeightedRows`) — it cannot vary even in
 principle. Pure UI noise.
 
@@ -124,7 +181,10 @@ principle. Pure UI noise.
 - **Done when:** field + single-variant enum + parity test + 2 UI sites gone; `mode=` stripped
   from `world_selection` TOML tables; golden green without update.
 
-### Task 3 — `GenerationConfig.subsector_width` (DEAD) — DELETE  ☐
+### Task 3 — `GenerationConfig.subsector_width` (DEAD) — DELETE  ✅ DONE
+> **DONE (verified 2026-06-18).** Field + G1 widget + test assertion removed; zero
+> hits remain in code or presets. Stale doc mentions (`GUIDE.md`, `TEST_GAPS.md`)
+> scrubbed. Golden green (only `input_digests` moved, re-pinned later).
 Assigned/serialized, **zero** engine reads. Empirically byte-identical 1 vs 64. No subsector
 concept exists anywhere in the engine.
 
@@ -136,7 +196,10 @@ concept exists anywhere in the engine.
 - **Done when:** field + G1 widget + test assert gone; `subsector_width` stripped from presets;
   golden green without update.
 
-### Task 4 — `GenerationConfig.subsector_height` (DEAD) — DELETE  ☐
+### Task 4 — `GenerationConfig.subsector_height` (DEAD) — DELETE  ✅ DONE
+> **DONE (verified 2026-06-18).** Field + G1 widget removed; zero hits remain in
+> code or presets. Stale doc mentions (`GUIDE.md`) scrubbed. Golden green (only
+> `input_digests` moved, re-pinned later).
 Identical shape to Task 3.
 
 - **Config field:** `src/loading/config.rs:110`
@@ -145,7 +208,10 @@ Identical shape to Task 3.
 - **Other refs:** `src/gen/random_sector.rs:386` (default); same test file.
 - **Done when:** as Task 3.
 
-### Task 5 — `GenerationConfig.strict_world_rows` (DEAD, duplicate) — DELETE  ☐
+### Task 5 — `GenerationConfig.strict_world_rows` (DEAD, duplicate) — DELETE  ✅ DONE
+> **DONE (verified 2026-06-18).** Field + checkbox + the three default-`true` write
+> literals removed; zero hits remain in code or presets. Doc mentions (`GUIDE.md`,
+> `docs/BUILDER_REQS.txt`) scrubbed. Golden green (only `input_digests` moved).
 A dead **duplicate** — the advertised behavior is actually implemented by the live
 `WorldSelectionConfig.require_complete_rows` (`config.rs:189`, read at `world_pool.rs:131`).
 Toggling `strict_world_rows` changes only serialized TOML.
@@ -158,7 +224,10 @@ Toggling `strict_world_rows` changes only serialized TOML.
 - **Done when:** field + checkbox + 3 literal writes + doc mentions gone; stripped from presets;
   golden green without update.
 
-### Task 6 — `WorldSelectionConfig.allow_partial_rows` (DEAD, unimplemented) — DELETE  ☐
+### Task 6 — `WorldSelectionConfig.allow_partial_rows` (DEAD, unimplemented) — DELETE  ✅ DONE
+> **DONE (verified 2026-06-18).** Field + checkbox + the two write sites + the stale
+> `world_pool.rs` comment removed; zero hits remain in code or presets. Done together
+> with Task 7. Docs scrubbed. Golden green.
 Explicitly never built — comment at `src/gen/world_pool.rs:141`: *"Partial-row mode
 (allow_partial_rows) is not implemented in the first cut; exclude and report."* The
 `require_complete_rows == false` branch (`world_pool.rs:140`) unconditionally excludes partial
@@ -177,7 +246,12 @@ rows regardless of this flag.
 
 ## GROUP B — RESOLVE WEAK
 
-### Task 7 — `WorldSelectionConfig.require_complete_rows` (WEAK) — DELETE / collapse  ☐
+### Task 7 — `WorldSelectionConfig.require_complete_rows` (WEAK) — DELETE / collapse  ✅ DONE
+> **DONE (verified 2026-06-18).** Field + checkbox removed; `world_pool.rs` hardcodes
+> the strict-exclusion path (`build_pool` always excludes incomplete/bad-weight
+> rows). Generated output unchanged — only the redundant `ExclusionReason` branch
+> collapsed; any shifted `WB_EXCLUDED_ROWS` diagnostic-test expectations updated.
+> Doc mentions scrubbed. Golden green.
 Read and reachable (`world_pool.rs:131`), **but** both states converge on the same world pool:
 the lenient path is tied to the dead `allow_partial_rows`, so `true` and `false` both exclude
 incomplete rows. The *only* observable difference is the `ExclusionReason` **diagnostic string**
@@ -196,7 +270,13 @@ generated sector.
 - **Alternative:** keep + actually implement partial rows (couples with Task 6's implement
   alternative — same feature). Pick one direction for the pair.
 
-### Task 8 — `RouteGenerationConfig.stability_targets` (WEAK) — EXPOSE  ☐
+### Task 8 — `RouteGenerationConfig.stability_targets` (WEAK) — EXPOSE  ✅ DONE
+> **DONE (verified 2026-06-18).** A control now lives in the **Routes** wizard step
+> (`iterative_gen.rs` `show_routes_form`): an off-by-default "Target a mix" checkbox
+> that sets `Some(StabilityTargets { stable, unstable, hazardous, perilous })` via
+> four relative-weight DragValues, written to the transient session (command-bus
+> carve-out). Default `None` → byte-identical → golden green. `GUIDE.md` iterative
+> wizard section gains a line for the control (TOML-key prose was already correct).
 **Inverse of a dead stub: live engine code, dead value.** The Stage-9 rebalance path works and
 *does* change per-route `RouteStability` when `Some`, but every production constructor sets
 `None`, so it's only reachable by hand-authoring TOML.
@@ -226,7 +306,9 @@ generated sector.
 > Included per the "resolve every flag" directive. The resolution for these is a **conscious
 > no-op with rationale**, so a future session doesn't waste effort "fixing" working code.
 
-### Task 9–11 — `search_base_seed` / `search_candidate_index` / `search_constraints_digest` — KEEP  ☐
+### Task 9–11 — `search_base_seed` / `search_candidate_index` / `search_constraints_digest` — KEEP  ✅ DONE
+> **DONE (conscious no-op, 2026-06-18).** Confirmed provenance passthroughs, working as
+> designed; kept per the rationale below. No code required.
 **Provenance passthroughs, working as designed.** Not user knobs — set only by the
 `--constraints` seed-search CLI flow (`src/cli/generate.rs:58,61,62,65`) and echoed verbatim into
 the manifest:
@@ -241,7 +323,9 @@ constraint-search result. **Recommendation: KEEP.** No UI; do not expose. Delete
 deliberately want to drop seed-search provenance from the manifest (that's a feature removal, not
 a stub fix).
 
-### Task 12 — `allow_empty_hexes` — KEEP (validation gate)  ☐
+### Task 12 — `allow_empty_hexes` — KEEP (validation gate)  ✅ DONE
+> **DONE (conscious no-op, 2026-06-18).** Confirmed a live pre-gen validation gate, not a
+> stub; kept per the rationale below. No code required.
 **Not a stub.** No generation read, but a real pre-gen gate: `src/validate/validation.rs:107`
 (`if g.system_count > grid_cells && !g.allow_empty_hexes`) rejects over-dense sectors (error at
 `:111`). Config `config.rs:115`, UI checkbox `generation.rs:200-205`. It changes accept/reject,

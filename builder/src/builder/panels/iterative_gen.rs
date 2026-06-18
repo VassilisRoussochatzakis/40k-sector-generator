@@ -67,7 +67,7 @@ use egui::{RichText, Sense, Ui};
 
 use std::collections::BTreeMap;
 
-use sectorforge::config::{PlacementMode, WorldSelectionMode};
+use sectorforge::config::StabilityTargets;
 use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
 use sectorforge::regions::{ConditionEntry, RegionConditionKind};
@@ -370,14 +370,6 @@ fn show_placement_form(ui: &mut Ui, state: &mut BuilderState) {
         let placement = &mut gen.placement;
         labeled(
             ui,
-            "Mode",
-            "How systems are scattered across the grid (schema: placement.mode).",
-            |ui| {
-                changed |= placement_mode_combo(ui, &mut placement.mode);
-            },
-        );
-        labeled(
-            ui,
             "Cluster bias",
             "How strongly systems clump together (schema: placement.cluster_bias). 0 = even.",
             |ui| {
@@ -619,14 +611,6 @@ fn show_systems_form(ui: &mut Ui, state: &mut BuilderState) {
         ui.separator();
 
         let ws = &mut gen.world_selection;
-        labeled(
-            ui,
-            "Mode",
-            "How world rows are sampled (schema: world_selection.mode).",
-            |ui| {
-                changed |= world_selection_mode_combo(ui, &mut ws.mode);
-            },
-        );
         labeled(
             ui,
             "Same star-colour bias",
@@ -1192,6 +1176,82 @@ fn show_routes_form(ui: &mut Ui, state: &mut BuilderState) {
                     .changed();
             },
         );
+
+        // §Task8 EXPOSE — `routes.stability_targets`. The Stage-9 rebalance
+        // engine already honours `Some(StabilityTargets{..})` (re-buckets public
+        // routes to the target Stable/Unstable/Hazardous/Perilous mix); only
+        // production constructors set `None`, so the feature was previously
+        // reachable solely by hand-authoring TOML. This surfaces it in the
+        // wizard. `None` (default, checkbox off) preserves the legacy early
+        // perilous-cap and byte-identical golden output. Written directly to the
+        // transient session (invariant #5 / §2.4 carve-out — `iterative_gen` is
+        // view state, never document state) then `note_config_edit`, matching
+        // every sibling knob above; it never lands in `sector.json`.
+        ui.add_space(4.0);
+        ui.label(RichText::new("Route stability mix").strong());
+        ui.separator();
+        let mut targeted = routes.stability_targets.is_some();
+        labeled(
+            ui,
+            "Target a mix",
+            "On: re-bucket public routes to the weights below, regardless of how many warp-storm \
+             regions rolled. Off (default): legacy perilous-cap (schema: routes.stability_targets).",
+            |ui| {
+                if ui.checkbox(&mut targeted, "").changed() {
+                    routes.stability_targets = if targeted {
+                        // A sensible, non-degenerate starting mix (mostly Stable
+                        // backbone) so enabling the control has a visible effect;
+                        // the user then tunes the four weights below. Weights are
+                        // relative — the engine normalises them.
+                        Some(StabilityTargets {
+                            stable: 0.55,
+                            unstable: 0.25,
+                            hazardous: 0.15,
+                            perilous: 0.05,
+                        })
+                    } else {
+                        None
+                    };
+                    changed = true;
+                }
+            },
+        );
+        if let Some(targets) = routes.stability_targets.as_mut() {
+            fn weight(ui: &mut Ui, label: &str, tip: &str, field: &mut f64) -> bool {
+                let mut hit = false;
+                labeled(ui, label, tip, |ui| {
+                    hit = ui
+                        .add(egui::DragValue::new(field).speed(0.01).range(0.0..=1.0))
+                        .changed();
+                });
+                hit
+            }
+            changed |= weight(
+                ui,
+                "Stable",
+                "Relative weight of Stable lanes (schema: routes.stability_targets.stable). \
+                 Weights are normalised; they need not sum to 1.",
+                &mut targets.stable,
+            );
+            changed |= weight(
+                ui,
+                "Unstable",
+                "Relative weight of Unstable lanes (schema: routes.stability_targets.unstable).",
+                &mut targets.unstable,
+            );
+            changed |= weight(
+                ui,
+                "Hazardous",
+                "Relative weight of Hazardous lanes (schema: routes.stability_targets.hazardous).",
+                &mut targets.hazardous,
+            );
+            changed |= weight(
+                ui,
+                "Perilous",
+                "Relative weight of Perilous lanes (schema: routes.stability_targets.perilous).",
+                &mut targets.perilous,
+            );
+        }
     }
     if changed {
         state.note_config_edit(ui.ctx(), GenStep::Routes);
@@ -1233,45 +1293,6 @@ fn show_finalize_form(ui: &mut Ui, state: &mut BuilderState) {
     if changed {
         state.note_config_edit(ui.ctx(), GenStep::Finalize);
     }
-}
-
-// ── combos ────────────────────────────────────────────────────────────────────
-
-const PLACEMENT_MODES: &[(PlacementMode, &str)] = &[
-    (PlacementMode::UniformGrid, "Uniform grid"),
-    (PlacementMode::WeightedGrid, "Weighted grid"),
-    (PlacementMode::Clustered, "Clustered"),
-];
-
-fn placement_mode_combo(ui: &mut Ui, mode: &mut PlacementMode) -> bool {
-    let mut changed = false;
-    let label = PLACEMENT_MODES
-        .iter()
-        .find(|(m, _)| m == mode)
-        .map_or("Uniform grid", |(_, l)| *l);
-    ui_kit::combo("iter_placement_mode", label).show_ui(ui, |ui| {
-        for (m, l) in PLACEMENT_MODES {
-            changed |= ui.selectable_value(mode, *m, *l).changed();
-        }
-    });
-    changed
-}
-
-const WORLD_SELECTION_MODES: &[(WorldSelectionMode, &str)] =
-    &[(WorldSelectionMode::WeightedRows, "Weighted rows")];
-
-fn world_selection_mode_combo(ui: &mut Ui, mode: &mut WorldSelectionMode) -> bool {
-    let mut changed = false;
-    let label = WORLD_SELECTION_MODES
-        .iter()
-        .find(|(m, _)| m == mode)
-        .map_or("Weighted rows", |(_, l)| *l);
-    ui_kit::combo("iter_world_selection_mode", label).show_ui(ui, |ui| {
-        for (m, l) in WORLD_SELECTION_MODES {
-            changed |= ui.selectable_value(mode, *m, *l).changed();
-        }
-    });
-    changed
 }
 
 // ── live preview (central, bottom) ────────────────────────────────────────────

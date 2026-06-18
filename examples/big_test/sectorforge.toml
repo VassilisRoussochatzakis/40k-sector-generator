@@ -16,24 +16,17 @@ regions = "data/routes/regions.toml"
 seed = "big-test-default-seed"
 sector_width = 32
 sector_height = 32
-subsector_width = 8
-subsector_height = 4
 system_count = 200
 min_worlds_per_system = 2
 max_worlds_per_system = 6
 allow_empty_hexes = true
 world_feature_count = 3
-strict_world_rows = true
 
 [generation.placement]
-mode = "uniform_grid"
 cluster_bias = 0.0
 minimum_system_distance = 3
 
 [generation.world_selection]
-mode = "weighted_rows"
-require_complete_rows = true
-allow_partial_rows = false
 same_star_colour_bias = 1.25
 strict_same_star_colour = false
 avoid_duplicate_world_type_in_system = false

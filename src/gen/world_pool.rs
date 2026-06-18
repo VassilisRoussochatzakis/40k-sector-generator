@@ -92,13 +92,13 @@ pub struct WeightedFeature {
 
 /// Build a candidate pool from raw `GenerationRow` values.
 ///
-/// `require_complete_rows = true` is the strict default: only fully resolved
-/// rows with positive finite weights become candidates. Anything else is
-/// reported via `excluded_rows`.
+/// Only fully resolved rows with positive finite weights become candidates;
+/// any row missing a required field or carrying a non-positive/non-finite
+/// weight is reported via `excluded_rows`.
 pub fn build_pool(
     rows: &[GenerationRow],
     tables: &KeyTables,
-    cfg: &WorldSelectionConfig,
+    _cfg: &WorldSelectionConfig,
 ) -> WorldCandidatePool {
     let mut pool = WorldCandidatePool::default();
 
@@ -128,21 +128,10 @@ pub fn build_pool(
             Some(w) => w,
         };
 
-        if cfg.require_complete_rows {
-            let missing = first_missing_field(row);
-            if let Some(field) = missing {
-                pool.excluded_rows.push(ExcludedRow {
-                    row_index,
-                    reason: ExclusionReason::MissingRequiredField(field),
-                });
-                continue;
-            }
-        } else if first_missing_field(row).is_some() {
-            // Partial-row mode (allow_partial_rows) is not implemented in the
-            // first cut; exclude and report.
+        if let Some(field) = first_missing_field(row) {
             pool.excluded_rows.push(ExcludedRow {
                 row_index,
-                reason: ExclusionReason::MissingRequiredField("partial_rows_unsupported"),
+                reason: ExclusionReason::MissingRequiredField(field),
             });
             continue;
         }

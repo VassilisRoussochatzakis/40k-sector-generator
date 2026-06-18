@@ -29476,7 +29476,7 @@
       "data/sites.toml": "blake3:5758cd86e71d5bba81b08ce5591c4a54d96c55124806418a4ef777d9d13cac01",
       "data/worlds/economy.toml": "blake3:1d6f8ed36ba8df6a71faa1bd07a905309aa65d20ec13a079e3597286077f21dc",
       "data/worlds/worlds.toml": "blake3:ce3a786685b10724b21b5d42f7ff2f1d7226f3d925c3052e528af0af613d786d",
-      "sectorforge.toml": "blake3:77b0c406fe66f341194d9c4533bdb59688e17135e6bf7953581012cd1fb44c7c"
+      "sectorforge.toml": "blake3:60de9396413cb459444194b0b95b51264008e05af5627a0188d2455fcb1613f5"
     },
     "settings_digest": "blake3:9746d183ade93e00219b6d66bf69540fc3b1b7123e05c73b9a4cbc83d4ef0e22",
     "system_count": 24,

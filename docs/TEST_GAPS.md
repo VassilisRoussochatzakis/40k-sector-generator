@@ -180,7 +180,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | GeneratedSector serde idempotence | rt | `to_string(from_str(to_string(s)))==to_string(s)`; deep-check economy.enabled, chronicle.events.len | **H** |
 | `EconomyFile::into_config` no-clobber | unit | nested-only resources survive (false branch); both present → top-level wins (precedence) | M |
 | `FactionDef` serde aliases | unit | `sub_faction`/`subfaction_id` → `.subfaction`; `sub_faction_name` → `.subfaction_name` | M |
-| `examples/big_test`+`big_sparse_test` parse | int | `load_project` Ok; `width==height`; `system_count>0`; `subsector_width.is_some()`; catalogs non-empty | M |
+| `examples/big_test`+`big_sparse_test` parse | int | `load_project` Ok; `width==height`; `system_count>0`; catalogs non-empty | M |
 | `segmentum_example.toml` parse | int | `toml::from_str::<SegmentumFile>` Ok; children non-empty; each `column<columns && row<rows` | M |
 | `mint_seed` (random_sector.rs) | unit | `len()==16`, all hex; 8 mints into BTreeSet, `set.len()>1` | L |
 | `PresetMeta` round-trip + checked-in files | rt | full-field round-trip; each `presets/*/preset.toml` parses; `""`→all-default | L |

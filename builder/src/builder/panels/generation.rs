@@ -15,7 +15,6 @@
 use camino::Utf8PathBuf;
 use egui::{RichText, Ui};
 
-use sectorforge::config::{PlacementMode, WorldSelectionMode};
 use sectorforge::sector_model::HexCoord;
 use sectorforge_gui_core::{
     palette,
@@ -126,36 +125,6 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
             },
         );
             labeled(
-            ui,
-            "Subsector width",
-            "Width of each subsector block in hexes (schema: subsector_width). 0 leaves it automatic.",
-            |ui| {
-                let mut sw = gen.subsector_width.unwrap_or(0);
-                if ui
-                    .add(egui::DragValue::new(&mut sw).range(0..=64))
-                    .changed()
-                {
-                    gen.subsector_width = (sw > 0).then_some(sw);
-                    changed = true;
-                }
-            },
-        );
-            labeled(
-            ui,
-            "Subsector height",
-            "Height of each subsector block in hexes (schema: subsector_height). 0 leaves it automatic.",
-            |ui| {
-                let mut sh = gen.subsector_height.unwrap_or(0);
-                if ui
-                    .add(egui::DragValue::new(&mut sh).range(0..=64))
-                    .changed()
-                {
-                    gen.subsector_height = (sh > 0).then_some(sh);
-                    changed = true;
-                }
-            },
-        );
-            labeled(
                 ui,
                 "Star systems",
                 "How many star systems to place (schema: system_count).",
@@ -203,22 +172,8 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 changed |= ui.checkbox(&mut gen.allow_empty_hexes, "").changed();
             },
         );
-            labeled(
-            ui,
-            "Strict world rows",
-            "Require fully-filled world rows when building systems (schema: strict_world_rows).",
-            |ui| {
-                changed |= ui.checkbox(&mut gen.strict_world_rows, "").changed();
-            },
-        );
 
             subhead(ui, "Where systems go");
-            labeled(
-                ui,
-                "Placement style",
-                "How systems are spread across the grid (schema: placement.mode).",
-                |ui| changed |= placement_mode_combo(ui, &mut gen.placement.mode),
-            );
             labeled(
                 ui,
                 "Clustering",
@@ -247,32 +202,6 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
         );
 
             subhead(ui, "Worlds in each system");
-            labeled(
-                ui,
-                "Selection style",
-                "How worlds are chosen for each system (schema: world_selection.mode).",
-                |ui| changed |= world_selection_mode_combo(ui, &gen.world_selection.mode),
-            );
-            labeled(
-            ui,
-            "Require full rows",
-            "Only build a world row when it can be fully populated (schema: world_selection.require_complete_rows).",
-            |ui| {
-                changed |= ui
-                    .checkbox(&mut gen.world_selection.require_complete_rows, "")
-                    .changed();
-            },
-        );
-            labeled(
-                ui,
-                "Allow partial rows",
-                "Permit half-filled world rows (schema: world_selection.allow_partial_rows).",
-                |ui| {
-                    changed |= ui
-                        .checkbox(&mut gen.world_selection.allow_partial_rows, "")
-                        .changed();
-                },
-            );
             labeled(
             ui,
             "Same star-colour bias",
@@ -368,57 +297,6 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
         let now = ui.ctx().input(|i| i.time);
         state.generation.preview.schedule(now, DEBOUNCE_SECONDS);
     }
-}
-
-/// Human label for a placement mode (the raw slug is shown on hover so the
-/// schema mapping stays discoverable). Presentational only — the enum keeps its
-/// snake_case `Display`/`as_slug`.
-fn placement_mode_label(mode: PlacementMode) -> &'static str {
-    match mode {
-        PlacementMode::UniformGrid => "Even grid",
-        PlacementMode::WeightedGrid => "Weighted grid",
-        PlacementMode::Clustered => "Clustered",
-        _ => "Other",
-    }
-}
-
-fn placement_mode_combo(ui: &mut Ui, mode: &mut PlacementMode) -> bool {
-    let mut changed = false;
-    ui_kit::combo("placement_mode_combo", placement_mode_label(*mode)).show_ui(ui, |ui| {
-        for option in [
-            PlacementMode::UniformGrid,
-            PlacementMode::WeightedGrid,
-            PlacementMode::Clustered,
-        ] {
-            if ui
-                .selectable_label(*mode == option, placement_mode_label(option))
-                .on_hover_text(format!("key: {}", option.as_slug()))
-                .clicked()
-            {
-                *mode = option;
-                changed = true;
-            }
-        }
-    });
-    changed
-}
-
-/// GEN-1: `WorldSelectionMode` has a single variant (`WeightedRows`) today, so a
-/// combo could only ever offer one option. Render a static label instead of a
-/// no-choice dropdown. Kept as a function (taking `mode` by ref so it can read
-/// the display name) so a real combo drops back in unchanged once a second
-/// variant exists. The return type stays `bool` (`false` — nothing to change)
-/// to keep the caller's `changed |=` accumulation intact.
-fn world_selection_mode_combo(ui: &mut Ui, mode: &WorldSelectionMode) -> bool {
-    // Only `WeightedRows` exists today; `WorldSelectionMode` is `#[non_exhaustive]`,
-    // so a single label is correct until a second variant lands (then this becomes
-    // a real combo again).
-    let label = "Weighted rows";
-    ui.label(label).on_hover_text(format!(
-        "Only one world-selection style exists today (key: {}).",
-        mode.as_slug()
-    ));
-    false
 }
 
 // ── G2 ──────────────────────────────────────────────────────────────────────

@@ -1165,24 +1165,17 @@ missions              = "data/missions.toml"               # optional (§M1..§M
 seed                       = "my-seed-string"
 sector_width               = 10
 sector_height              = 10    # MUST equal sector_width — sectors are square (validation: GEN_SECTOR_NOT_SQUARE)
-subsector_width            = 5     # reserved; subsector layout is currently k-means clustered, not tile-sized
-subsector_height           = 5     # reserved (see above)
 system_count               = 24
 min_worlds_per_system      = 2
 max_worlds_per_system      = 6
 allow_empty_hexes          = true
 world_feature_count        = 3
-strict_world_rows          = true
 
 [generation.placement]
-mode                       = "uniform_grid"             # "uniform_grid" | "weighted_grid" | "clustered"
 cluster_bias               = 0.0                        # >0 clumps systems toward each other (1.0 ≈ one tight blob); 0 = even scatter
 minimum_system_distance    = 1
 
 [generation.world_selection]
-mode                                 = "weighted_rows"
-require_complete_rows                = true
-allow_partial_rows                   = false      # allow rows missing optional fields
 same_star_colour_bias                = 1.25       # bias toward matching star colours
 strict_same_star_colour              = false      # all worlds in a system share the primary star colour
 avoid_duplicate_world_type_in_system = false      # prevent repeated world types per system
@@ -1668,8 +1661,7 @@ The directory must contain `worlds.toml` in `data/worlds/`:
 
 A row is "usable" only when **all** required fields parse AND the weight is
 finite and > 0. Rows that don't qualify are reported by `validate` and
-`inspect-worlds`. The default `require_complete_rows = true` mode discards
-them.
+`inspect-worlds`, and are excluded from the world pool.
 
 To add new candidates, append `[[generation]]` tables to `worlds.toml`.
 The enum-derived variant set lives in [src/worlds.rs](src/worlds.rs) and
@@ -1913,8 +1905,8 @@ The GUI's sector view uses these clusters for the subsector overlay /
 detail panel. Subsectors are derived on demand from a `GeneratedSector` —
 they are not persisted into `sector.json`.
 
-Note: the `subsector_width` / `subsector_height` keys in `sectorforge.toml`
-are accepted by the config parser but the current clustering ignores them.
+Note: subsector layout is purely k-means clustered, not tile-sized — there
+is no configurable subsector dimension in `sectorforge.toml`.
 
 ---
 
@@ -3038,7 +3030,7 @@ strip stays stable.
 
 | Piece | Where it lives |
 |---|---|
-| G1 `[generation]` parity | [builder/src/builder/panels/generation.rs](builder/src/builder/panels/generation.rs) `show_g1_parameters` — typed widgets over every field of `GenerationConfig` / `PlacementConfig` / `WorldSelectionConfig` / `RouteGenerationConfig` / `RelationsGenerationConfig`. Enum ComboBoxes over `PlacementMode` (uniform / weighted / clustered) and `WorldSelectionMode`; DragValue for integers; Slider for fractions (`cluster_bias`, `route_density`, `same_star_colour_bias`). Any change schedules a §G3 preview. |
+| G1 `[generation]` parity | [builder/src/builder/panels/generation.rs](builder/src/builder/panels/generation.rs) `show_g1_parameters` — typed widgets over every field of `GenerationConfig` / `PlacementConfig` / `WorldSelectionConfig` / `RouteGenerationConfig` / `RelationsGenerationConfig`. DragValue for integers; Slider for fractions (`cluster_bias`, `route_density`, `same_star_colour_bias`); checkboxes/combos for the remaining typed fields. Any change schedules a §G3 preview. |
 | G2 seed lock + Re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::{seed_locked, seed_reroll_counter, reroll_seed}`. When unlocked, `reroll_seed` advances the counter and replaces `config.generation.seed` with `blake3("sectorforge:{seed}:reroll:{n}")` (computed by [builder/src/builder/preview.rs](builder/src/builder/preview.rs) `derive_reroll_seed`). When locked, the call is a no-op. Tests `reroll_locked_keeps_seed`, `reroll_unlocked_advances_seed_and_counter`, and `derive_reroll_seed_is_deterministic_and_counter_sensitive` pin the contract. |
 | G3 live preview | [builder/src/builder/preview.rs](builder/src/builder/preview.rs) `PreviewState` — scratch sector + in-flight `JobHandle` + debounce timer (`DEFAULT_DEBOUNCE_MS = 200`) + revision counter. `schedule` cancels any in-flight job, bumps the revision, and clears the scratch sector; `pump` checks the timer each frame and dispatches `sectorforge::generation::generate_with_progress_and_cancel` through `sectorforge_gui_core::jobs::spawn_job`. Stale revisions are discarded by `apply_result`. The panel shows a coloured "PREVIEW READY" badge with system / route counts when the worker completes. |
 | G4 Apply preview | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::apply_preview` — promotes the scratch sector into `state.sector`, then overlays every system whose `SystemId` is in `pinned_systems` with its pre-preview snapshot (or re-inserts it if the preview dropped the slot), then rebuilds the index, clears the derivation cache, marks dirty, and re-runs invariants. Pinning lives in the side-table per Q1; no new field on `GeneratedSystem`. |
@@ -3478,7 +3470,7 @@ The wizard is a **7-step** rail (`GenStep::ALL`): Size & seed · System placemen
 
 **Pre-flight generation guards (size cap + density cost).** The Size step clamps the grid field to `1..=MAX_CUSTOM_DIM` (80, the same ergonomic cap the one-shot `random` generator + CLI enforce) — `set_grid_dim` does the clamp so width/height can never diverge or exceed it. Defence-in-depth lives in `iterative_gen::precheck_generatable(&AppConfig)`, run at the top of both `spawn_prefix` (sets `feedback.last_command_error`, dispatches no job) and `commit_new_project` (returns `Err`, writes nothing, keeps the session): it rejects (1) a dimension past `MAX_CUSTOM_DIM` (catches configs arriving out of band), (2) an inverted `min > max` worlds-per-system range (which would panic the systems stage's `gen_range`), and (3) a route-pair cost past `MAX_GEN_ROUTE_PAIRS` (5M) — the routes stage builds an O(n²) candidate vector, and because `commit_new_project` runs synchronously with an uncancellable `|| false`, an 80×80 at ~1.0 density (≈6400 systems ⇒ ~20.5M pairs ⇒ hundreds of MB) would otherwise hang/OOM. The cost uses the *effective* system count (`min(system_count, dim²)`, mirroring placement's hex-capacity cap), so a huge `system_count` on a tiny grid is not false-rejected; the budget admits the densest shipped preset (Huge 80×80 ≈ 2560 systems ⇒ ~3.3M pairs). For a config that passes, the guard is allocation-free and draws no RNG — output stays byte-identical. Covered by the `precheck_*` / `set_grid_dim_*` / `commit_rejects_*` / `preview_rejects_*` tests.
 
-**Current v1 limits.** The **Regions** step is editable via the transient `regions_override` — the four scalar knobs (`enabled` / `count` / `mean_size` / `apply_to_routes`) **and** the per-condition phenomenon pool (add / remove conditions, edit each `kind` combo + `weight` + optional `label`), lazily seeded from the effective catalog config and substituted only when assembling the `ProjectInput` for a prefix run (via `synthesize_project_input_with`); an empty condition pool falls back to the engine's built-in conditions. The override is folded into the persisted regions catalog only at the new-project commit boundary, so `override == None` stays byte-identical to the legacy path. The **Factions** step builds the roster **one faction at a time, starting empty** (`show_factions_form`): **Add from catalogue** opens a hierarchical picker (`faction_palette_picker`) over the session's `faction_palette` — grouped `top_faction_id() → subfaction_id() → force` (mirroring the FACTIONS-tab tree), with a search box that flattens the tree to matching forces — and **Custom faction** appends a blank entry; every row is then editable (`name` / `id` / `kind` / `default_disposition` / `weight`) and Duplicate/Remove-able. Picked forces get a de-duplicated id so the same catalogue entry can be added twice. The working roster lives in `catalogs_override.factions` (seeded **empty** at launch); the source roster (the open project's, or `_base` for a blank launch) is held read-only in `faction_palette`. On any change it writes the working roster back into `catalogs_override` and calls `note_config_edit(GenStep::Factions)` so the prefix re-runs; the override flows into the preview (`spawn_prefix` swap) and the committed project (`commit_new_project` swap + write) exactly like `regions_override`. Re-roll re-assigns the current roster without changing it. Style / colour / glyph / presence-preference fields remain in the richer FACTIONS tab. **In-session regenerate** into an already-open project (ITERATIVE_GENERATION.md "C2", a `BuilderCommand::ReplaceSectorFromGeneration`) is deferred.
+**Current v1 limits.** The **Regions** step is editable via the transient `regions_override` — the four scalar knobs (`enabled` / `count` / `mean_size` / `apply_to_routes`) **and** the per-condition phenomenon pool (add / remove conditions, edit each `kind` combo + `weight` + optional `label`), lazily seeded from the effective catalog config and substituted only when assembling the `ProjectInput` for a prefix run (via `synthesize_project_input_with`); an empty condition pool falls back to the engine's built-in conditions. The override is folded into the persisted regions catalog only at the new-project commit boundary, so `override == None` stays byte-identical to the legacy path. The **Factions** step builds the roster **one faction at a time, starting empty** (`show_factions_form`): **Add from catalogue** opens a hierarchical picker (`faction_palette_picker`) over the session's `faction_palette` — grouped `top_faction_id() → subfaction_id() → force` (mirroring the FACTIONS-tab tree), with a search box that flattens the tree to matching forces — and **Custom faction** appends a blank entry; every row is then editable (`name` / `id` / `kind` / `default_disposition` / `weight`) and Duplicate/Remove-able. Picked forces get a de-duplicated id so the same catalogue entry can be added twice. The working roster lives in `catalogs_override.factions` (seeded **empty** at launch); the source roster (the open project's, or `_base` for a blank launch) is held read-only in `faction_palette`. On any change it writes the working roster back into `catalogs_override` and calls `note_config_edit(GenStep::Factions)` so the prefix re-runs; the override flows into the preview (`spawn_prefix` swap) and the committed project (`commit_new_project` swap + write) exactly like `regions_override`. Re-roll re-assigns the current roster without changing it. Style / colour / glyph / presence-preference fields remain in the richer FACTIONS tab. The **Routes** step (`show_routes_form`, alongside `enabled` / `route_density` / `max_route_distance` / `ensure_connected_graph`) exposes the optional **stability rebalance** (`routes.stability_targets`): an off-by-default toggle that, when on, writes `Some(StabilityTargets { stable, unstable, hazardous, perilous })` with four relative-weight DragValues — the in-wizard face of the §`stability_targets` engine feature documented above. Off (the default) keeps `None`, the legacy perilous-cap path, and byte-identical preview/commit output. **In-session regenerate** into an already-open project (ITERATIVE_GENERATION.md "C2", a `BuilderCommand::ReplaceSectorFromGeneration`) is deferred.
 
 ---
 

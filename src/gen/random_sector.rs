@@ -34,8 +34,8 @@ use rand::Rng;
 
 use crate::config::{
     AppConfig, BitmapConfig, GenerationConfig, HtmlConfig, InputConfig, OutputConfig, OutputFormat,
-    PlacementConfig, PlacementMode, ProjectConfig, RelationsGenerationConfig,
-    RouteGenerationConfig, WorldSelectionConfig, WorldSelectionMode,
+    PlacementConfig, ProjectConfig, RelationsGenerationConfig,
+    RouteGenerationConfig, WorldSelectionConfig,
 };
 use crate::errors::SectorError;
 use crate::hooks::HooksReport;
@@ -333,15 +333,13 @@ fn build_random_config_inner(
     let max_worlds = rng.gen_range(4..=7usize).max(min_worlds);
     let world_feature_count = rng.gen_range(3..=5usize);
 
-    let subsector_width = width.div_ceil(4).max(1);
-    let subsector_height = height.div_ceil(4).max(1);
-
-    let mode = match rng.gen_range(0..3u8) {
-        0 => PlacementMode::UniformGrid,
-        1 => PlacementMode::WeightedGrid,
-        _ => PlacementMode::Clustered,
-    };
-    let cluster_bias = if mode == PlacementMode::Clustered {
+    // Roll a placement style (0=uniform, 1=weighted, 2=clustered). The style
+    // itself is no longer stored on the config; it only gates whether
+    // `cluster_bias` gets a nonzero roll. The draw sequence here is fixed —
+    // `gen_range(0..3u8)` then a conditional `gen_range(0.3..=0.7)` — and must
+    // not change, or the `random` SectorSize path churns its goldens.
+    let clustered = rng.gen_range(0..3u8) == 2;
+    let cluster_bias = if clustered {
         rng.gen_range(0.3..=0.7)
     } else {
         0.0
@@ -382,23 +380,16 @@ fn build_random_config_inner(
         seed: seed.to_string(),
         sector_width: width,
         sector_height: height,
-        subsector_width: Some(subsector_width),
-        subsector_height: Some(subsector_height),
         system_count,
         min_worlds_per_system: min_worlds,
         max_worlds_per_system: max_worlds,
         allow_empty_hexes: true,
         world_feature_count,
-        strict_world_rows: true,
         placement: PlacementConfig {
-            mode,
             cluster_bias,
             minimum_system_distance: 1,
         },
         world_selection: WorldSelectionConfig {
-            mode: WorldSelectionMode::WeightedRows,
-            require_complete_rows: true,
-            allow_partial_rows: false,
             same_star_colour_bias,
             strict_same_star_colour,
             avoid_duplicate_world_type_in_system,
@@ -907,9 +898,6 @@ mod tests {
         // bound 4 (== cells), so system_count is exactly 4 regardless of the
         // rolled density.
         assert_eq!(cfg.generation.system_count, 4);
-        // subsector dims: 2.div_ceil(4) = 1, .max(1) = 1 ⇒ Some(1).
-        assert_eq!(cfg.generation.subsector_width, Some(1));
-        assert_eq!(cfg.generation.subsector_height, Some(1));
         assert!(cfg.generation.max_worlds_per_system >= cfg.generation.min_worlds_per_system);
     }
 

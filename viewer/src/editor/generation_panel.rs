@@ -114,45 +114,17 @@ pub(crate) fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
     ui.add_space(8.0);
     section(ui, "PLACEMENT");
     ui.horizontal(|ui| {
-        label(ui, "MODE");
+        label(ui, "CLUSTER BIAS");
         if ui
-            .selectable_label(
-                input.config.generation.placement.mode
-                    == sectorforge::config::PlacementMode::UniformGrid,
-                "UNIFORM",
-            )
-            .clicked()
+            .add(egui::Slider::new(
+                &mut input.config.generation.placement.cluster_bias,
+                0.0..=1.0,
+            ))
+            .changed()
         {
-            input.config.generation.placement.mode =
-                sectorforge::config::PlacementMode::UniformGrid;
-            changed = true;
-        }
-        if ui
-            .selectable_label(
-                input.config.generation.placement.mode
-                    == sectorforge::config::PlacementMode::Clustered,
-                "CLUSTERED",
-            )
-            .clicked()
-        {
-            input.config.generation.placement.mode = sectorforge::config::PlacementMode::Clustered;
             changed = true;
         }
     });
-    if input.config.generation.placement.mode == sectorforge::config::PlacementMode::Clustered {
-        ui.horizontal(|ui| {
-            label(ui, "CLUSTER BIAS");
-            if ui
-                .add(egui::Slider::new(
-                    &mut input.config.generation.placement.cluster_bias,
-                    0.0..=1.0,
-                ))
-                .changed()
-            {
-                changed = true;
-            }
-        });
-    }
     ui.horizontal(|ui| {
         label(ui, "MIN DISTANCE");
         if ui

@@ -189,8 +189,6 @@ mod slug_parity_tests {
             ],
 
             // ── loading::config ─────────────────────────────────────────
-            crate::config::PlacementMode => [UniformGrid, WeightedGrid, Clustered],
-            crate::config::WorldSelectionMode => [WeightedRows],
             crate::config::OutputFormat => [Json, Markdown, Bitmap, Svg, Html],
             crate::config::HtmlTheme => [Dark, Parchment, Hololithic],
 

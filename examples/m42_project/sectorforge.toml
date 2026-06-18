@@ -32,24 +32,17 @@ sites = "data/sites.toml"
 seed = "m42-default-seed"
 sector_width = 10
 sector_height = 10
-subsector_width = 5
-subsector_height = 5
 system_count = 24
 min_worlds_per_system = 2
 max_worlds_per_system = 6
 allow_empty_hexes = true
 world_feature_count = 3
-strict_world_rows = true
 
 [generation.placement]
-mode = "uniform_grid"   # uniform_grid | weighted_grid | clustered
 cluster_bias = 0.0
 minimum_system_distance = 1
 
 [generation.world_selection]
-mode = "weighted_rows"
-require_complete_rows = true
-allow_partial_rows = false
 same_star_colour_bias = 1.25
 strict_same_star_colour = false
 avoid_duplicate_world_type_in_system = false

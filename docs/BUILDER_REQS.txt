@@ -401,13 +401,10 @@ G1.   [DONE] Generation panel reaches feature parity with `[generation]` and
       `[generation.placement]` / `[generation.world_selection]` /
       `[generation.routes]` / `[generation.relations]` tables in
       `sectorforge.toml`. Fields:
-        seed, sector_width, sector_height, subsector_width,
-        subsector_height, system_count, min/max worlds per system,
-        allow_empty_hexes, world_feature_count, strict_world_rows,
-        placement.mode (uniform_grid|weighted_grid|clustered),
+        seed, sector_width, sector_height,
+        system_count, min/max worlds per system,
+        allow_empty_hexes, world_feature_count,
         placement.cluster_bias, placement.minimum_system_distance,
-        world_selection.mode, world_selection.require_complete_rows,
-        world_selection.allow_partial_rows,
         world_selection.same_star_colour_bias,
         world_selection.strict_same_star_colour,
         world_selection.avoid_duplicate_world_type_in_system,

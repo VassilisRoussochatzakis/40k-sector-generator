@@ -95,10 +95,6 @@ fn big_examples_load_and_are_square() {
         assert_eq!(g.sector_width, g.sector_height, "{name}: not square");
         assert!(g.system_count > 0, "{name}: zero systems");
         assert!(
-            g.subsector_width.is_some(),
-            "{name}: missing subsector_width"
-        );
-        assert!(
             !input.catalogs.world_rows.is_empty(),
             "{name}: empty world rows"
         );
@@ -115,12 +111,10 @@ fn big_examples_have_expected_dims() {
     let big = load_project(example_dir("big_test")).unwrap();
     assert_eq!(big.config.generation.sector_width, 32);
     assert_eq!(big.config.generation.sector_height, 32);
-    assert_eq!(big.config.generation.subsector_width, Some(8));
     assert_eq!(big.config.generation.system_count, 200);
 
     let sparse = load_project(example_dir("big_sparse_test")).unwrap();
     assert_eq!(sparse.config.generation.sector_width, 32);
     assert_eq!(sparse.config.generation.sector_height, 32);
-    assert_eq!(sparse.config.generation.subsector_width, Some(8));
     assert_eq!(sparse.config.generation.system_count, 80);
 }

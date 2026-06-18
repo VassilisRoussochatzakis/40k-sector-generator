@@ -391,9 +391,9 @@ pub fn generate_system_standalone(
 
 /// §W: build a [`world_pool::WorldCandidatePool`] from raw generation rows.
 ///
-/// Strict by default (`WorldSelectionConfig::require_complete_rows`): only fully
-/// resolved rows with positive finite weights become candidates; the rest land
-/// in `excluded_rows`. Almost always paired with [`apply_authored_features`].
+/// Only fully resolved rows with positive finite weights become candidates;
+/// the rest land in `excluded_rows`. Almost always paired with
+/// [`apply_authored_features`].
 pub use world_pool::build_pool;
 
 /// §W: fold a project's authored feature pool into a [`world_pool::WorldCandidatePool`]

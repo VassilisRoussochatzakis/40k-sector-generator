@@ -104,10 +104,6 @@ pub struct GenerationConfig {
     pub seed: String,
     pub sector_width: u32,
     pub sector_height: u32,
-    #[serde(default)]
-    pub subsector_width: Option<u32>,
-    #[serde(default)]
-    pub subsector_height: Option<u32>,
     pub system_count: usize,
     pub min_worlds_per_system: usize,
     pub max_worlds_per_system: usize,
@@ -115,8 +111,6 @@ pub struct GenerationConfig {
     pub allow_empty_hexes: bool,
     #[serde(default = "default_feature_count")]
     pub world_feature_count: usize,
-    #[serde(default = "default_true")]
-    pub strict_world_rows: bool,
     #[serde(default)]
     pub placement: PlacementConfig,
     #[serde(default)]
@@ -139,8 +133,6 @@ pub struct GenerationConfig {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlacementConfig {
-    #[serde(default = "default_placement_mode")]
-    pub mode: PlacementMode,
     #[serde(default)]
     pub cluster_bias: f64,
     #[serde(default = "default_min_dist")]
@@ -150,30 +142,10 @@ pub struct PlacementConfig {
 impl Default for PlacementConfig {
     fn default() -> Self {
         Self {
-            mode: default_placement_mode(),
             cluster_bias: 0.0,
             minimum_system_distance: default_min_dist(),
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum PlacementMode {
-    UniformGrid,
-    WeightedGrid,
-    Clustered,
-}
-
-enum_slug!(PlacementMode {
-    UniformGrid => "uniform_grid",
-    WeightedGrid => "weighted_grid",
-    Clustered => "clustered",
-});
-
-fn default_placement_mode() -> PlacementMode {
-    PlacementMode::UniformGrid
 }
 
 fn default_min_dist() -> u32 {
@@ -183,12 +155,6 @@ fn default_min_dist() -> u32 {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorldSelectionConfig {
-    #[serde(default = "default_selection_mode")]
-    pub mode: WorldSelectionMode,
-    #[serde(default = "default_true")]
-    pub require_complete_rows: bool,
-    #[serde(default)]
-    pub allow_partial_rows: bool,
     #[serde(default = "default_bias")]
     pub same_star_colour_bias: f64,
     #[serde(default)]
@@ -200,29 +166,11 @@ pub struct WorldSelectionConfig {
 impl Default for WorldSelectionConfig {
     fn default() -> Self {
         Self {
-            mode: default_selection_mode(),
-            require_complete_rows: true,
-            allow_partial_rows: false,
             same_star_colour_bias: default_bias(),
             strict_same_star_colour: false,
             avoid_duplicate_world_type_in_system: false,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum WorldSelectionMode {
-    WeightedRows,
-}
-
-enum_slug!(WorldSelectionMode {
-    WeightedRows => "weighted_rows",
-});
-
-fn default_selection_mode() -> WorldSelectionMode {
-    WorldSelectionMode::WeightedRows
 }
 
 fn default_bias() -> f64 {

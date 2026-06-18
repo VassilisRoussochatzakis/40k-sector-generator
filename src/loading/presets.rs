@@ -5,7 +5,6 @@
 //! scaffolder copies the tree into a fresh destination, optionally overriding
 //! the seed. Determinism is preserved — presets only feed inputs.
 
-use std::collections::BTreeMap;
 use std::fs;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -213,45 +212,6 @@ fn rewrite_seed(text: &str, new_seed: &str) -> String {
     out
 }
 
-/// Read every `<presets_dir>/<id>/preset.toml` into a single map. Useful for
-/// the GUI gallery which needs metadata for every preset up front.
-///
-/// # Errors
-///
-/// Returns [`SectorError::Io`] if `presets_dir` cannot be read.
-pub fn read_all_meta(presets_dir: &Utf8Path) -> Result<BTreeMap<String, PresetMeta>, SectorError> {
-    let mut out = BTreeMap::new();
-    let entries = match fs::read_dir(presets_dir) {
-        Ok(e) => e,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
-        Err(e) => return Err(SectorError::io(presets_dir.as_str(), e)),
-    };
-    for entry in entries {
-        let entry = entry.map_err(|e| SectorError::io(presets_dir.as_str(), e))?;
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        let name = match path.file_name().and_then(|s| s.to_str()) {
-            Some(s) => s.to_string(),
-            None => continue,
-        };
-        let utf8 = match Utf8PathBuf::from_path_buf(path) {
-            Ok(p) => p,
-            Err(_) => continue,
-        };
-        let meta = read_meta(&utf8)?;
-        out.insert(name, meta);
-    }
-    Ok(out)
-}
-
-/// Convenience: resolve a preset directory path under `presets_dir`.
-#[must_use]
-pub fn preset_path(presets_dir: &Utf8Path, preset_id: &str) -> Utf8PathBuf {
-    presets_dir.join(preset_id)
-}
-
 /// Default presets directory used when callers do not supply one explicitly.
 /// Resolves first to `./presets`, falling back to a path next to the current
 /// executable. Used by [`scaffold_to_dir`] and the GUI builder wizard
@@ -323,7 +283,7 @@ mod tests {
         /// control characters.
         #[test]
         fn rewrite_seed_roundtrips_any_seed(
-            seed in r#"[^ -]{0,64}"#
+            seed in r#"[^\x00-\x1f]{0,64}"#
         ) {
             let base = "[project]\nid = \"x\"\n[generation]\nseed = \"old\"\nworld_count = 3\n";
             let out = rewrite_seed(base, &seed);

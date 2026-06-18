@@ -48,11 +48,6 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         )));
         // §39 LD3: live-derivation freshness — fresh count + stale/deriving tags.
         render_derivations(ui, state);
-        if !state.pending_jobs.is_empty() {
-            ui.separator();
-            ui.spinner();
-            ui.label(mono(format!("jobs: {}", state.pending_jobs.len())));
-        }
         // §CTX1 Phase 7 — right-click menu telemetry tail. Shows the most
         // recent menu activation as `ctx_menu: <schema> :: <item>` so the
         // status bar gives a single-line trace of what the menu dispatched.

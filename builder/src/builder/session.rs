@@ -105,7 +105,6 @@ impl SessionFile {
             feature_weights_cache: std::collections::BTreeMap::new(),
             validation_report: None,
             invariant_report: None,
-            pending_jobs: Vec::new(),
             dirty_files: std::collections::BTreeSet::new(),
             selected_file: None,
             toml_editor: super::state::TomlEditorState::default(),

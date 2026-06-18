@@ -99,7 +99,7 @@ pub(crate) use panel_state::{
 };
 pub use types::{
     validate_toml, BuilderTab, ConfirmAction, ControlOverlay, HealthLevel, HistoryAnchorKind,
-    HistoryWizardState, JobHandle, MapTool, MapViewCache, ModalKind, OpenTomlBuffer,
+    HistoryWizardState, MapTool, MapViewCache, ModalKind, OpenTomlBuffer,
     PartialRegenRect, PendingBulkRename, PendingCollision, PendingPlace, PendingRegionRename,
     PendingRename, PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemBitmapPreview,
     SystemContextMenu, SystemMenuTarget, TickLogEntry, TickLogScope, TomlEditorState,
@@ -224,7 +224,6 @@ pub struct BuilderState {
     pub(crate) feature_weights_cache: BTreeMap<FeatureWeightsCacheKey, FeatureWeightsCacheValue>,
     pub(crate) validation_report: Option<ValidationReport>,
     pub(crate) invariant_report: Option<InvariantReport>,
-    pub(crate) pending_jobs: Vec<JobHandle>,
     /// §P4: per-file dirty markers keyed by project-relative path. Populated
     /// by panels that edit individual catalogs and cleared on save.
     pub(crate) dirty_files: BTreeSet<String>,
@@ -506,7 +505,6 @@ impl BuilderState {
             feature_weights_cache: BTreeMap::new(),
             validation_report: None,
             invariant_report: None,
-            pending_jobs: Vec::new(),
             dirty_files: BTreeSet::new(),
             selected_file: None,
             toml_editor: TomlEditorState::default(),

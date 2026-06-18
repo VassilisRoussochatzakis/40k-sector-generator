@@ -367,17 +367,10 @@ pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<()
 /// of the source data folder. Files with image extensions
 /// (.png/.bmp/.jpg/.jpeg/.gif/.webp/.tiff/.tif/.svg/.ico) are skipped during
 /// the data-folder copy.
-pub fn export_bundle(
-    sector: &GeneratedSector,
-    data_dir: Option<&Utf8Path>,
-    output_dir: &Utf8Path,
-) -> Result<(), SectorError> {
-    export_bundle_with_progress(sector, data_dir, output_dir, &mut |_| {})
-}
-
-/// [`export_bundle`] with a progress callback threaded into the (potentially
-/// very large) `sector.json` write, so a GUI can animate the otherwise-silent
-/// bundle export. See [`ExportProgress`].
+///
+/// A progress callback is threaded into the (potentially very large)
+/// `sector.json` write, so a GUI can animate the otherwise-silent bundle
+/// export. See [`ExportProgress`].
 pub fn export_bundle_with_progress(
     sector: &GeneratedSector,
     data_dir: Option<&Utf8Path>,

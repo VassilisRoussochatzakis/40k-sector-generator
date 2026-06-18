@@ -12,9 +12,8 @@ use thiserror::Error;
 use crate::ids::{route_id, system_id, world_id, FactionId, RouteId, SystemId, WorldId};
 use crate::regions::{RegionConditionKind, WarpRegion};
 use crate::sector_model::{
-    ClaimType, DominanceState, FactionClaim, GeneratedFaction, GeneratedRoute, GeneratedStar,
-    GeneratedWorld, HexCoord, RouteStability, RouteType, SystemKind, SystemState,
-    WorldFactionPresence,
+    GeneratedFaction, GeneratedRoute, GeneratedStar, GeneratedWorld, HexCoord, RouteStability,
+    RouteType, SystemKind,
 };
 
 use super::GeneratedSector;
@@ -343,42 +342,6 @@ impl GeneratedSector {
         Ok(())
     }
 
-    /// Swap a route's endpoints (rare — used when a route is reattached
-    /// after a system move + symmetric rebuild).
-    pub fn swap_route_endpoints(
-        &mut self,
-        id: &RouteId,
-        from: &SystemId,
-        to: &SystemId,
-    ) -> Result<RouteId, MutationError> {
-        if from == to {
-            return Err(MutationError::SelfRoute(from.to_string()));
-        }
-        let pos = self
-            .routes
-            .iter()
-            .position(|r| r.id == *id)
-            .ok_or_else(|| MutationError::RouteNotFound(id.to_string()))?;
-        let new_id = route_id(from, to);
-        let from_sys = self
-            .systems
-            .iter()
-            .find(|s| s.id == *from)
-            .ok_or_else(|| MutationError::SystemNotFound(from.to_string()))?;
-        let to_sys = self
-            .systems
-            .iter()
-            .find(|s| s.id == *to)
-            .ok_or_else(|| MutationError::SystemNotFound(to.to_string()))?;
-        let distance = super::hex_distance(from_sys.coord, to_sys.coord);
-        let route = &mut self.routes[pos];
-        route.id = new_id.clone();
-        route.from_system_id = from.clone();
-        route.to_system_id = to.clone();
-        route.distance = distance;
-        Ok(new_id)
-    }
-
     // ── Faction mutations ───────────────────────────────────────────────────
 
     /// Insert a new faction with the given `id`, `name`, and `kind`. Returns the
@@ -425,86 +388,6 @@ impl GeneratedSector {
             }
         }
         Ok(())
-    }
-
-    // ── Presence + control ──────────────────────────────────────────────────
-
-    pub fn add_world_presence(
-        &mut self,
-        world: &WorldId,
-        presence: WorldFactionPresence,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        w.factions.retain(|p| p.faction_id != presence.faction_id);
-        w.factions.push(presence);
-        Ok(())
-    }
-
-    pub fn remove_world_presence(
-        &mut self,
-        world: &WorldId,
-        faction: &FactionId,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        w.factions.retain(|p| &p.faction_id != faction);
-        Ok(())
-    }
-
-    pub fn add_claim(
-        &mut self,
-        world: &WorldId,
-        faction: FactionId,
-        claim_type: ClaimType,
-        strength: u8,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        w.claims.push(FactionClaim {
-            faction_id: faction,
-            claim_type,
-            strength,
-        });
-        Ok(())
-    }
-
-    pub fn remove_claim(
-        &mut self,
-        world: &WorldId,
-        faction: &FactionId,
-        claim_type: ClaimType,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        w.claims
-            .retain(|c| !(&c.faction_id == faction && c.claim_type == claim_type));
-        Ok(())
-    }
-
-    pub fn set_system_control_state(
-        &mut self,
-        id: &SystemId,
-        state: Option<SystemState>,
-    ) -> Result<(), MutationError> {
-        let sys = self
-            .systems
-            .iter_mut()
-            .find(|s| s.id == *id)
-            .ok_or_else(|| MutationError::SystemNotFound(id.to_string()))?;
-        sys.control.state = state;
-        Ok(())
-    }
-
-    pub fn set_world_dominance(
-        &mut self,
-        world: &WorldId,
-        faction: &FactionId,
-        dominance: DominanceState,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        if let Some(p) = w.factions.iter_mut().find(|p| &p.faction_id == faction) {
-            p.dominance = dominance;
-            Ok(())
-        } else {
-            Err(MutationError::FactionNotFound(faction.to_string()))
-        }
     }
 
     // ── Region mutations ────────────────────────────────────────────────────
@@ -556,56 +439,6 @@ impl GeneratedSector {
         Ok(())
     }
 
-    // ── Orbital assets / surface regions ────────────────────────────────────
-
-    pub fn add_orbital_asset(
-        &mut self,
-        system: &SystemId,
-        asset: crate::orbital_assets::OrbitalAsset,
-    ) -> Result<(), MutationError> {
-        let sys = self
-            .systems
-            .iter_mut()
-            .find(|s| s.id == *system)
-            .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
-        sys.orbital_assets.push(asset);
-        Ok(())
-    }
-
-    pub fn remove_orbital_asset(
-        &mut self,
-        system: &SystemId,
-        asset_id: &str,
-    ) -> Result<(), MutationError> {
-        let sys = self
-            .systems
-            .iter_mut()
-            .find(|s| s.id == *system)
-            .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
-        sys.orbital_assets.retain(|a| a.id != asset_id);
-        Ok(())
-    }
-
-    pub fn add_surface_region(
-        &mut self,
-        world: &WorldId,
-        region: crate::surface_region::SurfaceRegion,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        w.regions.push(region);
-        Ok(())
-    }
-
-    pub fn remove_surface_region(
-        &mut self,
-        world: &WorldId,
-        name: &str,
-    ) -> Result<(), MutationError> {
-        let w = self.find_world_mut(world)?;
-        w.regions.retain(|r| r.name != name);
-        Ok(())
-    }
-
     // ── Archetype / intel / history / overrides ─────────────────────────────
 
     pub fn set_archetype(
@@ -620,80 +453,6 @@ impl GeneratedSector {
             .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
         sys.archetype = state;
         Ok(())
-    }
-
-    pub fn clear_archetype(&mut self, system: &SystemId) -> Result<(), MutationError> {
-        self.set_archetype(system, crate::archetypes::ArchetypeState::default())
-    }
-
-    pub fn add_intel_record(
-        &mut self,
-        system: &SystemId,
-        observer: FactionId,
-        view: crate::intel::ObserverView,
-    ) -> Result<(), MutationError> {
-        let sys = self
-            .systems
-            .iter_mut()
-            .find(|s| s.id == *system)
-            .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
-        sys.intel.by_observer.insert(observer.to_string(), view);
-        Ok(())
-    }
-
-    pub fn remove_intel_record(
-        &mut self,
-        system: &SystemId,
-        observer: &FactionId,
-    ) -> Result<(), MutationError> {
-        let sys = self
-            .systems
-            .iter_mut()
-            .find(|s| s.id == *system)
-            .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
-        sys.intel.by_observer.remove(observer.as_str());
-        Ok(())
-    }
-
-    pub fn add_history_event(&mut self, ev: crate::history::HistoryEvent) {
-        let mut events = self.chronicle.events.clone();
-        events.push(ev);
-        self.chronicle.events = events;
-    }
-
-    pub fn remove_history_event(&mut self, idx: usize) -> Result<(), MutationError> {
-        if idx >= self.chronicle.events.len() {
-            return Err(MutationError::EventNotFound(idx));
-        }
-        let mut events = self.chronicle.events.clone();
-        events.remove(idx);
-        self.chronicle.events = events;
-        Ok(())
-    }
-
-    pub fn edit_event(
-        &mut self,
-        idx: usize,
-        ev: crate::history::HistoryEvent,
-    ) -> Result<(), MutationError> {
-        if idx >= self.chronicle.events.len() {
-            return Err(MutationError::EventNotFound(idx));
-        }
-        let mut events = self.chronicle.events.clone();
-        events[idx] = ev;
-        self.chronicle.events = events;
-        Ok(())
-    }
-
-    // ── Lookup helpers ──────────────────────────────────────────────────────
-
-    fn find_world_mut(&mut self, id: &WorldId) -> Result<&mut GeneratedWorld, MutationError> {
-        for sys in &mut self.systems {
-            if let Some(w) = sys.worlds.iter_mut().find(|w| w.id == *id) {
-                return Ok(w);
-            }
-        }
-        Err(MutationError::WorldNotFound(id.to_string()))
     }
 
     // ── Re-indexing (kept from §49) ─────────────────────────────────────────

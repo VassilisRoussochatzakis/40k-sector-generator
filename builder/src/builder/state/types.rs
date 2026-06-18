@@ -317,13 +317,6 @@ impl MapTool {
     }
 }
 
-/// Generic job handle the builder tracks for off-thread work (§47).
-/// Type-erased so it can sit alongside other pending jobs in a vec.
-pub struct JobHandle {
-    pub id: String,
-    pub description: String,
-}
-
 /// §H5: scratch buffer for the add-event wizard. The wizard collects the
 /// anchor pick (system / world / route / region / sector), the event kind,
 /// suggested + selected factions, optional date / narrative overrides, and a

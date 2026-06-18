@@ -65,23 +65,8 @@ pub(crate) fn save_png_fast(img: &RgbaImage, path: &Utf8Path) -> Result<(), Sect
     Ok(())
 }
 
-pub fn write_bitmap(
-    sector: &GeneratedSector,
-    output_dir: &Utf8Path,
-    scale: u32,
-    subsectors: Option<&[Subsector]>,
-) -> Result<(), SectorError> {
-    write_bitmap_with(
-        sector,
-        output_dir,
-        scale,
-        subsectors,
-        RenderOptions::default(),
-    )
-}
-
-/// Variant of [`write_bitmap`] that takes [`RenderOptions`] (faction fill +
-/// heatmap mode).
+/// Render the sector PNG to `output_dir/sector.png` with the given
+/// [`RenderOptions`] (faction fill + heatmap mode).
 pub fn write_bitmap_with(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
@@ -130,8 +115,8 @@ pub fn render_sector_image(
 }
 
 /// docs/OPTIMIZE.txt G1: encode an in-memory RGBA image to PNG bytes. Same encoder
-/// settings as [`write_bitmap`] (fast deflate, no filter). Bench / golden-test
-/// only — production callers should use [`write_bitmap`] /
+/// settings as [`write_bitmap_with`] (fast deflate, no filter). Bench /
+/// golden-test only — production callers should use [`write_bitmap_with`] /
 /// [`write_sector_png_to`] which stream straight to disk.
 ///
 /// # Errors

@@ -917,33 +917,6 @@ impl FactionKind {
         }
     }
 
-    /// Stance-grouping membership in the Imperial family (REVIEW P9 — folds the
-    /// old `relations::tables::IMPERIAL_KINDS` list).
-    ///
-    /// NOTE: this is **deliberately wider** than `group() == KindGroup::Imperial`.
-    /// `Mechanicus` and `Ecclesiarchy` count as Imperial for *stance* purposes
-    /// here, but `group()` files `Mechanicus` under its own display bucket and
-    /// `Ecclesiarchy` under `Other`. The two predicates served different callers
-    /// before this refactor and must keep diverging — do not unify them.
-    #[must_use]
-    pub fn is_imperial(&self) -> bool {
-        matches!(
-            self,
-            FactionKind::Imperial
-                | FactionKind::ImperialGuard
-                | FactionKind::ImperialKnight
-                | FactionKind::AdeptaSororitas
-                | FactionKind::AdeptusAstartes
-                | FactionKind::Deathwatch
-                | FactionKind::GreyKnights
-                | FactionKind::Ecclesiarchy
-                | FactionKind::Inquisition
-                | FactionKind::Mechanicus
-                | FactionKind::TalonsOfTheEmperor
-                | FactionKind::CollegiaTitanica
-        )
-    }
-
     /// Kinds whose hostility is masked behind a `Suspicious` public attitude
     /// (REVIEW P9 — folds `relations::tables::is_hidden_kind`). Mirror of the old
     /// GSC ∪ criminal ∪ drukhari ∪ aeldari ∪ {cult, harlequin} string check.

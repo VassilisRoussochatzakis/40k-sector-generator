@@ -44,8 +44,6 @@ pub const SPACE_MD: f32 = 12.0;
 pub const SPACE_LG: f32 = 16.0;
 /// 24px — major section separation.
 pub const SPACE_XL: f32 = 24.0;
-/// 32px — page-level rhythm.
-pub const SPACE_XXL: f32 = 32.0;
 
 // ── radius scale — one family, used everywhere ───────────────────────────────
 
@@ -53,8 +51,6 @@ pub const SPACE_XXL: f32 = 32.0;
 pub const RADIUS_SM: f32 = 4.0;
 /// 8px — cards, section plates, windows.
 pub const RADIUS_MD: f32 = 8.0;
-/// 12px — large elevated surfaces, modals.
-pub const RADIUS_LG: f32 = 12.0;
 
 /// [`Rounding`] at [`RADIUS_MD`].
 #[must_use]
@@ -68,8 +64,6 @@ pub fn rounding_md() -> Rounding {
 // there) so existing call sites and the §UO type scale are unchanged; `DISPLAY`
 // is new, reserved for hero titles set in the display face (BEAUTY.md §5.5).
 
-/// 28px — hero / display titles only (the registered display face).
-pub const DISPLAY: f32 = 28.0;
 /// 20px — panel / card titles (== egui `Heading`, == old `ui_kit::TITLE`).
 pub const TITLE: f32 = 20.0;
 /// 15px — section headers (== old `ui_kit::SECTION`).
@@ -78,8 +72,6 @@ pub const SECTION: f32 = 15.0;
 pub const BODY: f32 = 15.0;
 /// 14px — dimmed keys / secondary labels (== old `ui_kit::DIM`).
 pub const DIM: f32 = 14.0;
-/// 12px — captions / legends (== egui `Small`).
-pub const CAPTION: f32 = 12.0;
 
 // ── type *families* — the registered display face (BEAUTY.md §5.5) ────────────
 //

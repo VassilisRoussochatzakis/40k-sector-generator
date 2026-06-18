@@ -209,7 +209,7 @@ Recommendation:
   = by_sys.get(...).copied()` to drop the redundant unwrap entirely).
 
 ────────────────────────────────────────────────────────────────────────────────
-P1-1  No PNG/SVG pixel-hash golden tests for the public writers  [IN PROGRESS]
+P1-1  No PNG/SVG pixel-hash golden tests for the public writers  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 Files involved:
     src/bitmap/mod.rs::write_sector_png_to_with        (1×)
@@ -241,6 +241,14 @@ Recommendation:
   Same treatment for SVG output — hash the canonical SVG text after stripping
   any timestamp/uuid the writer might embed (currently appears to embed none,
   but assert that explicitly).
+
+Status:
+  Already landed and verified. Public-writer pixel/text-hash goldens live at
+  tests/it/golden_png.rs:81 (png_export_matches_pinned_blake3_hash),
+  tests/it/svg_export_tests.rs:44 (svg_export_matches_pinned_blake3_hash),
+  tests/it/export_byte_goldens.rs:82 (system_map_png_matches_pinned_blake3_hash),
+  each blake3-pinned with committed tests/goldens/*.blake3; verified green
+  2026-06-18.
 
 ────────────────────────────────────────────────────────────────────────────────
 P1-2  Bench coverage is too coarse  [IN PROGRESS]

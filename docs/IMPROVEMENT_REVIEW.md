@@ -75,8 +75,8 @@ Enums `to_string()`'d at boundaries then string-compared downstream — reintrod
 - `B3`/`B6` — O(F²·rules) pair scans; `String`-allocating map keys in the hot co-occurrence loop → index rules once; key on `(u32,u32)` faction indices.
 
 **Test rigor:**
-- `G2` (HIGH) — **no committed content golden** for `sector.json`/`sector.md`; only run-to-run equality + counts. A deterministic-but-*wrong* text change passes. → pin blessed output to `tests/goldens/` behind `UPDATE_*` (like `golden_png.rs`). **Land this before any render refactor — it's the safety net for the god-file splits.**
-- `G3` (HIGH) — all 5 segmentum tests `#[ignore]`; byte-determinism + rejection-path **never run in default CI** → split cheap cases out of `#[ignore]`.
+- `G2` (HIGH) — RESOLVED (2026-06-18): committed content goldens for `sector.json`/`sector.md` are now in place and tested at `tests/it/golden_generation.rs:348` (`sector_json_matches_committed_golden`) and `:354` (`sector_md_matches_committed_golden`), with git-tracked `tests/goldens/sector_m42_default.json` and `.md` blessed behind `UPDATE_*`. (Was: no committed content golden — only run-to-run equality + counts, so a deterministic-but-*wrong* text change passed.)
+- `G3` (HIGH) — RESOLVED (2026-06-18): the cheap segmentum cases are un-ignored and run by default — `segmentum_tests.rs:103` (`segmentum_example_parses_and_children_fit_grid`) and `:142` (`duplicate_child_slot_is_rejected`), covering parse/grid-fit + the rejection path. The remaining `compose_segmentum` tests are inherently composition-bound (full-m42 compose) and stay `#[ignore]` by policy (run via `--ignored`).
 - `G1` (HIGH) — 4 suites' docs claim "many random seeds (proptest)" but the test re-derives one memoized fixture (idempotency ≠ reproducibility); no `proptest!` exists → add real seed-varying `proptest!` or fix the docs.
 - `G4` — `Html`/`Bitmap` never exercised through `export_sector` dispatch. `G5` — fixture `OnceLock` boilerplate dup ×5 → move to `shared.rs`.
 
@@ -205,8 +205,8 @@ Enums `to_string()`'d at boundaries then string-compared downstream — reintrod
 - G-S2 systemic — fixture boilerplate duplicated 5×.
 - G-S3 systemic — writer/format coverage gap; no on-disk content golden for `sector.json`/`sector.md`.
 - G1 [HIGH] economy/hooks/personae/relations `_tests.rs` — false "many random seeds" docs → real `proptest!` or fix docs.
-- G2 [HIGH] `golden_generation.rs:64` — no committed content golden for text outputs → pin blessed file behind `UPDATE_*`.
-- G3 [HIGH] `segmentum_tests.rs:49` — all 5 `#[ignore]`; determinism + rejection never run → split cheap cases out.
+- G2 [HIGH] RESOLVED (2026-06-18): committed content goldens for text outputs now tested at `golden_generation.rs:348` (`sector_json_matches_committed_golden`) / `:354` (`sector_md_matches_committed_golden`), blessed behind `UPDATE_*` with git-tracked `tests/goldens/sector_m42_default.{json,md}`.
+- G3 [HIGH] RESOLVED (2026-06-18): cheap cases un-ignored and run by default — `segmentum_tests.rs:103` (`segmentum_example_parses_and_children_fit_grid`) / `:142` (`duplicate_child_slot_is_rejected`); remaining `compose_segmentum` tests stay `#[ignore]` by policy (composition-bound; run via `--ignored`).
 - G4 [MED] `OutputFormat::Html`/`Bitmap` — never exercised via `export_sector` dispatch → extend `export_writes_all_expected_files`.
 - G5 [MED] economy/hooks/personae/relations/invariants_proptest — `fixture_dir()`+`OnceLock` dup → move to `shared.rs`.
 - G6 [MED] `viewer/.../lifecycle.rs:109` — document-write paths have zero tests → extract path→bytes core, round-trip test.

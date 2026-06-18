@@ -978,19 +978,19 @@ fn build_manifest(
     systems: &[GeneratedSystem],
     routes: &[GeneratedRoute],
 ) -> GenerationManifest {
-    let settings_repr = format!(
-        "{}-{}-{}-{}-{}-{}-{}",
-        config.generation.seed,
-        config.generation.sector_width,
-        config.generation.sector_height,
-        config.generation.system_count,
-        config.generation.min_worlds_per_system,
-        config.generation.max_worlds_per_system,
-        config.generation.world_feature_count,
-    );
+    // Fingerprint every output-affecting *setting* by hashing the serde
+    // representation of the generation + output config slices wholesale. The
+    // old digest hand-listed only 7 generation scalars and silently missed the
+    // placement / world_selection / routes / relations knobs and the output
+    // toggles — hashing the slices wholesale can't drift as knobs are added.
+    // Input-file *contents* are fingerprinted separately by `input_digests`.
+    // Both slices are plain serde structs with no HashMap, so the JSON byte
+    // sequence is deterministic; to_vec on them cannot fail.
+    let settings_repr = serde_json::to_vec(&(&config.generation, &config.outputs))
+        .expect("generation/output config are plain serde structs and always serialize");
     let settings_digest = format!(
         "blake3:{}",
-        rng::hex(blake3::hash(settings_repr.as_bytes()).as_bytes())
+        rng::hex(blake3::hash(&settings_repr).as_bytes())
     );
     let seed_hash = format!(
         "blake3:{}",

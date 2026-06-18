@@ -29478,7 +29478,7 @@
       "data/worlds/worlds.toml": "blake3:ce3a786685b10724b21b5d42f7ff2f1d7226f3d925c3052e528af0af613d786d",
       "sectorforge.toml": "blake3:60de9396413cb459444194b0b95b51264008e05af5627a0188d2455fcb1613f5"
     },
-    "settings_digest": "blake3:9746d183ade93e00219b6d66bf69540fc3b1b7123e05c73b9a4cbc83d4ef0e22",
+    "settings_digest": "blake3:03b7436c8c918df49818b0e4cf78a6c08ddccdc75eac78f1724a7b8eaa2007c9",
     "system_count": 24,
     "world_count": 102,
     "route_count": 65

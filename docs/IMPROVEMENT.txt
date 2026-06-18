@@ -24,7 +24,7 @@ Tag appended to each finding header below:
 Roll-up:
 
   P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
-  P0-2 [IN PROGRESS]   P1-2 [IN PROGRESS]   P2-2 [DONE]          P3-2 [IN PROGRESS]
+  P0-2 [DONE]          P1-2 [IN PROGRESS]   P2-2 [DONE]          P3-2 [IN PROGRESS]
   P0-3 [DONE]          P1-3 [IN PROGRESS]   P2-3 [DONE]          P3-3 [IN PROGRESS]
   P0-4 [DONE]                               P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
@@ -35,7 +35,7 @@ PR-roadmap status (see "REFACTORING ROADMAP" below):
 
   PR 1  — DONE           PR 6  — IN PROGRESS
   PR 2  — DONE           PR 7  — IN PROGRESS
-  PR 3  — IN PROGRESS    PR 8  — IN PROGRESS
+  PR 3  — DONE           PR 8  — IN PROGRESS
   PR 4  — DONE           PR 9  — IN PROGRESS
   PR 5  — IN PROGRESS    PR 10 — IN PROGRESS
 
@@ -128,7 +128,7 @@ Status:
   suite clean (no output drift).
 
 ────────────────────────────────────────────────────────────────────────────────
-P0-2  settings_digest is narrower than its name implies  [IN PROGRESS]
+P0-2  settings_digest is narrower than its name implies  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    src/generation.rs:2027-2040
 Current:
@@ -172,6 +172,25 @@ Validation:
     enablement, economy enablement, world_selection.tag_overlay weights flips
     the digest; changing a pure formatting/output knob that does NOT affect
     output does not.
+
+Status:
+  Done via broaden-in-place (per user decision — NOT the full
+  settings_digest_v2/deprecation route). settings_digest now hashes the serde
+  representation of config.generation + config.outputs wholesale
+  (src/gen/generation/mod.rs:981) — deterministic (no HashMap), and can't
+  silently drift as knobs are added — replacing the old 7-field format! that
+  missed placement/world_selection/routes/relations knobs and output toggles.
+  Kept the field name: no parallel settings_digest_v2 field and no 'keep old
+  for one release' deprecation, since the digest is display-only (read only by
+  segmentum markdown + a builder panel) with no external consumer, and
+  input_digests already content-hashes the input files incl. the whole
+  sectorforge.toml. Re-pinned the shifted goldens (sector_m42_default.json,
+  html_m42_default.blake3, segmentum_golden.json, segmentum.md); git diff
+  proven DIGEST-ONLY — only settings_digest plus the cascading
+  sector_digest/html-hash values changed, all sector content (system/world/
+  route counts, dims) byte-identical. Verified: cargo clippy --workspace
+  --all-targets -D warnings clean; full golden suite (incl. slow segmentum
+  --ignored) green with no UPDATE vars.
 
 ────────────────────────────────────────────────────────────────────────────────
 P0-3  Production unwrap in GUI auto-save  [DONE]
@@ -675,7 +694,7 @@ PR 2 — Error handling + correctness  [DONE]
   - economy::derive `if let Some(sys)` simplification              P0-4
   Risk: low (well-isolated). Add the new digest_input test.
 
-PR 3 — settings_digest_v2  [IN PROGRESS]
+PR 3 — settings_digest_v2  [DONE]
   - introduce CanonicalSettings struct + bump payload version      P0-2
   - keep settings_digest for one release, add settings_digest_v2
   - add regression tests covering each input slice

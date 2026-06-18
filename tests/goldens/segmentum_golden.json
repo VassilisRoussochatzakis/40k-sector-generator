@@ -16,7 +16,7 @@
       "title": "Alpha",
       "sector_id": "m42-sector",
       "seed": "alpha-seed",
-      "sector_digest": "blake3:2c6c9634ab03d8666ea8d289955ee004ecf9c463006f11beb9708b319035037d",
+      "sector_digest": "blake3:a9c8231f3992711dc3f4ef987dae74f6db8d242d89eae8fe05831c8e3ba70703",
       "width": 10,
       "height": 10,
       "system_count": 24,
@@ -31,7 +31,7 @@
       "title": "Beta",
       "sector_id": "m42-sector",
       "seed": "beta-seed",
-      "sector_digest": "blake3:2aa71121bc80840ebb6922d23e2856fdba3543d79a4202d1783e065702dbdfde",
+      "sector_digest": "blake3:1c2f00b9ab496130ae59e3b505463b715d935d4f2b6588b5b8959a0eee2427eb",
       "width": 10,
       "height": 10,
       "system_count": 24,
@@ -72,8 +72,8 @@
     "settings_digest": "blake3:28c740d7c4ca61be06b9425df77110b14e2d6b41420b132b664a9ba999a70ed2",
     "faction_mode": "shared",
     "child_digests": {
-      "alpha": "blake3:2c6c9634ab03d8666ea8d289955ee004ecf9c463006f11beb9708b319035037d",
-      "beta": "blake3:2aa71121bc80840ebb6922d23e2856fdba3543d79a4202d1783e065702dbdfde"
+      "alpha": "blake3:a9c8231f3992711dc3f4ef987dae74f6db8d242d89eae8fe05831c8e3ba70703",
+      "beta": "blake3:1c2f00b9ab496130ae59e3b505463b715d935d4f2b6588b5b8959a0eee2427eb"
     },
     "system_count": 48,
     "world_count": 187,

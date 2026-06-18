@@ -24,7 +24,7 @@ Tag appended to each finding header below:
 Roll-up:
 
   P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
-  P0-2 [DONE]          P1-2 [IN PROGRESS]   P2-2 [DONE]          P3-2 [IN PROGRESS]
+  P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [IN PROGRESS]
   P0-3 [DONE]          P1-3 [IN PROGRESS]   P2-3 [DONE]          P3-3 [IN PROGRESS]
   P0-4 [DONE]                               P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
@@ -37,7 +37,7 @@ PR-roadmap status (see "REFACTORING ROADMAP" below):
   PR 2  — DONE           PR 7  — IN PROGRESS
   PR 3  — DONE           PR 8  — IN PROGRESS
   PR 4  — DONE           PR 9  — IN PROGRESS
-  PR 5  — IN PROGRESS    PR 10 — IN PROGRESS
+  PR 5  — DONE           PR 10 — IN PROGRESS
 
 ================================================================================
 EXECUTIVE SUMMARY
@@ -294,7 +294,7 @@ Status:
   2026-06-18.
 
 ────────────────────────────────────────────────────────────────────────────────
-P1-2  Bench coverage is too coarse  [IN PROGRESS]
+P1-2  Bench coverage is too coarse  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    benches/generation.rs:17-62
 Current: 3 groups — full generate, validate_project, validate_sector_invariants
@@ -332,6 +332,22 @@ Recommendation:
   Reuse a single pre-generated sector via OnceLock to amortize setup.
   Cancel the existing `BatchSize::SmallInput` clones where the input is
   immutable across iterations and use `iter` instead.
+
+Status:
+  Mostly pre-done. benches/generation.rs already had 10 groups across 5 bench
+  files (generate, validate x2, validate_500, invariants_500,
+  derive_cold/warm_500, render_sector_image, encode_png_bytes) plus
+  influence_field.rs + render_png.rs — covering the raster/encode/
+  influence_field/derive phases. Added the 3 genuinely-missing output-phase
+  groups: render_sector_svg, serialize_json, render_sector_markdown (following
+  the existing fixture_for-once-per-scale pattern). Skipped blake3 — no public
+  API and timing a hash call isn't a meaningful phase (exposing a fn just to
+  bench it would be over-engineering). The finding's 'reuse a OnceLock pre-gen
+  sector' + 'drop unneeded BatchSize::SmallInput clones' sub-items were stale:
+  the render benches already build the fixture once outside the iter loop, and
+  the SmallInput clone in bench_generate is needed (fresh input per generation
+  iteration). Verified: cargo bench --bench generation --no-run compiles;
+  cargo clippy --bench generation -D warnings clean.
 
 ────────────────────────────────────────────────────────────────────────────────
 P1-3  GUI job-model split is real (gui-core typed vs builder stub)  [IN PROGRESS]
@@ -706,7 +722,7 @@ PR 4 — PNG/SVG golden tests  [DONE]
   - tests/svg_golden.rs deterministic-text hash
   Risk: low; tests only. Provides the safety net for PR 5.
 
-PR 5 — Bench phases  [IN PROGRESS]
+PR 5 — Bench phases  [DONE]
   - rewrite benches/generation.rs around shared OnceLock fixture   P1-2
   - one group per phase listed in P1-2
   Risk: none (bench-only).

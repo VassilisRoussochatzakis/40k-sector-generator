@@ -12,8 +12,9 @@ use camino::Utf8PathBuf;
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
 use sectorforge::{
     bitmap::{encode_png_bytes, render_sector_image, RenderOptions},
-    generate_sector, load_project, validate_project, validate_sector, GeneratedSector,
-    ProjectInput,
+    generate_sector, load_project, render_sector_markdown,
+    svg_export::render_sector_svg,
+    validate_project, validate_sector, GeneratedSector, ProjectInput,
 };
 
 fn project_dir() -> Utf8PathBuf {
@@ -239,6 +240,50 @@ fn bench_encode_png(c: &mut Criterion) {
     group.finish();
 }
 
+/// docs/OPTIMIZE.txt G1: SVG vector render alone (rasterised sector in setup,
+/// not measured). Same `RenderOptions::default()` (heatmap: Off) as the PNG path.
+fn bench_render_svg(c: &mut Criterion) {
+    let mut group = c.benchmark_group("render_sector_svg");
+    let opts = RenderOptions::default();
+    for &(w, h, count) in SCALES {
+        let sector = fixture_for(w, h, count);
+        let label = format!("{w}x{h}_{count}");
+        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
+            b.iter(|| black_box(render_sector_svg(sector, None, &opts)));
+        });
+    }
+    group.finish();
+}
+
+/// docs/OPTIMIZE.txt G1: JSON serialisation of the full `GeneratedSector`
+/// (the sector.json export is ~MB on the large scale, so worth tracking alone).
+fn bench_serialize_json(c: &mut Criterion) {
+    let mut group = c.benchmark_group("serialize_json");
+    for &(w, h, count) in SCALES {
+        let sector = fixture_for(w, h, count);
+        let bytes = serde_json::to_vec(&sector).expect("serialize sector");
+        let label = format!("{w}x{h}_{count}");
+        group.throughput(Throughput::Bytes(bytes.len() as u64));
+        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
+            b.iter(|| black_box(serde_json::to_vec(black_box(sector)).expect("serialize")));
+        });
+    }
+    group.finish();
+}
+
+/// docs/OPTIMIZE.txt G1: Markdown render alone.
+fn bench_render_markdown(c: &mut Criterion) {
+    let mut group = c.benchmark_group("render_sector_markdown");
+    for &(w, h, count) in SCALES {
+        let sector = fixture_for(w, h, count);
+        let label = format!("{w}x{h}_{count}");
+        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
+            b.iter(|| black_box(render_sector_markdown(sector)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_generate,
@@ -250,5 +295,8 @@ criterion_group!(
     bench_derive_warm_500,
     bench_render_png,
     bench_encode_png,
+    bench_render_svg,
+    bench_serialize_json,
+    bench_render_markdown,
 );
 criterion_main!(benches);

@@ -145,6 +145,8 @@ pub(super) fn feature_weights_for_world(
     use std::collections::BTreeMap;
     use std::sync::Arc;
 
+    use crate::builder::derivation_cache::digest_input;
+
     let world_type = state.sector.systems[sys_idx].worlds[w_idx]
         .world
         .world_type
@@ -154,41 +156,44 @@ pub(super) fn feature_weights_for_world(
         .as_ref()
         .map(|s| s.colour_code.clone())
         .unwrap_or_default();
-    let worlds_sig = state
-        .data_catalogs
-        .worlds
-        .as_ref()
-        .map(|w| {
-            crate::builder::derivation_cache::digest_input(&(
+    // `None` ⇒ no usable cache key (a slice failed to serialize): below we then
+    // neither read nor write `feature_weights_cache` for this world and just
+    // compute the weights fresh, un-memoized — never serving a colliding entry.
+    // (`worlds_sig` keeps the prior bytes on the happy path: the digest hex when
+    // a worlds catalog is present, the empty string when it is absent.)
+    let digest: Option<String> = (|| {
+        let worlds_sig = match state.data_catalogs.worlds.as_ref() {
+            Some(w) => digest_input(&(
                 w.generation.len(),
                 w.features.global.len(),
                 w.features.by_world_type.len(),
                 w.features.by_star_colour.len(),
-            ))
-        })
-        .unwrap_or_default();
-    let digest = crate::builder::derivation_cache::digest_input(&(
-        world_type.as_str(),
-        star_colour.as_ref(),
-        worlds_sig,
-    ));
+            ))?,
+            None => String::new(),
+        };
+        digest_input(&(world_type.as_str(), star_colour.as_ref(), worlds_sig))
+    })();
 
     let key = (sys_idx, w_idx);
-    if let Some(entry) = state.feature_weights_cache.get(&key) {
-        if entry.digest == digest {
-            return Arc::clone(&entry.weights);
+    if let Some(d) = &digest {
+        if let Some(entry) = state.feature_weights_cache.get(&key) {
+            if entry.digest == *d {
+                return Arc::clone(&entry.weights);
+            }
         }
     }
 
     let Some(input) = state.synthesize_project_input() else {
         let empty = Arc::new(BTreeMap::new());
-        state.feature_weights_cache.insert(
-            key,
-            crate::builder::state::FeatureWeightsCacheValue {
-                digest,
-                weights: Arc::clone(&empty),
-            },
-        );
+        if let Some(digest) = digest {
+            state.feature_weights_cache.insert(
+                key,
+                crate::builder::state::FeatureWeightsCacheValue {
+                    digest,
+                    weights: Arc::clone(&empty),
+                },
+            );
+        }
         return empty;
     };
     let mut pool = sectorforge::build_pool(
@@ -222,13 +227,17 @@ pub(super) fn feature_weights_for_world(
     }
     push(&pool.feature_pool.global);
     let arc = Arc::new(out);
-    state.feature_weights_cache.insert(
-        key,
-        crate::builder::state::FeatureWeightsCacheValue {
-            digest,
-            weights: Arc::clone(&arc),
-        },
-    );
+    // Only memoize when we have a usable cache key; a `None` digest means the
+    // input did not serialize, so the result is returned fresh and un-cached.
+    if let Some(digest) = digest {
+        state.feature_weights_cache.insert(
+            key,
+            crate::builder::state::FeatureWeightsCacheValue {
+                digest,
+                weights: Arc::clone(&arc),
+            },
+        );
+    }
     arc
 }
 

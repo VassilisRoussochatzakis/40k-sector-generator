@@ -14,7 +14,11 @@ use crate::builder::BuilderState;
 /// Rebuilds [`MapViewCache`] when the underlying sector slice digest changes.
 /// Pure — no UI side effects. Cheap when the cache is hot.
 pub(super) fn refresh_map_cache(state: &mut BuilderState) {
-    let digest = sector_view_digest(state);
+    // No usable digest (slice failed to serialize): leave the existing cache
+    // untouched — neither read against a colliding key nor rebuilt this frame.
+    let Some(digest) = sector_view_digest(state) else {
+        return;
+    };
     let stale = state
         .map_view
         .cache
@@ -54,7 +58,7 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
     });
 }
 
-pub(super) fn sector_view_digest(state: &BuilderState) -> String {
+pub(super) fn sector_view_digest(state: &BuilderState) -> Option<String> {
     // Hash the minimal slice that drives subsector clustering + region tints.
     // Keeping the slice narrow avoids invalidating the cache on unrelated
     // edits (e.g. faction prose). §SUB2..§SUB4 overrides also feed in so the

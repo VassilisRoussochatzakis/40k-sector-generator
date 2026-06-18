@@ -23,9 +23,15 @@ use sectorforge::rng::digest_bytes;
 /// Compute the BLAKE3 hex digest of a serializable input slice. Used as the
 /// cache key for an overlay. Determinism relies on the slice serializing in a
 /// stable order — prefer types backed by `BTreeMap`/`Vec`, not `HashMap`.
-pub fn digest_input<T: Serialize>(input: &T) -> String {
-    let bytes = serde_json::to_vec(input).unwrap_or_default();
-    digest_bytes(&bytes)
+///
+/// Returns `None` when the input fails to serialize. Callers MUST treat `None`
+/// as "no usable cache key": neither read nor write the cache for it, and
+/// recompute the value fresh that round. (The old `unwrap_or_default()` hashed
+/// every failed input to the empty byte string, so two distinct un-serializable
+/// inputs collided to the same key and could read each other's cache entry.)
+pub fn digest_input<T: Serialize>(input: &T) -> Option<String> {
+    let bytes = serde_json::to_vec(input).ok()?;
+    Some(digest_bytes(&bytes))
 }
 
 // ── §39 live-derivation ledger (LD1..LD4) ───────────────────────────────────
@@ -337,6 +343,7 @@ mod tests {
     fn digest_input_is_stable() {
         let a = digest_input(&("alpha", 1u32));
         let b = digest_input(&("alpha", 1u32));
+        assert!(a.is_some());
         assert_eq!(a, b);
         let c = digest_input(&("alpha", 2u32));
         assert_ne!(a, c);

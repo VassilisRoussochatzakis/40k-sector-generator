@@ -54,21 +54,27 @@ impl BuilderState {
     /// catalog/config knobs. Two derivations that read the same slice never
     /// collide because the key is folded in. A stable fingerprint means the
     /// cached value is still valid (the precise half of LD2).
-    pub fn derivation_fingerprint(&self, kind: DerivationKind) -> String {
+    ///
+    /// Returns `None` when any constituent slice fails to serialize (see
+    /// [`digest_input`]). A `None` fingerprint is **not** a usable cache key:
+    /// the ledger is then neither read nor written for `kind`, and the value is
+    /// recomputed fresh (and left un-memoized) — never served from a colliding
+    /// cache entry.
+    pub fn derivation_fingerprint(&self, kind: DerivationKind) -> Option<String> {
         let mut parts: Vec<String> = vec![
             sectorforge::GENERATOR_VERSION.to_string(),
             kind.key().to_string(),
         ];
         for dep in kind.deps() {
             parts.push(match dep {
-                DepClass::SystemsWorlds => digest_input(&self.sector.systems),
-                DepClass::Factions => digest_input(&self.sector.factions),
-                DepClass::Regions => digest_input(&self.sector.regions),
-                DepClass::Routes => digest_input(&self.sector.routes),
+                DepClass::SystemsWorlds => digest_input(&self.sector.systems)?,
+                DepClass::Factions => digest_input(&self.sector.factions)?,
+                DepClass::Regions => digest_input(&self.sector.regions)?,
+                DepClass::Routes => digest_input(&self.sector.routes)?,
                 DepClass::RelationsCfg => digest_input(&(
                     &self.data_catalogs.relations,
                     self.config.generation.relations.min_world_presence,
-                )),
+                ))?,
                 DepClass::EconomyCfg => digest_input(&(
                     &self.data_catalogs.economy,
                     &self.world_economy_overrides,
@@ -76,10 +82,10 @@ impl BuilderState {
                     &self.system_tithe_overrides,
                     &self.system_supply_overrides,
                     &self.system_priority_overrides,
-                )),
+                ))?,
             });
         }
-        parts.push(self.derivation_config_digest(kind));
+        parts.push(self.derivation_config_digest(kind)?);
         digest_input(&parts)
     }
 
@@ -87,7 +93,10 @@ impl BuilderState {
     /// but still change the derived output (player-edition masks, the analytics
     /// `[analyze]` config, the briefing profile, …). Empty for kinds whose
     /// output is fully determined by their dependency slices.
-    fn derivation_config_digest(&self, kind: DerivationKind) -> String {
+    ///
+    /// Returns `None` only when a knob slice fails to serialize; the no-knob
+    /// kinds return `Some(String::new())` (an empty contribution to the fold).
+    fn derivation_config_digest(&self, kind: DerivationKind) -> Option<String> {
         match kind {
             DerivationKind::Personae => digest_input(&self.data_catalogs.personae),
             DerivationKind::Hooks => {
@@ -109,7 +118,7 @@ impl BuilderState {
                 self.briefing_panel.min_confidence,
             )),
             DerivationKind::Interestingness => digest_input(&self.interestingness_panel.profile),
-            _ => String::new(),
+            _ => Some(String::new()),
         }
     }
 
@@ -141,15 +150,27 @@ impl BuilderState {
     /// LD3/LD4 — record that `kind`'s cached value matches the current input.
     /// Panels and the `recompute_*` methods call this after (re)deriving so the
     /// ledger fingerprint tracks the value actually on display.
+    ///
+    /// When the input fails to serialize ([`Self::derivation_fingerprint`] is
+    /// `None`) there is no usable cache key, so the ledger is **not** written:
+    /// the value was still recomputed by the caller, it simply isn't memoized
+    /// this round (and the kind stays whatever it was — typically stale — so it
+    /// recomputes fresh again next time rather than serving a colliding entry).
     pub fn mark_derivation_fresh(&mut self, kind: DerivationKind) {
-        let fp = self.derivation_fingerprint(kind);
-        self.derivations.mark_fresh(kind, fp);
+        if let Some(fp) = self.derivation_fingerprint(kind) {
+            self.derivations.mark_fresh(kind, fp);
+        }
     }
 
     /// LD3 — current freshness of `kind` for the status bar / panel stale tag.
+    /// An un-serializable input ([`Self::derivation_fingerprint`] is `None`) has
+    /// no cache key, so it reads `Cold` — never matched against (and never
+    /// served from) a stored fingerprint.
     pub fn derivation_status(&self, kind: DerivationKind) -> DerivationStatus {
-        let fp = self.derivation_fingerprint(kind);
-        self.derivations.status(kind, &fp)
+        match self.derivation_fingerprint(kind) {
+            Some(fp) => self.derivations.status(kind, &fp),
+            None => DerivationStatus::Cold,
+        }
     }
 
     /// Map a top tab to the overlay derivation it renders, when that overlay is
@@ -181,7 +202,12 @@ impl BuilderState {
         if !self.derivations.is_stale(kind) {
             return;
         }
-        let current = self.derivation_fingerprint(kind);
+        // No usable cache key (input failed to serialize): recompute fresh and
+        // leave the kind un-memoized rather than read/compare a colliding entry.
+        let Some(current) = self.derivation_fingerprint(kind) else {
+            self.recompute_derivation(kind);
+            return;
+        };
         if self.derivations.fingerprints.get(&kind) == Some(&current) {
             self.derivations.mark_fresh(kind, current);
             return;
@@ -268,7 +294,13 @@ impl BuilderState {
             .collect();
 
         for kind in stale {
-            let fingerprint = self.derivation_fingerprint(kind);
+            // No usable cache key (input failed to serialize) ⇒ skip background
+            // memoization for this kind: the synchronous `ensure_fresh` path
+            // recomputes it fresh when its tab is active. Storing a job under a
+            // non-key fingerprint would let the drain's stale-guard misfire.
+            let Some(fingerprint) = self.derivation_fingerprint(kind) else {
+                continue;
+            };
             let sector = self.sector.share();
             // Build the same inputs the synchronous `recompute_*` would, owned
             // so they move into the worker.
@@ -446,8 +478,11 @@ impl BuilderState {
             // LD3 stale-guard: discard a result computed from inputs that have
             // since changed. Leave `stale` set (do NOT mark fresh) so the next
             // dispatch recomputes against the current inputs; clear `deriving`
-            // so that dispatch is not blocked by this finished job.
-            if self.derivation_fingerprint(kind) != captured {
+            // so that dispatch is not blocked by this finished job. A live
+            // fingerprint that is now `None` (input no longer serializes) never
+            // matches the captured key, so the result is discarded — the safe
+            // side of the guard.
+            if self.derivation_fingerprint(kind).as_deref() != Some(captured.as_str()) {
                 self.derivations.deriving.remove(&kind);
                 landed = true;
                 continue;
@@ -1316,7 +1351,9 @@ mod ld3_background_tests {
             .sector
             .factions
             .push(gen_faction("orks", "ork", "hostile"));
-        let live_fp = state.derivation_fingerprint(DerivationKind::Relations);
+        let live_fp = state
+            .derivation_fingerprint(DerivationKind::Relations)
+            .expect("fixture inputs serialize");
         let captured_fp = state
             .derivation_jobs
             .in_flight

@@ -23,10 +23,10 @@ Tag appended to each finding header below:
 
 Roll-up:
 
-  P0-1 [IN PROGRESS]   P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
+  P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
   P0-2 [IN PROGRESS]   P1-2 [IN PROGRESS]   P2-2 [DONE]          P3-2 [IN PROGRESS]
-  P0-3 [IN PROGRESS]   P1-3 [IN PROGRESS]   P2-3 [DONE]          P3-3 [IN PROGRESS]
-  P0-4 [IN PROGRESS]                        P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
+  P0-3 [DONE]          P1-3 [IN PROGRESS]   P2-3 [DONE]          P3-3 [IN PROGRESS]
+  P0-4 [DONE]                               P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
                                             P2-6 [DONE]          P3-6 [NO ACTION]
                                                                  P3-7 [NO ACTION]
@@ -34,7 +34,7 @@ Roll-up:
 PR-roadmap status (see "REFACTORING ROADMAP" below):
 
   PR 1  — DONE           PR 6  — IN PROGRESS
-  PR 2  — IN PROGRESS    PR 7  — IN PROGRESS
+  PR 2  — DONE           PR 7  — IN PROGRESS
   PR 3  — IN PROGRESS    PR 8  — IN PROGRESS
   PR 4  — DONE           PR 9  — IN PROGRESS
   PR 5  — IN PROGRESS    PR 10 — IN PROGRESS
@@ -92,7 +92,7 @@ DETAILED FINDINGS
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-P0-1  derivation_cache::digest_input swallows serialization errors  [IN PROGRESS]
+P0-1  derivation_cache::digest_input swallows serialization errors  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    builder/src/builder/derivation_cache.rs:59-62
 Current:
@@ -118,6 +118,14 @@ Recommendation:
 Validation:
   Unit test with a `Serialize` impl that returns an error: assert
   `digest_input` returns `Err`, assert no cache write occurs.
+
+Status:
+  Fixed. digest_input now returns Option<String> (None on serialize failure);
+  the three digest-keyed caches — §39 DerivationLedger, MapViewCache,
+  feature_weights — gated to neither-read-nor-write on None (recompute fresh,
+  un-memoized). Happy-path digest bytes unchanged. Verified: cargo clippy
+  --workspace --all-targets -D warnings clean, 423 builder tests pass, golden
+  suite clean (no output drift).
 
 ────────────────────────────────────────────────────────────────────────────────
 P0-2  settings_digest is narrower than its name implies  [IN PROGRESS]
@@ -166,7 +174,7 @@ Validation:
     output does not.
 
 ────────────────────────────────────────────────────────────────────────────────
-P0-3  Production unwrap in GUI auto-save  [IN PROGRESS]
+P0-3  Production unwrap in GUI auto-save  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    viewer/src/app/mod.rs:209
 Current:
@@ -181,8 +189,15 @@ Recommendation:
   format!("auto-save failed: {e}")` and return without writing. Mirror the
   pattern already used in `export_ui::execute_*` writers.
 
+Status:
+  STALE — already resolved, no change needed. The viewer auto-save path
+  (sync_derived_sector, viewer/src/app/mod.rs) already matches the
+  to_string_pretty Result and sets export_status on Err; it has never
+  contained .unwrap() (Result-match form since commit cf8fa27). The finding's
+  ~line 209 pointer is stale.
+
 ────────────────────────────────────────────────────────────────────────────────
-P0-4  Production unwraps in subsectors clustering rely on invariant  [IN PROGRESS]
+P0-4  Production unwraps in subsectors clustering rely on invariant  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    src/subsectors/mod.rs:518, 519, 537, 544, 574, 597-602, 618
 Current:
@@ -207,6 +222,15 @@ Recommendation:
   Same treatment for the test-only invariant unwraps in src/economy.rs:904
   (already guarded by `is_none()` check above — rewrite with `if let Some(sys)
   = by_sys.get(...).copied()` to drop the redundant unwrap entirely).
+
+Status:
+  STALE — already resolved, no change needed. (subsectors) src/subsectors/mod.rs
+  moved to src/export/subsectors/mod.rs and the clustering pass was rewritten
+  for perf (commits 1ac83ea/0038337); the bare unwraps are now non-panicking
+  .unwrap_or(0) (lines ~564/635/640) so there is nothing to convert to
+  .expect(). (economy) src/economy.rs moved to src/analysis/economy/derive.rs
+  (commit cea8a49); the is_none()+unwrap block is already the requested
+  let-else at derive.rs:175.
 
 ────────────────────────────────────────────────────────────────────────────────
 P1-1  No PNG/SVG pixel-hash golden tests for the public writers  [DONE]
@@ -644,7 +668,7 @@ PR 1 — Mechanical cleanup, no behaviour change  [DONE]
   - drop needless borrows in tests/golden_generation.rs            (clippy)
   Risk: none. Verify with `cargo test --workspace`.
 
-PR 2 — Error handling + correctness  [IN PROGRESS]
+PR 2 — Error handling + correctness  [DONE]
   - digest_input returns Result; callers skip caching on Err      P0-1
   - gui auto-save match instead of unwrap                          P0-3
   - subsectors unwraps → expect("invariant: …") + debug_assert     P0-4

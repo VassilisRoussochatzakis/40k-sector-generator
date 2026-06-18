@@ -50,47 +50,80 @@ pub(super) fn place_systems_reroll(
         all.swap(i, j);
     }
 
-    let mut placed: Vec<HexCoord> = Vec::with_capacity(target);
-    let mut leftover: Vec<HexCoord> = Vec::with_capacity(all.len().saturating_sub(target));
     let min_dist = g.placement.minimum_system_distance;
-    for c in all {
-        if placed.len() >= target {
-            break;
-        }
-        if min_dist <= 1 || placed.iter().all(|p| hex_distance(*p, c) >= min_dist) {
-            placed.push(c);
-        } else {
-            leftover.push(c);
-        }
-    }
+    // cluster_bias > 0 opts into clumpy placement; 0 keeps the byte-identical
+    // scattered path below (legacy goldens depend on it).
+    let bias = g.placement.cluster_bias.clamp(0.0, 1.0);
 
-    if placed.len() < target {
-        // Couldn't satisfy minimum distance — relax constraint by progressively
-        // shrinking it, still consuming the shuffled leftover pool so fill stays
-        // spatially scattered rather than packed in grid order.
-        let mut relaxed = min_dist;
-        while placed.len() < target && relaxed > 1 {
-            relaxed -= 1;
-            let mut still_blocked: Vec<HexCoord> = Vec::with_capacity(leftover.len());
-            for c in std::mem::take(&mut leftover) {
-                if placed.len() >= target {
-                    still_blocked.push(c);
-                    continue;
-                }
-                if relaxed <= 1 || placed.iter().all(|p| hex_distance(*p, c) >= relaxed) {
-                    placed.push(c);
-                } else {
-                    still_blocked.push(c);
-                }
-            }
-            leftover = still_blocked;
+    let mut placed: Vec<HexCoord> = Vec::with_capacity(target);
+    if bias > 0.0 {
+        // Clustered placement: each new system either GROWS a cluster (prob =
+        // cluster_bias — pulled to the free cell nearest a random already-placed
+        // system) or SCATTERS to a fresh min-distance cell. bias→1 ⇒ one tight
+        // blob; smaller bias ⇒ several looser clusters approaching the scatter
+        // layout. ponytail: O(target·cells) per-step scan — fine for the
+        // validation-capped sector dims; swap for a spatial index only if dims
+        // ever grow huge.
+        let mut pool = all;
+        while placed.len() < target && !pool.is_empty() {
+            let idx = if !placed.is_empty() && rng.gen_bool(bias) {
+                let anchor = placed[rng.gen_range(0..placed.len())];
+                (0..pool.len())
+                    .min_by_key(|&i| hex_distance(pool[i], anchor))
+                    .unwrap()
+            } else {
+                // First free cell respecting min_dist; fall back to the front of
+                // the shuffled pool if none qualifies (mirrors the cascade below).
+                (0..pool.len())
+                    .find(|&i| {
+                        min_dist <= 1
+                            || placed.iter().all(|p| hex_distance(*p, pool[i]) >= min_dist)
+                    })
+                    .unwrap_or(0)
+            };
+            placed.push(pool.remove(idx));
         }
-        // Final fallback: any remaining shuffled cells.
-        for c in leftover {
+    } else {
+        let mut leftover: Vec<HexCoord> = Vec::with_capacity(all.len().saturating_sub(target));
+        for c in all {
             if placed.len() >= target {
                 break;
             }
-            placed.push(c);
+            if min_dist <= 1 || placed.iter().all(|p| hex_distance(*p, c) >= min_dist) {
+                placed.push(c);
+            } else {
+                leftover.push(c);
+            }
+        }
+
+        if placed.len() < target {
+            // Couldn't satisfy minimum distance — relax constraint by progressively
+            // shrinking it, still consuming the shuffled leftover pool so fill stays
+            // spatially scattered rather than packed in grid order.
+            let mut relaxed = min_dist;
+            while placed.len() < target && relaxed > 1 {
+                relaxed -= 1;
+                let mut still_blocked: Vec<HexCoord> = Vec::with_capacity(leftover.len());
+                for c in std::mem::take(&mut leftover) {
+                    if placed.len() >= target {
+                        still_blocked.push(c);
+                        continue;
+                    }
+                    if relaxed <= 1 || placed.iter().all(|p| hex_distance(*p, c) >= relaxed) {
+                        placed.push(c);
+                    } else {
+                        still_blocked.push(c);
+                    }
+                }
+                leftover = still_blocked;
+            }
+            // Final fallback: any remaining shuffled cells.
+            for c in leftover {
+                if placed.len() >= target {
+                    break;
+                }
+                placed.push(c);
+            }
         }
     }
 
@@ -196,5 +229,51 @@ mod tests {
         assert_eq!(total_cells, 2_147_488_281usize);
         // Sanity: the naive i32 path would have overflowed.
         assert!(total_cells > i32::MAX as usize);
+    }
+
+    // cluster_bias must actually clump: on a roomy grid with few systems, the
+    // mean nearest-neighbour distance at bias=1.0 is strictly tighter than the
+    // scattered bias=0.0 layout. If this fails, cluster_bias is dead again.
+    #[test]
+    fn clustered_placement_is_tighter_and_deterministic() {
+        let make = |bias: f64| {
+            let mut cfg = build_random_config("cluster-test", SectorSize::Custom { dim: 16 });
+            cfg.generation.seed = "cluster-test".to_string();
+            cfg.generation.sector_width = 16;
+            cfg.generation.sector_height = 16;
+            cfg.generation.system_count = 12;
+            cfg.generation.placement.minimum_system_distance = 1;
+            cfg.generation.placement.cluster_bias = bias;
+            cfg
+        };
+
+        let scattered = place_systems_reroll(&make(0.0), "").unwrap();
+        let clustered = place_systems_reroll(&make(1.0), "").unwrap();
+        assert_eq!(scattered.len(), 12);
+        assert_eq!(clustered.len(), 12);
+
+        let mean_nn = |pts: &[HexCoord]| -> f64 {
+            let sum: u32 = pts
+                .iter()
+                .map(|&a| {
+                    pts.iter()
+                        .filter(|&&b| b != a)
+                        .map(|&b| hex_distance(a, b))
+                        .min()
+                        .unwrap()
+                })
+                .sum();
+            sum as f64 / pts.len() as f64
+        };
+        assert!(
+            mean_nn(&clustered) < mean_nn(&scattered),
+            "clustered mean-NN {} should be < scattered {}",
+            mean_nn(&clustered),
+            mean_nn(&scattered)
+        );
+
+        // Same seed ⇒ identical clustered layout (RNG via stage_rng).
+        let again = place_systems_reroll(&make(1.0), "").unwrap();
+        assert_eq!(clustered, again);
     }
 }

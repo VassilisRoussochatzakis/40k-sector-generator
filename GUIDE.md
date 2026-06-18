@@ -1176,7 +1176,7 @@ strict_world_rows          = true
 
 [generation.placement]
 mode                       = "uniform_grid"             # "uniform_grid" | "weighted_grid" | "clustered"
-cluster_bias               = 0.0                        # attraction toward generation center (0 = none)
+cluster_bias               = 0.0                        # >0 clumps systems toward each other (1.0 ≈ one tight blob); 0 = even scatter
 minimum_system_distance    = 1
 
 [generation.world_selection]

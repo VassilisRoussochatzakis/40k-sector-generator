@@ -26,7 +26,7 @@ Roll-up:
   P0-1 [DONE]          P1-1 [DONE]          P2-1 [DONE]          P3-1 [IN PROGRESS]
   P0-2 [DONE]          P1-2 [DONE]          P2-2 [DONE]          P3-2 [IN PROGRESS]
   P0-3 [DONE]          P1-3 [DONE]          P2-3 [DONE]          P3-3 [IN PROGRESS]
-  P0-4 [DONE]                               P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
+  P0-4 [DONE]                               P2-4 [DONE]          P3-4 [IN PROGRESS]
                                             P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
                                             P2-6 [DONE]          P3-6 [NO ACTION]
                                                                  P3-7 [NO ACTION]
@@ -34,7 +34,7 @@ Roll-up:
 PR-roadmap status (see "REFACTORING ROADMAP" below):
 
   PR 1  — DONE           PR 6  — DONE
-  PR 2  — DONE           PR 7  — IN PROGRESS
+  PR 2  — DONE           PR 7  — DONE
   PR 3  — DONE           PR 8  — IN PROGRESS
   PR 4  — DONE           PR 9  — IN PROGRESS
   PR 5  — DONE           PR 10 — IN PROGRESS
@@ -496,7 +496,7 @@ Status:
   already absent from the current code (stale). file_watcher tests green.
 
 ────────────────────────────────────────────────────────────────────────────────
-P2-4  Lock-on-progress JobHandle is heavier than needed  [IN PROGRESS]
+P2-4  Lock-on-progress JobHandle is heavier than needed  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
 File:    gui-core/src/jobs.rs:11, 27, 47, 75
 Current: `progress: Arc<Mutex<f32>>` and `cancelled: Arc<AtomicBool>`.
@@ -518,6 +518,26 @@ Recommendation:
     say, 30 Hz so a tight loop of 10k progress ticks doesn't queue 10k
     repaints. (egui collapses duplicate repaint requests but the cost of
     the call itself adds up.)
+
+Status:
+  Done. JobHandle.progress is now Arc<AtomicU32> (f32 stored via
+  to_bits/from_bits, Ordering::Relaxed) instead of Arc<Mutex<f32>> —
+  lock-free on the progress read/write path. cancel/is_cancelled downgraded
+  from SeqCst to Release/Acquire (a standalone cancel signal needs no
+  stronger ordering). request_repaint is throttled in set_progress, but as a
+  VALUE-based throttle (repaint only when the rounded whole-percent advances,
+  via one AtomicU32 swap) rather than the finding's literal ~30 Hz timer:
+  JobContext is shared by &reference across threads in parallel search
+  (builder/src/builder/search_run.rs), so the throttle state must be Sync — a
+  value-based throttle is lock-free + Sync-safe + needs no clock, caps to
+  ~101 repaints/job, and the terminal request_repaint() in spawn_job always
+  flushes the final 100%. The one direct JobHandle construction (viewer
+  preview_job test fixture, viewer/src/editor/state.rs:281) was updated to the
+  new field type; all other callers use the .progress() method and are
+  unaffected. Added a set_progress_round_trips_through_atomic_bits test.
+  Verified: cargo clippy --workspace --all-targets -D warnings clean; gui-core
+  (incl. new test) + viewer (stale_preview_revision_is_discarded) + builder
+  (423) green; gui-core map-snapshots unaffected.
 
 ────────────────────────────────────────────────────────────────────────────────
 P2-5  Builder snapshot deep-clones the full sector  [IN PROGRESS]
@@ -752,7 +772,7 @@ PR 6 — Job model consolidation  [DONE]
   - add cancel/complete/error/stale tests at the JobHandle layer
   Risk: low; touches one struct + UI status read.
 
-PR 7 — Lock-free progress + ordering  [IN PROGRESS]
+PR 7 — Lock-free progress + ordering  [DONE]
   - Arc<AtomicU32> bit-cast for progress                           P2-4
   - downgrade Ordering::SeqCst on cancel to Acquire/Release        P2-4
   - rate-limit request_repaint in set_progress

@@ -269,7 +269,7 @@ impl EditorState {
 mod tests {
     use super::*;
     use sectorforge::sector_model::empty_sector;
-    use std::sync::atomic::Ordering;
+    use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::{mpsc, Arc, Mutex};
 
     fn preview_job(revision: u64) -> crate::jobs::JobHandle<PreviewJobResult> {
@@ -278,7 +278,7 @@ mod tests {
             id: "preview-gen".to_string(),
             revision,
             description: "preview".to_string(),
-            progress: Arc::new(Mutex::new(0.0)),
+            progress: Arc::new(AtomicU32::new(0.0f32.to_bits())),
             status: Arc::new(Mutex::new(None)),
             cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             receiver: rx,

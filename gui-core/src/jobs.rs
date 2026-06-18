@@ -1,5 +1,5 @@
 use std::panic::AssertUnwindSafe;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -38,7 +38,7 @@ pub struct JobHandle<T> {
     pub id: String,
     pub revision: u64,
     pub description: String,
-    pub progress: Arc<Mutex<f32>>, // 0.0 to 1.0
+    pub progress: Arc<AtomicU32>, // 0.0..=1.0, stored as f32 bits (lock-free)
     pub status: Arc<Mutex<Option<String>>>,
     pub cancelled: Arc<AtomicBool>,
     pub receiver: Receiver<T>,
@@ -46,15 +46,15 @@ pub struct JobHandle<T> {
 
 impl<T> JobHandle<T> {
     pub fn cancel(&self) {
-        self.cancelled.store(true, Ordering::SeqCst);
+        self.cancelled.store(true, Ordering::Release);
     }
 
     pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::SeqCst)
+        self.cancelled.load(Ordering::Acquire)
     }
 
     pub fn progress(&self) -> f32 {
-        *self.progress.lock().unwrap()
+        f32::from_bits(self.progress.load(Ordering::Relaxed))
     }
 
     /// Latest live status line the worker posted via [`JobContext::set_status`]
@@ -77,7 +77,7 @@ where
     F: FnOnce(JobContext) -> T + Send + 'static,
 {
     let (tx, rx) = channel();
-    let progress = Arc::new(Mutex::new(0.0));
+    let progress = Arc::new(AtomicU32::new(0.0f32.to_bits()));
     let status = Arc::new(Mutex::new(None));
     let cancelled = Arc::new(AtomicBool::new(false));
 
@@ -86,6 +86,7 @@ where
         status: status.clone(),
         cancelled: cancelled.clone(),
         ui_ctx: ctx.clone(),
+        last_repaint_pct: AtomicU32::new(u32::MAX),
     };
 
     thread::spawn(move || {
@@ -140,16 +141,29 @@ fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
 }
 
 pub struct JobContext {
-    progress: Arc<Mutex<f32>>,
+    progress: Arc<AtomicU32>,
     status: Arc<Mutex<Option<String>>>,
     cancelled: Arc<AtomicBool>,
     ui_ctx: egui::Context,
+    /// Rounded percent (0..=100) at which we last asked egui to repaint from a
+    /// progress tick. We only repaint when this advances, so a tight worker loop
+    /// (or several parallel workers) can't drive the UI redraw every tick.
+    /// Atomic so `JobContext` stays `Sync` — parallel runners share `&JobContext`.
+    last_repaint_pct: AtomicU32,
 }
 
 impl JobContext {
     pub fn set_progress(&self, p: f32) {
-        *self.progress.lock().unwrap() = p;
-        self.ui_ctx.request_repaint();
+        self.progress.store(p.to_bits(), Ordering::Relaxed);
+        // Throttle repaints to once per advancing whole percent: a worker can
+        // call this in a tight loop (and parallel runners share one JobContext),
+        // and egui would otherwise redraw every tick. At most ~101 repaints per
+        // job; the terminal `request_repaint()` in `spawn_job` always flushes the
+        // final state, so throttling here can't leave the UI stuck short of 100%.
+        let pct = (p.clamp(0.0, 1.0) * 100.0) as u32;
+        if self.last_repaint_pct.swap(pct, Ordering::Relaxed) != pct {
+            self.ui_ctx.request_repaint();
+        }
     }
 
     /// Post a live status line for the UI to display (e.g. a byte counter while
@@ -160,7 +174,7 @@ impl JobContext {
     }
 
     pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::SeqCst)
+        self.cancelled.load(Ordering::Acquire)
     }
 }
 
@@ -178,6 +192,32 @@ mod tests {
         assert!(!handle.is_cancelled());
         handle.cancel();
         assert!(handle.is_cancelled());
+        assert_eq!(
+            handle.receiver.recv_timeout(Duration::from_secs(1)),
+            Ok("done")
+        );
+    }
+
+    #[test]
+    fn set_progress_round_trips_through_atomic_bits() {
+        let ctx = egui::Context::default();
+        let (checked_tx, checked_rx) = std::sync::mpsc::channel();
+        let (progressed_tx, progressed_rx) = std::sync::mpsc::channel();
+        let handle = spawn_job("progress-job", 1, "progress", ctx, move |jc| {
+            jc.set_progress(0.42);
+            progressed_tx.send(()).unwrap(); // progress is now stored
+            checked_rx.recv_timeout(Duration::from_secs(2)).unwrap(); // hold until main reads
+            "done"
+        });
+
+        progressed_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(
+            (handle.progress() - 0.42).abs() < 1e-6,
+            "progress() must read back the f32 stored via to_bits, got {}",
+            handle.progress()
+        );
+
+        checked_tx.send(()).unwrap();
         assert_eq!(
             handle.receiver.recv_timeout(Duration::from_secs(1)),
             Ok("done")

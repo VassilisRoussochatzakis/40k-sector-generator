@@ -93,16 +93,16 @@ impl App {
     }
 
     pub(super) fn handle_export_job(&mut self) {
-        let completed = self
-            .export_job
-            .as_ref()
-            .and_then(|job| match job.receiver.try_recv() {
-                Ok(result) => Some(result),
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(ExportJobResult(
-                    format!("export failed: worker disconnected ({})", job.description),
-                )),
-                Err(std::sync::mpsc::TryRecvError::Empty) => None,
-            });
+        let completed =
+            self.export_job
+                .as_ref()
+                .and_then(|job| match job.receiver.try_recv() {
+                    Ok(result) => Some(result),
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(ExportJobResult(
+                        format!("export failed: worker disconnected ({})", job.description),
+                    )),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => None,
+                });
         if let Some(result) = completed {
             self.export_status = result.into_status();
             self.export_job = None;
@@ -201,9 +201,7 @@ impl App {
                     move |job_ctx| {
                         job_ctx.set_progress(0.0);
                         if job_ctx.is_cancelled() {
-                            return ExportJobResult(
-                                "cancelled all-system PNG export".into(),
-                            );
+                            return ExportJobResult("cancelled all-system PNG export".into());
                         }
                         if let Err(e) = fs::create_dir_all(&systems_dir) {
                             return ExportJobResult(format!(
@@ -238,10 +236,7 @@ impl App {
                             }
                             job_ctx.set_progress((idx + 1) as f32 / total as f32);
                         }
-                        ExportJobResult(format!(
-                            "exported {} system PNGs to {}",
-                            total, status_dir
-                        ))
+                        ExportJobResult(format!("exported {} system PNGs to {}", total, status_dir))
                     },
                 );
             }

@@ -184,7 +184,6 @@ pub fn toggle(ui: &mut Ui, on: &mut bool) -> Response {
     response
 }
 
-
 /// A **destructive-action** button (§SPRUCE D3 / §5.2): the danger color as a
 /// label + hairline border over a transparent rest fill, filling with danger on
 /// hover (the ink flips to a light ash), every state eased. Reads clearly as

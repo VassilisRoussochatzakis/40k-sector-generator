@@ -34,8 +34,8 @@ use rand::Rng;
 
 use crate::config::{
     AppConfig, BitmapConfig, GenerationConfig, HtmlConfig, InputConfig, OutputConfig, OutputFormat,
-    PlacementConfig, ProjectConfig, RelationsGenerationConfig,
-    RouteGenerationConfig, WorldSelectionConfig,
+    PlacementConfig, ProjectConfig, RelationsGenerationConfig, RouteGenerationConfig,
+    WorldSelectionConfig,
 };
 use crate::errors::SectorError;
 use crate::hooks::HooksReport;

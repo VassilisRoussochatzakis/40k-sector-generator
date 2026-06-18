@@ -9,7 +9,12 @@ use crate::shared::{fixture_dir as fixture_project, fixture_sector};
 /// Build a `WishesFile` from the repeated `search: SearchConfig { .. }` skeleton.
 /// Each test supplies its own distinct `base_seed`, `budget`, `report_top`, and
 /// `constraints`; only the boilerplate is factored here.
-fn wishes(base_seed: &str, budget: u32, report_top: u32, constraints: Vec<Constraint>) -> WishesFile {
+fn wishes(
+    base_seed: &str,
+    budget: u32,
+    report_top: u32,
+    constraints: Vec<Constraint>,
+) -> WishesFile {
     WishesFile {
         search: SearchConfig {
             base_seed: Some(base_seed.into()),

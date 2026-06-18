@@ -45,7 +45,10 @@ pub const ROUTE_TYPES: &[(&str, &str)] = &[
         RouteType::SecretPassage.as_slug(),
         RouteType::SecretPassage.editor_label(),
     ),
-    (RouteType::Webway.as_slug(), RouteType::Webway.editor_label()),
+    (
+        RouteType::Webway.as_slug(),
+        RouteType::Webway.editor_label(),
+    ),
     (
         RouteType::BlackShip.as_slug(),
         RouteType::BlackShip.editor_label(),

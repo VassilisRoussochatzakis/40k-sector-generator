@@ -36,9 +36,7 @@ use std::collections::BTreeMap;
 
 use egui::{Color32, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
 
-use sectorforge::interestingness::{
-    InterestingnessConfig, MetricScore, MetricTarget, ProfileId,
-};
+use sectorforge::interestingness::{InterestingnessConfig, MetricScore, MetricTarget, ProfileId};
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;

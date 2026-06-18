@@ -45,7 +45,11 @@ fn svg_export_matches_pinned_blake3_hash() {
     let sector = fixture_sector();
     let opts = sectorforge::bitmap::RenderOptions::default();
     let svg = sectorforge::svg_export::render_sector_svg(sector, None, &opts);
-    assert_blake3_golden("svg_m42_default.blake3", "UPDATE_GOLDEN_SVG", svg.as_bytes());
+    assert_blake3_golden(
+        "svg_m42_default.blake3",
+        "UPDATE_GOLDEN_SVG",
+        svg.as_bytes(),
+    );
 }
 
 // GAP 141: with a non-`Off` heatmap, the renderers consume a `HashMap` of

@@ -17,7 +17,8 @@ use sectorforge::{
 };
 
 use crate::shared::{
-    assert_derive_deterministic, derivation_proptest_config, fixture_dir, fixture_sector, gen_sector,
+    assert_derive_deterministic, derivation_proptest_config, fixture_dir, fixture_sector,
+    gen_sector,
 };
 
 fn build_report(sector: &GeneratedSector, cfg: &RelationsConfig) -> RelationsReport {

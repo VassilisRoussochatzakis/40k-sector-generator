@@ -56,7 +56,7 @@ pub struct WorldWorkbookValidation {
 }
 
 /// Hard upper bound on a sector's side length. Far above any real authored
-/// sector (the largest shipped example, `examples/SEC100`, is 100×100) — its
+/// sector (the largest shipped example, `examples/big_test`, is 32×32) — its
 /// only job is to reject a hand-edited or malformed `sectorforge.toml` whose
 /// absurd dimensions would otherwise allocate a multi-gigabyte cell grid and
 /// OOM-abort the process (`panic = "abort"` in release). Distinct from

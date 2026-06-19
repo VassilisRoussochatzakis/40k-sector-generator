@@ -9,8 +9,8 @@ limited in-place edits.
 
 ## Prerequisites
 
-You need **Rust**, installed via [rustup](https://rustup.rs/) (any 1.70+ toolchain
-works; the project's MSRV is 1.87). Platform notes:
+You need **Rust**, installed via [rustup](https://rustup.rs/) (any 1.87+ toolchain
+works — 1.87 is the project's MSRV). Platform notes:
 
 - **macOS:** install the Xcode Command Line Tools first (`xcode-select --install`),
   then run the rustup installer.

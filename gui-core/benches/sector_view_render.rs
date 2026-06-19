@@ -9,9 +9,10 @@
 //!
 //! This bench drives the real `SectorView` shape-build path headlessly through
 //! a windowless `egui::Context` — the same seam the gui-core map-snapshot
-//! tests use — over two checked-in fixtures that bracket the 500-system target:
-//!   * `big_test`         — 200 systems
-//!   * `huge_sparse_test` — 1000 systems (above the target, with ~2000 routes)
+//! tests use — over the two checked-in scale fixtures (both currently below the
+//! 500-system target; a larger above-target fixture is no longer shipped):
+//!   * `big_sparse_test`  — 80 systems, sparse routes
+//!   * `big_test`         — 200 systems, denser routes
 //!
 //! The whole sector is framed (`screen_rect == map_size_px`), so nothing is
 //! viewport-culled: every system, route and hex is built each iteration — the
@@ -41,7 +42,7 @@ fn fixture(name: &str) -> GeneratedSector {
 
 fn bench_redraw(c: &mut Criterion) {
     let mut group = c.benchmark_group("map_redraw");
-    for name in ["big_test", "huge_sparse_test"] {
+    for name in ["big_sparse_test", "big_test"] {
         let sector = fixture(name);
         let n_sys = sector.systems.len();
         let n_routes = sector.routes.len();

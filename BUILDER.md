@@ -214,7 +214,7 @@ domain-specific tabs:
   atmosphere, …) plus a numeric **weight**. Use the per-row **＋** to insert a
   row above, **✕** to delete one (deleting a recipe row asks you to confirm —
   it is not undoable), or **+ Add row** at the bottom to append.
-  A **✓ valid worlds.toml** / **✗** line validates the whole catalogue, and
+  A **✓ valid world data** / **✗** line validates the whole catalogue, and
   **Save worlds.toml** (enabled only while there are unsaved, valid changes)
   writes just that file.
 
@@ -257,8 +257,8 @@ From there every tab behaves exactly as in the rest of this guide.
 > **Heads-up.** Creating a random sector replaces the active project and clears
 > the undo history — like opening a different project it is a session boundary,
 > not an undoable edit. The data is drawn from the hidden `_full` preset, the
-> one bundle that wires *and enables* every overlay (it holds the repo's only
-> `hooks.toml` / `missions.toml` / `prose.toml`), so it is the quickest way to
+> one bundle that wires *and enables* every overlay (including its
+> `hooks.toml` / `missions.toml` / `prose.toml` layers), so it is the quickest way to
 > see a "kitchen-sink" sector.
 
 ### 1.6 Build it step-by-step (ITERATIVE tab)
@@ -307,7 +307,7 @@ Before we put anything on the map, get a feel for the layout.
 
 Click **MAP**. The panel now shows:
 
-- A **toolbox rail** down the left edge labelled `tool:` with six selectable
+- A **toolbox rail** down the left edge labelled `Tool:` with six selectable
   buttons: `SELECT`, `ADD SYSTEM`, `DELETE SYSTEM`, `MOVE SYSTEM`, `ADD ROUTE`,
   `REGION PAINT`. Exactly one is highlighted at a time. The default is
   `SELECT`. The same rail holds the **zoom slider** (`hex`, 12–64 px) and the
@@ -410,7 +410,7 @@ Click **SYSTEM** in the top tab strip. The tab now shows:
   selected. (The inspector to its right holds the sections below, laid out in
   two columns on a wide window.)
 - An **Identity** collapsing section with the system id, name, coordinates,
-  and a `SystemKind` selector (DeepSpace, Inhabited, Frontier, etc.).
+  and a `SystemKind` selector (Star, SpecialLocation, BlackHole, WarpAnomaly, SpaceStation).
 - A **Star** section with star colour code, colour name, and spectral type.
 - A handful of further sections, each a collapsing header — most are
   prefixed with their spec reference: `Tags + Notes`, `Worlds (§8)`,
@@ -419,7 +419,7 @@ Click **SYSTEM** in the top tab strip. The tab now shows:
   (§30)`, `§AR2 — Auto-assign archetypes`, `§AR3 — Archetype rules`,
   `§S5 — Generate one system here`, `§S4 — Bulk operations`, plus
   injected orbital / conflict / intel sub-sections. Near the top, under the
-  egui `In-system map`, sits `Bitmap preview (§T5)` — see §4.4.
+  egui `In-system map`, sits `Image preview (§T5)` — see §4.4.
 
 You have your first system. Two notes:
 
@@ -438,7 +438,7 @@ populate the system for you. We will do both, so you have seen both flows.
 ### 4.1 Generate a few worlds first
 
 In the SYSTEM tab scroll down to the **§S5 — Generate one system here**
-collapsing header near the bottom and click **Regenerate this system**.
+collapsing header near the bottom and click **Regenerate here**.
 
 The builder runs the standalone single-system generator using the project's
 seed plus the system's id. After a moment the **Worlds** link section
@@ -499,7 +499,7 @@ Save the project (PROJECT tab → **Save**) so you do not lose what you have.
 
 Now that `Velikan` has worlds, see what it looks like as an exported image.
 On the **SYSTEM** tab, just below the interactive **In-system map**, open the
-**Bitmap preview (§T5)** collapsing header. The builder renders the focused
+**Image preview (§T5)** collapsing header. The builder renders the focused
 system through the *same* per-system PNG renderer the exporter uses — star at
 the centre, planets on colour-coded orbit rings, a side legend — and shows it
 inline.
@@ -601,7 +601,7 @@ The roster only describes *who exists*. We still have to tell the sector
 ### 6.1 The two ways
 
 You can either edit the per-world faction list by hand from the WORLD tab's
-**Factions** section, or let the generator make a first-pass assignment based
+**Faction presence** section, or let the generator make a first-pass assignment based
 on the preferences you authored.
 
 We will do the auto-assign and then tweak by hand.
@@ -613,35 +613,35 @@ the *catalogue* of factions that *could* exist. The WORLD tab's **+ Add
 presence** dropdown does not read from the catalogue: it reads from the
 sector's own roster (`sector.factions`), which is the list of factions
 that have actually been instantiated into this sector. Until that roster
-is seeded, the WORLD presence editor will say *"no factions in the sector
-roster — add factions in FACTIONS first."* — confusingly, even when
+is seeded, the WORLD presence editor will say *"No factions in the sector
+roster yet — add some on the Factions tab first."* — confusingly, even when
 FACTIONS is full. There is no "+ Add to sector roster" button; the roster
 is only populated by a full regeneration pass.
 
 To seed it, go to **PROJECT → Generation (§6) → Live preview (§G3)** and
 click **Regenerate preview now**. When the green `PREVIEW READY` chip
-appears, click the green **Apply preview (§G4)** button. The full
+appears, click the brass **Apply preview (§G4)** button. The full
 generator runs end-to-end: every faction the catalogue defines is now
 materialised in `sector.factions`, with first-pass presence rows attached
 to worlds whose `WorldType` / `Government` / `NotableFeature` mix matches
 each faction's preferences.
 
-Open **WORLD** again, pick `Velikan I`, expand the **Factions** section.
+Open **WORLD** again, pick `Velikan I`, expand the **Faction presence** section.
 You should now see one to three factions listed, each with their
 **influence tier** (Dominant / Significant / Minor / Hidden) and
 **dominance state** (Rumored, Presence, Influence, Contested, Controlled,
-Stronghold). The **+ Add presence** row at the bottom of the Factions
+Stronghold). The **+ Add presence** row at the bottom of the Faction presence
 section is now populated with every roster faction that does not yet have
 a row on this world.
 
-> **Note.** Per-system **Regenerate this system** (§4.1) does *not*
+> **Note.** Per-system **Regenerate here** (§4.1) does *not*
 > re-aggregate the sector roster — only a full regenerate via Generation
 > §G4 does. If you add a new faction to the catalogue later, repeat the
 > §G3 → §G4 cycle to get it into the roster.
 
 ### 6.3 Add a hidden Genestealer cult
 
-In the **Factions** section of any world that currently only has Imperial
+In the **Faction presence** section of any world that currently only has Imperial
 presence:
 
 1. Click **+ Add presence**.
@@ -669,7 +669,7 @@ substantial. Repeat §3 for each:
 For each: arm **ADD SYSTEM** in the MAP toolbox, click the hex, type the
 name, hit **Place**, then **SELECT** to disarm.
 
-Once they exist, run **Regenerate this system** (in §S5 — Generate one
+Once they exist, run **Regenerate here** (in §S5 — Generate one
 system here) on each from the SYSTEM tab, or use the **PROJECT →
 Generation (§6)** collapsing header. The Generation section also exposes
 the seed-locked re-roll (§G2), the §G3/§G4 live preview, and per-rectangle
@@ -712,8 +712,7 @@ single-click the start system, then single-click the end system.
 
 The ROUTES tab shows:
 
-- A summary line: number of routes, number of connected components, total
-  hop count.
+- A summary line: number of routes and number of connected components.
 - A **route picker**.
 - A per-route inspector with:
   - **Identity / endpoints** — id, from/to system, `RouteType` (default
@@ -741,10 +740,10 @@ Set the Velikan ↔ Cassio route to Stable, then add routes:
 
 ### 8.3 Check sector connectivity
 
-The summary line above the picker shows **components: N**. With five systems
-and the routes above, it should read `components: 1`. If a system is
-isolated the number will be 2 or higher; expand the **Ensure connected**
-collapsing header and click **Run connector now** to insert union-find
+The summary line above the picker shows **N connected group(s)**. With five systems
+and the routes above, it should read `1 connected group(s)`. If a system is
+isolated the number will be 2 or higher; expand the **Keep everything reachable**
+collapsing header and click **Connect now** to insert union-find
 connector routes automatically.
 
 ---
@@ -762,7 +761,7 @@ fall into 1 or 2 subsectors. The controls (each tagged with its spec
 reference) are:
 
 - **§SUB2 — Recluster** — change *target systems / subsector* via the
-  DragValue and click **Apply target & refresh**. (The clustering re-runs
+  DragValue and click **Recluster**. (The clustering re-runs
   on the next MAP-tab tick, not on click — the button only resets the
   cache.)
 - **§SUB3 — Manual reassignment** — for each system in the picked
@@ -878,14 +877,29 @@ Click **ECONOMY**. You can:
 - Toggle a **lifeline lanes** highlight that paints the top supplier→consumer
   edges onto the route layer.
 - Choose a heatmap mode (tithe, supply, food, trade volume). This is the same
-  `BuilderState::map_heatmap_mode` the MAP tab's full `heatmap:` selector (§2.3)
+  `BuilderState::map_view.heatmap_mode` the MAP tab's full `heatmap:` selector (§2.3)
   drives — ECONOMY just exposes the trade-relevant subset for convenience.
 
 ### 11.3 RELATIONS
 
-Click **RELATIONS**. This is the faction-vs-faction stance matrix. The tab
-shows which faction pairs are hostile, allied, or neutral, plus a tension
-scalar derived from world-level overlaps.
+Click **RELATIONS**. This is the faction-vs-faction stance *editor*, not just a
+viewer (§REL1..§REL9):
+
+- **Diplomacy matrix (§REL1)** — a grid with one row/column per derived faction
+  pair, each cell tinted by stance (hostile / allied / neutral) plus a tension
+  scalar derived from world-level overlaps. Click a cell to arm the pair editor.
+- **Pair editor (§REL2)** — edits the armed pair's symmetric attitude and its
+  directional a→b / b→a views. These are stored as overrides, not written onto
+  `sector.relations` directly.
+- **Rule editors** that drive the matrix: **kind-pair base stances (§REL3)**,
+  **disposition deltas (§REL4)**, legacy **pair stance pins (§REL5)**, and a rich
+  **per-pair override (§REL6)** editor. Deleting a hand-authored rule asks you to
+  confirm (it is the non-undoable "Relations rule" delete from the intro).
+- **Feed conflict (§REL7)** — toggle whether the conflict tick reads the matrix.
+- **Min world presence (§REL8)** — the `[generation.relations].min_world_presence`
+  slider that sizes which pairs appear.
+- **Recompute matrix (§REL9)** — rebuilds it, with an auto-recompute-on-edit
+  toggle.
 
 ### 11.4 HISTORY
 
@@ -899,7 +913,7 @@ Click **HISTORY**. The panel is split into:
 Click **Regenerate chronicle** (at the top of the panel). The chronicle
 list populates with foundation events, faction claims, contested-control
 flips, cult exposures, and so on. Manual events you add via the §H5 —
-add event header → **+ event (open wizard)** survive future
+**Add an event** section → **+ New event…** survive future
 regenerations.
 
 ### 11.5 PERSONAE, HOOKS, PROSE, BRIEFING, SITES, MISSIONS
@@ -1008,13 +1022,25 @@ The **ANALYTICS** tab is wired (§A1..§A4). It is the in-app face of
    analysis.md + analysis.json** to write the same artefacts the
    `sectorforge analyze --out <dir>` CLI produces.
 
-### 11.9 INTERESTINGNESS, SEGMENTUM (live), EXPORT (live)
+### 11.9 INTERESTINGNESS (live)
 
-> **INTERESTINGNESS is wired** (scored "is this sector dramatically
-> interesting" metrics with a per-profile preset), **SEGMENTUM is wired**
-> (§SG1..§SG5 — see §11.10 below), and **EXPORT is now wired** (§EX1..§EX8 —
-> see §11.11 below). The `sectorforge` CLI still offers the same writes
-> (`generate --formats …`, see §15) for headless / scripted runs.
+The **INTERESTINGNESS** tab is wired (§INT1..§INT4) — the in-app face of
+`sectorforge interestingness`, scoring how dramatically interesting the sector
+is.
+
+1. **§INT1 — Profile**: pick one of `political_sandbox`, `grim_collapse`,
+   `mercantile`, `villainous`, `frontier`; switching profiles clears the cached
+   scorecard.
+2. **§INT2 — Score sector**: click to compute the overall 0–100 score plus the
+   derived strengths and weaknesses.
+3. **§INT3 — Per-metric chart**: one bar per metric, with the target band
+   shaded, the observed value ticked, and a fit percentage.
+4. **§INT4 — Custom overrides**: add a metric and tune its low / high / floor /
+   ceil / weight; the overrides survive switching profiles.
+
+> **SEGMENTUM** (§11.10) and **EXPORT** (§11.11) are likewise wired and get
+> their own walkthroughs below; the `sectorforge` CLI still offers the same
+> writes (`generate --formats …`, see §15) for headless / scripted runs.
 
 ### 11.10 SEGMENTUM (live)
 
@@ -1063,7 +1089,7 @@ The **EXPORT** tab is wired (§EX1..§EX8). It is the in-app face of
 exposes — all writing the same artefacts, over the **live in-memory sector**,
 into a folder you choose.
 
-1. Click **EXPORT**, then **Choose output folder…**. Every export button stays
+1. Click **EXPORT**, then **Choose folder**. Every export button stays
    disabled until a folder is picked.
 2. **§EX1 / §EX2 — formats + manifest**: tick which formats the bundle writes
    (`json`, `markdown`, `bitmap (png)`, `svg`, `html`), plus **write
@@ -1165,7 +1191,7 @@ enforced even on a clean sector. You can also re-run
 Every structural edit goes through the command bus (R4) and is undoable.
 
 - `Cmd+Z` (macOS) / `Ctrl+Z` (Win/Linux) — undo.
-- `Cmd+Shift+Z` / `Ctrl+Shift+Z` — redo.
+- `Cmd+Shift+Z` / `Ctrl+Shift+Z` (or `Cmd+Y` / `Ctrl+Y`) — redo.
 
 The undo ring holds 200 commands by default. There is no undo limit warning
 when commands get evicted off the end, so for big-bang edits use snapshots
@@ -1177,8 +1203,8 @@ A snapshot is a named save point — a frozen copy of the sector at a given
 command-log position. Useful before doing something risky.
 
 Look for the **Snapshots** section under PROJECT or in the preferences
-panel. Click **+ snapshot**, type a name (`pre-routes`, `pre-cult`, etc.),
-hit confirm. You can revert to a snapshot later from the same list, or delete
+panel. Type a name (`pre-routes`, `pre-cult`, etc.) then click
+**Take snapshot** (or press Enter in the name field). You can revert to a snapshot later from the same list, or delete
 one with the **×** beside it — deleting a snapshot asks you to confirm, since a
 save point removed this way cannot be brought back with undo.
 
@@ -1201,12 +1227,14 @@ sends you to the FACTIONS, SYSTEM, WORLD, ROUTES, REGIONS or SUBSECTORS
 tab respectively, with the inspector already focused on that entity.
 
 For example:
-- On the **WORLD** tab, the header line shows `system: → Velikan`; click
-  it to jump to the SYSTEM tab with Velikan selected.
+- On the **WORLD** tab, the header line shows `in Velikan` next to an
+  `→ open system` link; click the link to jump to the SYSTEM tab with
+  Velikan selected.
 - On the **SYSTEM** tab, the **Worlds** section lists every world as a
-  `→ wid name` link; click any to drop into the WORLD tab with that
-  world focused.
-- In the **HISTORY** chronicle, each event has a `focus` button that
+  `→ name` link (with the world id shown beside it); click any to drop
+  into the WORLD tab with that world focused.
+- In the **HISTORY** chronicle, each event has a `◎ Show on map` button
+  (a `◎` icon on compact rows) that
   jumps to whatever the event is anchored on — system, world, region,
   route, subsector, all handled uniformly.
 
@@ -1227,6 +1255,16 @@ These jump to a tab without changing what is selected inside it. Useful
 when a panel wants to send you to a global view rather than a specific
 entity (e.g. ECONOMY's lifeline button sends you to MAP with no system
 focus change).
+
+### 13.4 Command palette (Ctrl+K / Cmd+K)
+
+Press **Ctrl+K** (Windows/Linux) or **Cmd+K** (macOS) to open the **command
+palette** — a centered fuzzy-search box over every tab and action. Type to
+filter, **↑ / ↓** to move the highlight, **Enter** to run the highlighted
+entry, **Esc** (or a click on the dimmed page) to close. Selecting a tab jumps
+there; selecting an argument-free command (auto-assign archetypes §AR2, derive
+baseline intel §I3) runs it straight through the undoable command bus; **Undo /
+Redo / Save / Take snapshot** are in there too.
 
 ---
 

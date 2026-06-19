@@ -2395,9 +2395,7 @@ PERF2. [DONE] Map redraw (egui shapes): 60 FPS up to 500 systems + 2000 routes.
        in `gui-core/benches/sector_view_render.rs` drives the real `SectorView`
        shape-build + tessellation headlessly (windowless `egui::Context`, whole
        sector framed so nothing is viewport-culled). Medians: big_test (200 sys
-       / 525 routes) 1.16 ms; huge_sparse_test (1000 sys / 2627 routes) 7.11 ms
-       — both far under 16.6 ms, and the 1000-system case sits above the
-       500-system target. Caching infra (§LD1/LD3 derivation ledger + Arc-shared
+       / 525 routes) 1.16 ms — far under the 16.6 ms budget. Caching infra (§LD1/LD3 derivation ledger + Arc-shared
        overlays) keeps per-frame overlay cost off the hot path. End-to-end FPS
        still confirmed manually in the builder/viewer.
 PERF3. [DONE] Validation: < 50 ms for 500 systems.

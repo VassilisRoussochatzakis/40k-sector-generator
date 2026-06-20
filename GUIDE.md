@@ -84,6 +84,7 @@ out/
   sector.md                    # human-readable summary, including Sector History when present
   validation_report.json       # pre-generation validation note
   sector.png                   # bitmap overview (if `bitmap` in output formats)
+  sector.html                  # self-contained interactive HTML map (if `html` in output formats)
   systems/sys-NNNN.png         # per-system bitmap renderings
 ```
 
@@ -345,6 +346,9 @@ Scaffold a fresh project from a bundled preset under `presets/` (by default).
 The destination must not exist. The optional `--seed` flag rewrites the
 `[generation].seed` line of the new project's `sectorforge.toml`.
 
+The optional `--presets-dir <DIR>` flag sources the preset from a directory
+other than `./presets` (the default).
+
 ```bash
 # List available presets.
 cargo run --bin sectorforge -- list-presets
@@ -377,6 +381,9 @@ onto another preset's tree (shared data avoids duplication).
 Print the available presets with one-line descriptions. Reads
 `presets/<id>/preset.toml` for metadata. Internal bundles whose id starts with
 `_` are hidden.
+
+The optional `--presets-dir <DIR>` flag (default `presets`) scans a directory
+other than `./presets`.
 
 ### `sectorforge search` (§2 old/DONE.md)
 
@@ -469,6 +476,8 @@ Supported constraint `kind`s:
 | `region_count_min` / `region_count_max` | `region_kind` (`warp_storm`/`turbulence`/`calm_corridor`/`blackout`/`anomaly`), `min`/`max` |
 | `economy_stranded_max` | `max` (cap stranded worlds) |
 | `economy_resource_min` | `resource` (one of `ore`/`promethium`/`foodstuffs`/`manufactured`/`archeotech`/`recruits`), `min` (net sector balance) |
+| `faction_presence_count_min` | `faction_id`, `min`, `presence` (`Hidden`/`Minor`/`Significant`/`Dominant`) |
+| `minimum_systems_matching` | `count`, `within_hops_of` (system tag), `max_hops`, `where` (a `{ system_state = <snake_case> }` table) |
 
 Unknown faction ids are caught by a preflight check before any search
 runs, so an over-constrained or typo'd wish set fails immediately with a
@@ -517,6 +526,9 @@ regions), and **Economy** (§12 scalar sector balance deltas plus newly /
 no-longer stranded world lists). Sector id or `generator_version`
 mismatch is reported but does not refuse the diff — the report is
 marked as best-effort instead.
+The rendered faction power-delta table is capped at the strongest
+`top_faction_deltas` movements (default 10), sorted by descending
+absolute delta; the full set is always serialised into `diff.json`.
 
 ### `sectorforge history` (§1 NEW2.md/DONE)
 
@@ -538,7 +550,8 @@ cargo run --bin sectorforge -- history \
     --out out/
 ```
 
-Writes `history.md` + `history.json`. Dates use `M{epoch}.{ddd}` notation
+Writes `history.md` + `history.json`.
+`--json` prints the chronicle report as JSON to stdout instead of writing files; with neither `--out` nor `--json` the rendered Markdown is printed to stdout. Dates use `M{epoch}.{ddd}` notation
 where `epoch` is scaled by event topo-rank (foundations land in the start
 epoch, post-conflict reconquests in the end epoch); within an anchor the
 chronicle is monotonic (foundation before annexation before reconquest).
@@ -634,7 +647,8 @@ leaders use tier-flavored title pools (`Overall` ⇒ sector-supreme,
 cargo run --bin sectorforge -- personae --project examples/m42_project --out out/
 ```
 
-Writes `personae.md` + `personae.json`. Built-in pools cover the common
+Writes `personae.md` + `personae.json`.
+`--json` prints the personae report as JSON to stdout instead of writing files; with neither `--out` nor `--json` the rendered Markdown is printed to stdout. Built-in pools cover the common
 40k faction kinds (Imperial / Mechanicus / Ecclesiarchy / Inquisition /
 RogueTrader / Chaos / Rebel / Necron / Tyranid / Ork / T'au / Aeldari /
 Drukhari / Harlequin / Genestealer / Xenos); the agenda line is bound to
@@ -668,7 +682,8 @@ cargo run --bin sectorforge -- hooks --project examples/m42_project --out out/
 cargo run --bin sectorforge -- hooks --sector out/sector.json --player
 ```
 
-Writes `hooks.md` + `hooks.json`. Hooks reference only real, present
+Writes `hooks.md` + `hooks.json`.
+`--json` prints the hooks report as JSON to stdout instead of writing files; with neither `--out` nor `--json` the rendered Markdown is printed to stdout. Hooks reference only real, present
 entities; the GM-only flag respects the existing intel layer.
 
 When the §12 economy derivation is enabled, the generator also emits
@@ -700,7 +715,8 @@ cargo run --bin sectorforge -- prose --project examples/m42_project --out out/
 cargo run --bin sectorforge -- prose --project examples/m42_project --dispatch
 ```
 
-Writes `gazetteer.md` + `gazetteer.json`. Prose is strictly data-bound —
+Writes `gazetteer.md` + `gazetteer.json`.
+`--json` prints the gazetteer report as JSON to stdout instead of writing files; with neither `--out` nor `--json` the rendered Markdown is printed to stdout. Prose is strictly data-bound —
 no fact appears that isn't in the JSON — and the variation between
 adjacent systems is keyed by id so the gazetteer never reads
 copy-pasted.
@@ -1119,6 +1135,8 @@ my-sector-project/
     personae.toml                  # §3 (optional)
     sites.toml                     # §7 NEW2 (optional)
     missions.toml                  # §M1..§M5 BUILDER_REQS (optional, builder-authored)
+    hooks.toml                     # §HK4 BUILDER_REQS (optional, builder-authored)
+    prose.toml                     # §PR1..§PR4 BUILDER_REQS (optional, builder-authored)
   out/                             # created by generate
 ```
 
@@ -1158,6 +1176,8 @@ history               = "data/history.toml"                # optional (§1 NEW2.
 personae              = "data/personae.toml"               # optional (§3 old/DONE.md)
 sites                 = "data/sites.toml"                  # optional (§7 NEW2.md/DONE)
 missions              = "data/missions.toml"               # optional (§M1..§M5 BUILDER_REQS/DONE)
+hooks                 = "data/hooks.toml"                  # optional (§HK4 BUILDER_REQS/DONE)
+prose                 = "data/prose.toml"                  # optional (§PR1..§PR4 BUILDER_REQS/DONE)
 
 [generation]
 seed                       = "my-seed-string"
@@ -1220,9 +1240,12 @@ heatmap             = "off"      # §10: per-system heatmap tint applied to the 
                                  #         covert | faith | threat | intel
                                  #         tension (§4)         — sum of hostile/at-war pair tensions
                                  #         trade_volume (§12)   — sum of incident route volumes
-                                 #         food (§4)            — strategic food output
-                                 #         tithe (§4)           — tithe stress (delinquent/failed)
-                                 #         supply (§4)          — supply vulnerability (disrupted/collapsing)
+                                 #         food_output (§4)         — strategic food output
+                                 #         tithe_stress (§4)        — tithe stress (delinquent/failed)
+                                 #         supply_vulnerability (§4) — supply vulnerability (disrupted/collapsing)
+                                 #         conflict_intensity       — per-system conflict intensity (0..=100)
+                                 # (The TOML field needs these full slugs; the CLI `--heatmap`
+                                 #  flag additionally accepts the short food/tithe/supply aliases.)
 # theme_file        = "data/map_themes/navis.toml" # optional; project-relative, digested into manifest.input_digests
 
 [outputs.bitmap.theme]
@@ -1234,6 +1257,14 @@ name = "gm_dark"                 # gm_dark | print_mono | imperial_archive | nav
 # label_density = "all"                 # all | important_only | none
 # legend = "full"                       # full | compact | hidden
 # symbol_set = "standard"               # standard | tactical | redacted
+# Numeric tuning overrides (f32) are also accepted:
+# faction_tint_strength = 0.45
+# heatmap_tint_min = 0.10
+# heatmap_tint_range = 0.85
+# route_thickness = 2.0
+# region_tint_strength = 0.30
+# (plus a full palette of per-element #RRGGBB(AA) colour keys: panel_background,
+#  hex_empty, hex_outline, text, text_dim, subsector_border, route_stable, etc.)
 
 # §11 NEW.md: self-contained interactive HTML map. Only honoured when
 # `"html"` is listed in `formats` above. Output is byte-deterministic from
@@ -1599,6 +1630,16 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   signature is deliberately left unchanged to avoid cross-crate ripple; under
   release `panic = "abort"` these catches are no-ops and the crash-note hook is
   the fallback.
+- **Live progress & status are lock-free.** A worker reports progress with
+  `JobContext::set_progress(f32)` — stored into the handle's `Arc<AtomicU32>`
+  as f32 bits (`to_bits`/`from_bits`, `Relaxed`), no mutex — and a status line
+  with `JobContext::set_status(..)`. The UI reads them via
+  `JobHandle::progress() -> f32` and `JobHandle::status() -> Option<String>`
+  ([gui-core/src/jobs.rs](gui-core/src/jobs.rs)). Progress-driven repaints are
+  throttled to one per advancing whole percent so a tight worker loop (or
+  several parallel workers sharing one `JobContext`) can't redraw every tick;
+  the terminal `request_repaint()` in `spawn_job` always flushes the final
+  state, so throttling can't leave the bar stuck short of 100%.
 
 If you add a new long-running job to the GUI or builder, follow the same
 pattern: snapshot the inputs, run on a `std::thread`, attach a revision,
@@ -1690,7 +1731,12 @@ The canonical machine-readable output. Top-level shape:
    "factions": [ /* GeneratedFaction ... */ ],
    "manifest": { /* seed, digests, counts */ },
    "influence_field": { /* §9 NEXT: cells + bands */ },
-   "power_projection": { /* §4 NEXT: faction → system → projection */ }
+   "power_projection": { /* §4 NEXT: faction → system → projection */ },
+   "relations": { /* §5 NEW2.md: inter-faction matrix; see note below */ },
+   "regions": [ /* §5 NEW.md: WarpRegion overlays */ ],
+   "economy": { /* §12 NEW.md: derived economy snapshot */ },
+   "chronicle": { /* §1 NEW2.md: timeline; omitted when empty */ },
+   "id_history": { /* §15.2: old→new id tombstones; omitted when empty */ }
 }
 ```
 
@@ -1703,6 +1749,9 @@ summary (see "Faction control model" below), `orbital_assets`
 fog-of-war record ([src/analysis/intel.rs](src/analysis/intel.rs) §7 NEXT), and an
 `archetype` block of faction-specific narrative state
 ([src/gen/archetypes.rs](src/gen/archetypes.rs) §11 NEXT).
+Each system also carries an `index` (its `usize` ordinal) and a `kind`
+(`SystemKind`: `star` / `special_location` / `black_hole` / `warp_anomaly` /
+`space_station`).
 
 Worlds are embedded under `systems[].worlds`; there is no separate
 top-level world table or `world_ids` array in the serialized sector model.
@@ -1824,6 +1873,7 @@ a small vanilla-JS canvas renderer (`src/export/html_export/renderer.js`):
 - Faction-fill tint toggle.
 - Faction filter chips — click to hide systems dominated by that faction.
 - Routes / labels visibility toggles.
+- Route "Top-level only" toggle — restrict drawn routes to top-level lanes.
 
 Configured under `[outputs.html]`. The `player_observer` field runs the
 exporter's own `redact_for_observer` pass (the same redaction rules as
@@ -1863,6 +1913,12 @@ By default `generated_at_policy` is `"not recorded by default"` — the
 manifest doesn't include a wall-clock timestamp so byte-stable output is
 preserved.
 
+The block above is abbreviated. `manifest.json` also always carries
+`generated_at_policy` and `profile` (`profile` is `null` unless an output
+profile is active — it has no skip-if-none). Constraint-based generation
+(§15 NEW2.md) adds `base_seed`, `candidate_index`, and `constraints_digest`
+(each omitted otherwise).
+
 ---
 
 ## 7. Subsectors
@@ -1881,6 +1937,9 @@ Each cluster gets:
   factions, controlling faction (if any), capital system + capital world,
   per-faction `control_tier` (`absolute` / `clear` / `plurality` /
   `contested` / `presence` / `trace`).
+  Beyond world-type, the summary also carries per-category count maps
+  (population, tech-level, government, star-colour, notable-feature, route-type,
+  route-stability, tag), and `dominant_factions` is capped at the top 3.
 
 Cluster count derives from `target_systems_per_subsector` (default 12):
 `K = ceil(system_count / target)`. Controllable via `SubsectorConfig`:
@@ -2336,9 +2395,11 @@ following views via the top navigation bar:
   factions, neighboring systems. With **EDIT MAP** enabled, **ADD PLANET**
   appends a default world/planet to the current system and **REMOVE PLANET**
   deletes the selected planet from the system map.
-- **OPEN** — top-bar button that opens an **OPEN PROJECT** modal listing every
-  project with an `out/sector.json` under `examples/`. Pick one and **LOAD** to
-  read its `sector.json` directly from disk into the viewer.
+- **OPEN** — top-bar button that opens a native file dialog to pick any
+  `sector.json` from disk and load it into the viewer. (The **OPEN PROJECT**
+  modal that lists every project with an `out/sector.json` under `examples/`
+  and offers a **LOAD** button is a separate control on the **EDIT-MAP** view's
+  own toolbar, not this top-bar button.)
 - **Edit** — sector editor (rename systems, add/remove worlds, adjust tags
   and per-world factions). The **Factions** tab shows a deterministic colour
   + glyph chip per faction (derived from `kind`, `id`, `disposition` — see
@@ -2355,12 +2416,16 @@ following views via the top navigation bar:
   or custom kind, add/edit export rows with weights and world preferences,
   import the loaded output's generated forces with **REPLACE FROM OUTPUT**,
   and save the result as a `factions.toml`-compatible TOML file.
-- **Data** — typed `worlds.toml` editor from inside the app.
+- **Data** (nav label **DATA-RAW**) — typed `worlds.toml` editor from inside
+  the app, with **RELOAD** (re-read `worlds.toml` from disk, discarding unsaved
+  edits) and **SAVE** toolbar buttons. Requires a loaded project
+  (`--project <dir>`).
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
-  the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
+  the existing route graph. Three metrics: `Safest` (Dijkstra with hazard
   weights — avoid `Unstable` / `Hazardous`; `Perilous` lanes are traversable
-  but heavily penalized so they're only chosen when no safer path exists)
-  or `Shortest` (BFS over hop count). The planner map uses the same viewport
+  but heavily penalized so they're only chosen when no safer path exists),
+  `Shortest` (BFS over hop count), or `Strategic` (a strategic-cost weighting).
+  The planner map uses the same viewport
   model as the sector map: mouse wheel zooms around the cursor, drag pans, and
   **RESET VIEW** restores the default zoom.
 - **Diplomacy** (§5 NEW2.md/DONE) — table view of
@@ -2391,8 +2456,10 @@ following views via the top navigation bar:
   [src/loading/presets.rs](src/loading/presets.rs) and
   [viewer/src/preset_gallery.rs](viewer/src/preset_gallery.rs).
 
-The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
-sector overview, a single system map, or all per-system maps. File pickers stay
+The GUI also supports exporting bitmap PNGs at a chosen resolution and theme:
+sector overview, a single system map, or all per-system maps. The PNG dialog
+offers four named resolution presets — **720p** (1x), **1440p** (2x), **4K**
+(3x), and **Ultra (5x)** — plus a theme picker over the built-in map themes. File pickers stay
 on the UI thread, then PNG/SVG/HTML/bundle writes run as background jobs with
 top-bar progress. All-system PNG export can be stopped with **CANCEL EXPORT**;
 the current HEATMAP selection in the sector view is carried into the exported sector PNG.
@@ -2692,7 +2759,7 @@ mismatched versions explicitly rather than partially decoding.
 | R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform snapshot/undo stack, auto-save trigger, and derivation-cache invalidation (generic flush + §39 ledger precise invalidation off `dep_classes`). The structural invariant re-check (`check_sector`) is **not** synchronous on the hot path — `run` only arms the debounce and the re-check rides the §V3 `revalidate_now` pump a frame later (export still forces it via the §V6 gate), keeping a single apply well under 1 ms (PERF1 / §42). |
 | R5 BLAKE3 cache | [src/model/rng.rs](src/model/rng.rs) `digest_bytes` + [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
 | R6 BuilderError variants | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
-| R7 off-thread runner | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. Builder previews cancel superseded work and discard stale revisions before applying results. |
+| R7 off-thread runner | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, lock-free `Arc<AtomicU32>` progress (f32 fraction stored via `to_bits`/`from_bits`), `Arc<Mutex<Option<String>>>` status line, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. Builder previews cancel superseded work and discard stale revisions before applying results. |
 | R8 determinism test | [builder/src/builder/command.rs](builder/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
 | R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
 | R10 panel contract | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
@@ -2881,7 +2948,7 @@ gives).
 |---|---|
 | §P1 scaffold | [src/loading/presets.rs](src/loading/presets.rs) `scaffold_to_dir(preset_id, dest, seed_override)` resolves the default `presets/` directory (or the one next to the binary) and forwards to the existing `scaffold`. |
 | §P1 wizard panel | [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) drives `ModalKind::NewProject`. Confirm path calls `project_io::new_project`, which (no preset) writes `sectorforge.toml` with `[inputs]` pre-wired to every catalogue, plus `data/worlds/worlds.toml` (copied from `presets/_base/data/worlds/worlds.toml` when that file is reachable, so the world pool is non-empty and "Regenerate this system" works on a fresh project; falls back to an empty `WorldsConfig::default()` if the `_base` preset is unavailable), `data/factions/factions.toml` (7-faction starter roster — Imperial/Mechanicus/Trader/Chaos/Ork/Tyranid/Cult — produced by `default_starter_roster`), `data/factions/relations.toml`, `data/routes/route_rules.toml`, `data/regions/regions.toml`, `data/worlds/economy.toml`, `data/history.toml`, and an empty `out/sector.json`; then reloads through the §P2 path so the in-memory state matches a fresh open. With `preset = Some(id)` it instead delegates to `sectorforge::presets::scaffold_to_dir`. |
-| RANDOM.md random wizard | [builder/src/builder/panels/generate_random.rs](builder/src/builder/panels/generate_random.rs) drives `ModalKind::GenerateRandom` (square size dropdown — `small` 8² · `medium` 16² · `large` 32² · `vast` 48² · `massive` 64² · `huge` 80² — + optional custom dims **locked equal** (sectors are square), each capped at `random_sector::MAX_CUSTOM_DIM` = 80, + optional seed + folder picker). Confirm dispatches the synthesise→generate→derive→export pipeline to a background worker via [`random_run::RandomGenState`](builder/src/builder/random_run.rs) (RANDOM.md §7.4) — so grids up to **80×80** never freeze the UI — and the same modal turns into a live progress popup driven by `random_sector::RandomProgress` (8 coarse phases; the long generation phase is sub-divided by the inner `SectorProgress`). On completion the wizard reopens the generated `random-<seed>/` project via `project_io::open_project`, a §R4 session boundary that replaces the document and clears undo. Reachable from the **Random sector…** button on the PROJECT tab. |
+| RANDOM.md random wizard | [builder/src/builder/panels/generate_random.rs](builder/src/builder/panels/generate_random.rs) drives `ModalKind::GenerateRandom` (square size dropdown — `small` 8² · `medium` 16² · `large` 32² · `vast` 48² · `massive` 64² · `huge` 80² — + optional custom dims **locked equal** (sectors are square), each capped at `random_sector::MAX_CUSTOM_DIM` = 80, + a **Theme** dropdown (the baseline: `_full` "Everything — balanced, all features" · `m42-classic` · `embattled-frontier` · `dead-sector` · `mercantile-crossroads` — supplies the content/overlay data tree while the layout still rolls from the seed) + optional seed + folder picker). Confirm dispatches the synthesise→generate→derive→export pipeline to a background worker via [`random_run::RandomGenState`](builder/src/builder/random_run.rs) (RANDOM.md §7.4) — so grids up to **80×80** never freeze the UI — and the same modal turns into a live progress popup driven by `random_sector::RandomProgress` (8 coarse phases; the long generation phase is sub-divided by the inner `SectorProgress`). On completion the wizard reopens the generated `random-<seed>/` project via `project_io::open_project`, a §R4 session boundary that replaces the document and clears undo. Reachable from the **Random sector…** button on the PROJECT tab. |
 | §P2 loader | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `open_project(project_dir)` calls `sectorforge::input::load_project`, populates `BuilderState::data_catalogs` from every catalog the loader returned, and loads `<outputs.directory>/sector.json` when present (empty sector at config dims otherwise). `SectorError::ConfigParse { path, message }` is mapped to `BuilderError::ParseFailed { file, message }` so line numbers from the `toml` crate flow through. |
 | §P2 picker panel | [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) opens an `rfd::FileDialog::pick_folder` and surfaces failures via `ModalKind::Message`. |
 | §P3 saver | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `save_project` / `save_project_as`. Writes `sectorforge.toml` always; writes each catalog only when `state.config.inputs.<key>` actually references it (mirrors the load path). After every write, updates `state.sector.manifest.input_digests` so the manifest matches the file we just put on disk; the sector + manifest then go under `<outputs.directory>/`. Every file write is atomic via `atomic_write` (writes to `.<name>.tmp.<pid>` then `fs::rename`). |
@@ -3006,7 +3073,7 @@ that adopts `BuilderState` as root state.
 | Piece | Where it lives |
 |---|---|
 | N1 tab enum | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `BuilderTab` enumerates the 27 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox + §35 theme/heatmap controls ([builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) + [map/theme.rs](builder/src/builder/panels/map/theme.rs), §S1 / §R2 / §T1..§T4); SYSTEM hosts the §S2..§S6 inspector + §35 T5 bitmap preview + §AR1..§AR3 archetype editor ([builder/src/builder/panels/system/mod.rs](builder/src/builder/panels/system/mod.rs)) + §O1/§O2 orbital + blockade editor ([builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §C1..§C8 + §CL1..§CL4; REGIONS hosts §REG1..§REG7; SUBSECTORS hosts §SUB1..§SUB5; ECONOMY hosts §E1..§E7; RELATIONS hosts §REL1..§REL9; SEARCH hosts §SR1..§SR5 ([builder/src/builder/panels/search.rs](builder/src/builder/panels/search.rs)); DIFF hosts §DF1..§DF5 ([builder/src/builder/panels/diff.rs](builder/src/builder/panels/diff.rs)); ANALYTICS hosts §A1..§A4 ([builder/src/builder/panels/analytics.rs](builder/src/builder/panels/analytics.rs)); SEGMENTUM hosts §SG1..§SG5 ([builder/src/builder/panels/segmentum.rs](builder/src/builder/panels/segmentum.rs)); EXPORT hosts §EX1..§EX8 ([builder/src/builder/panels/export.rs](builder/src/builder/panels/export.rs)). All 27 tabs now ship a real panel; `show_active_panel` matches every `BuilderTab` variant exhaustively, so adding a tab to the enum without wiring its panel is a compile error rather than a silent placeholder. |
+| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the slim top bar (☰ rail toggle + back/forward chevrons + CLUSTER / Tab breadcrumb) and `show_nav_rail` renders the left cluster nav rail (the `TAB_CLUSTERS` groups as collapsible sections); `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox + §35 theme/heatmap controls ([builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) + [map/theme.rs](builder/src/builder/panels/map/theme.rs), §S1 / §R2 / §T1..§T4); SYSTEM hosts the §S2..§S6 inspector + §35 T5 bitmap preview + §AR1..§AR3 archetype editor ([builder/src/builder/panels/system/mod.rs](builder/src/builder/panels/system/mod.rs)) + §O1/§O2 orbital + blockade editor ([builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §C1..§C8 + §CL1..§CL4; REGIONS hosts §REG1..§REG7; SUBSECTORS hosts §SUB1..§SUB5; ECONOMY hosts §E1..§E7; RELATIONS hosts §REL1..§REL9; SEARCH hosts §SR1..§SR5 ([builder/src/builder/panels/search.rs](builder/src/builder/panels/search.rs)); DIFF hosts §DF1..§DF5 ([builder/src/builder/panels/diff.rs](builder/src/builder/panels/diff.rs)); ANALYTICS hosts §A1..§A4 ([builder/src/builder/panels/analytics.rs](builder/src/builder/panels/analytics.rs)); SEGMENTUM hosts §SG1..§SG5 ([builder/src/builder/panels/segmentum.rs](builder/src/builder/panels/segmentum.rs)); EXPORT hosts §EX1..§EX8 ([builder/src/builder/panels/export.rs](builder/src/builder/panels/export.rs)). All 27 tabs now ship a real panel; `show_active_panel` matches every `BuilderTab` variant exhaustively, so adding a tab to the enum without wiring its panel is a compile error rather than a silent placeholder. |
 | N3 map toolbox | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `show_toolbox` renders the selectable-label strip; the click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems, AddRoute}`. |
 | N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
@@ -3140,7 +3207,7 @@ clicking the same action from the inspector tabs.
   a planet, or an orbit ring) → `ADD WORLD` (lands at `max_orbit + 1`),
   `REGENERATE SYSTEM` (disabled when pinned), `DERIVE ORBITAL ASSETS`
   (re-runs the same `SetOrbitalAssets` + `SetBlockadeReport` dispatch the
-  ORBITAL tab's "Derive now" button takes).
+  ORBITAL tab's "Auto-fill from system" button takes).
 
 **Dismiss, viewport clamping, and telemetry.** Click outside the menu,
 press `Escape`, or activate any item to dismiss. The menu's anchor pivot
@@ -3352,7 +3419,7 @@ Storage is `GeneratedSystem.intel: SystemIntel` (already present) plus the new `
 |---|---|
 | I1 per-system editor | `show_system_intel_section` → `show_observer_editor` over `sys.intel.by_observer`. Each `ObserverView` row exposes `last_verified_tick` DragValue, confidence Slider 0..=100, propaganda + classified state ComboBoxes, and a nested `suspected_presences` list (faction id, `IntelSource` combo, confidence slider, `×` remove). `+ observer` row adds an observer keyed by an existing faction id or a free-text key. |
 | I2 per-world editor | `show_world_intel_section` reuses the same `show_observer_editor` against `world.intel.by_observer`. Below the editor it renders `show_world_redaction_preview`, which calls `sectorforge::intel::redact_world_for_observer(world, observer_id, cutoff)` whenever an observer lens is active. |
-| I3 Generate baseline intel | `run_baseline_intel` collects every distinct `sector.factions[i].id` as an observer set and calls `sectorforge::intel::derive_intel`. Available from the MAP row and from both intel sections so the baseline can be regenerated without leaving the active tab. Marks `state.dirty` + arms validation. |
+| I3 Generate baseline intel | `run_baseline_intel` collects every distinct `sector.factions[i].id` as an observer set and calls `sectorforge::intel::derive_intel`. Available from the MAP row and from both intel sections so the baseline can be regenerated without leaving the active tab. Marks `state.dirty` + arms validation. The on-screen button is labelled "↺ Re-derive baseline intel". |
 | I4 observer lens | `show_map_intel_controls` ComboBox bound to `BuilderState::intel_observer: Option<FactionId>`. The `(omniscient)` entry maps to `None`; selecting a faction id arms the redaction preview on the WORLD tab. A "clear lens" button resets to `None` in one click. |
 | I5 player cutoff | `show_map_intel_controls` `egui::Slider 0..=100` bound to `BuilderState::intel_player_min_confidence: u8` (default `0`). Both intel sections render the slider's current value in the header strip so users can see the active cutoff at a glance. |
 
@@ -3386,7 +3453,7 @@ BUILDER_REQS §31. Rendered inline in the SYSTEM tab; mutations are commands so 
 |---|---|
 | O1 per-system asset list | [builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs) `show_orbital_section` — one collapsing row per `OrbitalAsset` exposing the `kind` ComboBox (`Station` / `Shipyard` / `DefensePlatform` / `BlockadeFleet`), faction picker over the sector's factions, `strength` slider 0..=100, and an inline `ship_inventory` editor (rows of `hull_class` text + `count` DragValue). Add / × delete rows. Footer "+ Add orbital asset" seeds a `Station` for the first faction with id `{sys_id}-manual-N`. Edits dispatch `BuilderCommand::SetOrbitalAssets { system, before, after }`. |
 | O2 blockade report | Same panel — inline `Blockade report` block with `under_blockade` checkbox, `blockader` / `besieged` optional faction pickers (`(none)` clears), `intensity` slider 0..=100. Edits dispatch `BuilderCommand::SetBlockadeReport { system, before, after }`. |
-| Derive button | "Derive now" footer button calls `sectorforge::orbital_assets::derive_orbital_assets` for the focused system and stages both the assets list and the report; "Clear assets" / "Clear blockade" reset each independently. Each staged value emits its own command when it differs from the prior state, so undo restores the exact prior pair. |
+| Derive button | "Auto-fill from system" footer button calls `sectorforge::orbital_assets::derive_orbital_assets` for the focused system and stages both the assets list and the report; "Clear assets" / "Clear blockade" reset each independently. Each staged value emits its own command when it differs from the prior state, so undo restores the exact prior pair. |
 
 The SYSTEM tab's overlays summary (`show_overlays_section`) now points at this section ("edit below in §O1" / "§O2") instead of saying the overlay is managed elsewhere.
 
@@ -3402,7 +3469,7 @@ BUILDER_REQS §32. Per-world editor over `GeneratedWorld.regions` rendered inlin
 | Piece | Where it lives |
 |---|---|
 | SU1 per-world editor | [builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs) `show_surface_regions_section` — one collapsing row per `SurfaceRegion` exposing `name` text, `kind` ComboBox over the 12 `RegionKind` variants (Capital / Hive / Underhive / ForgeComplex / ShrineContinent / AgriBelt / CardinalSpire / KnightHousehold / Wilderness / TombComplex / Hideout / Other), optional `dominant` `FactionId` combo (`(none)` clears), `control_score` / `population_weight` / `visibility` sliders 0..=100, and a multi-line `notes` `TextEdit`. Footer "+ Add surface region" seeds a defaulted `Other` row. Edits dispatch `BuilderCommand::SetSurfaceRegions { world, before, after }`. A yellow over-allocation pill surfaces when the `population_weight` sum exceeds 100. |
-| SU2 auto-seed | "Auto-seed (§SU2)" button calls [src/gen/surface_region.rs](src/gen/surface_region.rs) `derive_regions(&GeneratedWorld)` for the focused world and replaces the list with the derived per-world-type split (HiveWorld → 4 rows, ForgeWorld → 4, AgriWorld → 3, etc.). The same function already runs from [src/gen/generation/mod.rs](src/gen/generation/mod.rs) during initial sector build so freshly generated worlds arrive populated. "Clear regions" empties the list. |
+| SU2 auto-seed | "Auto-seed" button calls [src/gen/surface_region.rs](src/gen/surface_region.rs) `derive_regions(&GeneratedWorld)` for the focused world and replaces the list with the derived per-world-type split (HiveWorld → 4 rows, ForgeWorld → 4, AgriWorld → 3, etc.). The same function already runs from [src/gen/generation/mod.rs](src/gen/generation/mod.rs) during initial sector build so freshly generated worlds arrive populated. "Clear regions" empties the list. |
 | `notes` field | `SurfaceRegion.notes: String` added to [src/gen/surface_region.rs](src/gen/surface_region.rs) with `#[serde(default, skip_serializing_if = "String::is_empty")]` so existing JSON parses unchanged and serialises clean when empty. |
 
 The WORLD tab's overlays summary (`show_overlays_section`) now points at this section ("edit in §SU1 below") instead of saying the overlay is managed elsewhere.
@@ -3825,8 +3892,12 @@ Common codes:
 | `GEN_SYSTEM_COUNT_OVERFLOW` | `system_count` exceeds grid cells |
 | `GEN_WORLD_COUNT_RANGE` | `min_worlds_per_system > max_worlds_per_system` |
 | `WB_NO_USABLE_ROWS` | World data produced zero usable candidates |
-| `WB_EXCLUDED_ROWS` | At least one row was excluded (warning) |
+| `WB_EXCLUDED_ROWS` | At least one row was excluded, but at most half (warning) |
+| `WB_EXCLUDED_ROWS_SEVERE` | More rows were excluded than kept (`n > usable`) — escalated to an error, since the sector would generate from a fraction of its templates |
 | `KEY_TABLE_EMPTY` | A key table built from enums had no entries |
+| `OUT_NO_FORMATS` | `outputs.formats` is empty; nothing will be written (warning) |
+| `OUT_BITMAP_SCALE_RANGE` | `outputs.bitmap.sector_scale` / `system_scale` is outside `1..=8` |
+| `OUT_BITMAP_THEME_INVALID` | `outputs.bitmap.theme` does not resolve to a known map theme |
 | `FACTION_DUPLICATE_ID` | Two factions share an `id` |
 | `FACTION_BAD_WEIGHT` | Faction weight is ≤ 0 or non-finite |
 | `FACTION_UNKNOWN_*` | Faction references a string that isn't a variant name |
@@ -4062,7 +4133,7 @@ across runs, so a regression check is a diff away.
 | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
 | [viewer/src/factions_overview.rs](viewer/src/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
 | [viewer/src/data_editor.rs](viewer/src/data_editor.rs) | `worlds.toml` data editor UI |
-| [viewer/src/route_planner.rs](viewer/src/route_planner.rs) | Route planner (Safest / Shortest) |
+| [viewer/src/route_planner.rs](viewer/src/route_planner.rs) | Route planner (Safest / Shortest / Strategic) |
 | [gui-core/src/info_panel/](gui-core/src/info_panel/mod.rs) | Text formatting widgets — split (F8) by entity section |
 | [viewer/src/editor/](viewer/src/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette for GUI; egui wrapper around [src/gen/faction_style.rs](src/gen/faction_style.rs) (`faction_style`, glyph + border) |
@@ -4205,8 +4276,10 @@ cargo run --release --features dhat-heap --bin dhat-profile -- examples/m42_proj
 
 ### Criterion benchmark phases (docs/OPTIMIZE.txt G1)
 
-[benches/generation.rs](benches/generation.rs) runs five groups across the
-tiny / normal / large scale matrix from the optimisation spec §5B:
+[benches/generation.rs](benches/generation.rs) registers twelve groups across the
+tiny / normal / large scale matrix from the optimisation spec §5B (the §5B
+core phases below, plus the four 500-system scale benches and the
+emit-path groups):
 
 - `generate_sector` — pure generation; isolated per iteration with
   `iter_batched`.
@@ -4218,6 +4291,9 @@ tiny / normal / large scale matrix from the optimisation spec §5B:
 - `encode_png_bytes` — PNG encoder cost on a pre-rasterised image. Splitting
   raster from encode lets you see whether image compression or pixel layout
   is the bottleneck.
+- `render_sector_svg` / `serialize_json` / `render_sector_markdown` — the other
+  emit paths (SVG render, `sector.json` serialisation, Markdown render), each
+  across the same scale matrix.
 
 Run all groups: `cargo bench --bench generation`. Run one group:
 `cargo bench --bench generation -- encode_png_bytes`.

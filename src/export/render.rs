@@ -62,7 +62,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
             sys.coord.q,
             sys.coord.r,
             star_info,
-            sector.get_worlds_for_system(sys).len()
+            sys.worlds.len()
         ));
     }
     s.push('\n');

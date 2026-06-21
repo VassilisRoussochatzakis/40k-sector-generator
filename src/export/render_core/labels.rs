@@ -22,13 +22,13 @@ pub(crate) fn system_label_visible(
     sys: &GeneratedSystem,
     subsectors: &[Subsector],
     theme: &MapTheme,
-    sector: &GeneratedSector,
+    _sector: &GeneratedSector,
 ) -> bool {
     match theme.label_density {
         LabelDensity::All => true,
         LabelDensity::None => false,
         LabelDensity::ImportantOnly => {
-            sector.get_worlds_for_system(sys).len() >= 4
+            sys.worlds.len() >= 4
                 || !sys.primary_factions.is_empty()
                 || subsectors.iter().any(|s| {
                     s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())

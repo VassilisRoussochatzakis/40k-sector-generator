@@ -298,7 +298,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
         }
 
         // World personae.
-        for world in sector.get_worlds_for_system(sys) {
+        for world in sys.worlds.iter() {
             let mut world_count = 0u32;
             for p in &world.factions {
                 if world_count >= cfg.max_per_world {

@@ -573,7 +573,7 @@ fn count_world_type_dominant(
 ) -> u32 {
     let mut n = 0u32;
     for sys in &sector.systems {
-        for w in sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             if w.world.world_type.to_string().as_str() != world_type {
                 continue;
             }
@@ -591,7 +591,7 @@ fn count_world_type_dominant(
 fn count_contested_worlds(sector: &GeneratedSector, n_way: Option<u32>) -> u32 {
     let mut n = 0u32;
     for sys in &sector.systems {
-        for w in sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             if !w.control.contested {
                 continue;
             }

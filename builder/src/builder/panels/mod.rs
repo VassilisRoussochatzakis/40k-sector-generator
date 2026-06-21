@@ -35,6 +35,24 @@ pub(crate) const SYSTEM_STATES: &[sectorforge::sector_model::SystemState] = &[
     sectorforge::sector_model::SystemState::Uncharted,
 ];
 
+/// Folder-name slug from a seed (same shape as the random wizard's `dir_slug`).
+///
+/// Keeps only ascii-alphanumeric / `-` / `_`, caps at 16 chars, and falls back
+/// to `"sector"` when nothing survives. Shared by the random-generation and
+/// iterative-generation wizards (previously a byte-identical copy in each).
+pub(crate) fn dir_slug(seed: &str) -> String {
+    let s: String = seed
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(16)
+        .collect();
+    if s.is_empty() {
+        "sector".to_string()
+    } else {
+        s
+    }
+}
+
 pub mod conflict_resolver;
 pub mod invariants;
 pub mod new_project;

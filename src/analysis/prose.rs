@@ -246,7 +246,7 @@ fn system_prose(
     let mut paragraphs: Vec<String> = Vec::new();
 
     // Paragraph 1: geographic / population framing.
-    let n_worlds = sector.get_worlds_for_system(sys).len();
+    let n_worlds = sys.worlds.len();
     let pop_words: &[&str] = match cfg.tone {
         ProseTone::Gazetteer => &["holding", "supporting", "burdened with", "graced with"],
         ProseTone::Dispatch => &["count", "rated", "logged at"],

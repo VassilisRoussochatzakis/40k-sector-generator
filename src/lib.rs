@@ -186,6 +186,24 @@ pub use validation::{ValidationIssue, ValidationReport};
 pub const GENERATOR_NAME: &str = "sectorforge";
 pub const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Human-readable byte size (binary units) — e.g. progress/status lines and the
+/// live `sector.json` byte counter during a bundle export. Pure display
+/// formatter; never feeds a golden/byte-stable writer.
+#[must_use]
+pub fn human_bytes(n: u64) -> String {
+    const UNIT: f64 = 1024.0;
+    let b = n as f64;
+    if n >= 1024 * 1024 * 1024 {
+        format!("{:.1} GiB", b / UNIT / UNIT / UNIT)
+    } else if n >= 1024 * 1024 {
+        format!("{:.1} MiB", b / UNIT / UNIT)
+    } else if n >= 1024 {
+        format!("{:.1} KiB", b / UNIT)
+    } else {
+        format!("{n} B")
+    }
+}
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::{BufWriter, Write as _};

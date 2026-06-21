@@ -245,26 +245,6 @@ impl BuilderState {
         }
     }
 
-    /// LD3 — the eight `recompute_derivation` kinds that may run on a background
-    /// worker. `Economy` is deliberately excluded: when `feed_stability` is on
-    /// its install calls `apply_stability_nudge(&report, self.sector_mut())`,
-    /// which **mutates the sector** (per-world stability) and then invalidates
-    /// `SystemsWorlds` — a document-affecting cascade that has to happen on the
-    /// UI thread, so economy stays on the synchronous `ensure_fresh` path. The
-    /// other seven are pure: they install a derived-cache field and nothing else.
-    fn is_background_eligible(kind: DerivationKind) -> bool {
-        matches!(
-            kind,
-            DerivationKind::Relations
-                | DerivationKind::History
-                | DerivationKind::Personae
-                | DerivationKind::Hooks
-                | DerivationKind::Sites
-                | DerivationKind::Missions
-                | DerivationKind::Prose
-        )
-    }
-
     /// LD3 — per-frame dispatch. For **every** stale background-eligible kind
     /// (off-tab included — this is the LD3 goal: refresh overlays ahead of being
     /// visited, not just the active tab) with no job already in flight, capture
@@ -289,7 +269,27 @@ impl BuilderState {
             .stale
             .iter()
             .copied()
-            .filter(|k| Self::is_background_eligible(*k))
+            // LD3 — the seven `recompute_derivation` kinds that may run on a
+            // background worker. `Economy` is deliberately excluded: when
+            // `feed_stability` is on its install calls
+            // `apply_stability_nudge(&report, self.sector_mut())`, which
+            // **mutates the sector** (per-world stability) and then invalidates
+            // `SystemsWorlds` — a document-affecting cascade that has to happen
+            // on the UI thread, so economy stays on the synchronous
+            // `ensure_fresh` path. The other seven are pure: they install a
+            // derived-cache field and nothing else.
+            .filter(|k| {
+                matches!(
+                    k,
+                    DerivationKind::Relations
+                        | DerivationKind::History
+                        | DerivationKind::Personae
+                        | DerivationKind::Hooks
+                        | DerivationKind::Sites
+                        | DerivationKind::Missions
+                        | DerivationKind::Prose
+                )
+            })
             .filter(|k| !self.derivation_jobs.has_in_flight(*k))
             .collect();
 

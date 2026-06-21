@@ -1755,8 +1755,8 @@ Each system also carries an `index` (its `usize` ordinal) and a `kind`
 
 Worlds are embedded under `systems[].worlds`; there is no separate
 top-level world table or `world_ids` array in the serialized sector model.
-Use `GeneratedSector::all_worlds()` / `get_worlds_for_system()` when caller code
-needs iterator access without reaching into each system manually.
+Use `GeneratedSector::all_worlds()` for a flattened iterator across every
+system; for the worlds of one system, iterate `system.worlds` directly.
 
 Default-valued state fields (`control`, `stability`, `blockade`,
 `conflict`, `intel`, `archetype`) are omitted from the serialized

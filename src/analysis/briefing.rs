@@ -451,7 +451,7 @@ pub fn render_markdown(pack: &BriefingPack, profile: &BriefingProfile) -> String
         if !sys.primary_factions.is_empty() {
             let _ = writeln!(s, "- Primary factions: {}", join_ids(&sys.primary_factions));
         }
-        for w in pack.sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             let claims = if profile.show_claims && !w.claims.is_empty() {
                 format!(
                     " — claims: {}",

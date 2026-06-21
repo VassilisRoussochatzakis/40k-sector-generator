@@ -251,6 +251,7 @@ pub enum HiddenRoutesProgress {
 /// Existing route ids are preserved; new ids get a `-webway` / `-blackship`
 /// / `-smuggling` suffix on the canonical `route-AAAA-BBBB` form so the
 /// invariants on uniqueness hold.
+#[cfg(test)]
 pub fn append_hidden_routes(
     systems: &[GeneratedSystem],
     factions: &[GeneratedFaction],
@@ -262,6 +263,7 @@ pub fn append_hidden_routes(
 /// §5 NEW.md `Blackout`: every system whose hex falls inside a Blackout
 /// region is removed from the set of viable endpoints, so no hidden routes
 /// terminate inside the blackout. Pure derivation, deterministic.
+#[cfg(test)]
 pub fn append_hidden_routes_with_regions(
     systems: &[GeneratedSystem],
     factions: &[GeneratedFaction],

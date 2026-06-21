@@ -452,11 +452,6 @@ impl GeneratedSector {
         None
     }
 
-    #[must_use]
-    pub fn get_worlds_for_system<'a>(&self, sys: &'a GeneratedSystem) -> Vec<&'a GeneratedWorld> {
-        sys.worlds.iter().collect()
-    }
-
     pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
         self.systems.iter().flat_map(|s| s.worlds.iter())
     }

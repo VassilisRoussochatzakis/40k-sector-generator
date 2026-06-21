@@ -319,7 +319,7 @@ fn compute_world_stats(sector: &GeneratedSector) -> WorldStats {
     let mut claim_counts: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     let mut dominance_counts: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
-        for w in sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             if !w.factions.is_empty() {
                 total_with_factions += 1;
             }
@@ -363,7 +363,7 @@ where
 {
     let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
-        for w in sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             *out.entry(key(w)).or_insert(0) += 1;
         }
     }
@@ -555,7 +555,7 @@ fn compute_subsector_variety(
                 let Some(sys) = sys_by_id.get(sid.as_str()) else {
                     continue;
                 };
-                for w in sector.get_worlds_for_system(sys) {
+                for w in sys.worlds.iter() {
                     if let Some(d) = &w.control.dominant {
                         dominants.insert(d.clone());
                     }

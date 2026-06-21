@@ -61,7 +61,7 @@ pub(super) fn draw_systems(
         }
 
         // World-count pip on the top-right of the hex.
-        let pip = sector.get_worlds_for_system(sys).len();
+        let pip = sys.worlds.len();
         if pip > 0 {
             draw_world_pip(img, cx, cy, pip, fill, g, &opts.theme);
         }

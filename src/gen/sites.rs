@@ -180,7 +180,7 @@ pub fn derive(sector: &GeneratedSector) -> SitesReport {
 pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     let mut out: Vec<WorldSite> = Vec::new();
     for sys in &sector.systems {
-        for w in sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             if cfg.skip_uninhabited && w.world.population == crate::worlds::Population::Uninhabited
             {
                 // Skip unless the world type still has interest (tomb / dead).

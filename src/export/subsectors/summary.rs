@@ -42,7 +42,7 @@ pub(super) fn resolve_system_owners(
 
         // Find capital-like and highest-pop worlds (sec §10.4.1 bonuses).
         let mut max_pop_world: Option<(&GeneratedWorld, i32)> = None;
-        for w in sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             let rank = population_rank(w.world.population.to_string());
             if rank > 0 {
                 inhabited = true;
@@ -55,7 +55,7 @@ pub(super) fn resolve_system_owners(
         for f in &sys.primary_factions {
             *scores.entry(f.clone()).or_default() += 3;
         }
-        for w in &sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             // Infer per-world owner: faction with strongest influence, tied = no clear owner.
             let inferred_owner = infer_world_owner(w);
             if let Some(ref owner) = inferred_owner {
@@ -202,7 +202,7 @@ pub(super) fn populate_summary(params: SummaryParams) {
         let Some(&sys) = sys_by_id.get(sid.as_str()) else {
             continue;
         };
-        total_worlds += sector.get_worlds_for_system(sys).len() as u32;
+        total_worlds += sys.worlds.len() as u32;
         if let Some(star) = &sys.star {
             *summary
                 .star_colour_counts
@@ -215,7 +215,7 @@ pub(super) fn populate_summary(params: SummaryParams) {
         for pf in &sys.primary_factions {
             *dominant_scores.entry(pf.clone()).or_default() += 2;
         }
-        for w in &sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             *summary
                 .world_type_counts
                 .entry(w.world.world_type.to_string().into())
@@ -316,7 +316,7 @@ fn dominant_influence_weight(i: FactionInfluence) -> i32 {
 }
 
 fn build_faction_control(
-    sector: &GeneratedSector,
+    _sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
@@ -339,7 +339,7 @@ fn build_faction_control(
         let Some(&sys) = sys_by_id.get(sid.as_str()) else {
             continue;
         };
-        world_count += sector.get_worlds_for_system(sys).len() as u32;
+        world_count += sys.worlds.len() as u32;
         let Some(o) = owners.get(sid) else { continue };
         if o.inhabited {
             inhabited_system_count += 1;
@@ -513,7 +513,7 @@ fn basis_points(numerator: u32, denominator: u32) -> u32 {
 // ── Primary system + capital selection (spec §10.5) ────────────────────────────
 
 fn pick_primary_system(
-    sector: &GeneratedSector,
+    _sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,
@@ -524,7 +524,7 @@ fn pick_primary_system(
             continue;
         };
         let deg = route_degree.get(sid.as_str()).copied().unwrap_or(0) as i32;
-        let worlds = sector.get_worlds_for_system(sys);
+        let worlds = &sys.worlds;
         let max_pop = worlds
             .iter()
             .map(|w| population_rank(w.world.population.to_string()))
@@ -539,7 +539,7 @@ fn pick_primary_system(
         let score = deg * 4
             + max_pop * 3
             + max_tech * 2
-            + sector.get_worlds_for_system(sys).len() as i32
+            + sys.worlds.len() as i32
             + sys.primary_factions.len() as i32;
         let cand = (score, sys.index, sys.id.as_str());
         if best
@@ -557,7 +557,7 @@ fn pick_primary_system(
 }
 
 pub(super) fn pick_capital(
-    sector: &GeneratedSector,
+    _sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,
@@ -605,33 +605,33 @@ pub(super) fn pick_capital(
         };
         let deg = route_degree.get(sid.as_str()).copied().unwrap_or(0) as i32;
         let stable_deg = stable_route_degree.get(sid.as_str()).copied().unwrap_or(0) as i32;
-        let max_pop = sector
-            .get_worlds_for_system(sys)
+        let max_pop = sys
+            .worlds
             .iter()
             .map(|w| population_rank(w.world.population.to_string()))
             .max()
             .unwrap_or(0);
-        let max_tech = sector
-            .get_worlds_for_system(sys)
+        let max_tech = sys
+            .worlds
             .iter()
             .map(|w| tech_rank(w.world.tech_level.to_string()))
             .max()
             .unwrap_or(0);
-        let max_prosperity = sector
-            .get_worlds_for_system(sys)
+        let max_prosperity = sys
+            .worlds
             .iter()
             .map(|w| inferred_prosperity_rank(sys, w, deg, stable_deg))
             .max()
             .unwrap_or(0);
-        let inhabited_worlds = sector
-            .get_worlds_for_system(sys)
+        let inhabited_worlds = sys
+            .worlds
             .iter()
             .filter(|w| population_rank(w.world.population.to_string()) > 0)
             .count();
 
         // Best world inside this system.
         let mut best_world: Option<(i32, &GeneratedWorld)> = None;
-        for w in &sector.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             let score = score_world_as_capital(sys, w, controlling_faction, stable_deg);
             if best_world.map(|(s, _)| score > s).unwrap_or(true) {
                 best_world = Some((score, w));
@@ -660,7 +660,7 @@ pub(super) fn pick_capital(
         if inhabited_worlds >= 2 {
             sys_score += 3;
         }
-        if sector.get_worlds_for_system(sys).len() >= 4 {
+        if sys.worlds.len() >= 4 {
             sys_score += 2;
         }
         let only_unstable = deg > 0 && stable_deg == 0;
@@ -670,12 +670,7 @@ pub(super) fn pick_capital(
         let has_hazard = sys
             .tags
             .iter()
-            .chain(
-                sector
-                    .get_worlds_for_system(sys)
-                    .iter()
-                    .flat_map(|w| w.tags.iter()),
-            )
+            .chain(sys.worlds.iter().flat_map(|w| w.tags.iter()))
             .any(|t| {
                 let l = t.to_ascii_lowercase();
                 l.contains("hazard")

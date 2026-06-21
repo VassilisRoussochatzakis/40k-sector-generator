@@ -333,36 +333,14 @@ pub(super) fn apply_world_type_rule(
 }
 
 pub(super) fn apply_feature_rule(out: &mut StrategicOutput, rule: &StrategicOutputRule) {
-    let mut add = StrategicOutput::default();
-    if let Some(v) = rule.food {
-        add.food = v;
-    }
-    if let Some(v) = rule.ore {
-        add.ore = v;
-    }
-    if let Some(v) = rule.manufacturing {
-        add.manufacturing = v;
-    }
-    if let Some(v) = rule.arms {
-        add.arms = v;
-    }
-    if let Some(v) = rule.ships {
-        add.ships = v;
-    }
-    if let Some(v) = rule.pilgrimage {
-        add.pilgrimage = v;
-    }
-    if let Some(v) = rule.psyker_tithe {
-        add.psyker_tithe = v;
-    }
-    if let Some(v) = rule.manpower {
-        add.manpower = v;
-    }
-    if let Some(v) = rule.knowledge {
-        add.knowledge = v;
-    }
-    if let Some(v) = rule.xenos_value {
-        add.xenos_value = v;
-    }
-    out.add_assign(&add);
+    out.food += rule.food.unwrap_or(0.0);
+    out.ore += rule.ore.unwrap_or(0.0);
+    out.manufacturing += rule.manufacturing.unwrap_or(0.0);
+    out.arms += rule.arms.unwrap_or(0.0);
+    out.ships += rule.ships.unwrap_or(0.0);
+    out.pilgrimage += rule.pilgrimage.unwrap_or(0.0);
+    out.psyker_tithe += rule.psyker_tithe.unwrap_or(0.0);
+    out.manpower += rule.manpower.unwrap_or(0.0);
+    out.knowledge += rule.knowledge.unwrap_or(0.0);
+    out.xenos_value += rule.xenos_value.unwrap_or(0.0);
 }

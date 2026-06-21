@@ -2,7 +2,7 @@
 //! synthesise-generate-derive job with a live progress snapshot, mirroring
 //! [`super::search_run`] / [`super::segmentum_run`].
 //!
-//! The worker runs [`sectorforge::random_sector::generate_random_sector_with_progress`],
+//! The worker runs [`sectorforge::random_sector::generate_random_sector_from_with_progress`],
 //! forwarding every [`RandomProgress`] snapshot into the shared cell, then
 //! persists the generated sector to `out/sector.json` (so the project can be
 //! reopened fully wired). It posts a [`RandomJobResult`] back over the channel;

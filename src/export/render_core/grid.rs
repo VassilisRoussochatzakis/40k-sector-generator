@@ -7,6 +7,7 @@ use image::Rgba;
 use super::canvas::Canvas;
 use super::colors::blend_heat;
 use crate::map_theme::MapTheme;
+use crate::regions::RegionConditionKind;
 use crate::sector_model::{offset_r_neighbors, GeneratedSector};
 use crate::subsectors::Subsector;
 
@@ -96,5 +97,35 @@ pub(crate) fn draw_subsector_borders<C: Canvas>(
                 }
             }
         }
+    }
+}
+
+/// Raw region condition colour per hex (un-blended). The blend onto the hex
+/// base happens in `render_core::grid::draw_hex_grid` via `blend_heat`, so
+/// these values match `gui_core::map_theme::RenderMapTheme`'s region palette
+/// exactly.
+pub(crate) fn compute_region_colours(sector: &GeneratedSector) -> HashMap<(i32, i32), Rgba<u8>> {
+    let mut out = HashMap::new();
+    for region in sector.regions.iter() {
+        let colour = region_colour(region.kind);
+        for h in &region.hexes {
+            out.insert((h.q, h.r), colour);
+        }
+    }
+    out
+}
+
+/// Region condition → overlay colour. Matches the live renderer's
+/// `RenderMapTheme` region palette.
+pub(crate) fn region_colour(kind: RegionConditionKind) -> Rgba<u8> {
+    match kind {
+        RegionConditionKind::WarpStorm => Rgba([170, 60, 180, 255]),
+        RegionConditionKind::Turbulence => Rgba([140, 100, 200, 255]),
+        RegionConditionKind::CalmCorridor => Rgba([90, 200, 180, 255]),
+        RegionConditionKind::Blackout => Rgba([60, 60, 80, 255]),
+        RegionConditionKind::Anomaly => Rgba([220, 160, 60, 255]),
+        RegionConditionKind::NecropolisDrift => Rgba([100, 130, 140, 255]),
+        RegionConditionKind::BeaconChain => Rgba([230, 210, 100, 255]),
+        RegionConditionKind::EmpyricBleed => Rgba([190, 70, 160, 255]),
     }
 }

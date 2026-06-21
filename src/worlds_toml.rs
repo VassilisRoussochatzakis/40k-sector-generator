@@ -139,17 +139,21 @@ impl WorldsConfig {
     pub fn resolved_features(&self) -> Result<ResolvedFeaturePool, WorldsTomlError> {
         let mut by_world_type: BTreeMap<WorldType, Vec<WeightedFeatureEntry>> = BTreeMap::new();
         for (k, v) in &self.features.by_world_type {
-            let wt = parse_world_type_variant(k).ok_or_else(|| WorldsTomlError::BadVariant {
-                kind: "WorldType",
-                value: k.clone(),
+            let wt = crate::taxonomy::parse_world_type_variant(k).ok_or_else(|| {
+                WorldsTomlError::BadVariant {
+                    kind: "WorldType",
+                    value: k.clone(),
+                }
             })?;
             by_world_type.insert(wt, v.clone());
         }
         let mut by_star_colour: BTreeMap<StarColour, Vec<WeightedFeatureEntry>> = BTreeMap::new();
         for (k, v) in &self.features.by_star_colour {
-            let sc = parse_star_colour_variant(k).ok_or_else(|| WorldsTomlError::BadVariant {
-                kind: "StarColour",
-                value: k.clone(),
+            let sc = crate::taxonomy::parse_star_colour_variant(k).ok_or_else(|| {
+                WorldsTomlError::BadVariant {
+                    kind: "StarColour",
+                    value: k.clone(),
+                }
             })?;
             by_star_colour.insert(sc, v.clone());
         }
@@ -173,22 +177,6 @@ impl ResolvedFeaturePool {
     pub fn is_empty(&self) -> bool {
         self.global.is_empty() && self.by_world_type.is_empty() && self.by_star_colour.is_empty()
     }
-}
-
-/// Match Rust variant names for `WorldType` (e.g. `"HiveWorld"`).
-fn parse_world_type_variant(s: &str) -> Option<WorldType> {
-    WorldType::VARIANTS
-        .iter()
-        .find(|v| format!("{v:?}") == s)
-        .cloned()
-}
-
-/// Match Rust variant names for `StarColour` (e.g. `"Yellow"`).
-fn parse_star_colour_variant(s: &str) -> Option<StarColour> {
-    StarColour::VARIANTS
-        .iter()
-        .copied()
-        .find(|v| format!("{v:?}") == s)
 }
 
 /// Full worlds-data load result. Includes the authored structured

@@ -184,7 +184,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &MissionsConfig) -> MissionsRe
     let by_sys: BTreeMap<&str, &GeneratedSystem> =
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
     for sys in sector.systems.iter() {
-        let worlds = sector.get_worlds_for_system(sys);
+        let worlds = &sys.worlds;
         for w in worlds {
             emit_world_missions(sector, sys, w, &mut out);
         }
@@ -397,7 +397,7 @@ fn emit_system_missions(
     // Assassination of the orbital controller when it differs from sovereign.
     if let (Some(ctrl), Some(sov)) = (&sys.control.orbital_controller, &sys.control.sovereign) {
         if ctrl != sov {
-            let worlds = sector.get_worlds_for_system(sys);
+            let worlds = &sys.worlds;
             let target_world = worlds
                 .first()
                 .map(|w| format!("{}/{}", sys.id, w.id))
@@ -476,8 +476,8 @@ fn emit_route_missions(
     ) else {
         return;
     };
-    let from_worlds = sector.get_worlds_for_system(from);
-    let to_worlds = sector.get_worlds_for_system(to);
+    let from_worlds = &from.worlds;
+    let to_worlds = &to.worlds;
     let from_world = from_worlds
         .first()
         .map(|w| format!("{}/{}", from.id, w.id))

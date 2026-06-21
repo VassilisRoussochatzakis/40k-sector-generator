@@ -305,7 +305,7 @@ pub fn log_export_progress(event: sectorforge::ExportProgress) {
         E::FormatStarted { format } => log_progress(format_args!("export: writing {format}…")),
         E::JsonProgress { bytes_written } => log_progress(format_args!(
             "export: sector.json {} written…",
-            human_bytes(bytes_written)
+            sectorforge::human_bytes(bytes_written)
         )),
         E::PerSystemJson { current, total } => {
             log_progress(format_args!("export: per-system json {current}/{total}"));
@@ -313,26 +313,11 @@ pub fn log_export_progress(event: sectorforge::ExportProgress) {
         E::FormatComplete { format, bytes } => {
             log_progress(format_args!(
                 "export: wrote {format} ({})",
-                human_bytes(bytes)
+                sectorforge::human_bytes(bytes)
             ));
         }
         E::Complete => log_progress("export: all formats written"),
         _ => {}
-    }
-}
-
-/// Human-readable byte size (binary units) for progress lines.
-fn human_bytes(n: u64) -> String {
-    const UNIT: f64 = 1024.0;
-    let b = n as f64;
-    if n >= 1024 * 1024 * 1024 {
-        format!("{:.1} GiB", b / UNIT / UNIT / UNIT)
-    } else if n >= 1024 * 1024 {
-        format!("{:.1} MiB", b / UNIT / UNIT)
-    } else if n >= 1024 {
-        format!("{:.1} KiB", b / UNIT)
-    } else {
-        format!("{n} B")
     }
 }
 

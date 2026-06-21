@@ -29,7 +29,7 @@ pub(super) fn build_cooccurrence(
 ) -> BTreeMap<(u32, u32), CooccurStats> {
     let mut out: BTreeMap<(u32, u32), CooccurStats> = BTreeMap::new();
     for sys in &sector.systems {
-        for world in sector.get_worlds_for_system(sys) {
+        for world in sys.worlds.iter() {
             for i in 0..world.factions.len() {
                 for j in (i + 1)..world.factions.len() {
                     let pa = &world.factions[i];
@@ -76,7 +76,7 @@ pub(super) fn build_cooccurrence(
         // pair in the system.
         if let Some(crate::sector_model::SystemState::Warzone) = sys.control.state {
             let mut sys_ids: BTreeSet<&str> = BTreeSet::new();
-            for w in sector.get_worlds_for_system(sys) {
+            for w in sys.worlds.iter() {
                 for p in &w.factions {
                     sys_ids.insert(p.faction_id.as_str());
                 }

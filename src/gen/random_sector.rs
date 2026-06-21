@@ -163,9 +163,9 @@ struct RegionKnobs {
 }
 
 /// A coarse, ordered phase of the random-sector pipeline. The phases run in
-/// declaration order; [`generate_random_sector_with_progress`] emits each one
-/// as it begins, so the builder/CLI can drive a progress bar without knowing
-/// the internals.
+/// declaration order; [`generate_random_sector_from_with_progress`] emits each
+/// one as it begins, so the builder/CLI can drive a progress bar without
+/// knowing the internals.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RandomPhase {
     /// Scaffolding the project bundle from the `_full` preset.
@@ -539,7 +539,14 @@ pub fn generate_random_sector(
     presets_dir: &Utf8Path,
     dest: &Utf8Path,
 ) -> Result<RandomReport, SectorError> {
-    generate_random_sector_with_progress(size, seed, presets_dir, dest, &mut |_| {})
+    generate_random_sector_from_with_progress(
+        size,
+        seed,
+        FULL_PRESET_ID,
+        presets_dir,
+        dest,
+        &mut |_| {},
+    )
 }
 
 /// As [`generate_random_sector`], but scaffolds the data tree from an explicit
@@ -559,37 +566,7 @@ pub fn generate_random_sector_from(
     generate_random_sector_from_with_progress(size, seed, baseline, presets_dir, dest, &mut |_| {})
 }
 
-/// As [`generate_random_sector`], but emits a [`RandomProgress`] event at the
-/// start of every pipeline phase (and throughout the long generation phase) so
-/// a GUI can animate a progress popup (RANDOM.md §7.4). The headless paths use
-/// the no-op-callback [`generate_random_sector`] wrapper.
-///
-/// The callback is a side channel only — the generated artifacts are identical
-/// to [`generate_random_sector`] for the same `(size, seed)` (the generation
-/// itself runs through [`crate::generate_sector_with_progress`], whose no-op
-/// form is exactly what [`crate::generate_sector`] already calls).
-///
-/// # Errors
-///
-/// Identical to [`generate_random_sector`].
-pub fn generate_random_sector_with_progress(
-    size: SectorSize,
-    seed: Option<String>,
-    presets_dir: &Utf8Path,
-    dest: &Utf8Path,
-    progress: &mut dyn FnMut(RandomProgress),
-) -> Result<RandomReport, SectorError> {
-    generate_random_sector_from_with_progress(
-        size,
-        seed,
-        FULL_PRESET_ID,
-        presets_dir,
-        dest,
-        progress,
-    )
-}
-
-/// As [`generate_random_sector_with_progress`], but scaffolds the content +
+/// As [`generate_random_sector`], but scaffolds the content +
 /// overlay *data tree* from an explicit `baseline` preset id (e.g.
 /// `"dead-sector"`) instead of [`FULL_PRESET_ID`].
 ///
@@ -608,7 +585,7 @@ pub fn generate_random_sector_with_progress(
 ///
 /// # Errors
 ///
-/// Identical to [`generate_random_sector_with_progress`]; additionally surfaces
+/// Identical to [`generate_random_sector`]; additionally surfaces
 /// any scaffolding error if `baseline` is missing or incomplete.
 pub fn generate_random_sector_from_with_progress(
     size: SectorSize,

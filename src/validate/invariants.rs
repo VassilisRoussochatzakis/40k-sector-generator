@@ -385,7 +385,7 @@ fn check_systems(
 
         // Worlds
         let mut local_world_ids: BTreeSet<crate::ids::WorldId> = BTreeSet::new();
-        for w in s.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             if !w.id.as_str().starts_with(sys.id.as_str()) {
                 v.push(violation(
                     "WORLD_ID_PREFIX",
@@ -560,7 +560,7 @@ fn check_factions(
     }
 
     for sys in s.systems.iter() {
-        for w in s.get_worlds_for_system(sys) {
+        for w in sys.worlds.iter() {
             for fp in &w.factions {
                 if !summary_ids.contains(fp.faction_id.as_str()) {
                     v.push(violation(

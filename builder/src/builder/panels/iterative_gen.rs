@@ -1515,7 +1515,7 @@ fn commit(state: &mut BuilderState, ui: &mut Ui) {
         {
             if let Ok(parent) = camino::Utf8PathBuf::from_path_buf(folder) {
                 if let Some(session) = state.iterative_gen.as_mut() {
-                    let slug = dir_slug(&session.root_seed);
+                    let slug = super::dir_slug(&session.root_seed);
                     session.dest = Some(parent.join(format!("iterative-{slug}")));
                 }
             }
@@ -1539,20 +1539,6 @@ fn commit(state: &mut BuilderState, ui: &mut Ui) {
         }
     }
     ui.ctx().request_repaint();
-}
-
-/// Folder-name slug from a seed (same shape as the random wizard's `dir_slug`).
-fn dir_slug(seed: &str) -> String {
-    let s: String = seed
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
-        .take(16)
-        .collect();
-    if s.is_empty() {
-        "sector".to_string()
-    } else {
-        s
-    }
 }
 
 /// One-line detail for the progress bar, derived from the latest

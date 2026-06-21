@@ -54,7 +54,7 @@ pub(super) fn draw_systems(
             draw_capital_marker(s, cx, cy, &opts.theme);
         }
 
-        let pip = sector.get_worlds_for_system(sys).len();
+        let pip = sys.worlds.len();
         if pip > 0 {
             draw_world_pip(s, cx, cy, pip, fill, &opts.theme);
         }

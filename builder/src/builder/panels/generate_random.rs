@@ -222,7 +222,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                     } else {
                         seed.trim().to_string()
                     };
-                    let dest = parent.join(format!("random-{}", dir_slug(&seed_val)));
+                    let dest = parent.join(format!("random-{}", super::dir_slug(&seed_val)));
                     let sector_size = resolve_size(&size, custom_w, custom_h);
                     // Off-thread: the popup animates while the worker runs; the
                     // host reopens `dest` once the job lands (RANDOM.md §7.4).
@@ -353,19 +353,6 @@ fn baseline_label(id: &str) -> &'static str {
         .map_or("Everything — balanced, all features", |(_, label, _)| {
             *label
         })
-}
-
-fn dir_slug(seed: &str) -> String {
-    let s: String = seed
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
-        .take(16)
-        .collect();
-    if s.is_empty() {
-        "sector".to_string()
-    } else {
-        s
-    }
 }
 
 fn default_modal() -> ModalKind {

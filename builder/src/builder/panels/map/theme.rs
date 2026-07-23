@@ -29,6 +29,7 @@ use sectorforge::map_theme::{
 use sectorforge::sector_model::RouteStability;
 use sectorforge_gui_core::ui_kit::{self, labeled};
 
+use crate::builder::panels::system::pretty_slug;
 use crate::builder::BuilderState;
 
 /// Entry point: heatmap selector row (§T3) + the collapsing theme section
@@ -46,32 +47,10 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
         });
 }
 
-/// Turn a snake_case slug (`hazard_weighted`, `important_only`) into a readable
-/// label (`Hazard weighted`, `Important only`). Used wherever a theme enum or
-/// theme name has no `display_name()` of its own — the raw slug still rides in a
-/// hover tooltip so the schema value stays discoverable.
-fn humanize_slug(slug: &str) -> String {
-    let mut out = String::with_capacity(slug.len());
-    for (i, word) in slug.split('_').filter(|w| !w.is_empty()).enumerate() {
-        if i > 0 {
-            out.push(' ');
-        }
-        let mut chars = word.chars();
-        if let Some(first) = chars.next() {
-            out.extend(first.to_uppercase());
-            out.push_str(chars.as_str());
-        }
-    }
-    if out.is_empty() {
-        slug.to_string()
-    } else {
-        out
-    }
-}
-
 /// Human label for a built-in or custom theme name. Built-ins get hand-tuned
 /// casing (the model exposes no `display_name()`); anything else falls back to
-/// the generic slug humanizer.
+/// the shared [`pretty_slug`] humanizer (`panels::system`'s copy — previously
+/// duplicated here as `humanize_slug`).
 fn theme_display_name(name: &str) -> String {
     match name {
         "gm_dark" => "GM dark".to_string(),
@@ -80,7 +59,7 @@ fn theme_display_name(name: &str) -> String {
         "navis_tactical" => "Navis tactical".to_string(),
         "inquisition_redacted" => "Inquisition (redacted)".to_string(),
         "subsector_political" => "Subsector political".to_string(),
-        other => humanize_slug(other),
+        other => pretty_slug(other),
     }
 }
 
@@ -191,9 +170,9 @@ fn show_route_legend(ui: &mut Ui, state: &BuilderState) {
     ui.label(
         RichText::new(format!(
             "Line style: {} · Legend: {} · Symbols: {}",
-            humanize_slug(theme.route_line_mode.as_slug()),
-            humanize_slug(theme.legend.as_slug()),
-            humanize_slug(theme.symbol_set.as_slug()),
+            pretty_slug(theme.route_line_mode.as_slug()),
+            pretty_slug(theme.legend.as_slug()),
+            pretty_slug(theme.symbol_set.as_slug()),
         ))
         .small()
         .color(Color32::DARK_GRAY),
@@ -632,14 +611,14 @@ fn enum_combo<E: Copy + PartialEq>(
     labeled(ui, label, help, |ui| {
         let current = slot.unwrap_or(def);
         let text = if slot.is_some() {
-            humanize_slug(slug(current))
+            pretty_slug(slug(current))
         } else {
-            format!("Default ({})", humanize_slug(slug(def)))
+            format!("Default ({})", pretty_slug(slug(def)))
         };
         egui::ComboBox::from_id_salt(format!("theme_enum_{id_salt}"))
             .selected_text(text)
             .show_ui(ui, |ui| {
-                let default_label = format!("Default ({})", humanize_slug(slug(def)));
+                let default_label = format!("Default ({})", pretty_slug(slug(def)));
                 if ui
                     .selectable_label(slot.is_none(), default_label)
                     .on_hover_text("Inherit this value from the theme")
@@ -651,7 +630,7 @@ fn enum_combo<E: Copy + PartialEq>(
                 }
                 for v in variants {
                     if ui
-                        .selectable_label(*slot == Some(*v), humanize_slug(slug(*v)))
+                        .selectable_label(*slot == Some(*v), pretty_slug(slug(*v)))
                         .on_hover_text(format!("schema: {}", slug(*v)))
                         .clicked()
                     {

@@ -567,7 +567,13 @@ impl BuilderState {
     }
 }
 
-fn default_config(id: &str, title: &str, seed: &str, width: u32, height: u32) -> AppConfig {
+pub(crate) fn default_config(
+    id: &str,
+    title: &str,
+    seed: &str,
+    width: u32,
+    height: u32,
+) -> AppConfig {
     use sectorforge::config::{
         GenerationConfig, InputConfig, OutputConfig, PlacementConfig, ProjectConfig,
         RelationsGenerationConfig, RouteGenerationConfig, WorldSelectionConfig,

@@ -21,28 +21,40 @@ mod system;
 mod world;
 
 pub use history::world_history;
-pub use overview::{sector_overview, sector_overview_with_buckets, SectorOverviewCache};
+pub use overview::{sector_overview_with_buckets, SectorOverviewCache};
 pub use route::route_summary;
 pub use subsector::subsector_summary;
 pub use system::{star_detail, system_summary};
 pub use world::world_detail;
 
-// These delegate to the shared `ui_kit` text helpers (§UO P1 dogfood) so the
-// info panel follows the one type scale defined there.
+// Text primitives following the one type scale defined in `ui_kit` (§UO P1
+// dogfood) — inlined here since `ui_kit` itself had no other caller for them.
+use crate::ui_kit::{BODY, DIM, SECTION, TITLE};
+
+/// Title row (size [`TITLE`]), primary text color, + a little space.
 fn title(ui: &mut Ui, s: &str) {
-    crate::ui_kit::mono_title(ui, s);
+    ui.label(RichText::new(s).color(palette::chrome_text()).size(TITLE));
+    ui.add_space(2.0);
 }
 
+/// Bold section header (size [`SECTION`]), primary text color.
 fn section(ui: &mut Ui, s: &str) {
-    crate::ui_kit::mono_section(ui, s);
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text())
+            .size(SECTION)
+            .strong(),
+    );
 }
 
+/// Body line (size [`BODY`]), primary text color.
 fn body(ui: &mut Ui, s: &str) {
-    crate::ui_kit::mono_body(ui, s);
+    ui.label(RichText::new(s).color(palette::chrome_text()).size(BODY));
 }
 
+/// Dimmed line (size [`DIM`]), secondary text color.
 fn dim(ui: &mut Ui, s: &str) {
-    crate::ui_kit::mono_dim(ui, s);
+    ui.label(RichText::new(s).color(palette::chrome_text_dim()).size(DIM));
 }
 
 fn kv(ui: &mut Ui, k: &str, v: &str) {
@@ -142,7 +154,10 @@ fn legend_control_row(ui: &mut Ui, kind: palette::RouteControlKind) {
     });
 }
 
-fn short(s: &str, max: usize) -> String {
+/// Truncate `s` to at most `max` chars, appending `.` when it doesn't fit.
+/// Char-counted (not byte-sliced) so multibyte input never panics. Callers
+/// that need an uppercased label pass `s.to_ascii_uppercase()` in.
+pub(crate) fn short(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         s.to_string()
     } else {

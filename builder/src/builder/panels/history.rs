@@ -451,20 +451,23 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                     ui_kit::combo(
                         format!("h3_when_{idx}"),
                         match state_pick {
-                            Some(s) => system_state_label(s),
+                            Some(s) => super::system::system_state_label(s),
                             None => "(any)",
                         },
                     )
                     .show_ui(ui, |ui| {
                         ui.selectable_value(&mut state_pick, None, "(any)");
                         for s in super::SYSTEM_STATES {
-                            ui.selectable_value(&mut state_pick, Some(*s), system_state_label(*s))
-                                .on_hover_text(format!("key: {}", system_state_key(*s)));
+                            ui.selectable_value(
+                                &mut state_pick,
+                                Some(*s),
+                                super::system::system_state_label(*s),
+                            )
+                            .on_hover_text(format!("key: {}", s.as_slug()));
                         }
                     });
                     if state_pick != picked_before {
-                        rule.when_system_state =
-                            state_pick.map(|s| system_state_key(s).to_string());
+                        rule.when_system_state = state_pick.map(|s| s.as_slug().to_string());
                         changed = true;
                     }
 
@@ -1596,48 +1599,21 @@ fn parse_event_kind_str(s: &str) -> Option<EventKind> {
     }
 }
 
+/// Parses a loosely-formatted system-state string (any case, punctuation
+/// stripped) back into a [`SystemState`] by comparing against each
+/// candidate's canonical slug — every `SYSTEM_STATES` slug is already a
+/// single lowercase word, so normalizing the input the same way is enough
+/// for an exact match.
 fn parse_system_state(s: &str) -> Option<SystemState> {
     let key: String = s
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())
         .flat_map(|c| c.to_lowercase())
         .collect();
-    match key.as_str() {
-        "pacified" => Some(SystemState::Pacified),
-        "fragmented" => Some(SystemState::Fragmented),
-        "blockaded" => Some(SystemState::Blockaded),
-        "warzone" => Some(SystemState::Warzone),
-        "infiltrated" => Some(SystemState::Infiltrated),
-        "quarantined" => Some(SystemState::Quarantined),
-        "uncharted" => Some(SystemState::Uncharted),
-        _ => None,
-    }
-}
-
-fn system_state_label(s: SystemState) -> &'static str {
-    match s {
-        SystemState::Pacified => "Pacified",
-        SystemState::Fragmented => "Fragmented",
-        SystemState::Blockaded => "Blockaded",
-        SystemState::Warzone => "Warzone",
-        SystemState::Infiltrated => "Infiltrated",
-        SystemState::Quarantined => "Quarantined",
-        SystemState::Uncharted => "Uncharted",
-        _ => "Unknown",
-    }
-}
-
-fn system_state_key(s: SystemState) -> &'static str {
-    match s {
-        SystemState::Pacified => "pacified",
-        SystemState::Fragmented => "fragmented",
-        SystemState::Blockaded => "blockaded",
-        SystemState::Warzone => "warzone",
-        SystemState::Infiltrated => "infiltrated",
-        SystemState::Quarantined => "quarantined",
-        SystemState::Uncharted => "uncharted",
-        _ => "unknown",
-    }
+    super::SYSTEM_STATES
+        .iter()
+        .find(|s| s.as_slug() == key)
+        .copied()
 }
 
 fn anchor_label(a: &HistoryAnchor) -> String {

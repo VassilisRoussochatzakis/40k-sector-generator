@@ -8,6 +8,7 @@ use super::palette::{
     self, contrast_text, darken, star_color, tint, world_type_color, ORBIT_RING, SELECTION,
     TEXT_DIM,
 };
+use crate::info_panel::short;
 
 pub struct SystemView<'a> {
     pub system: &'a GeneratedSystem,
@@ -236,7 +237,7 @@ impl<'a> SystemView<'a> {
                 contrast_text(color),
             );
             // Name below.
-            let name = short_upper(&w.name, 14);
+            let name = short(&w.name.to_ascii_uppercase(), 14);
             painter.text(
                 Pos2::new(p.x, p.y + g.planet_r + 4.0),
                 Align2::CENTER_TOP,
@@ -269,25 +270,25 @@ impl<'a> SystemView<'a> {
     }
 }
 
-/// §CTX1 Phase 6 — public so [`pick_world`] (and any future external hit-test)
-/// can reproduce the layout used by [`SystemView::show`]. Field semantics depend
-/// on [`SystemLayout`]:
+/// §CTX1 Phase 6 — shared layout math for [`SystemView::show`] and
+/// [`pick_world`] (which stays module-private to this file). Field semantics
+/// depend on [`SystemLayout`]:
 /// - `Orbital`: `orbit_base` is the radius of orbit 1, `orbit_step` is the
 ///   radial spacing between consecutive orbits.
 /// - `Horizontal`: `orbit_base` is the star's x-offset from the left edge of
 ///   the widget, `orbit_step` is the horizontal spacing between consecutive
 ///   orbits along the axis.
-pub struct SystemGeom {
-    pub side: f32,
-    pub height: f32,
-    pub star_r: f32,
-    pub orbit_base: f32,
-    pub orbit_step: f32,
-    pub planet_r: f32,
+struct SystemGeom {
+    side: f32,
+    height: f32,
+    star_r: f32,
+    orbit_base: f32,
+    orbit_step: f32,
+    planet_r: f32,
 }
 
 impl SystemGeom {
-    pub fn new(side: f32, height: f32, sys: &GeneratedSystem, layout: SystemLayout) -> Self {
+    fn new(side: f32, height: f32, sys: &GeneratedSystem, layout: SystemLayout) -> Self {
         let max_orbit = f32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(1).max(1));
         // Star/planet sizes scale with the shorter axis so non-square aspects
         // (e.g. 2:1 wide preview) don't draw planets taller than the viewport.
@@ -356,17 +357,6 @@ fn orbit_angle(index: usize, orbit: i32) -> f32 {
     let base = orbit as f32 * 137.5;
     let phase = index as f32 * 47.0;
     (base + phase + 200.0).rem_euclid(360.0)
-}
-
-fn short_upper(s: &str, max: usize) -> String {
-    let upper = s.to_ascii_uppercase();
-    if upper.chars().count() <= max {
-        upper
-    } else {
-        let mut out: String = upper.chars().take(max.saturating_sub(1)).collect();
-        out.push('.');
-        out
-    }
 }
 
 #[cfg(test)]
@@ -500,26 +490,5 @@ mod tests {
             Pos2::new(240.0, 10.0),
         );
         assert_eq!(pick, SystemPick::Background);
-    }
-
-    #[test]
-    fn short_upper_uppercases_at_or_below_max() {
-        // Uppercased, well under max → returned whole.
-        assert_eq!(short_upper("hello", 14), "HELLO");
-        // len == max (after upper, 5 chars) → unchanged.
-        assert_eq!(short_upper("hello", 5), "HELLO");
-    }
-
-    #[test]
-    fn short_upper_truncates_uppercased_string() {
-        // "HELLO WORLD" is 11 chars > 5 → take(4) = "HELL" + '.'.
-        assert_eq!(short_upper("hello world", 5), "HELL.");
-    }
-
-    #[test]
-    fn short_upper_ascii_only_uppercasing_is_multibyte_safe() {
-        // to_ascii_uppercase leaves `é` untouched: h→H, é stays, l→L, l→L, o→O.
-        // Result "HéLLO" is 5 chars ≤ 6 → unchanged, no panic on the multibyte char.
-        assert_eq!(short_upper("héllo", 6), "HéLLO");
     }
 }

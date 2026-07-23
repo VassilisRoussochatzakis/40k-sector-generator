@@ -168,7 +168,13 @@ pub(super) fn show_classification_section(
             "World type",
             "Overall world archetype (schema: world_type) — e.g. Hive, Agri, Forge, Death.",
             |ui| {
-                if combo_enum::<WorldType>(ui, "w_type", &mut draft.world.world_type) {
+                if combo_enum(
+                    ui,
+                    "w_type",
+                    &mut draft.world.world_type,
+                    WorldType::VARIANTS,
+                    WorldType::display_name,
+                ) {
                     changed = true;
                 }
             },

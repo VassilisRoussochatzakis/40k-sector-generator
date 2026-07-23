@@ -29,7 +29,13 @@ pub(super) fn show_environment_section(
             "Atmosphere",
             "Breathability of the air (schema: atmosphere) — e.g. Breathable, Toxic, Airless.",
             |ui| {
-                if combo_enum::<Atmosphere>(ui, "w_atm", &mut draft.world.atmosphere) {
+                if combo_enum(
+                    ui,
+                    "w_atm",
+                    &mut draft.world.atmosphere,
+                    Atmosphere::VARIANTS,
+                    Atmosphere::display_name,
+                ) {
                     changed = true;
                 }
             },
@@ -39,7 +45,13 @@ pub(super) fn show_environment_section(
             "Temperature",
             "Surface temperature band (schema: temperature) — Burning to Frozen.",
             |ui| {
-                if combo_enum::<Temperature>(ui, "w_temp", &mut draft.world.temperature) {
+                if combo_enum(
+                    ui,
+                    "w_temp",
+                    &mut draft.world.temperature,
+                    Temperature::VARIANTS,
+                    Temperature::display_name,
+                ) {
                     changed = true;
                 }
             },
@@ -49,7 +61,13 @@ pub(super) fn show_environment_section(
             "Biosphere",
             "Native life present on the world (schema: biosphere) — Sterile to Thriving.",
             |ui| {
-                if combo_enum::<Biosphere>(ui, "w_bio", &mut draft.world.biosphere) {
+                if combo_enum(
+                    ui,
+                    "w_bio",
+                    &mut draft.world.biosphere,
+                    Biosphere::VARIANTS,
+                    Biosphere::display_name,
+                ) {
                     changed = true;
                 }
             },
@@ -84,7 +102,13 @@ pub(super) fn show_society_section(
             "Population",
             "How many people live here (schema: population) — Uninhabited to Extremely Dense.",
             |ui| {
-                if combo_enum::<Population>(ui, "w_pop", &mut draft.world.population) {
+                if combo_enum(
+                    ui,
+                    "w_pop",
+                    &mut draft.world.population,
+                    Population::VARIANTS,
+                    Population::display_name,
+                ) {
                     changed = true;
                 }
             },
@@ -94,7 +118,13 @@ pub(super) fn show_society_section(
             "Tech level",
             "Level of technology available (schema: tech_level) — Primitive to Archaeotech.",
             |ui| {
-                if combo_enum::<TechLevel>(ui, "w_tech", &mut draft.world.tech_level) {
+                if combo_enum(
+                    ui,
+                    "w_tech",
+                    &mut draft.world.tech_level,
+                    TechLevel::VARIANTS,
+                    TechLevel::display_name,
+                ) {
                     changed = true;
                 }
             },
@@ -104,7 +134,13 @@ pub(super) fn show_society_section(
             "Government",
             "Who rules the world and how (schema: government).",
             |ui| {
-                if combo_enum::<Government>(ui, "w_gov", &mut draft.world.government) {
+                if combo_enum(
+                    ui,
+                    "w_gov",
+                    &mut draft.world.government,
+                    Government::VARIANTS,
+                    Government::display_name,
+                ) {
                     changed = true;
                 }
             },

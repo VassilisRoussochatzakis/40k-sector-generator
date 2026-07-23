@@ -631,7 +631,7 @@ fn show_markdown_preview(ui: &mut Ui, state: &mut BuilderState) {
             };
             // §COLUMNS — the rendered markdown wants the right column's width but
             // a capped line length stays readable; `reading_column` bounds it.
-            ui_kit::reading_column(ui, 720.0, |ui| {
+            ui_kit::reading_column(ui, |ui| {
                 egui::ScrollArea::vertical()
                     .id_salt("export_md_preview_scroll")
                     .max_height(420.0)

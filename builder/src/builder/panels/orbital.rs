@@ -16,10 +16,13 @@ use sectorforge::orbital_assets::{
 };
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
+use sectorforge_gui_core::widgets;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
+
+use super::faction_name;
 
 /// The four orbital-asset kinds, in the order the picker shows them. Kept as a
 /// fixed slice (rather than a `match` over the `#[non_exhaustive]` enum) so a new
@@ -339,16 +342,6 @@ fn show_report_editor(ui: &mut Ui, report: &mut BlockadeReport, factions: &[(Fac
     );
 }
 
-/// Display name for a faction id, falling back to the raw id when the roster has
-/// no match (e.g. a stale presence). Keeps the combo's selected-text readable.
-fn faction_name(factions: &[(FactionId, String)], id: &FactionId) -> String {
-    factions
-        .iter()
-        .find(|(fid, _)| fid == id)
-        .map(|(_, name)| name.clone())
-        .unwrap_or_else(|| id.to_string())
-}
-
 fn faction_combo(
     ui: &mut Ui,
     id_salt: &str,
@@ -379,23 +372,14 @@ fn optional_faction_combo(
     current: &mut Option<FactionId>,
     factions: &[(FactionId, String)],
 ) {
-    let label = current
-        .as_ref()
-        .map(|f| faction_name(factions, f))
-        .unwrap_or_else(|| "(none)".into());
-    ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
-        if ui.selectable_label(current.is_none(), "(none)").clicked() {
-            *current = None;
-        }
-        for (fid, name) in factions {
-            let sel = current.as_ref() == Some(fid);
-            if ui
-                .selectable_label(sel, name.as_str())
-                .on_hover_text(format!("id: {fid}"))
-                .clicked()
-            {
-                *current = Some(fid.clone());
-            }
-        }
-    });
+    let variants: Vec<FactionId> = factions.iter().map(|(fid, _)| fid.clone()).collect();
+    widgets::enum_combo(
+        ui,
+        id_salt,
+        current,
+        &variants,
+        |fid| faction_name(factions, fid),
+        |fid| Some(format!("id: {fid}")),
+        None,
+    );
 }

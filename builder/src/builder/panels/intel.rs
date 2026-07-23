@@ -467,7 +467,7 @@ fn propaganda_combo(ui: &mut Ui, id: &str, value: &mut PropagandaState) -> bool 
         ] {
             if ui
                 .selectable_label(*value == v, propaganda_label(v))
-                .on_hover_text(format!("key: {}", propaganda_slug(v)))
+                .on_hover_text(format!("key: {}", v.as_slug()))
                 .clicked()
             {
                 *value = v;
@@ -488,7 +488,7 @@ fn classified_combo(ui: &mut Ui, id: &str, value: &mut ClassifiedState) -> bool 
         ] {
             if ui
                 .selectable_label(*value == v, classified_label(v))
-                .on_hover_text(format!("key: {}", classified_slug(v)))
+                .on_hover_text(format!("key: {}", v.as_slug()))
                 .clicked()
             {
                 *value = v;
@@ -510,7 +510,7 @@ fn source_combo(ui: &mut Ui, id: &str, value: &mut IntelSource) -> bool {
         ] {
             if ui
                 .selectable_label(*value == v, source_label(v))
-                .on_hover_text(format!("key: {}", source_slug(v)))
+                .on_hover_text(format!("key: {}", v.as_slug()))
                 .clicked()
             {
                 *value = v;
@@ -520,9 +520,10 @@ fn source_combo(ui: &mut Ui, id: &str, value: &mut IntelSource) -> bool {
     *value != before
 }
 
-// Human-readable labels for the dropdowns; the raw serialization key is carried
-// in each item's hover via the `*_slug` helpers below. Both arms cover the
-// `#[non_exhaustive]` `sectorforge::intel` enums with a trailing wildcard.
+// Human-readable labels for the dropdowns; the raw serialization key is
+// carried in each item's hover via `.as_slug()` (`sectorforge::intel`'s
+// `enum_slug!`-generated method). Both arms cover the `#[non_exhaustive]`
+// `sectorforge::intel` enums with a trailing wildcard.
 fn propaganda_label(v: PropagandaState) -> &'static str {
     match v {
         PropagandaState::None => "No public line",
@@ -552,38 +553,6 @@ fn source_label(v: IntelSource) -> &'static str {
         IntelSource::Rumor => "Rumour",
         IntelSource::ImaginedDeduction => "Guesswork",
         _ => "Unknown",
-    }
-}
-
-fn propaganda_slug(v: PropagandaState) -> &'static str {
-    match v {
-        PropagandaState::None => "none",
-        PropagandaState::OfficialPacified => "official_pacified",
-        PropagandaState::OfficialContested => "official_contested",
-        PropagandaState::OfficialLost => "official_lost",
-        PropagandaState::Counterfactual => "counterfactual",
-        _ => "unknown",
-    }
-}
-
-fn classified_slug(v: ClassifiedState) -> &'static str {
-    match v {
-        ClassifiedState::Public => "public",
-        ClassifiedState::CodexRedactus => "codex_redactus",
-        ClassifiedState::PurgatusSigillum => "purgatus_sigillum",
-        ClassifiedState::ExterminatusFlag => "exterminatus_flag",
-        _ => "unknown",
-    }
-}
-
-fn source_slug(v: IntelSource) -> &'static str {
-    match v {
-        IntelSource::DirectObservation => "direct_observation",
-        IntelSource::AstropathicReport => "astropathic_report",
-        IntelSource::InquisitorialAnalysis => "inquisitorial_analysis",
-        IntelSource::Rumor => "rumor",
-        IntelSource::ImaginedDeduction => "imagined_deduction",
-        _ => "unknown",
     }
 }
 

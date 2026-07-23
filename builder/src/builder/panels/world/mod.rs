@@ -10,9 +10,6 @@
 
 use egui::{Color32, RichText, Ui};
 
-use sectorforge::worlds::{
-    Atmosphere, Biosphere, Government, Population, TechLevel, Temperature, WorldType,
-};
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
@@ -206,73 +203,21 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
 
 // ── combo helper ───────────────────────────────────────────────────────────
 
-trait EnumPicker: Sized + Clone + PartialEq + 'static {
-    fn variants() -> &'static [Self];
-    fn display(&self) -> &'static str;
-}
-
-impl EnumPicker for WorldType {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-impl EnumPicker for Atmosphere {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-impl EnumPicker for Temperature {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-impl EnumPicker for Biosphere {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-impl EnumPicker for Population {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-impl EnumPicker for TechLevel {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-impl EnumPicker for Government {
-    fn variants() -> &'static [Self] {
-        Self::VARIANTS
-    }
-    fn display(&self) -> &'static str {
-        self.display_name()
-    }
-}
-
-fn combo_enum<E: EnumPicker>(ui: &mut Ui, salt: &str, target: &mut E) -> bool {
+/// Generic required-enum dropdown: binds `target` against `variants`, using
+/// `display` for both the closed-box label and each item's text. Callers pass
+/// `E::VARIANTS` + `E::display_name` directly — the same argument shape
+/// `sectorforge_gui_core::widgets::enum_combo` takes for the `Option<T>` case.
+fn combo_enum<E: Clone + PartialEq>(
+    ui: &mut Ui,
+    salt: &str,
+    target: &mut E,
+    variants: &[E],
+    display: impl Fn(&E) -> &'static str,
+) -> bool {
     let prev = target.clone();
-    ui_kit::combo(salt, target.display()).show_ui(ui, |ui| {
-        for v in E::variants() {
-            ui.selectable_value(target, v.clone(), v.display());
+    ui_kit::combo(salt, display(target)).show_ui(ui, |ui| {
+        for v in variants {
+            ui.selectable_value(target, v.clone(), display(v));
         }
     });
     *target != prev
@@ -283,7 +228,10 @@ mod tests {
     use super::*;
     use crate::builder::panels::world::features::coupling_warnings;
     use sectorforge::sector_model::{HexCoord, WorldDto};
-    use sectorforge::worlds::NotableFeature;
+    use sectorforge::worlds::{
+        Atmosphere, Biosphere, Government, NotableFeature, Population, TechLevel, Temperature,
+        WorldType,
+    };
 
     fn world_dto() -> WorldDto {
         WorldDto {

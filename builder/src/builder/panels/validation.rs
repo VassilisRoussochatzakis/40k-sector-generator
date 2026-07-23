@@ -285,7 +285,7 @@ fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, issue: &Valid
     // The visible section title reads as the severity; the diagnostic code is
     // surfaced as a dim secondary token inside, not used as the headline.
     ui_kit::section(ui, sev_label, |ui| {
-        ui_kit::reading_column(ui, 720.0, |ui| {
+        ui_kit::reading_column(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.colored_label(colour, format!("● {sev_label}"));
                 ui.label(

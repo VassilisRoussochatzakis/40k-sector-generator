@@ -18,8 +18,8 @@ use sectorforge::intel::SystemIntel;
 use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
 use sectorforge::regions::{RegionConditionKind, WarpRegion};
 use sectorforge::sector_model::{
-    GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem,
-    GeneratedWorld, HexCoord, PowerProfile, RouteStability, RouteType,
+    GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem, GeneratedWorld, HexCoord,
+    PowerProfile, RouteStability, RouteType,
 };
 use sectorforge::stability::StabilityState;
 use sectorforge::surface_region::SurfaceRegion;
@@ -156,15 +156,6 @@ pub enum BuilderCommand {
     ReplaceRoutes {
         before: Vec<GeneratedRoute>,
         after: Vec<GeneratedRoute>,
-    },
-    AddFaction {
-        id: FactionId,
-        name: String,
-        kind: String,
-    },
-    RemoveFaction {
-        id: FactionId,
-        before: Option<Box<GeneratedFaction>>,
     },
     /// §AR1: pin one system's `ArchetypeState` to `after`. `before` is filled
     /// by `apply` so `revert` restores the prior value exactly.
@@ -464,9 +455,7 @@ impl BuilderCommand {
             // fans out to everything, the pair documents the real footprint.
             Self::RemoveSystem { .. } => &[D::SystemsWorlds, D::Routes],
             // Faction-roster edits.
-            Self::AddFaction { .. }
-            | Self::RemoveFaction { .. }
-            | Self::ApplyFactionPower { .. } => &[D::Factions],
+            Self::ApplyFactionPower { .. } => &[D::Factions],
             // Warp-region edits.
             Self::SetRegionKind { .. }
             | Self::RenameRegion { .. }
@@ -627,21 +616,6 @@ impl BuilderCommand {
                 *before = sector.routes.clone();
                 sector.routes = after.clone();
                 sector.manifest.route_count = sector.routes.len();
-                Ok(())
-            }
-            Self::AddFaction { id, name, kind } => {
-                sector.add_faction(id.clone(), name, kind)?;
-                Ok(())
-            }
-            Self::RemoveFaction { id, before } => {
-                let f = sector
-                    .factions
-                    .iter()
-                    .find(|f| f.id == *id)
-                    .cloned()
-                    .ok_or_else(|| MutationError::FactionNotFound(id.to_string()))?;
-                sector.remove_faction(id)?;
-                *before = Some(Box::new(f));
                 Ok(())
             }
             Self::SetArchetype {
@@ -1049,13 +1023,6 @@ impl BuilderCommand {
                 sector.manifest.route_count = sector.routes.len();
                 Ok(())
             }
-            Self::AddFaction { id, .. } => sector.remove_faction(id),
-            Self::RemoveFaction { before, .. } => {
-                if let Some(f) = before {
-                    sector.factions.push((**f).clone());
-                }
-                Ok(())
-            }
             Self::SetArchetype { system, before, .. } => {
                 if let Some(prev) = before {
                     sector.set_archetype(system, (**prev).clone())?;
@@ -1162,8 +1129,8 @@ impl BuilderCommand {
                 Ok(())
             }
             // D1: `add_region` appends, so revert removes by id. Like the
-            // `RemoveFaction`/`RemoveSystem` reverts, a re-add lands at the end
-            // of the vector — region order isn't load-bearing for output.
+            // `RemoveSystem` revert, a re-add lands at the end of the vector —
+            // region order isn't load-bearing for output.
             Self::AddRegion { id, .. } => sector.remove_region(id),
             Self::RemoveRegion { before, .. } => {
                 if let Some(r) = before {
@@ -1364,13 +1331,6 @@ pub(crate) mod tests {
         };
         assert_eq!(route.dep_classes(), &[DepClass::Routes]);
 
-        let faction = BuilderCommand::AddFaction {
-            id: FactionId::from("imperium"),
-            name: "Imperium".into(),
-            kind: "imperial".into(),
-        };
-        assert_eq!(faction.dep_classes(), &[DepClass::Factions]);
-
         let region = BuilderCommand::RenameRegion {
             region: "r".into(),
             before: "a".into(),
@@ -1404,8 +1364,8 @@ pub(crate) mod tests {
     /// This is the single source of truth for "every variant" — reused by
     /// [`dep_classes_cover_all_variants`] and by the `apply ∘ revert == identity`
     /// test in `state/tests.rs`. The prepared sector has: systems `A`@(0,0),
-    /// `B`@(1,0), `C`@(2,0), world `W` on `A` (with a star on `A`), faction `f`,
-    /// route `A↔B`, region `reg-0001`.
+    /// `B`@(1,0), `C`@(2,0), world `W` on `A` (with a star on `A`), route
+    /// `A↔B`, region `reg-0001`.
     ///
     /// #35: the fixture is built so that *every* variant's `apply` precondition
     /// is satisfied — `A` carries a star (for `SetStarSpectral`), and the
@@ -1417,8 +1377,6 @@ pub(crate) mod tests {
         let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
         let c = s.add_system(HexCoord { q: 2, r: 0 }, "C").unwrap();
         let wid = s.add_world_to_system(&a, "W").unwrap();
-        s.add_faction(FactionId::from("f"), "F", "imperial")
-            .unwrap();
         let rid = s
             .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
             .unwrap();
@@ -1500,15 +1458,6 @@ pub(crate) mod tests {
             BuilderCommand::ReplaceRoutes {
                 before: Vec::new(),
                 after: Vec::new(),
-            },
-            BuilderCommand::AddFaction {
-                id: FactionId::from("g"),
-                name: "G".into(),
-                kind: "ork".into(),
-            },
-            BuilderCommand::RemoveFaction {
-                id: FactionId::from("f"),
-                before: None,
             },
             BuilderCommand::SetArchetype {
                 system: a.clone(),
@@ -1655,7 +1604,7 @@ pub(crate) mod tests {
         let (_s, all) = all_variants();
         assert_eq!(
             all.len(),
-            40,
+            38,
             "add the new BuilderCommand variant to this exhaustive list"
         );
         for cmd in &all {

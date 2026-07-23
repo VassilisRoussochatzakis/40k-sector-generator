@@ -8,9 +8,9 @@
 //!   one flat wall of widgets.
 //! - **Field rows** — [`labeled`]: an aligned label-left / control-right row.
 //!
-//! Plus [`combo`] (a pre-sized dropdown) and a set of text helpers
-//! ([`mono_title`], …) for tabular panels like
-//! [`crate::info_panel`].
+//! Plus [`combo`] (a pre-sized dropdown). The mono text helpers for tabular
+//! panels ([`crate::info_panel`]'s `title`/`section`/`body`/`dim`) live there
+//! directly — they had no other caller.
 //!
 //! Everything reads the active theme — `Frame::group` paints the themed
 //! `faint_bg`/border for free, and the text helpers pull
@@ -135,11 +135,11 @@ pub fn columns_responsive<R>(
     ui.columns(n, add)
 }
 
-/// Constrain `add` to at most `max_w` and left-align it, so prose / markdown /
+/// Constrain `add` to at most 720px and left-align it, so prose / markdown /
 /// help text keep a readable line length on a wide window instead of running
-/// edge-to-edge. Callers typically pass `720.0`.
-pub fn reading_column<R>(ui: &mut Ui, max_w: f32, add: impl FnOnce(&mut Ui) -> R) -> R {
-    let w = ui.available_width().min(max_w);
+/// edge-to-edge.
+pub fn reading_column<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let w = ui.available_width().min(720.0);
     ui.allocate_ui(egui::vec2(w, 0.0), |ui| {
         ui.set_width(w);
         add(ui)
@@ -159,32 +159,10 @@ pub fn combo(id_source: impl std::hash::Hash, selected: impl Into<WidgetText>) -
 }
 
 // ── text helpers (tabular panels) ─────────────────────────────────
-
-/// Title row (size [`TITLE`]), primary text color, + a little space.
-pub fn mono_title(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(palette::chrome_text()).size(TITLE));
-    ui.add_space(2.0);
-}
-
-/// Bold section header (size [`SECTION`]), primary text color.
-pub fn mono_section(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .size(SECTION)
-            .strong(),
-    );
-}
-
-/// Body line (size [`BODY`]), primary text color.
-pub fn mono_body(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(palette::chrome_text()).size(BODY));
-}
-
-/// Dimmed line (size [`DIM`]), secondary text color.
-pub fn mono_dim(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(palette::chrome_text_dim()).size(DIM));
-}
+//
+// The former `mono_title`/`mono_section`/`mono_body`/`mono_dim` one-liners
+// had no callers outside `crate::info_panel`'s own `title`/`section`/`body`/
+// `dim` wrappers; their bodies are now inlined there directly.
 
 /// A consistent empty-state line — dimmed + italic, theme-aware (§UO P5). Use
 /// in place of a bare `ui.colored_label(Color32::GRAY, …)` so "nothing here yet"
@@ -248,7 +226,6 @@ mod tests {
                     ui.label("Segmentum Obscurus");
                 });
                 kv(ui, "id", "cadia-01");
-                mono_dim(ui, "subsector A");
                 placeholder(ui, "No systems yet");
             });
             collapsing_section(ui, "sys_star", "Star", true, |ui| {
@@ -256,9 +233,6 @@ mod tests {
                     let _ = ui.selectable_label(false, "O");
                 });
             });
-            mono_title(ui, "SECTOR");
-            mono_section(ui, "ROUTES (3)");
-            mono_body(ui, "→ macragge");
             // §COLUMNS helpers — both collapse paths exercised by the headless
             // width; `cols.len()` may be 1, so the closure must not index [1].
             columns_responsive(ui, 3, 200.0, |cols| {
@@ -266,7 +240,7 @@ mod tests {
                     c.label("metric");
                 }
             });
-            reading_column(ui, 720.0, |ui| {
+            reading_column(ui, |ui| {
                 ui.label("a width-capped paragraph of readable prose");
             });
         });

@@ -53,7 +53,7 @@ pub use project_io::{
 pub use random_run::{RandomGenState, RandomJobResult};
 pub use search_run::{NewConstraintKind, SearchJobResult, SearchState};
 pub use segmentum_run::{ComposeJobResult, NewLinkDraft, SegmentumState};
-pub use session::{load_session, save_session, SessionFile};
+pub use session::{save_session, SessionFile};
 pub use snapshot::Snapshot;
 pub use state::{BuilderState, ModalKind, PartialRegenRect};
 pub use workspace::BuilderWorkspace;

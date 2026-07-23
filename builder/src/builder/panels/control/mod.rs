@@ -121,20 +121,6 @@ fn dominance_label(d: DominanceState) -> &'static str {
     }
 }
 
-/// Plain-language name for a [`SystemState`].
-fn system_state_label(s: SystemState) -> &'static str {
-    match s {
-        SystemState::Pacified => "Pacified",
-        SystemState::Fragmented => "Fragmented",
-        SystemState::Blockaded => "Blockaded",
-        SystemState::Warzone => "Warzone",
-        SystemState::Infiltrated => "Infiltrated",
-        SystemState::Quarantined => "Quarantined",
-        SystemState::Uncharted => "Uncharted",
-        _ => "State",
-    }
-}
-
 /// Plain-language name for a [`ClaimType`].
 fn claim_label(k: ClaimType) -> &'static str {
     match k {
@@ -687,7 +673,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                     ui_kit::combo(
                         ("c4_state", system_id.as_str()),
                         match current {
-                            Some(s) => system_state_label(s),
+                            Some(s) => super::system::system_state_label(s),
                             None => "(none)",
                         },
                     )
@@ -697,7 +683,10 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                         }
                         for s in super::SYSTEM_STATES {
                             if ui
-                                .selectable_label(current == Some(*s), system_state_label(*s))
+                                .selectable_label(
+                                    current == Some(*s),
+                                    super::system::system_state_label(*s),
+                                )
                                 .on_hover_text(format!("schema: {}", s.as_slug()))
                                 .clicked()
                             {
@@ -797,7 +786,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
         let summary = derive_system_control(&state.sector.systems[sys_idx]);
         let state_text = summary
             .state
-            .map(|s| system_state_label(s).to_string())
+            .map(|s| super::system::system_state_label(s).to_string())
             .unwrap_or_else(|| "—".to_string());
         ui.colored_label(
             Color32::DARK_GRAY,

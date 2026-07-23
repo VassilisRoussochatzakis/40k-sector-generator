@@ -349,7 +349,7 @@ fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
         .id_salt("br_preview_scroll")
         .max_height(360.0)
         .show(ui, |ui| {
-            ui_kit::reading_column(ui, 720.0, |ui| {
+            ui_kit::reading_column(ui, |ui| {
                 ui.add(
                     egui::TextEdit::multiline(&mut md.as_str())
                         .desired_width(f32::INFINITY)

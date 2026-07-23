@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
+use sectorforge::ids::{RouteId, SystemId, WorldId};
 use sectorforge::sector_model::GeneratedSector;
 
 #[derive(Debug, Clone, Default)]
@@ -12,7 +12,6 @@ pub struct BuilderIndex {
     pub systems: BTreeMap<SystemId, usize>,
     pub worlds: BTreeMap<WorldId, (usize, usize)>,
     pub routes: BTreeMap<RouteId, usize>,
-    pub factions: BTreeMap<FactionId, usize>,
 }
 
 impl BuilderIndex {
@@ -26,9 +25,6 @@ impl BuilderIndex {
         }
         for (i, r) in sector.routes.iter().enumerate() {
             idx.routes.insert(r.id.clone(), i);
-        }
-        for (i, f) in sector.factions.iter().enumerate() {
-            idx.factions.insert(f.id.clone(), i);
         }
         idx
     }

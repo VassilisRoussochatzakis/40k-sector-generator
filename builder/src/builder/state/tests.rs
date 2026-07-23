@@ -522,37 +522,6 @@ fn round_trip_remove_route() {
 }
 
 #[test]
-fn round_trip_add_faction() {
-    let s = seeded();
-    assert_round_trip(
-        s,
-        BuilderCommand::AddFaction {
-            id: FactionId::new("imperium"),
-            name: "Imperium".into(),
-            kind: "imperial".into(),
-        },
-    );
-}
-
-#[test]
-fn round_trip_remove_faction() {
-    let mut s = seeded();
-    s.run(BuilderCommand::AddFaction {
-        id: FactionId::new("imperium"),
-        name: "Imperium".into(),
-        kind: "imperial".into(),
-    })
-    .unwrap();
-    assert_round_trip(
-        s,
-        BuilderCommand::RemoveFaction {
-            id: FactionId::new("imperium"),
-            before: None,
-        },
-    );
-}
-
-#[test]
 fn round_trip_set_route_type() {
     let mut s = seeded();
     let from = s.sector.systems[0].id.clone();
@@ -2124,7 +2093,7 @@ mod apply_revert_identity {
         // drifts, the brief's "EVERY variant" guarantee has silently shrunk.
         assert_eq!(
             variants.len(),
-            40,
+            38,
             "all_variants() must cover every BuilderCommand variant"
         );
 

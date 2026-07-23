@@ -15,17 +15,37 @@ use sectorforge::validation::validate;
 use super::types::{BuilderTab, HealthLevel};
 use super::BuilderState;
 use crate::builder::derivation_cache::{digest_input, DepClass, DerivationKind, DerivationStatus};
-use crate::builder::derivation_jobs::{
-    compute_chronicle, compute_hooks, compute_missions, compute_personae, compute_prose,
-    compute_relations, compute_sites, DerivationJobResult, DerivationPayload, InFlightDerivation,
-};
+use crate::builder::derivation_jobs::{compute_chronicle, DerivationPayload, InFlightDerivation};
 
 /// LD3 drain disposition for one in-flight job this tick, separating a received
 /// result from a dropped channel so [`BuilderState::pump_derivation_jobs`] can
 /// borrow the in-flight map immutably while collecting, then mutate it after.
 enum DerivationDrain {
-    Result(DerivationJobResult),
+    Result(DerivationPayload),
     Disconnected,
+}
+
+/// §CF5 — shared [`super::types::TickLogEntry`] ctor for the per-system and
+/// per-world diff rows in [`BuilderState::advance_conflict_ticks`]; both
+/// scopes copy the same four before/after conflict fields.
+fn tick_log_entry(
+    tick_index: u32,
+    scope: super::types::TickLogScope,
+    before: &sectorforge::conflict::ConflictState,
+    after: &sectorforge::conflict::ConflictState,
+) -> super::types::TickLogEntry {
+    super::types::TickLogEntry {
+        tick_index,
+        scope,
+        momentum_before: before.momentum,
+        momentum_after: after.momentum,
+        intensity_before: before.intensity,
+        intensity_after: after.intensity,
+        defender_before: before.defender.clone(),
+        defender_after: after.defender.clone(),
+        visible_before: before.visible_controller.clone(),
+        visible_after: after.visible_controller.clone(),
+    }
 }
 
 impl BuilderState {
@@ -250,8 +270,9 @@ impl BuilderState {
     /// visited, not just the active tab) with no job already in flight, capture
     /// the input fingerprint, snapshot the inputs (`Arc::clone` the sector +
     /// clone the catalog cfg + scalars), flag the kind `deriving`, and spawn a
-    /// worker that runs the matching pure `compute_*` fn. The worker only reads
-    /// its owned snapshot, so its result is identical to the synchronous path;
+    /// worker that runs the matching derive fn (`sectorforge::*::derive_with`,
+    /// or [`compute_chronicle`] for History). The worker only reads its owned
+    /// snapshot, so its result is identical to the synchronous path;
     /// [`Self::pump_derivation_jobs`] re-checks the captured fingerprint before
     /// installing, discarding any result whose inputs drifted mid-flight.
     ///
@@ -314,9 +335,11 @@ impl BuilderState {
                         "Deriving relations…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::Relations(Box::new(
-                                compute_relations(&sector, &cfg, threshold),
-                            )))
+                            DerivationPayload::Relations(Box::new(
+                                sectorforge::relations::derive_with_threshold(
+                                    &sector, &cfg, threshold,
+                                ),
+                            ))
                         },
                     )
                 }
@@ -328,9 +351,7 @@ impl BuilderState {
                         "Deriving chronicle…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::History(Box::new(
-                                compute_chronicle(&sector, &cfg),
-                            )))
+                            DerivationPayload::History(Box::new(compute_chronicle(&sector, &cfg)))
                         },
                     )
                 }
@@ -342,9 +363,9 @@ impl BuilderState {
                         "Deriving personae…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::Personae(Box::new(
-                                compute_personae(&sector, &cfg),
-                            )))
+                            DerivationPayload::Personae(Box::new(
+                                sectorforge::personae::derive_with(&sector, &cfg),
+                            ))
                         },
                     )
                 }
@@ -357,8 +378,8 @@ impl BuilderState {
                         "Deriving hooks…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::Hooks(Box::new(
-                                compute_hooks(&sector, &cfg),
+                            DerivationPayload::Hooks(Box::new(sectorforge::hooks::derive_with(
+                                &sector, &cfg,
                             )))
                         },
                     )
@@ -372,8 +393,8 @@ impl BuilderState {
                         "Deriving sites…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::Sites(Box::new(
-                                compute_sites(&sector, &cfg),
+                            DerivationPayload::Sites(Box::new(sectorforge::sites::derive_with(
+                                &sector, &cfg,
                             )))
                         },
                     )
@@ -387,9 +408,9 @@ impl BuilderState {
                         "Deriving missions…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::Missions(Box::new(
-                                compute_missions(&sector, &cfg),
-                            )))
+                            DerivationPayload::Missions(Box::new(
+                                sectorforge::missions::derive_with(&sector, &cfg),
+                            ))
                         },
                     )
                 }
@@ -401,8 +422,8 @@ impl BuilderState {
                         "Deriving prose…",
                         ctx.clone(),
                         move |_| {
-                            DerivationJobResult::Done(DerivationPayload::Prose(Box::new(
-                                compute_prose(&sector, &cfg),
+                            DerivationPayload::Prose(Box::new(sectorforge::prose::derive_with(
+                                &sector, &cfg,
                             )))
                         },
                     )
@@ -461,18 +482,15 @@ impl BuilderState {
 
             let payload = match drain {
                 DerivationDrain::Disconnected => {
-                    // Worker thread vanished without sending — clear the
-                    // `deriving` flag and leave the kind stale so the next
-                    // dispatch retries. (No fallible derivations today; this is
-                    // the channel-drop safety net.)
+                    // Worker thread vanished without sending (or panicked — a
+                    // payload cannot represent a failure, so
+                    // `FromJobPanic::from_job_panic` returns `None` and the
+                    // sender is dropped) — clear the `deriving` flag and leave
+                    // the kind stale so the next dispatch retries.
                     self.derivations.deriving.remove(&kind);
                     continue;
                 }
-                DerivationDrain::Result(DerivationJobResult::Failed { .. }) => {
-                    self.derivations.deriving.remove(&kind);
-                    continue;
-                }
-                DerivationDrain::Result(DerivationJobResult::Done(payload)) => payload,
+                DerivationDrain::Result(payload) => payload,
             };
 
             // LD3 stale-guard: discard a result computed from inputs that have
@@ -592,23 +610,13 @@ impl BuilderState {
         > = BTreeMap::new();
         for w in &report.worlds {
             let v = by_system.entry(w.system_id.clone()).or_default();
-            v.ore += w.vector.ore;
-            v.promethium += w.vector.promethium;
-            v.foodstuffs += w.vector.foodstuffs;
-            v.manufactured += w.vector.manufactured;
-            v.archeotech += w.vector.archeotech;
-            v.recruits += w.vector.recruits;
-            let s = strat_by_system.entry(w.system_id.clone()).or_default();
-            s.food += w.strategic_output.food;
-            s.ore += w.strategic_output.ore;
-            s.manufacturing += w.strategic_output.manufacturing;
-            s.arms += w.strategic_output.arms;
-            s.ships += w.strategic_output.ships;
-            s.pilgrimage += w.strategic_output.pilgrimage;
-            s.psyker_tithe += w.strategic_output.psyker_tithe;
-            s.manpower += w.strategic_output.manpower;
-            s.knowledge += w.strategic_output.knowledge;
-            s.xenos_value += w.strategic_output.xenos_value;
+            for (f, o) in v.fields_mut().into_iter().zip(w.vector.fields()) {
+                *f += o;
+            }
+            strat_by_system
+                .entry(w.system_id.clone())
+                .or_default()
+                .add_assign(&w.strategic_output);
         }
         for sy in report.systems.iter_mut() {
             if let Some(v) = by_system.get(&sy.system_id) {
@@ -646,22 +654,14 @@ impl BuilderState {
         let mut sector_balance = ResourceVector::default();
         let mut strategic = sectorforge::economy::StrategicOutput::default();
         for sy in &report.systems {
-            sector_balance.ore += sy.vector.ore;
-            sector_balance.promethium += sy.vector.promethium;
-            sector_balance.foodstuffs += sy.vector.foodstuffs;
-            sector_balance.manufactured += sy.vector.manufactured;
-            sector_balance.archeotech += sy.vector.archeotech;
-            sector_balance.recruits += sy.vector.recruits;
-            strategic.food += sy.strategic_output.food;
-            strategic.ore += sy.strategic_output.ore;
-            strategic.manufacturing += sy.strategic_output.manufacturing;
-            strategic.arms += sy.strategic_output.arms;
-            strategic.ships += sy.strategic_output.ships;
-            strategic.pilgrimage += sy.strategic_output.pilgrimage;
-            strategic.psyker_tithe += sy.strategic_output.psyker_tithe;
-            strategic.manpower += sy.strategic_output.manpower;
-            strategic.knowledge += sy.strategic_output.knowledge;
-            strategic.xenos_value += sy.strategic_output.xenos_value;
+            for (f, o) in sector_balance
+                .fields_mut()
+                .into_iter()
+                .zip(sy.vector.fields())
+            {
+                *f += o;
+            }
+            strategic.add_assign(&sy.strategic_output);
         }
         report.sector_balance = sector_balance;
         report.strategic_output = strategic;
@@ -703,9 +703,9 @@ impl BuilderState {
         let cfg = self.data_catalogs.relations.clone().unwrap_or_default();
         let threshold = self.config.generation.relations.min_world_presence;
         // LD3: identical inputs → identical output as the background worker,
-        // which calls this same pure fn. Install mirrors the off-bus cache
+        // which calls this same derive fn. Install mirrors the off-bus cache
         // write the worker's drain performs.
-        let matrix = compute_relations(&self.sector, &cfg, threshold);
+        let matrix = sectorforge::relations::derive_with_threshold(&self.sector, &cfg, threshold);
         self.sector.relations = std::sync::Arc::new(matrix);
         self.dirty = true;
         self.mark_validation_dirty();
@@ -779,7 +779,7 @@ impl BuilderState {
     /// preserves them across regenerates.
     pub fn recompute_personae(&mut self) {
         let cfg = self.data_catalogs.personae.clone().unwrap_or_default();
-        let report = compute_personae(&self.sector, &cfg);
+        let report = sectorforge::personae::derive_with(&self.sector, &cfg);
         self.personae_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Personae);
@@ -798,7 +798,7 @@ impl BuilderState {
     pub fn recompute_hooks(&mut self) {
         let mut cfg = self.data_catalogs.hooks.clone().unwrap_or_default();
         cfg.hide_hidden_hooks = self.hooks_panel.player_edition;
-        let report = compute_hooks(&self.sector, &cfg);
+        let report = sectorforge::hooks::derive_with(&self.sector, &cfg);
         self.hooks_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Hooks);
@@ -818,7 +818,7 @@ impl BuilderState {
     pub fn recompute_sites(&mut self) {
         let mut cfg = self.data_catalogs.sites.clone().unwrap_or_default();
         cfg.player_edition = self.sites_panel.player_edition;
-        let report = compute_sites(&self.sector, &cfg);
+        let report = sectorforge::sites::derive_with(&self.sector, &cfg);
         self.sites_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Sites);
@@ -838,7 +838,7 @@ impl BuilderState {
     pub fn recompute_missions(&mut self) {
         let mut cfg = self.data_catalogs.missions.clone().unwrap_or_default();
         cfg.player_edition = self.missions_panel.player_edition;
-        let report = compute_missions(&self.sector, &cfg);
+        let report = sectorforge::missions::derive_with(&self.sector, &cfg);
         self.missions_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Missions);
@@ -856,7 +856,7 @@ impl BuilderState {
     /// regenerates.
     pub fn recompute_prose(&mut self) {
         let cfg = self.data_catalogs.prose.clone().unwrap_or_default();
-        let report = compute_prose(&self.sector, &cfg);
+        let report = sectorforge::prose::derive_with(&self.sector, &cfg);
         self.prose_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Prose);
@@ -1057,7 +1057,7 @@ impl BuilderState {
         &mut self,
         ticks: u32,
     ) -> Result<(), crate::builder::errors::BuilderError> {
-        use super::types::{TickLogEntry, TickLogScope};
+        use super::types::TickLogScope;
         use crate::builder::command::BuilderCommand;
         if ticks == 0 {
             return Ok(());
@@ -1102,18 +1102,12 @@ impl BuilderState {
             if before == after {
                 continue;
             }
-            self.push_tick_entry(TickLogEntry {
-                tick_index: next_index,
-                scope: TickLogScope::System(sys_id.clone()),
-                momentum_before: before.momentum,
-                momentum_after: after.momentum,
-                intensity_before: before.intensity,
-                intensity_after: after.intensity,
-                defender_before: before.defender.clone(),
-                defender_after: after.defender.clone(),
-                visible_before: before.visible_controller.clone(),
-                visible_after: after.visible_controller.clone(),
-            });
+            self.push_tick_entry(tick_log_entry(
+                next_index,
+                TickLogScope::System(sys_id.clone()),
+                before,
+                after,
+            ));
         }
         for (world_id, before) in &before_world {
             let Some(sys_id) = sys_lookup.get(world_id).cloned() else {
@@ -1132,21 +1126,15 @@ impl BuilderState {
             if before == after {
                 continue;
             }
-            self.push_tick_entry(TickLogEntry {
-                tick_index: next_index,
-                scope: TickLogScope::World {
+            self.push_tick_entry(tick_log_entry(
+                next_index,
+                TickLogScope::World {
                     system: sys_id,
                     world: world_id.clone(),
                 },
-                momentum_before: before.momentum,
-                momentum_after: after.momentum,
-                intensity_before: before.intensity,
-                intensity_after: after.intensity,
-                defender_before: before.defender.clone(),
-                defender_after: after.defender.clone(),
-                visible_before: before.visible_controller.clone(),
-                visible_after: after.visible_controller.clone(),
-            });
+                before,
+                after,
+            ));
         }
         Ok(())
     }
@@ -1212,15 +1200,16 @@ mod ld3_background_tests {
         false
     }
 
-    /// Determinism: the pure `compute_relations` returns the same matrix the
-    /// synchronous `recompute_relations` installs from identical inputs, so a
-    /// value computed off-thread is byte-identical to the on-thread one.
+    /// Determinism: the pure `sectorforge::relations::derive_with_threshold`
+    /// returns the same matrix the synchronous `recompute_relations` installs
+    /// from identical inputs, so a value computed off-thread is
+    /// byte-identical to the on-thread one.
     #[test]
     fn pure_compute_relations_equals_sync_recompute() {
         let mut state = seed_state();
         let cfg = state.data_catalogs.relations.clone().unwrap_or_default();
         let threshold = state.config.generation.relations.min_world_presence;
-        let pure = compute_relations(&state.sector, &cfg, threshold);
+        let pure = sectorforge::relations::derive_with_threshold(&state.sector, &cfg, threshold);
 
         state.recompute_relations();
         let sync = state.sector.relations.as_ref();

@@ -1,6 +1,9 @@
 //! Subsector summary render (`subsector_summary`). Split verbatim from
 //! `info_panel.rs` (AREA_F F8, by section).
 
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use egui::Ui;
 
 use sectorforge::sector_model::GeneratedSector;
@@ -94,55 +97,17 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
         ui.add_space(8.0);
     }
 
-    if !sub.summary.world_type_counts.is_empty() {
-        section(ui, "WORLD TYPES");
-        let mut v: Vec<_> = sub.summary.world_type_counts.iter().collect();
-        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
-        for (k, n) in v.iter().take(10) {
-            dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
-        }
-        ui.add_space(8.0);
-    }
-
-    if !sub.summary.population_counts.is_empty() {
-        section(ui, "POPULATION");
-        let mut v: Vec<_> = sub.summary.population_counts.iter().collect();
-        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
-        for (k, n) in v.iter().take(8) {
-            dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
-        }
-        ui.add_space(8.0);
-    }
-
-    if !sub.summary.tech_level_counts.is_empty() {
-        section(ui, "TECH LEVEL");
-        let mut v: Vec<_> = sub.summary.tech_level_counts.iter().collect();
-        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
-        for (k, n) in v.iter().take(8) {
-            dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
-        }
-        ui.add_space(8.0);
-    }
-
-    if !sub.summary.government_counts.is_empty() {
-        section(ui, "GOVERNMENT");
-        let mut v: Vec<_> = sub.summary.government_counts.iter().collect();
-        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
-        for (k, n) in v.iter().take(8) {
-            dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
-        }
-        ui.add_space(8.0);
-    }
-
-    if !sub.summary.feature_counts.is_empty() {
-        section(ui, "NOTABLE FEATURES");
-        let mut v: Vec<_> = sub.summary.feature_counts.iter().collect();
-        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
-        for (k, n) in v.iter().take(10) {
-            dim(ui, &format!("{}  x{}", k, n));
-        }
-        ui.add_space(8.0);
-    }
+    top_counts(ui, "WORLD TYPES", &sub.summary.world_type_counts, 10, true);
+    top_counts(ui, "POPULATION", &sub.summary.population_counts, 8, true);
+    top_counts(ui, "TECH LEVEL", &sub.summary.tech_level_counts, 8, true);
+    top_counts(ui, "GOVERNMENT", &sub.summary.government_counts, 8, true);
+    top_counts(
+        ui,
+        "NOTABLE FEATURES",
+        &sub.summary.feature_counts,
+        10,
+        false,
+    );
 
     if !sub.connected_subsector_ids.is_empty() {
         section(ui, "CONNECTED SUBSECTORS");
@@ -166,4 +131,26 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
             dim(ui, n);
         }
     }
+}
+
+/// Render a "TITLE" section listing the top `n` entries of `counts` by
+/// descending count (ties broken by key, ascending), each as `"KEY  xN"`.
+/// No-op when `counts` is empty (matches the former per-block `is_empty`
+/// guards exactly: no header, no trailing space).
+fn top_counts(ui: &mut Ui, heading: &str, counts: &BTreeMap<Arc<str>, u32>, n: usize, upper: bool) {
+    if counts.is_empty() {
+        return;
+    }
+    section(ui, heading);
+    let mut v: Vec<_> = counts.iter().collect();
+    v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+    for (k, count) in v.iter().take(n) {
+        let label = if upper {
+            k.to_uppercase()
+        } else {
+            k.to_string()
+        };
+        dim(ui, &format!("{}  x{}", label, count));
+    }
+    ui.add_space(8.0);
 }

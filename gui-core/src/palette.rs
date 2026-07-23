@@ -806,34 +806,12 @@ pub fn stability_color(s: RouteStability) -> Color32 {
     }
 }
 
+/// Thin wrapper over [`sectorforge::export::system_map::world_type_color`]
+/// (PONYTAIL #24 — the two tables were byte-identical) converting its
+/// `image::Rgba<u8>` to `egui::Color32`.
 pub fn world_type_color(t: &str) -> Color32 {
-    match t {
-        "AgriWorld" => Color32::from_rgb(120, 200, 110),
-        "Asteroid" => Color32::from_rgb(150, 145, 130),
-        "BastionWorld" => Color32::from_rgb(170, 175, 185),
-        "DeathWorld" => Color32::from_rgb(200, 60, 70),
-        "DeadWorld" => Color32::from_rgb(90, 85, 95),
-        "ExtractiveColony" => Color32::from_rgb(200, 130, 70),
-        "FeralWorld" => Color32::from_rgb(100, 150, 90),
-        "FeudalWorld" => Color32::from_rgb(180, 130, 70),
-        "ForgeWorld" => Color32::from_rgb(220, 110, 50),
-        "FrontierWorld" => Color32::from_rgb(210, 190, 130),
-        "HiveWorld" => Color32::from_rgb(200, 80, 200),
-        "ImperialWorld" => Color32::from_rgb(230, 220, 90),
-        "IndustrialWorld" => Color32::from_rgb(180, 110, 60),
-        "Orbital" => Color32::from_rgb(110, 200, 230),
-        "PenalWorld" => Color32::from_rgb(130, 60, 60),
-        "PlanetaryDump" => Color32::from_rgb(130, 130, 80),
-        "PlanetaryMonument" => Color32::from_rgb(230, 200, 90),
-        "PleasureWorld" => Color32::from_rgb(240, 150, 200),
-        "ResearchStation" => Color32::from_rgb(130, 170, 230),
-        "ShrineWorld" => Color32::from_rgb(230, 220, 200),
-        "TombWorld" => Color32::from_rgb(200, 200, 210),
-        "WarpLostWorld" => Color32::from_rgb(140, 90, 200),
-        "Worldship" => Color32::from_rgb(80, 100, 180),
-        "XenosWorld" => Color32::from_rgb(120, 220, 120),
-        _ => Color32::from_rgb(180, 180, 180),
-    }
+    let image::Rgba([r, g, b, a]) = sectorforge::export::system_map::world_type_color(t);
+    Color32::from_rgba_premultiplied(r, g, b, a)
 }
 
 pub fn darken(c: Color32, amount: f32) -> Color32 {
@@ -911,17 +889,8 @@ pub fn faction_style(kind: &str, id: &str, disposition: &str) -> FactionStyle {
 }
 
 pub fn draw_faction_chip(ui: &mut Ui, style: FactionStyle) {
-    draw_faction_chip_sized(ui, style, Vec2::new(20.0, 20.0), 3.0, 13.0);
-}
-
-pub fn draw_faction_chip_sized(
-    ui: &mut Ui,
-    style: FactionStyle,
-    size: Vec2,
-    rounding: f32,
-    font_size: f32,
-) {
-    let (rect, _resp) = ui.allocate_exact_size(size, Sense::hover());
+    let rounding = 3.0;
+    let (rect, _resp) = ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
     let painter = ui.painter_at(rect);
     let bg = match style.border {
         FactionBorder::Dotted => {
@@ -951,7 +920,7 @@ pub fn draw_faction_chip_sized(
         rect.center(),
         Align2::CENTER_CENTER,
         style.glyph.to_string(),
-        FontId::monospace(font_size),
+        FontId::monospace(13.0),
         contrast_text(style.fill),
     );
 }

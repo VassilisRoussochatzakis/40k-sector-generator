@@ -16,10 +16,10 @@
 //! readable when the user zooms out.
 
 use egui::Color32;
+use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::RouteStability;
 
 use crate::palette;
-use crate::visual_tokens::MapRegionOverlay;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScaledSize {
@@ -187,16 +187,17 @@ impl RenderMapTheme {
         }
     }
 
-    pub fn region_color(&self, kind: MapRegionOverlay) -> Color32 {
+    pub fn region_color(&self, kind: RegionConditionKind) -> Color32 {
         match kind {
-            MapRegionOverlay::WarpStorm => self.region_warp_storm,
-            MapRegionOverlay::Turbulence => self.region_turbulence,
-            MapRegionOverlay::CalmCorridor => self.region_calm_corridor,
-            MapRegionOverlay::Blackout => self.region_blackout,
-            MapRegionOverlay::Anomaly => self.region_anomaly,
-            MapRegionOverlay::NecropolisDrift => self.region_necropolis_drift,
-            MapRegionOverlay::BeaconChain => self.region_beacon_chain,
-            MapRegionOverlay::EmpyricBleed => self.region_empyric_bleed,
+            RegionConditionKind::WarpStorm => self.region_warp_storm,
+            RegionConditionKind::Turbulence => self.region_turbulence,
+            RegionConditionKind::CalmCorridor => self.region_calm_corridor,
+            RegionConditionKind::Blackout => self.region_blackout,
+            RegionConditionKind::Anomaly => self.region_anomaly,
+            RegionConditionKind::NecropolisDrift => self.region_necropolis_drift,
+            RegionConditionKind::BeaconChain => self.region_beacon_chain,
+            RegionConditionKind::EmpyricBleed => self.region_empyric_bleed,
+            _ => self.region_anomaly,
         }
     }
 }
@@ -391,51 +392,50 @@ mod tests {
 
     #[test]
     fn region_color_maps_each_overlay_distinctly() {
-        use crate::visual_tokens::MapRegionOverlay;
         let t = RenderMapTheme::default();
         assert_eq!(
-            t.region_color(MapRegionOverlay::WarpStorm),
+            t.region_color(RegionConditionKind::WarpStorm),
             Color32::from_rgb(170, 60, 180)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::Turbulence),
+            t.region_color(RegionConditionKind::Turbulence),
             Color32::from_rgb(140, 100, 200)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::CalmCorridor),
+            t.region_color(RegionConditionKind::CalmCorridor),
             Color32::from_rgb(90, 200, 180)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::Blackout),
+            t.region_color(RegionConditionKind::Blackout),
             Color32::from_rgb(60, 60, 80)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::Anomaly),
+            t.region_color(RegionConditionKind::Anomaly),
             Color32::from_rgb(220, 160, 60)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::NecropolisDrift),
+            t.region_color(RegionConditionKind::NecropolisDrift),
             Color32::from_rgb(100, 130, 140)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::BeaconChain),
+            t.region_color(RegionConditionKind::BeaconChain),
             Color32::from_rgb(230, 210, 100)
         );
         assert_eq!(
-            t.region_color(MapRegionOverlay::EmpyricBleed),
+            t.region_color(RegionConditionKind::EmpyricBleed),
             Color32::from_rgb(190, 70, 160)
         );
 
         // All eight overlay colours are pairwise distinct.
         let all = [
-            t.region_color(MapRegionOverlay::WarpStorm),
-            t.region_color(MapRegionOverlay::Turbulence),
-            t.region_color(MapRegionOverlay::CalmCorridor),
-            t.region_color(MapRegionOverlay::Blackout),
-            t.region_color(MapRegionOverlay::Anomaly),
-            t.region_color(MapRegionOverlay::NecropolisDrift),
-            t.region_color(MapRegionOverlay::BeaconChain),
-            t.region_color(MapRegionOverlay::EmpyricBleed),
+            t.region_color(RegionConditionKind::WarpStorm),
+            t.region_color(RegionConditionKind::Turbulence),
+            t.region_color(RegionConditionKind::CalmCorridor),
+            t.region_color(RegionConditionKind::Blackout),
+            t.region_color(RegionConditionKind::Anomaly),
+            t.region_color(RegionConditionKind::NecropolisDrift),
+            t.region_color(RegionConditionKind::BeaconChain),
+            t.region_color(RegionConditionKind::EmpyricBleed),
         ];
         for i in 0..all.len() {
             for j in (i + 1)..all.len() {

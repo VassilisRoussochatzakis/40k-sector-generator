@@ -11,6 +11,7 @@ use egui::Ui;
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
+use sectorforge_gui_core::widgets;
 
 use sectorforge::ids::FactionId;
 use sectorforge::surface_region::{derive_regions, RegionKind, SurfaceRegion};
@@ -18,6 +19,8 @@ use sectorforge::surface_region::{derive_regions, RegionKind, SurfaceRegion};
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
+
+use super::faction_name;
 
 const REGION_KINDS: [RegionKind; 12] = [
     RegionKind::Capital,
@@ -265,36 +268,14 @@ fn optional_faction_combo(
     current: &mut Option<FactionId>,
     factions: &[(FactionId, String)],
 ) {
-    let label = current
-        .as_ref()
-        .map(|f| faction_name(factions, f))
-        .unwrap_or_else(|| "(unclaimed)".into());
-    ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
-        if ui
-            .selectable_label(current.is_none(), "(unclaimed)")
-            .clicked()
-        {
-            *current = None;
-        }
-        for (fid, name) in factions {
-            let sel = current.as_ref() == Some(fid);
-            if ui
-                .selectable_label(sel, name.as_str())
-                .on_hover_text(format!("id: {fid}"))
-                .clicked()
-            {
-                *current = Some(fid.clone());
-            }
-        }
-    });
-}
-
-/// Display name for a faction id, falling back to the raw id when it isn't in
-/// the sector roster (e.g. a region carried over from an external file).
-fn faction_name(factions: &[(FactionId, String)], id: &FactionId) -> String {
-    factions
-        .iter()
-        .find(|(fid, _)| fid == id)
-        .map(|(_, name)| name.clone())
-        .unwrap_or_else(|| id.to_string())
+    let variants: Vec<FactionId> = factions.iter().map(|(fid, _)| fid.clone()).collect();
+    widgets::enum_combo(
+        ui,
+        id_salt,
+        current,
+        &variants,
+        |fid| faction_name(factions, fid),
+        |fid| Some(format!("id: {fid}")),
+        None,
+    );
 }

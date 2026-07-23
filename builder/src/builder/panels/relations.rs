@@ -390,6 +390,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
             "How they treat each other openly. (inherit) keeps the value the rules derive (schema: public_attitude).",
             "rel_pub",
             &mut ov.public_attitude,
+            ATTITUDES,
+            RelationAttitude::label,
+            |v: RelationAttitude| v.as_slug(),
         );
         changed |= override_combo(
             ui,
@@ -397,6 +400,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
             "Their true stance behind closed doors (schema: secret_attitude).",
             "rel_sec",
             &mut ov.secret_attitude,
+            ATTITUDES,
+            RelationAttitude::label,
+            |v: RelationAttitude| v.as_slug(),
         );
         changed |= override_combo(
             ui,
@@ -404,6 +410,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
             "Formal agreement in force between the pair (schema: treaty_status).",
             "rel_treaty",
             &mut ov.treaty_status,
+            TREATIES,
+            TreatyStatus::label,
+            |v: TreatyStatus| v.as_slug(),
         );
     });
 
@@ -426,6 +435,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
                     "How A treats B openly (schema: a_public_attitude).",
                     "rel_ab_pub",
                     &mut ov.a_public_attitude,
+                    ATTITUDES,
+                    RelationAttitude::label,
+                    |v: RelationAttitude| v.as_slug(),
                 );
                 changed |= override_combo(
                     ui,
@@ -433,6 +445,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
                     "A's true stance toward B (schema: a_secret_attitude).",
                     "rel_ab_sec",
                     &mut ov.a_secret_attitude,
+                    ATTITUDES,
+                    RelationAttitude::label,
+                    |v: RelationAttitude| v.as_slug(),
                 );
             });
             ui.separator();
@@ -452,6 +467,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
                     "How B treats A openly (schema: b_public_attitude).",
                     "rel_ba_pub",
                     &mut ov.b_public_attitude,
+                    ATTITUDES,
+                    RelationAttitude::label,
+                    |v: RelationAttitude| v.as_slug(),
                 );
                 changed |= override_combo(
                     ui,
@@ -459,6 +477,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
                     "B's true stance toward A (schema: b_secret_attitude).",
                     "rel_ba_sec",
                     &mut ov.b_secret_attitude,
+                    ATTITUDES,
+                    RelationAttitude::label,
+                    |v: RelationAttitude| v.as_slug(),
                 );
             });
         });
@@ -650,50 +671,24 @@ fn matches_pair(a: &str, b: &str, lo: &FactionId, hi: &FactionId) -> bool {
     oa == lo.as_ref() && ob == hi.as_ref()
 }
 
-/// An override-able enum rendered by [`override_combo`]: it offers an
-/// `(inherit)` choice plus one entry per [`OverrideEnum::VARIANTS`] value.
-/// Implemented for [`RelationAttitude`] and [`TreatyStatus`], which share an
-/// identical combo body modulo the variant list.
-trait OverrideEnum: Copy + PartialEq + 'static {
-    /// Ordered list of pickable variants (drives both rendering order and the
-    /// stable id ordering of the combo).
-    const VARIANTS: &'static [Self];
-    /// Stable human-readable label shown in the combo.
-    fn label(self) -> &'static str;
-    /// Stable slug shown in the per-entry hover text.
-    fn as_slug(&self) -> &'static str;
-}
-
-impl OverrideEnum for RelationAttitude {
-    const VARIANTS: &'static [Self] = ATTITUDES;
-    fn label(self) -> &'static str {
-        RelationAttitude::label(self)
-    }
-    fn as_slug(&self) -> &'static str {
-        RelationAttitude::as_slug(self)
-    }
-}
-
-impl OverrideEnum for TreatyStatus {
-    const VARIANTS: &'static [Self] = TREATIES;
-    fn label(self) -> &'static str {
-        TreatyStatus::label(self)
-    }
-    fn as_slug(&self) -> &'static str {
-        TreatyStatus::as_slug(self)
-    }
-}
-
-fn override_combo<T: OverrideEnum>(
+/// Generic override-able enum combo: offers an `(inherit)` choice plus one
+/// entry per `variants`. Callers pass `label_of`/`slug_of` directly (same
+/// shape as the WORLD tab's `combo_enum`) instead of forwarding through a
+/// per-type trait — [`RelationAttitude`] and [`TreatyStatus`] share an
+/// identical combo body modulo the variant list, label, and slug.
+fn override_combo<T: Copy + PartialEq>(
     ui: &mut Ui,
     label: &str,
     help: &str,
     id_salt: &str,
     field: &mut Option<T>,
+    variants: &[T],
+    label_of: impl Fn(T) -> &'static str,
+    slug_of: impl Fn(T) -> &'static str,
 ) -> bool {
     let mut changed = false;
     labeled(ui, label, help, |ui| {
-        let current_label = field.map(T::label).unwrap_or("(inherit)");
+        let current_label = field.map(&label_of).unwrap_or("(inherit)");
         ui_kit::combo(id_salt, current_label).show_ui(ui, |ui| {
             if ui
                 .selectable_label(field.is_none(), "(inherit)")
@@ -703,13 +698,13 @@ fn override_combo<T: OverrideEnum>(
                 *field = None;
                 changed = true;
             }
-            for v in T::VARIANTS {
+            for &v in variants {
                 if ui
-                    .selectable_label(*field == Some(*v), v.label())
-                    .on_hover_text(format!("key: {}", v.as_slug()))
+                    .selectable_label(*field == Some(v), label_of(v))
+                    .on_hover_text(format!("key: {}", slug_of(v)))
                     .clicked()
                 {
-                    *field = Some(*v);
+                    *field = Some(v);
                     changed = true;
                 }
             }

@@ -10,6 +10,7 @@ use egui::{Color32, FontId, Pos2, Shape, Stroke, Ui, Vec2};
 use sectorforge::ids::{RouteId, SystemId};
 use sectorforge::sector_model::{GeneratedSector, HexCoord};
 
+use crate::info_panel::short;
 use crate::map_theme::RenderMapTheme;
 use crate::palette::darken;
 use crate::visual_tokens::MapSystemGlyph;
@@ -342,23 +343,6 @@ pub(super) fn hex_center(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
     hex_center_xy(q, r, g)
 }
 
-pub(super) fn hex_pick(
-    screen_pos: Pos2,
-    g: &SectorGeom,
-    origin: Pos2,
-    width: u32,
-    height: u32,
-) -> Option<HexCoord> {
-    // Kept for callers that still pass a separate `origin`; internal uses go
-    // through `SectorGeom::pick_hex`.
-    let g = SectorGeom {
-        hex_size: g.hex_size,
-        margin: g.margin,
-        origin,
-    };
-    g.pick_hex(screen_pos, width, height)
-}
-
 pub(super) fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
     let mut out = [Pos2::ZERO; 6];
     for (i, slot) in out.iter_mut().enumerate() {
@@ -473,18 +457,6 @@ pub(super) fn draw_system_glyph(
             );
         }
     }
-}
-
-pub(super) fn distance_to_segment(p: Pos2, a: Pos2, b: Pos2) -> f32 {
-    let ab = b - a;
-    let ap = p - a;
-    let len_sq = ab.length_sq();
-    if len_sq <= f32::EPSILON {
-        return p.distance(a);
-    }
-    let dot = ap.x * ab.x + ap.y * ab.y;
-    let t = (dot / len_sq).clamp(0.0, 1.0);
-    p.distance(a + ab * t)
 }
 
 pub(super) fn segment_intersects_rect(a: Pos2, b: Pos2, rect: egui::Rect, margin: f32) -> bool {
@@ -616,7 +588,7 @@ pub(super) fn draw_region_labels(
             continue;
         }
 
-        let label = region_label_text(&region.name);
+        let label = short(&region.name.to_ascii_uppercase(), 18);
         let galley = painter.layout_no_wrap(label, font.clone(), theme.region_label);
         let size = galley.size();
         let min_x = bounds.left() + pad.x;
@@ -650,17 +622,6 @@ fn region_label_anchor(
     }
     let n = region.hexes.len() as f32;
     Some(Pos2::new(sx / n, sy / n))
-}
-
-fn region_label_text(name: &str) -> String {
-    let up = name.to_ascii_uppercase();
-    if up.chars().count() <= 18 {
-        up
-    } else {
-        let mut out: String = up.chars().take(17).collect();
-        out.push('.');
-        out
-    }
 }
 
 pub(super) fn draw_hex_outline_only(
@@ -889,107 +850,5 @@ mod tests {
         let g = geom();
         let sector = sector_with_two_routes();
         assert!(g.hit_system(&sector, Pos2::new(-500.0, -500.0)).is_none());
-    }
-
-    // ── Gap 8c: region_label_text (ASCII-upper, max 18, take(17) + '.') ────────
-    #[test]
-    fn region_label_text_uppercases_short_names() {
-        assert_eq!(region_label_text("calm corridor"), "CALM CORRIDOR");
-    }
-
-    #[test]
-    fn region_label_text_boundary_at_18_chars() {
-        // Exactly 18 chars -> unchanged (uppercased).
-        assert_eq!(
-            region_label_text("ABCDEFGHIJKLMNOPQR"),
-            "ABCDEFGHIJKLMNOPQR"
-        );
-        // 19 chars -> take(17) + '.'.
-        assert_eq!(
-            region_label_text("ABCDEFGHIJKLMNOPQRS"),
-            "ABCDEFGHIJKLMNOPQ."
-        );
-    }
-
-    #[test]
-    fn region_label_text_multibyte_is_panic_safe() {
-        // A long name whose uppercased form exceeds 18 chars and contains a
-        // non-ASCII leading char: truncation slices on char boundaries (never
-        // bytes), so it must not panic and the result is exactly 18 chars.
-        let out = region_label_text("ωvery long region name here");
-        assert_eq!(out.chars().count(), 18);
-        assert!(out.ends_with('.'));
-    }
-
-    // ── Gap 9: distance_to_segment vs point_segment_distance agree ────────────
-    // Two near-identical implementations (a duplication-drift guard). gui-core
-    // has no `proptest` dev-dependency, so this is a deterministic fixed-sample
-    // sweep — no RNG crate, no `thread_rng`.
-    #[test]
-    fn distance_impls_agree_on_fixed_sample() {
-        let pts = [
-            // on the perpendicular through the midpoint
-            (
-                Pos2::new(0.0, 5.0),
-                Pos2::new(-10.0, 0.0),
-                Pos2::new(10.0, 0.0),
-            ),
-            // beyond an endpoint -> both clamp to the nearer end
-            (
-                Pos2::new(20.0, 0.0),
-                Pos2::new(-10.0, 0.0),
-                Pos2::new(10.0, 0.0),
-            ),
-            // arbitrary diagonal segment, point off to one side
-            (
-                Pos2::new(3.0, -4.0),
-                Pos2::new(1.0, 1.0),
-                Pos2::new(7.0, 9.0),
-            ),
-            // point across the other quadrant
-            (
-                Pos2::new(-6.0, 8.0),
-                Pos2::new(-2.0, -3.0),
-                Pos2::new(5.0, 4.0),
-            ),
-            // probe coincident with endpoint a
-            (
-                Pos2::new(1.0, 1.0),
-                Pos2::new(1.0, 1.0),
-                Pos2::new(7.0, 9.0),
-            ),
-            // steep vertical segment
-            (
-                Pos2::new(12.0, 3.0),
-                Pos2::new(0.0, -50.0),
-                Pos2::new(0.0, 50.0),
-            ),
-            // degenerate segment a == b
-            (
-                Pos2::new(5.0, 6.0),
-                Pos2::new(2.0, 2.0),
-                Pos2::new(2.0, 2.0),
-            ),
-        ];
-        for (p, a, b) in pts {
-            let d1 = point_segment_distance(p, a, b);
-            let d2 = distance_to_segment(p, a, b);
-            assert!(
-                (d1 - d2).abs() < 1e-3,
-                "drift at {p:?}/{a:?}/{b:?}: {d1} vs {d2}"
-            );
-        }
-    }
-
-    #[test]
-    fn distance_impls_agree_on_degenerate_segment() {
-        // Both fall back to distance(p, a) when the segment has ~zero length.
-        let a = Pos2::new(2.0, 2.0);
-        let p = Pos2::new(5.0, 6.0); // distance sqrt(9 + 16) = 5.0
-        let d1 = point_segment_distance(p, a, a);
-        let d2 = distance_to_segment(p, a, a);
-        assert!((d1 - 5.0).abs() < 1e-4);
-        assert!((d2 - 5.0).abs() < 1e-4);
-        assert!((d1 - d2).abs() < 1e-4);
     }
 }

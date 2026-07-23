@@ -42,8 +42,6 @@ pub const SPACE_SM: f32 = 8.0;
 pub const SPACE_MD: f32 = 12.0;
 /// 16px — between distinct groups.
 pub const SPACE_LG: f32 = 16.0;
-/// 24px — major section separation.
-pub const SPACE_XL: f32 = 24.0;
 
 // ── radius scale — one family, used everywhere ───────────────────────────────
 

@@ -162,10 +162,7 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
                 // meaning-carrying colour and tooltip inside the plate content.
                 let (resp, _) = card::selectable_plate(ui, ("route_row", &route.id), sel, |ui| {
                     ui.label(RichText::new("●").color(palette::stability_color(route.stability)))
-                        .on_hover_text(format!(
-                            "Travel danger: {}",
-                            stability_label(route.stability)
-                        ));
+                        .on_hover_text(format!("Travel danger: {}", route.stability.as_slug()));
                     ui.label(RichText::new(format!(
                         "{} → {}  ({} hops)",
                         route.from_system_id, route.to_system_id, route.distance
@@ -525,22 +522,12 @@ fn route_type_combo(ui: &mut Ui, id: &str, value: &mut RouteType) -> bool {
 
 fn stability_combo(ui: &mut Ui, id: &str, value: &mut RouteStability) -> bool {
     let before = *value;
-    ui_kit::combo(id, stability_label(*value)).show_ui(ui, |ui| {
+    ui_kit::combo(id, value.as_slug()).show_ui(ui, |ui| {
         for option in ROUTE_STABILITIES {
-            ui.selectable_value(value, option, stability_label(option));
+            ui.selectable_value(value, option, option.as_slug());
         }
     });
     *value != before
-}
-
-fn stability_label(value: RouteStability) -> &'static str {
-    match value {
-        RouteStability::Stable => "stable",
-        RouteStability::Unstable => "unstable",
-        RouteStability::Hazardous => "hazardous",
-        RouteStability::Perilous => "perilous",
-        _ => "unknown",
-    }
 }
 
 fn canonicalize_route_endpoints(route: &mut GeneratedRoute) {
@@ -803,10 +790,10 @@ fn optional_route_type_combo(ui: &mut Ui, id: &str, value: &mut Option<RouteType
 }
 
 fn optional_stability_combo(ui: &mut Ui, id: &str, value: &mut Option<RouteStability>) {
-    ui_kit::combo(id, value.map_or("(any)", stability_label)).show_ui(ui, |ui| {
+    ui_kit::combo(id, value.map_or("(any)", |v| v.as_slug())).show_ui(ui, |ui| {
         ui.selectable_value(value, None, "(any)");
         for option in ROUTE_STABILITIES {
-            ui.selectable_value(value, Some(option), stability_label(option));
+            ui.selectable_value(value, Some(option), option.as_slug());
         }
     });
 }

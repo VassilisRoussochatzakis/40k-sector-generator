@@ -53,6 +53,20 @@ pub(crate) fn dir_slug(seed: &str) -> String {
     }
 }
 
+/// Display name for a faction id, falling back to the raw id when the roster
+/// has no match (e.g. a stale presence). Shared by the surface-region and
+/// orbital-asset editors (previously a byte-identical copy in each).
+pub(crate) fn faction_name(
+    factions: &[(sectorforge::ids::FactionId, String)],
+    id: &sectorforge::ids::FactionId,
+) -> String {
+    factions
+        .iter()
+        .find(|(fid, _)| fid == id)
+        .map(|(_, name)| name.clone())
+        .unwrap_or_else(|| id.to_string())
+}
+
 pub mod conflict_resolver;
 pub mod invariants;
 pub mod new_project;

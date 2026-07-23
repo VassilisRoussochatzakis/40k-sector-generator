@@ -51,14 +51,7 @@ fn write_crash_note(app_name: &str, info: &std::panic::PanicHookInfo<'_>) {
     let mut path = std::env::temp_dir();
     path.push(format!("sectorforge-{app_name}-crash-{millis}.txt"));
 
-    // The payload is usually a `&str` or `String`; fall back to a placeholder
-    // for any other panic value (std exposes no generic formatting for it).
-    let message = info
-        .payload()
-        .downcast_ref::<&str>()
-        .map(|s| (*s).to_string())
-        .or_else(|| info.payload().downcast_ref::<String>().cloned())
-        .unwrap_or_else(|| "<non-string panic payload>".to_string());
+    let message = crate::jobs::panic_message(info.payload());
 
     let location = info
         .location()
@@ -99,39 +92,27 @@ mod tests {
     }
 
     /// A panic with a `&str` payload round-trips into the note message via the
-    /// same downcast chain the hook uses.
+    /// same downcast chain the hook uses (`crate::jobs::panic_message`).
     #[test]
     fn str_payload_downcasts_to_message() {
         let payload: Box<dyn std::any::Any + Send> = Box::new("boom");
-        let message = payload
-            .downcast_ref::<&str>()
-            .map(|s| (*s).to_string())
-            .or_else(|| payload.downcast_ref::<String>().cloned())
-            .unwrap_or_else(|| "<non-string panic payload>".to_string());
-        assert_eq!(message, "boom");
+        assert_eq!(crate::jobs::panic_message(payload.as_ref()), "boom");
     }
 
     /// A `String` payload (e.g. from `panic!("{}", x)`) also resolves.
     #[test]
     fn string_payload_downcasts_to_message() {
         let payload: Box<dyn std::any::Any + Send> = Box::new(String::from("kaboom"));
-        let message = payload
-            .downcast_ref::<&str>()
-            .map(|s| (*s).to_string())
-            .or_else(|| payload.downcast_ref::<String>().cloned())
-            .unwrap_or_else(|| "<non-string panic payload>".to_string());
-        assert_eq!(message, "kaboom");
+        assert_eq!(crate::jobs::panic_message(payload.as_ref()), "kaboom");
     }
 
     /// An exotic payload falls back to the placeholder rather than panicking.
     #[test]
     fn non_string_payload_uses_placeholder() {
         let payload: Box<dyn std::any::Any + Send> = Box::new(42u32);
-        let message = payload
-            .downcast_ref::<&str>()
-            .map(|s| (*s).to_string())
-            .or_else(|| payload.downcast_ref::<String>().cloned())
-            .unwrap_or_else(|| "<non-string panic payload>".to_string());
-        assert_eq!(message, "<non-string panic payload>");
+        assert_eq!(
+            crate::jobs::panic_message(payload.as_ref()),
+            "<non-string panic payload>"
+        );
     }
 }

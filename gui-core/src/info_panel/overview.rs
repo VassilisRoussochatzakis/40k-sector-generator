@@ -68,15 +68,6 @@ impl SectorOverviewCache {
     }
 }
 
-pub fn sector_overview(
-    ui: &mut Ui,
-    sector: &GeneratedSector,
-    mode: sectorforge::sector_model::RouteViewMode,
-) {
-    let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
-    sector_overview_with_buckets(ui, sector, &buckets, mode, None);
-}
-
 pub fn sector_overview_with_buckets(
     ui: &mut Ui,
     sector: &GeneratedSector,

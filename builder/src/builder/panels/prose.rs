@@ -85,7 +85,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                     if n == 1 {
                         right.separator();
                     }
-                    ui_kit::reading_column(right, 720.0, |ui| {
+                    ui_kit::reading_column(right, |ui| {
                         show_overview_editor(ui, state);
                         ui.separator();
                         show_system_editor(ui, state);

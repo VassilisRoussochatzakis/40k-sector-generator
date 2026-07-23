@@ -9,11 +9,11 @@ use std::sync::Arc;
 use egui::{Pos2, Shape};
 
 use sectorforge::ids::{FactionId, SystemId};
+use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::{GeneratedSector, HexCoord};
 use sectorforge::subsectors::Subsector;
 
 use crate::palette::{faction_style_by_id, FactionStyle};
-use crate::visual_tokens::MapRegionOverlay;
 
 /// Memoized §BEAUTY star-dust shapes for one map rect (F10). Deterministic in the
 /// rect only, so it is rebuilt just when the rect's rounded position/size changes
@@ -27,7 +27,7 @@ pub struct StarDust {
 pub struct SectorMapCache {
     pub hex_subsector: HashMap<(i32, i32), String>,
     pub hex_system: HashMap<(i32, i32), sectorforge::ids::SystemId>,
-    pub hex_region: HashMap<(i32, i32), (String, MapRegionOverlay)>,
+    pub hex_region: HashMap<(i32, i32), (String, RegionConditionKind)>,
     pub region_centroids: HashMap<String, Pos2>,
     /// TF-P-3: pre-`to_ascii_uppercase`-d display label per system id. The hot
     /// consumer is the map label render (`render`, pass 1 obstacle measure +
@@ -67,13 +67,7 @@ impl SectorMapCache {
             let mut sx = 0.0;
             let mut sy = 0.0;
             for h in &reg.hexes {
-                hex_region.insert(
-                    (h.q, h.r),
-                    (
-                        reg.id.to_string(),
-                        MapRegionOverlay::from_condition(reg.kind),
-                    ),
-                );
+                hex_region.insert((h.q, h.r), (reg.id.to_string(), reg.kind));
                 sx += h.q as f32;
                 sy += h.r as f32;
             }

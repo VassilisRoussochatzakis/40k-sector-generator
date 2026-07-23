@@ -228,7 +228,7 @@ fn show_violation_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &I
 
 fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantViolation) {
     ui_kit::section(ui, "Problem details", |ui| {
-        ui_kit::reading_column(ui, 720.0, |ui| {
+        ui_kit::reading_column(ui, |ui| {
             // Lead with the plain-language description of what's wrong.
             ui.horizontal(|ui| {
                 ui.colored_label(palette::danger(), "●");

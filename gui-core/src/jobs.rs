@@ -126,11 +126,12 @@ where
     }
 }
 
-/// Extract a human-readable message from a `catch_unwind` payload. Panic
+/// Extract a human-readable message from a panic payload (a `catch_unwind`
+/// `Err`, or a panic hook's [`std::panic::PanicHookInfo::payload`]). Panic
 /// payloads are almost always `&str` (from `panic!("literal")`) or `String`
 /// (from `panic!("{}", x)` / `.expect(format!(...))`); anything else degrades to
-/// a placeholder.
-fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+/// a placeholder. Shared with [`crate::diagnostics`]'s crash-note writer.
+pub(crate) fn panic_message(payload: &dyn std::any::Any) -> String {
     if let Some(s) = payload.downcast_ref::<&str>() {
         (*s).to_string()
     } else if let Some(s) = payload.downcast_ref::<String>() {

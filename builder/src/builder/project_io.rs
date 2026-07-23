@@ -41,69 +41,14 @@ use super::index::BuilderIndex;
 use super::state::BuilderState;
 
 /// Default `sectorforge.toml` written next to a brand-new blank project.
+///
+/// Shares [`super::state::default_config`] (audit finding #7) — identical
+/// except the new-project wizard stamps a starting `project.version`, which
+/// `BuilderState::new_blank`'s callers leave unset.
 fn default_app_config(id: &str, title: &str, seed: &str, width: u32, height: u32) -> AppConfig {
-    use sectorforge::config::{
-        GenerationConfig, InputConfig, OutputConfig, OutputFormat, PlacementConfig, ProjectConfig,
-        RelationsGenerationConfig, RouteGenerationConfig, WorldSelectionConfig,
-    };
-    AppConfig {
-        schema_version: None,
-        project: ProjectConfig {
-            id: id.to_string(),
-            title: title.to_string(),
-            description: None,
-            version: Some("0.1.0".to_string()),
-        },
-        inputs: InputConfig {
-            world_data_dir: "data/worlds".to_string(),
-            system_names: None,
-            world_names: None,
-            factions: None,
-            route_rules: None,
-            generation_profiles: None,
-            relations: None,
-            regions: None,
-            economy: None,
-            history: None,
-            personae: None,
-            sites: None,
-            hooks: None,
-            missions: None,
-            prose: None,
-        },
-        generation: GenerationConfig {
-            seed: seed.to_string(),
-            sector_width: width,
-            sector_height: height,
-            system_count: 0,
-            min_worlds_per_system: 2,
-            max_worlds_per_system: 4,
-            allow_empty_hexes: true,
-            world_feature_count: 1,
-            placement: PlacementConfig::default(),
-            world_selection: WorldSelectionConfig::default(),
-            routes: RouteGenerationConfig::default(),
-            relations: RelationsGenerationConfig::default(),
-            search_base_seed: None,
-            search_candidate_index: None,
-            search_constraints_digest: None,
-        },
-        outputs: OutputConfig {
-            directory: "out".to_string(),
-            formats: vec![OutputFormat::Json],
-            pretty_json: true,
-            write_per_system_files: false,
-            write_manifest: true,
-            write_diagnostics: false,
-            bitmap: Default::default(),
-            html: Default::default(),
-        },
-        map_theme: None,
-        analyze: Default::default(),
-        search: Default::default(),
-        diff: Default::default(),
-        history: Default::default(),
-    }
+    let mut cfg = super::state::default_config(id, title, seed, width, height);
+    cfg.project.version = Some("0.1.0".to_string());
+    cfg
 }
 
 /// Parameters captured by the §P1 new-project wizard.
@@ -485,8 +430,7 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         state.config.inputs.system_names.as_deref(),
         state.data_catalogs.names.as_ref(),
     ) {
-        let text = toml::to_string_pretty(tbl).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, tbl, &mut digests)?;
     }
     if let (Some(rel), Some(tbl)) = (
         state.config.inputs.world_names.as_deref(),
@@ -495,16 +439,14 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         // Skip if it points at the same file as `system_names`; the merged
         // table was already written above.
         if Some(rel) != state.config.inputs.system_names.as_deref() {
-            let text = toml::to_string_pretty(tbl).map_err(toml_err(rel))?;
-            write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+            save_toml(root, rel, tbl, &mut digests)?;
         }
     }
     if let (Some(rel), Some(file)) = (
         state.config.inputs.factions.as_deref(),
         state.data_catalogs.factions.as_ref(),
     ) {
-        let text = toml::to_string_pretty(file).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, file, &mut digests)?;
     }
     if let (Some(rel), Some(rules)) = (
         state.config.inputs.route_rules.as_deref(),
@@ -513,8 +455,7 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         let wrapper = RouteRulesFile {
             routes: rules.clone(),
         };
-        let text = toml::to_string_pretty(&wrapper).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, &wrapper, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.relations.as_deref(),
@@ -523,8 +464,7 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         let wrapper = RelationsFile {
             relations: cfg.clone(),
         };
-        let text = toml::to_string_pretty(&wrapper).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, &wrapper, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.regions.as_deref(),
@@ -533,8 +473,7 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         let wrapper = RegionsFile {
             regions: cfg.clone(),
         };
-        let text = toml::to_string_pretty(&wrapper).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, &wrapper, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.economy.as_deref(),
@@ -545,8 +484,7 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
             economy: cfg.clone(),
             resources: sectorforge::economy::ResourceModelConfig::default(),
         };
-        let text = toml::to_string_pretty(&wrapper).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, &wrapper, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.history.as_deref(),
@@ -555,43 +493,37 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         let wrapper = HistoryFile {
             history: cfg.clone(),
         };
-        let text = toml::to_string_pretty(&wrapper).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, &wrapper, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.personae.as_deref(),
         state.data_catalogs.personae.as_ref(),
     ) {
-        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, cfg, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.hooks.as_deref(),
         state.data_catalogs.hooks.as_ref(),
     ) {
-        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, cfg, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.sites.as_deref(),
         state.data_catalogs.sites.as_ref(),
     ) {
-        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, cfg, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.missions.as_deref(),
         state.data_catalogs.missions.as_ref(),
     ) {
-        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, cfg, &mut digests)?;
     }
     if let (Some(rel), Some(cfg)) = (
         state.config.inputs.prose.as_deref(),
         state.data_catalogs.prose.as_ref(),
     ) {
-        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
-        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+        save_toml(root, rel, cfg, &mut digests)?;
     }
 
     // Sector JSON — under `outputs.directory` (default `out/`).
@@ -761,6 +693,18 @@ fn toml_err(rel: &str) -> impl Fn(toml::ser::Error) -> BuilderError + '_ {
         file: rel.to_string(),
         message: e.to_string(),
     }
+}
+
+/// Audit finding #17: shared body of the ~13 near-identical "serialize to
+/// TOML, then write + digest" blocks in [`save_project_as`].
+fn save_toml<T: serde::Serialize>(
+    root: &Utf8Path,
+    rel: &str,
+    value: &T,
+    digests: &mut BTreeMap<String, String>,
+) -> Result<(), BuilderError> {
+    let text = toml::to_string_pretty(value).map_err(toml_err(rel))?;
+    write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), digests)
 }
 
 fn write_and_digest(

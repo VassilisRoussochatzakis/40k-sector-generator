@@ -768,36 +768,19 @@ impl BuilderState {
         // `spawn_prefix`: temporarily swap the session knobs into `self.config`,
         // snapshot the input, then restore so we don't leave the wizard's config
         // installed if the run fails.
-        let session_config = self
-            .iterative_gen
-            .as_ref()
-            .expect("session present above")
-            .config
-            .clone();
-        let nonces = self
-            .iterative_gen
-            .as_ref()
-            .expect("session present above")
-            .nonces
-            .clone();
+        // Audit finding #28: one destructuring borrow instead of four repeated
+        // `self.iterative_gen.as_ref().expect(...)` chains.
+        let session = self.iterative_gen.as_ref().expect("session present above");
+        let session_config = session.config.clone();
+        let nonces = session.nonces.clone();
         // §5 / invariant #5: fold the transient regions-override into this run too,
         // so the committed sector matches the preview. `None` ⇒ verbatim catalog
         // (byte-identical to the legacy path).
-        let regions_override = self
-            .iterative_gen
-            .as_ref()
-            .expect("session present above")
-            .regions_override
-            .clone();
+        let regions_override = session.regions_override.clone();
         // Blank-builder launch: the `_base`-seeded catalog set the preview ran on
         // (see `spawn_prefix`). Fold it into the full run too, then persist it into
         // the new project below so the reopened sector has its world/faction pools.
-        let catalogs_override = self
-            .iterative_gen
-            .as_ref()
-            .expect("session present above")
-            .catalogs_override
-            .clone();
+        let catalogs_override = session.catalogs_override.clone();
         let saved_config = std::mem::replace(&mut self.config, session_config.clone());
         let saved_catalogs = catalogs_override
             .clone()

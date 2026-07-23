@@ -21,14 +21,14 @@ use crate::design;
 use crate::heatmap::HeatCell;
 use crate::map_theme::RenderMapTheme;
 use crate::palette::{darken, draw_route_control_glyph, draw_route_line, star_color};
-use crate::visual_tokens::{MapRegionOverlay, MapSystemGlyph};
+use crate::visual_tokens::MapSystemGlyph;
 
 use super::cache::SectorMapCache;
 use super::render::{
-    blend_heat, distance_to_segment, draw_capital_marker, draw_hex, draw_hex_fill,
-    draw_hex_outline_only, draw_region_labels, draw_system_glyph, hex_center, hex_pick,
-    hex_vertices, is_dark, label_intersects_rect, paint_chart_frame, paint_star_dust,
-    paint_vignette, segment_intersects_rect, subsector_label_font_px, system_label_font_px,
+    blend_heat, draw_capital_marker, draw_hex, draw_hex_fill, draw_hex_outline_only,
+    draw_region_labels, draw_system_glyph, hex_center, hex_vertices, is_dark,
+    label_intersects_rect, paint_chart_frame, paint_star_dust, paint_vignette,
+    point_segment_distance, segment_intersects_rect, subsector_label_font_px, system_label_font_px,
     system_pip_metrics, SectorGeom,
 };
 
@@ -315,7 +315,7 @@ impl<'a> SectorView<'a> {
                         if reg.hexes.iter().any(|h| h.q == q && h.r == r) {
                             f = blend_heat(
                                 base,
-                                theme.region_color(MapRegionOverlay::from_condition(reg.kind)),
+                                theme.region_color(reg.kind),
                                 theme.region_tint_strength,
                             );
                             break;
@@ -1037,9 +1037,11 @@ impl<'a> SectorView<'a> {
         } = *ctx;
         if self.show_hover_coord {
             if let Some(pos) = response.hover_pos() {
-                if let Some(HexCoord { q, r }) =
-                    hex_pick(pos, &g, origin, self.sector.width, self.sector.height)
-                {
+                if let Some(HexCoord { q, r }) = (SectorGeom { origin, ..g }).pick_hex(
+                    pos,
+                    self.sector.width,
+                    self.sector.height,
+                ) {
                     let txt = format!("{q:02},{r:02}");
                     let font = FontId::monospace(11.0);
                     let galley = painter.layout_no_wrap(txt, font, theme.text);
@@ -1108,7 +1110,7 @@ impl<'a> SectorView<'a> {
                             return None;
                         };
                         let (a2, b2) = shorten_segment(a, b, star_r)?;
-                        let d = distance_to_segment(pos, a2, b2);
+                        let d = point_segment_distance(pos, a2, b2);
                         let hit_radius = (g.hex_size * 0.16).max(route_thickness * 2.4).max(7.0);
                         (d <= hit_radius).then_some((route, d))
                     })
@@ -1116,9 +1118,11 @@ impl<'a> SectorView<'a> {
                 {
                     click = Some(SectorClick::Route(route.id.clone()));
                 } else if self.empty_hex_clicks {
-                    if let Some(coord) =
-                        hex_pick(pos, &g, origin, self.sector.width, self.sector.height)
-                    {
+                    if let Some(coord) = (SectorGeom { origin, ..g }).pick_hex(
+                        pos,
+                        self.sector.width,
+                        self.sector.height,
+                    ) {
                         let occupied = self.sector.systems.iter().any(|s| s.coord == coord);
                         if !occupied {
                             click = Some(SectorClick::EmptyHex(coord));

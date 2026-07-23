@@ -352,17 +352,6 @@ pub(super) fn render_multi_selection_menu(
     close
 }
 
-/// §CTX1 Phase 5: human-readable label for a [`RouteStability`].
-fn stability_label(value: RouteStability) -> &'static str {
-    match value {
-        RouteStability::Stable => "stable",
-        RouteStability::Unstable => "unstable",
-        RouteStability::Hazardous => "hazardous",
-        RouteStability::Perilous => "perilous",
-        _ => "unknown",
-    }
-}
-
 /// §CTX1 — Phase 5 §6.4: render the route schema.
 pub(super) fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id: RouteId) -> bool {
     let mut close = false;
@@ -383,7 +372,7 @@ pub(super) fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id:
         egui::RichText::new(format!(
             "ROUTE {id} — {} / {}",
             cur_type.editor_label(),
-            stability_label(cur_stab)
+            cur_stab.as_slug()
         ))
         .italics(),
     );
@@ -424,9 +413,9 @@ pub(super) fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id:
             RouteStability::Perilous,
         ] {
             let label = if value == cur_stab {
-                format!("• {}", stability_label(value))
+                format!("• {}", value.as_slug())
             } else {
-                stability_label(value).to_string()
+                value.as_slug().to_string()
             };
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_sector_menu_action(

@@ -28,37 +28,10 @@ pub struct SessionFile {
     pub config: AppConfig,
     pub command_log: Vec<BuilderCommand>,
     pub command_cursor: usize,
-    pub snapshots: Vec<SerializableSnapshot>,
+    pub snapshots: Vec<Snapshot>,
     pub pinned_systems: BTreeSet<SystemId>,
     pub pinned_worlds: BTreeSet<WorldId>,
     pub project_path: Option<Utf8PathBuf>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SerializableSnapshot {
-    pub name: String,
-    pub sector: GeneratedSector,
-    pub command_log_position: usize,
-}
-
-impl From<&Snapshot> for SerializableSnapshot {
-    fn from(s: &Snapshot) -> Self {
-        Self {
-            name: s.name.clone(),
-            sector: s.sector.clone(),
-            command_log_position: s.command_log_position,
-        }
-    }
-}
-
-impl From<SerializableSnapshot> for Snapshot {
-    fn from(s: SerializableSnapshot) -> Self {
-        Snapshot {
-            name: s.name,
-            sector: s.sector,
-            command_log_position: s.command_log_position,
-        }
-    }
 }
 
 impl SessionFile {
@@ -69,7 +42,7 @@ impl SessionFile {
             config: state.config.clone(),
             command_log: state.command_log.clone(),
             command_cursor: state.command_cursor,
-            snapshots: state.snapshots.iter().map(Into::into).collect(),
+            snapshots: state.snapshots.clone(),
             pinned_systems: state.pinned_systems.clone(),
             pinned_worlds: state.pinned_worlds.clone(),
             project_path: state.project_path.clone(),
@@ -77,93 +50,21 @@ impl SessionFile {
     }
 
     pub fn into_state(self) -> BuilderState {
-        use super::data_catalogs::DataCatalogs;
-        use super::derivation_cache::DerivationLedger;
         use super::index::BuilderIndex;
 
-        let index = BuilderIndex::rebuild(&self.sector);
-        BuilderState {
-            sector: self.sector.into(),
-            project_path: self.project_path,
-            config: self.config,
-            data_catalogs: DataCatalogs::new(),
-            index,
-            command_log: self.command_log,
-            command_cursor: self.command_cursor,
-            snapshots: self.snapshots.into_iter().map(Into::into).collect(),
-            command_log_capacity: super::state::DEFAULT_COMMAND_LOG_CAPACITY,
-            pinned_systems: self.pinned_systems,
-            pinned_worlds: self.pinned_worlds,
-            derivations: DerivationLedger::new(),
-            derivation_jobs: super::derivation_jobs::DerivationJobs::default(),
-            dirty: false,
-            auto_save_path: None,
-            auto_save_pending: false,
-            last_auto_save: None,
-            suspend_auto_save_writes: false,
-            feedback: super::state::FeedbackState::default(),
-            feature_weights_cache: std::collections::BTreeMap::new(),
-            validation_report: None,
-            invariant_report: None,
-            dirty_files: std::collections::BTreeSet::new(),
-            selected_file: None,
-            toml_editor: super::state::TomlEditorState::default(),
-            file_mtimes: std::collections::BTreeMap::new(),
-            file_watcher: None,
-            validation_strict: false,
-            nav_rail_collapsed: false,
-            selection: super::state::SelectionState::default(),
-            active_tab: super::state::BuilderTab::Project,
-            map_view: super::state::MapViewState::default(),
-            generation: super::state::GenerationState::default(),
-            drag: super::state::DragPendingState::default(),
-            route_bulk: super::state::RouteBulkState::default(),
-            hidden_routes: super::state::HiddenRoutesState::default(),
-            random_gen: super::random_run::RandomGenState::default(),
-            iterative_gen: None,
-            dominance_locked: std::collections::BTreeSet::new(),
-            primary_factions_locked: std::collections::BTreeSet::new(),
-            region_grow: super::state::RegionGrowState::default(),
-            subsector_target_systems: sectorforge::subsectors::DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
-            subsector_system_overrides: std::collections::BTreeMap::new(),
-            subsector_manual: std::collections::BTreeSet::new(),
-            subsector_capital_overrides: std::collections::BTreeMap::new(),
-            subsector_colour_overrides: std::collections::BTreeMap::new(),
-            world_economy_overrides: std::collections::BTreeMap::new(),
-            world_strategic_overrides: std::collections::BTreeMap::new(),
-            system_tithe_overrides: std::collections::BTreeMap::new(),
-            system_supply_overrides: std::collections::BTreeMap::new(),
-            system_priority_overrides: std::collections::BTreeMap::new(),
-            catalog_session_baseline: None,
-            catalog_edited_this_frame: false,
-            catalog_edit_uncommitted: false,
-            system_bitmap_preview: None,
-            economy_panel: super::state::EconomyPanelState::default(),
-            relations_panel: super::state::RelationsPanelState::default(),
-            history_panel: super::state::HistoryPanelState::default(),
-            theme_panel: super::state::ThemePanelState::default(),
-            archetype_flags: crate::builder::command::ArchetypeApplyFlags::default(),
-            system_conflict_override: std::collections::BTreeSet::new(),
-            conflict_panel: super::state::ConflictPanelState::default(),
-            personae_report: None,
-            personae_panel: super::state::PersonaePanelState::default(),
-            hooks_report: None,
-            hooks_panel: super::state::HooksPanelState::default(),
-            sites_report: None,
-            sites_panel: super::state::SitesPanelState::default(),
-            missions_report: None,
-            missions_panel: super::state::MissionsPanelState::default(),
-            prose_report: None,
-            prose_auto_recompute: true,
-            briefing_panel: super::state::BriefingPanelState::default(),
-            interestingness_panel: super::state::InterestingnessPanelState::default(),
-            system_view: super::state::SystemViewState::default(),
-            search: super::search_run::SearchState::default(),
-            diff: super::diff_run::DiffState::new(),
-            analytics: super::analytics_run::AnalyticsState::new(),
-            segmentum: super::segmentum_run::SegmentumState::default(),
-            export: super::export_run::ExportState::new(),
-        }
+        // Everything not persisted in the envelope keeps its `new_blank`
+        // default; only the loaded document fields below are overwritten.
+        let mut state = BuilderState::new_blank("", "", "", 0, 0);
+        state.index = BuilderIndex::rebuild(&self.sector);
+        state.sector = self.sector.into();
+        state.project_path = self.project_path;
+        state.config = self.config;
+        state.command_log = self.command_log;
+        state.command_cursor = self.command_cursor;
+        state.snapshots = self.snapshots;
+        state.pinned_systems = self.pinned_systems;
+        state.pinned_worlds = self.pinned_worlds;
+        state
     }
 }
 
@@ -171,24 +72,6 @@ pub fn save_session(path: &Path, state: &BuilderState) -> Result<(), BuilderErro
     let file = SessionFile::from_state(state);
     let text = serde_json::to_string_pretty(&file)?;
     fs::write(path, text).map_err(BuilderError::from)
-}
-
-pub fn load_session(path: &Path) -> Result<BuilderState, BuilderError> {
-    let text = fs::read_to_string(path)?;
-    let file: SessionFile = serde_json::from_str(&text).map_err(|e| BuilderError::ParseFailed {
-        file: path.display().to_string(),
-        message: e.to_string(),
-    })?;
-    if file.version != SESSION_VERSION {
-        return Err(BuilderError::ParseFailed {
-            file: path.display().to_string(),
-            message: format!(
-                "unsupported .sgforge version {} (expected {})",
-                file.version, SESSION_VERSION
-            ),
-        });
-    }
-    Ok(file.into_state())
 }
 
 #[cfg(test)]

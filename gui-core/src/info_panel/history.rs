@@ -7,20 +7,29 @@ use sectorforge::sector_model::GeneratedSector;
 
 use super::{dim, section, short};
 
-pub fn world_history(ui: &mut Ui, sector: &GeneratedSector, world_id: &str) {
+/// Shared body for [`world_history`]/[`system_history`]: filter the chronicle
+/// by `matches`, bail if empty, sort by (date, id), print a section headed
+/// `heading`, then list up to `cap` entries (`usize::MAX` for "no cap").
+fn render_history(
+    ui: &mut Ui,
+    sector: &GeneratedSector,
+    heading: &str,
+    cap: usize,
+    matches: impl Fn(&sectorforge::history::HistoryEvent) -> bool,
+) {
     let mut hits: Vec<_> = sector
         .chronicle
         .events
         .iter()
-        .filter(|e| event_mentions_world(e, world_id))
+        .filter(|e| matches(e))
         .collect();
     if hits.is_empty() {
         return;
     }
     hits.sort_unstable_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
     ui.add_space(8.0);
-    section(ui, "HISTORY");
-    for e in hits {
+    section(ui, heading);
+    for e in hits.iter().take(cap) {
         dim(
             ui,
             &format!(
@@ -33,30 +42,16 @@ pub fn world_history(ui: &mut Ui, sector: &GeneratedSector, world_id: &str) {
     }
 }
 
+pub fn world_history(ui: &mut Ui, sector: &GeneratedSector, world_id: &str) {
+    render_history(ui, sector, "HISTORY", usize::MAX, |e| {
+        event_mentions_world(e, world_id)
+    });
+}
+
 pub(super) fn system_history(ui: &mut Ui, sector: &GeneratedSector, system_id: &str) {
-    let mut hits: Vec<_> = sector
-        .chronicle
-        .events
-        .iter()
-        .filter(|e| event_mentions_system(e, system_id))
-        .collect();
-    if hits.is_empty() {
-        return;
-    }
-    hits.sort_unstable_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
-    ui.add_space(8.0);
-    section(ui, "LOCAL HISTORY");
-    for e in hits.iter().take(8) {
-        dim(
-            ui,
-            &format!(
-                "{}  {:?}  {}",
-                e.date,
-                e.kind,
-                short(&e.summary.to_uppercase(), 42)
-            ),
-        );
-    }
+    render_history(ui, sector, "LOCAL HISTORY", 8, |e| {
+        event_mentions_system(e, system_id)
+    });
 }
 
 fn event_mentions_world(e: &sectorforge::history::HistoryEvent, world_id: &str) -> bool {

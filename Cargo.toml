@@ -28,15 +28,12 @@ toml = "0.8"
 thiserror = "1"
 camino = { version = "1", features = ["serde1"] }
 blake3 = "1"
-rand = "0.8"
 image = { version = "0.25", default-features = false, features = ["png"] }
 egui = "0.29"
 eframe = { version = "0.29", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 rfd = "0.17"
 tempfile = "3"
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
-log = "0.4"
-env_logger = "0.11"
 
 # RUST_FIXES.md QW-C-4: hoist the disallowed-types/methods lint *level* to the
 # workspace. The actual disallowed *paths* stay in the per-crate `clippy.toml`
@@ -47,13 +44,6 @@ env_logger = "0.11"
 [workspace.lints.clippy]
 disallowed_types = "deny"
 disallowed_methods = "deny"
-
-[lib]
-path = "src/lib.rs"
-
-[[bin]]
-name = "sectorforge"
-path = "src/main.rs"
 
 # docs/OPTIMIZE.txt G4: heap-profiling driver. Only compiles with `--features dhat-heap`.
 [[bin]]
@@ -67,7 +57,7 @@ serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 thiserror.workspace = true
-rand.workspace = true
+rand = "0.8"
 rand_chacha = "0.3"
 blake3.workspace = true
 camino.workspace = true
@@ -76,8 +66,8 @@ rustc-hash = "2"
 # Finding #29 (observability): CLI logging facade. The `log` macros sit in the
 # CLI runners only (engine stays diagnostics-free, emitting via `on_progress`);
 # `env_logger` is initialised once in `main()`. `RUST_LOG` controls verbosity.
-log.workspace = true
-env_logger.workspace = true
+log = "0.4"
+env_logger = "0.11"
 # FIX.txt §13: data-parallel candidate enumeration in src/search.rs. Order-
 # preserving collect keeps `SearchOutcome.near_misses` byte-deterministic.
 rayon = "1"
@@ -86,7 +76,6 @@ rayon = "1"
 dhat = { version = "0.3", optional = true }
 
 [features]
-default = []
 # docs/OPTIMIZE.txt G4: gate dhat-heap behind a feature so production builds stay
 # allocator-free.
 dhat-heap = ["dep:dhat"]
@@ -122,14 +111,10 @@ harness = false
 name = "render_png"
 harness = false
 
-[profile.dev]
-# Library code keeps full debuginfo so the IDE / lldb can step through it.
-# Dependencies get debug = false (see [profile.dev.package."*"]) so we don't pay
-# the DWARF cost on every dep link.
-
 [profile.dev.package."*"]
 # Skip DWARF generation for dependencies. Cuts linker work on integration test
-# bins and the GUI/builder binaries. Local code is unaffected.
+# bins and the GUI/builder binaries. Local code keeps full debuginfo so the
+# IDE / lldb can step through it.
 debug = false
 
 [profile.release]
@@ -137,14 +122,6 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
-
-# Benchmarks run with release codegen so the numbers reflect shipping builds.
-# Inherit release rather than re-pinning `lto = "fat"` / `codegen-units = 1`
-# (the previous standalone keys, identical to release). `panic` / `strip` from
-# release don't apply to the bench profile, so this is a pure no-divergence
-# consolidation.
-[profile.bench]
-inherits = "release"
 
 # docs/OPTIMIZE.txt G5: profiling profile inherits release but keeps frame pointers,
 # line-table debug info, and symbols so flamegraph/samply/Instruments resolve.

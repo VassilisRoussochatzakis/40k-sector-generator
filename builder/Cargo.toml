@@ -27,10 +27,6 @@ default = ["sectorforge-gui-core/bundled-fonts"]
 [dev-dependencies]
 tempfile.workspace = true
 criterion = { workspace = true }
-# The `builder_mutations` bench links the builder lib but also needs the core
-# `sectorforge` API directly (load_project / generate_sector / invariant check)
-# to build its large fixture sector — same idiom as the root-crate benches.
-sectorforge = { path = ".." }
 
 # RUST_FIXES.md QW-C-4: disallowed-types/methods level comes from the workspace;
 # the per-path ban list lives in this crate's `clippy.toml` (paint primitives

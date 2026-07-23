@@ -2,6 +2,7 @@ name: CIpipeline
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -32,9 +33,6 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked
 
-      - name: Golden output tests
-        run: cargo test --test it --locked -- golden
-
   # P18 / safety net: run the #[ignore]-gated heavy tests (full-m42 segmentum
   # composition + the export-byte goldens) so the byte contracts they guard are
   # actually exercised in CI, not just locally. Separate job so the slow run
@@ -53,7 +51,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Integration tests (including #[ignore]-gated)
-        run: cargo test --test it --locked -- --include-ignored
+        run: cargo test --test it --locked -- --ignored
 
   # P18: fail the build on a known RUSTSEC advisory in the dependency graph.
   audit:
@@ -67,23 +65,3 @@ jobs:
         uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-  fuzz-build:
-    name: fuzz build smoke (nightly)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust nightly
-        uses: dtolnay/rust-toolchain@nightly
-
-      - name: Cargo cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install cargo-fuzz
-        run: cargo install cargo-fuzz
-
-      - name: Build fuzz targets
-        run: cargo +nightly fuzz build

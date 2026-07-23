@@ -4,43 +4,24 @@
 //! the CLI `new` command. The GUI does NOT auto-load the new project — it
 //! prints the next-step CLI invocation in a status line.
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use egui::{RichText, ScrollArea, Ui};
-use thiserror::Error;
 
 use sectorforge::presets::{self, PresetEntry};
 
 use super::palette;
 
-#[derive(Debug, Error, Clone)]
-pub(crate) enum PresetGalleryError {
-    #[error("failed to list presets: {0}")]
-    Load(String),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum CreationTarget {
-    #[default]
-    Project,
-    Segmentum,
-    Sector,
-    System,
-}
+const PRESETS_DIR: &str = "presets";
 
 #[derive(Default)]
 pub(crate) struct PresetGalleryState {
     pub open: bool,
-    pub presets_dir: Option<Utf8PathBuf>,
     /// `None` means "list not loaded yet"; `Some(Err)` means load failed.
-    cached: Option<Result<Vec<PresetEntry>, PresetGalleryError>>,
+    cached: Option<Result<Vec<PresetEntry>, String>>,
     /// Path the user is typing for the destination directory.
     pub dest_text: String,
     pub seed_text: String,
     pub status: String,
-    pub target: CreationTarget,
-    pub width: u32,
-    pub height: u32,
-    pub add_to_existing: bool,
     pub open_immediately: bool,
     pub pending_open: Option<Utf8PathBuf>,
 }
@@ -50,19 +31,14 @@ impl PresetGalleryState {
         if self.cached.is_some() {
             return;
         }
-        let dir = self.resolved_dir();
-        self.cached =
-            Some(presets::list(&dir).map_err(|e| PresetGalleryError::Load(e.to_string())));
+        self.cached = Some(
+            presets::list(Utf8Path::new(PRESETS_DIR))
+                .map_err(|e| format!("failed to list presets: {e}")),
+        );
     }
 
     pub(crate) fn invalidate(&mut self) {
         self.cached = None;
-    }
-
-    fn resolved_dir(&self) -> Utf8PathBuf {
-        self.presets_dir
-            .clone()
-            .unwrap_or_else(|| Utf8PathBuf::from("presets"))
     }
 }
 
@@ -70,71 +46,16 @@ impl PresetGalleryState {
 pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     state.ensure_loaded();
 
-    // VAPP-2: `presets::scaffold` takes only (presets_dir, preset_id, dest, seed) — it copies a
-    // preset's project tree verbatim. It cannot consume target/add_to_existing/width/height, so
-    // these controls are disabled (greyed) with hover notes rather than silently doing nothing.
-    // Wiring them in would require changing the library scaffolder, which is out of viewer scope.
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("CREATE:").color(palette::chrome_text_dim()));
-        ui.add_enabled_ui(false, |ui| {
-            ui.selectable_value(&mut state.target, CreationTarget::Project, "PROJECT");
-            ui.selectable_value(&mut state.target, CreationTarget::Segmentum, "SEGMENTUM");
-            ui.selectable_value(&mut state.target, CreationTarget::Sector, "SECTOR");
-            ui.selectable_value(&mut state.target, CreationTarget::System, "SYSTEM");
-        })
-        .response
-        .on_hover_text(
-            "Preset scaffolding copies the preset's project tree as-is; the target kind is not \
-             yet wired to the scaffolder.",
-        );
-    });
-
-    ui.add_enabled(
-        false,
-        egui::Checkbox::new(&mut state.add_to_existing, "Add to existing project"),
-    )
-    .on_hover_text(
-        "Not wired: scaffolding requires a fresh destination that does not already exist.",
-    );
     ui.checkbox(
         &mut state.open_immediately,
         "Open immediately after creation",
     );
     ui.add_space(4.0);
 
-    if state.target == CreationTarget::Sector {
-        ui.add_enabled_ui(false, |ui| {
-            ui.group(|ui| {
-                ui.label(RichText::new("SECTOR DIMENSIONS").color(palette::chrome_text_dim()));
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("WIDTH").color(palette::chrome_text_dim()));
-                    let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
-                    ui.label(RichText::new("HEIGHT").color(palette::chrome_text_dim()));
-                    let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
-
-                    // Geometry invariant: sectors must be square. Mirror
-                    // width <-> height unconditionally.
-                    if state.width == 0 {
-                        state.width = 8;
-                        state.height = 8;
-                    }
-                    if w_res.changed() {
-                        state.height = state.width;
-                    } else if h_res.changed() {
-                        state.width = state.height;
-                    }
-                });
-            })
-            .response
-            .on_hover_text(
-                "Not wired: the scaffolder copies the preset's sector dimensions as-is.",
-            );
-        });
-        ui.add_space(8.0);
-    }
-
-    let dir = state.resolved_dir();
-    ui.label(RichText::new(format!("PRESETS DIRECTORY: {dir}")).color(palette::chrome_text_dim()));
+    ui.label(
+        RichText::new(format!("PRESETS DIRECTORY: {PRESETS_DIR}"))
+            .color(palette::chrome_text_dim()),
+    );
     if ui.button(RichText::new("RELOAD")).clicked() {
         state.invalidate();
         state.ensure_loaded();
@@ -155,14 +76,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         return;
     }
 
-    ui.label(
-        RichText::new(if state.add_to_existing {
-            "PROJECT DIRECTORY"
-        } else {
-            "DESTINATION DIRECTORY"
-        })
-        .color(palette::chrome_text_dim()),
-    );
+    ui.label(RichText::new("DESTINATION DIRECTORY").color(palette::chrome_text_dim()));
     ui.text_edit_singleline(&mut state.dest_text);
     ui.add_space(4.0);
     ui.label(RichText::new("SEED OVERRIDE (optional)").color(palette::chrome_text_dim()));
@@ -182,15 +96,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                 );
                 ui.label(RichText::new(&entry.description).color(palette::chrome_text_dim()));
                 if ui
-                    .button(RichText::new(format!(
-                        "CREATE {} FROM THIS PRESET",
-                        match state.target {
-                            CreationTarget::Project => "PROJECT",
-                            CreationTarget::Segmentum => "SEGMENTUM",
-                            CreationTarget::Sector => "SECTOR",
-                            CreationTarget::System => "SYSTEM",
-                        }
-                    )))
+                    .button(RichText::new("CREATE PROJECT FROM THIS PRESET"))
                     .clicked()
                 {
                     let dest_str = state.dest_text.trim();
@@ -205,11 +111,12 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                         };
                         let seed_ref = seed.as_deref();
 
-                        // VAPP-2: scaffold copies the preset tree verbatim into a fresh dest.
-                        // target/add_to_existing/width/height are not parameters of the
-                        // scaffolder (their controls are disabled above), so they are not
-                        // passed here. Adding them would require library-side changes.
-                        match presets::scaffold(&dir, &entry.id, &dest, seed_ref) {
+                        match presets::scaffold(
+                            Utf8Path::new(PRESETS_DIR),
+                            &entry.id,
+                            &dest,
+                            seed_ref,
+                        ) {
                             Ok(_) => {
                                 state.status = format!("OK — scaffolded '{}' at {dest}", entry.id);
                                 if state.open_immediately {

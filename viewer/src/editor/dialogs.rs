@@ -3,8 +3,18 @@
 
 use egui::{Context, RichText};
 
+use sectorforge::sector_model::SystemKind;
+
 use super::state::{Dialog, EditorState};
 use super::ui_helpers::{combo_str, label, section, text_field};
+
+const SYSTEM_KINDS: &[SystemKind] = &[
+    SystemKind::Star,
+    SystemKind::SpecialLocation,
+    SystemKind::BlackHole,
+    SystemKind::WarpAnomaly,
+    SystemKind::SpaceStation,
+];
 
 pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
     // §BEAUTY §6.7: dim + inert the page behind any open dialog. Called every
@@ -243,26 +253,21 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     ui.checkbox(&mut has_star, "HAS STAR");
 
                     section(ui, "KIND");
-                    let mut kind_s = format!("{kind:?}");
-                    let kinds = [
-                        "Star",
-                        "SpecialLocation",
-                        "BlackHole",
-                        "WarpAnomaly",
-                        "SpaceStation",
-                    ];
-                    if combo_str(ui, "place_sys_kind", &mut kind_s, &kinds) {
-                        kind = match kind_s.as_str() {
-                            "Star" => sectorforge::sector_model::SystemKind::Star,
-                            "SpecialLocation" => {
-                                sectorforge::sector_model::SystemKind::SpecialLocation
-                            }
-                            "BlackHole" => sectorforge::sector_model::SystemKind::BlackHole,
-                            "WarpAnomaly" => sectorforge::sector_model::SystemKind::WarpAnomaly,
-                            "SpaceStation" => sectorforge::sector_model::SystemKind::SpaceStation,
-                            _ => sectorforge::sector_model::SystemKind::Star,
-                        };
-                        if kind == sectorforge::sector_model::SystemKind::Star {
+                    let mut kind_opt = Some(kind);
+                    let kind_changed = crate::widgets::enum_combo(
+                        ui,
+                        "place_sys_kind",
+                        &mut kind_opt,
+                        SYSTEM_KINDS,
+                        |k| format!("{k:?}"),
+                        |_| None,
+                        None,
+                    );
+                    if kind_changed {
+                        if let Some(v) = kind_opt {
+                            kind = v;
+                        }
+                        if kind == SystemKind::Star {
                             has_star = true;
                         }
                     }

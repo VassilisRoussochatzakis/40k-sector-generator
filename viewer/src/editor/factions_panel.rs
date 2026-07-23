@@ -126,13 +126,11 @@ pub(crate) fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             FactionSort::PowerDesc => fb
                 .power
                 .total_projection()
-                .partial_cmp(&fa.power.total_projection())
-                .unwrap_or(std::cmp::Ordering::Equal),
+                .total_cmp(&fa.power.total_projection()),
             FactionSort::PowerAsc => fa
                 .power
                 .total_projection()
-                .partial_cmp(&fb.power.total_projection())
-                .unwrap_or(std::cmp::Ordering::Equal),
+                .total_cmp(&fb.power.total_projection()),
             FactionSort::NameAsc => fa.name.cmp(&fb.name),
         }
     });

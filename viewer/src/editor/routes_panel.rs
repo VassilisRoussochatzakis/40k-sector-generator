@@ -72,15 +72,15 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
             }
         });
         ui.horizontal(|ui| {
-            let mut rtype = route_type_str(route.route_type).to_string();
+            let mut rtype = route.route_type.as_slug().to_string();
             label(ui, "TYPE");
             if combo_kv(ui, &format!("r_type_{i}"), &mut rtype, ROUTE_TYPES) {
-                if let Some(rt) = route_type_from_str(&rtype) {
+                if let Some(rt) = RouteType::from_key(&rtype) {
                     route.route_type = rt;
                     dirty = true;
                 }
             }
-            let mut stab = route_stab_str(route.stability).to_string();
+            let mut stab = route.stability.as_slug().to_string();
             label(ui, "STAB");
             if combo_kv(ui, &format!("r_stab_{i}"), &mut stab, ROUTE_STABILITIES) {
                 if let Some(rs) = route_stab_from_str(&stab) {
@@ -146,24 +146,6 @@ pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     }
 }
 
-fn route_type_str(rt: RouteType) -> &'static str {
-    rt.as_slug()
-}
-
-fn route_type_from_str(s: &str) -> Option<RouteType> {
-    RouteType::from_key(s)
-}
-
-fn route_stab_str(rs: RouteStability) -> &'static str {
-    match rs {
-        RouteStability::Stable => "stable",
-        RouteStability::Unstable => "unstable",
-        RouteStability::Hazardous => "hazardous",
-        RouteStability::Perilous => "perilous",
-        _ => "UNKNOWN",
-    }
-}
-
 fn route_stab_from_str(s: &str) -> Option<RouteStability> {
     Some(match s {
         "stable" => RouteStability::Stable,
@@ -178,9 +160,8 @@ fn route_stab_from_str(s: &str) -> Option<RouteStability> {
 mod tests {
     use super::*;
 
-    // Gap 231: route stability/type key <-> enum round-trips. Stability has four
-    // named variants (`#[non_exhaustive]`); the catch-all `_ => "UNKNOWN"` arm is
-    // never reached by this set, so we don't assert on a hypothetical 5th variant.
+    // Gap 231: route stability key <-> enum round-trips over all four named
+    // variants (`#[non_exhaustive]`, so no assertion on a hypothetical 5th).
     #[test]
     fn route_stability_str_round_trips_all_named_variants() {
         for (s, rs) in [
@@ -190,7 +171,7 @@ mod tests {
             ("perilous", RouteStability::Perilous),
         ] {
             assert_eq!(route_stab_from_str(s), Some(rs));
-            assert_eq!(route_stab_str(rs), s);
+            assert_eq!(rs.as_slug(), s);
         }
     }
 
@@ -201,26 +182,22 @@ mod tests {
         assert_eq!(route_stab_from_str("Stable"), None); // case-sensitive
     }
 
-    // Gap 231: `route_type_str` == `RouteType::key()`, `route_type_from_str` ==
-    // `RouteType::from_key()`. Every canonical key must round-trip; the
-    // `dangerous_passage` alias resolves to `ChartedPassage`.
+    // Gap 231: `RouteType::as_slug()`/`from_key()` must round-trip over every
+    // canonical key; the `dangerous_passage` alias resolves to `ChartedPassage`.
     #[test]
     fn route_type_keys_round_trip_over_all() {
         for rt in RouteType::ALL {
-            assert_eq!(route_type_from_str(route_type_str(rt)), Some(rt));
+            assert_eq!(RouteType::from_key(rt.as_slug()), Some(rt));
         }
     }
 
     #[test]
     fn route_type_from_str_known_unknown_and_alias() {
+        assert_eq!(RouteType::StableWarpLane.as_slug(), "stable_warp_lane");
+        assert_eq!(RouteType::Webway.as_slug(), "webway");
+        assert_eq!(RouteType::from_key("not_a_key"), None);
         assert_eq!(
-            route_type_str(RouteType::StableWarpLane),
-            "stable_warp_lane"
-        );
-        assert_eq!(route_type_str(RouteType::Webway), "webway");
-        assert_eq!(route_type_from_str("not_a_key"), None);
-        assert_eq!(
-            route_type_from_str("dangerous_passage"),
+            RouteType::from_key("dangerous_passage"),
             Some(RouteType::ChartedPassage)
         );
     }

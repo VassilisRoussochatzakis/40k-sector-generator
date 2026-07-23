@@ -255,14 +255,6 @@ impl EditorState {
         }
         true
     }
-
-    #[cfg(test)]
-    pub(crate) fn next_system_index(&self) -> usize {
-        self.sector
-            .as_ref()
-            .map(|s| s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1)
-            .unwrap_or(1)
-    }
 }
 
 #[cfg(test)]
@@ -359,46 +351,5 @@ mod tests {
         assert!(st.dirty);
         assert_eq!(st.revision, r + 1);
         assert!(st.map_cache.is_none());
-    }
-
-    // Gap 232: `next_system_index` = max(system.index) + 1, or 1 when no sector /
-    // zero systems.
-    #[test]
-    fn next_system_index_no_sector_is_one() {
-        assert_eq!(EditorState::default().next_system_index(), 1);
-    }
-
-    #[test]
-    fn next_system_index_uses_max_plus_one() {
-        use sectorforge::ids::system_id;
-        use sectorforge::sector_model::empty_system;
-
-        let mut st = EditorState::default();
-        let mut sec = empty_sector("a", "A", "s", 8, 8);
-        sec.systems.push(empty_system(
-            system_id(1),
-            1,
-            "a".into(),
-            HexCoord { q: 0, r: 0 },
-            SystemKind::Star,
-            None,
-        ));
-        sec.systems.push(empty_system(
-            system_id(3),
-            3,
-            "b".into(),
-            HexCoord { q: 1, r: 0 },
-            SystemKind::Star,
-            None,
-        ));
-        st.set_sector(sec, None, None);
-        assert_eq!(st.next_system_index(), 4); // max(1, 3) + 1
-    }
-
-    #[test]
-    fn next_system_index_zero_systems_is_one() {
-        let mut st = EditorState::default();
-        st.set_sector(empty_sector("a", "A", "s", 8, 8), None, None);
-        assert_eq!(st.next_system_index(), 1); // max of empty -> unwrap_or(0) -> +1
     }
 }

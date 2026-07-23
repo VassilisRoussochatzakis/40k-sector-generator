@@ -107,11 +107,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         .strong(),
                 );
                 let mut routes: Vec<_> = sector.economy.routes.iter().collect();
-                routes.sort_by(|a, b| {
-                    b.volume
-                        .partial_cmp(&a.volume)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
+                routes.sort_by(|a, b| b.volume.total_cmp(&a.volume));
                 egui::Grid::new("trade_routes")
                     .num_columns(4)
                     .striped(true)

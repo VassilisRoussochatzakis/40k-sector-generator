@@ -5,20 +5,14 @@
 //! `T::VARIANTS` + `display_name()` directly (see the note below + #33).
 
 use sectorforge::sector_model::RouteType;
+use sectorforge::worlds::StarColour;
 
 pub const STAR_COLOUR_CODES: &[&str] = &["O", "B", "A", "F", "G", "K", "M"];
 
 pub(crate) fn star_colour_name(code: &str) -> &'static str {
-    match code {
-        "O" => "blue hypergiant",
-        "B" => "blue-white",
-        "A" => "white",
-        "F" => "yellow-white",
-        "G" => "yellow",
-        "K" => "orange dwarf",
-        "M" => "red dwarf",
-        _ => "unknown",
-    }
+    code.parse::<StarColour>()
+        .map(StarColour::short_name)
+        .unwrap_or("unknown")
 }
 
 // #33: the world-classification option lists (`WORLD_TYPES`, `ATMOSPHERES`,

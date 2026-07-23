@@ -5,12 +5,7 @@ use crate::system_view::SystemSelection;
 
 impl App {
     pub(super) fn draw_dashboard_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::chrome_bg()))
-                .show(ctx, |ui| {
-                    ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
-                });
+        let Some(sector) = super::require_sector(self, ctx) else {
             return;
         };
         TopBottomPanel::top("dashboard_toolbar")
@@ -53,12 +48,7 @@ impl App {
     }
 
     pub(super) fn draw_history_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::chrome_bg()))
-                .show(ctx, |ui| {
-                    ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
-                });
+        let Some(sector) = super::require_sector(self, ctx) else {
             return;
         };
 

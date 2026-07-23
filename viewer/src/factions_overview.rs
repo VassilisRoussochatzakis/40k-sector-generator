@@ -33,8 +33,6 @@ use super::palette::{self, draw_faction_chip, faction_style};
 struct PresenceStats {
     systems: BTreeSet<SystemId>,
     worlds: BTreeSet<WorldId>,
-    subfactions: BTreeMap<FactionId, PresenceStats>,
-    forces: BTreeMap<FactionId, PresenceStats>,
 }
 
 impl PresenceStats {
@@ -663,8 +661,7 @@ fn faction_order(sector: &GeneratedSector) -> Vec<usize> {
         let fb = &sector.factions[*b];
         fb.power
             .total_projection()
-            .partial_cmp(&fa.power.total_projection())
-            .unwrap_or(std::cmp::Ordering::Equal)
+            .total_cmp(&fa.power.total_projection())
             .then_with(|| fa.name.cmp(&fb.name))
             .then_with(|| fa.id.cmp(&fb.id))
     });
@@ -679,16 +676,6 @@ fn observed_presence(sector: &GeneratedSector) -> BTreeMap<FactionId, PresenceSt
                 let stats = out.entry(presence.faction_id.clone()).or_default();
                 stats.systems.insert(sys.id.clone());
                 stats.worlds.insert(world.id.clone());
-                if let Some(sub_id) = &presence.subfaction_id {
-                    let sub = stats.subfactions.entry(sub_id.clone()).or_default();
-                    sub.systems.insert(sys.id.clone());
-                    sub.worlds.insert(world.id.clone());
-                    if let Some(force_id) = &presence.force_id {
-                        let force = sub.forces.entry(force_id.clone()).or_default();
-                        force.systems.insert(sys.id.clone());
-                        force.worlds.insert(world.id.clone());
-                    }
-                }
             }
         }
     }
@@ -961,21 +948,12 @@ fn field_label(ui: &mut Ui, text: &str) {
     ui.label(RichText::new(text).color(palette::chrome_text_dim()));
 }
 
-fn text_edit<T>(ui: &mut Ui, value: &mut T, width: f32) -> bool
-where
-    T: AsRef<str> + From<String>,
-{
-    let mut buf = value.as_ref().to_string();
-    let changed = ui
-        .add_sized(
-            [width, 22.0],
-            egui::TextEdit::singleline(&mut buf).font(egui::FontId::proportional(12.0)),
-        )
-        .changed();
-    if changed {
-        *value = T::from(buf);
-    }
-    changed
+fn text_edit(ui: &mut Ui, value: &mut String, width: f32) -> bool {
+    ui.add_sized(
+        [width, 22.0],
+        egui::TextEdit::singleline(value).font(egui::FontId::proportional(12.0)),
+    )
+    .changed()
 }
 
 #[cfg(test)]

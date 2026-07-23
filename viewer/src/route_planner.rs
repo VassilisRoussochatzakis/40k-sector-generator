@@ -243,10 +243,7 @@ impl<'a> PartialOrd for HeapNode<'a> {
 impl<'a> Ord for HeapNode<'a> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         // Min-heap: invert cost ordering. NaN-safe via total_cmp on the bits.
-        other
-            .cost
-            .partial_cmp(&self.cost)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        other.cost.total_cmp(&self.cost)
     }
 }
 

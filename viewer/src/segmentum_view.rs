@@ -177,8 +177,8 @@ pub(crate) fn show_side_panel(
             .color(palette::chrome_text())
             .strong(),
     );
-    kv(ui, "segmentum", bundle.source_path.as_str());
-    kv(ui, "root", bundle.root_dir.as_str());
+    crate::ui_kit::kv(ui, "SEGMENTUM", bundle.source_path.as_str());
+    crate::ui_kit::kv(ui, "ROOT", bundle.root_dir.as_str());
     action
 }
 
@@ -656,22 +656,22 @@ fn link_detail(
             .color(palette::chrome_text())
             .strong(),
     );
-    kv(ui, "edge", orientation_label(link.orientation));
-    kv(ui, "units", &link.distance_units.to_string());
+    crate::ui_kit::kv(ui, "EDGE", orientation_label(link.orientation));
+    crate::ui_kit::kv(ui, "UNITS", &link.distance_units.to_string());
     match mode {
         sectorforge::sector_model::RouteViewMode::Detailed => {
-            kv(ui, "type", link.route_type.label());
+            crate::ui_kit::kv(ui, "TYPE", link.route_type.label());
         }
         sectorforge::sector_model::RouteViewMode::TopLevel => {
-            kv(ui, "type", link.route_type.kind().label());
+            crate::ui_kit::kv(ui, "TYPE", link.route_type.kind().label());
         }
         _ => {
-            kv(ui, "type", link.route_type.label());
+            crate::ui_kit::kv(ui, "TYPE", link.route_type.label());
         }
     }
-    kv(
+    crate::ui_kit::kv(
         ui,
-        "stability",
+        "STABILITY",
         &format!("{}", link.stability).to_uppercase(),
     );
     ui.add_space(6.0);
@@ -708,20 +708,20 @@ fn child_detail(ui: &mut Ui, bundle: &SegmentumBundle, child: &SegmentumChild) {
             .color(palette::chrome_text())
             .strong(),
     );
-    kv(ui, "title", &child.title);
-    kv(ui, "slot", &format!("({}, {})", child.column, child.row));
-    kv(ui, "sector", &child.sector_id);
-    kv(ui, "seed", &child.seed);
-    kv(ui, "systems", &child.system_count.to_string());
-    kv(ui, "worlds", &child.world_count.to_string());
-    kv(ui, "routes", &child.route_count.to_string());
-    kv(
+    crate::ui_kit::kv(ui, "TITLE", &child.title);
+    crate::ui_kit::kv(ui, "SLOT", &format!("({}, {})", child.column, child.row));
+    crate::ui_kit::kv(ui, "SECTOR", &child.sector_id);
+    crate::ui_kit::kv(ui, "SEED", &child.seed);
+    crate::ui_kit::kv(ui, "SYSTEMS", &child.system_count.to_string());
+    crate::ui_kit::kv(ui, "WORLDS", &child.world_count.to_string());
+    crate::ui_kit::kv(ui, "ROUTES", &child.route_count.to_string());
+    crate::ui_kit::kv(
         ui,
-        "stitches",
+        "STITCHES",
         &bundle.link_count_for_child(&child.id).to_string(),
     );
     if let Some(loaded) = bundle.child(&child.id) {
-        kv(ui, "file", loaded.sector_path.as_str());
+        crate::ui_kit::kv(ui, "FILE", loaded.sector_path.as_str());
         ui.add_space(6.0);
         ui.label(
             RichText::new("LOCAL BORDER LINKS")
@@ -751,9 +751,9 @@ fn endpoint_detail(ui: &mut Ui, label: &str, child_id: &str, system_id: &str, na
             .color(palette::chrome_text_dim())
             .strong(),
     );
-    kv(ui, "child", child_id);
-    kv(ui, "system", system_id);
-    kv(ui, "name", name);
+    crate::ui_kit::kv(ui, "CHILD", child_id);
+    crate::ui_kit::kv(ui, "SYSTEM", system_id);
+    crate::ui_kit::kv(ui, "NAME", name);
 }
 
 fn endpoint_label(ui: &mut Ui, bundle: &SegmentumBundle, child_id: &str, system_id: &str) {
@@ -792,16 +792,4 @@ fn chip(ui: &mut Ui, text: &str, fill: Color32) {
         .show(ui, |ui| {
             ui.label(RichText::new(text).color(palette::chrome_text_dim()));
         });
-}
-
-fn kv(ui: &mut Ui, k: &str, v: &str) {
-    ui.horizontal_wrapped(|ui| {
-        ui.add_sized(
-            [86.0, 0.0],
-            egui::Label::new(
-                RichText::new(k.to_ascii_uppercase()).color(palette::chrome_text_dim()),
-            ),
-        );
-        ui.label(RichText::new(v).color(palette::chrome_text()));
-    });
 }

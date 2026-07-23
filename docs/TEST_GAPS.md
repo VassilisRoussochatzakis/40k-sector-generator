@@ -143,7 +143,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | bitmap `render` empty sector | unit | 0 systems/routes/factions, square 4×4 → no panic, `width>0&&height>0`, PNG len>0; SVG twin | M |
 | `render_html` empty sector | unit | empty → `Ok`, `FACTION_PALETTE = {}`, `SECTOR` JSON parses w/ empty systems, `<!doctype html>` | M |
 | `write_html`/`write_html_to` parity | int | returned path==`tmp/sector.html`; file bytes == `render_html`; two writes byte-identical | M |
-| `encode_png_bytes` vs `write_sector_png_to` parity | int | `blake3(mem) == blake3(disk)` for same `RgbaImage` | M |
+| `encode_png_bytes` vs `write_sector_png_to_with` parity | int | `blake3(mem) == blake3(disk)` for same `RgbaImage` | M |
 | `render_sector_markdown` empty-collection literals | unit | starless+empty → contains `_No worlds._`, `_No routes._`, `_No factions._`; starless glyph `X` | L |
 | `render_sector_svg` subsector branches | unit | non-empty `&[Subsector]`+borders+labels → XML-balanced, contains `SUBSECTOR`, byte-identical ×2 | L |
 
@@ -228,7 +228,6 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | `extract_world_data_dir` | unit | valid `[inputs]`→Ok; missing key/garbage/empty→Err(Toml) | L |
 | `world_panel.rs parse_variant` | unit | ∀v in `T::VARIANTS`: Display round-trips; garbage→fallback unchanged | L |
 | `routes_panel.rs route_*_from_str/str` | rt | 4 stability strings round-trip; unknown→None; `route_type` keys round-trip | L |
-| `editor/state.rs next_system_index` | unit | empty→1; systems at 1,3→4; zero systems→1 | L |
 
 ### 2k. `gui-core/src` (11 gaps)
 | Target | type | What to assert | Pri |

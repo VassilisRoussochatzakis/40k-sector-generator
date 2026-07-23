@@ -1606,9 +1606,10 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   variant (`*JobResult::Failed`) via the `FromJobPanic` trait and delivered over
   the normal channel, instead of dropping the sender and leaving the receiver to
   observe only `Disconnected`. A result type that can't represent a panic
-  returns `None` from `FromJobPanic` (e.g. `DerivationJobResult`, whose `Failed`
-  needs the kind resolved at drain time) and falls back to the `Disconnected`
-  path. Under the release profile (`panic = "abort"`) `catch_unwind` is a no-op,
+  returns `None` from `FromJobPanic` (e.g. `DerivationPayload`, since every
+  derivation is total and a panic just leaves the kind stale to re-dispatch)
+  and falls back to the `Disconnected` path. Under the release profile
+  (`panic = "abort"`) `catch_unwind` is a no-op,
   so this surfacing only applies to unwinding builds.
 - **Crash-note panic hook.** Both GUI mains install
   `gui_core::diagnostics::install_panic_hook` ([gui-core/src/diagnostics.rs](gui-core/src/diagnostics.rs))
@@ -1950,8 +1951,6 @@ let subs = sectorforge::build_subsectors(&sector, sectorforge::SubsectorConfig {
     max_iterations: 24,
     include_empty_subsectors: true,
     faction_control_top_n: 5,
-    tracked_faction_ids: vec![],
-    control_denominator: sectorforge::ControlDenominator::InhabitedSystems,
 })?;
 ```
 
@@ -2024,12 +2023,12 @@ proportional everywhere so it matches the builder. The `editor/` panels no longe
 set a per-widget font at all: the old `ui_font(size)` helper was removed and the
 panels now inherit the theme text styles (Body/Button/Small) exactly as the
 builder does, so the two apps are at full size parity. The shared
-[`gui-core` `ui_kit`](gui-core/src/ui_kit.rs) text helpers (`mono_title` /
-`mono_section` / `mono_body` / `mono_dim` / `kv`, dogfooded by
-[`info_panel`](gui-core/src/info_panel/mod.rs) in **both** apps) were likewise
+[`info_panel`](gui-core/src/info_panel/mod.rs) text helpers (`title` /
+`section` / `body` / `dim` / `kv`, used in **both** apps) were likewise
 flipped from `FontId::monospace` to proportional `.size(..)` at the same
-theme-aligned sizes; the `mono_*` names are retained as historical but now render
-proportional. The single deliberate hold-out is the **segmentum map-canvas
+theme-aligned sizes; the former `ui_kit::mono_title`/`mono_section`/`mono_body`/
+`mono_dim` one-liner wrappers had no callers outside these and were later
+inlined directly into `info_panel`. The single deliberate hold-out is the **segmentum map-canvas
 overlay text** ([segmentum_view.rs](viewer/src/segmentum_view.rs)
 `paint_text(... FontId::monospace ...)`): like faction/hazard/route colors it is
 *map render*, not chrome, and stays monospace by the same rule that keeps the
@@ -2044,18 +2043,20 @@ overhaul Phase 1). The tier-2/tier-3 building blocks panels were missing:
 `ui_kit::section` / `collapsing_section` (a titled, themed, bordered box that
 groups controls — replaces the bare `CollapsingHeader` + `ui.separator()`
 pattern), `ui_kit::labeled` (aligned label/control row), `ui_kit::combo` (a
-pre-sized dropdown), and monospace text helpers (`mono_title`, `mono_section`,
-`mono_body`, `kv`, …) for tabular panels. Like `gui-core::nav` it takes
+pre-sized dropdown), and the `ui_kit::kv` key/value row helper for tabular
+panels. Like `gui-core::nav` it takes
 `&mut Ui` + plain data and has **no** `BuilderState` dependency, so both apps
-share it. `info_panel` already routes its text helpers through it.
+share it. `info_panel` routes its `kv` row through it directly (its
+`title`/`section`/`body`/`dim` primitives are local, sized off the same
+`ui_kit`-re-exported type scale).
 
 The §COLUMNS overhaul (Phase 6) adds two width-driven layout helpers to the
 same module: `ui_kit::columns_responsive(ui, want, min_col_w, |cols| …)` flows
 independent section boxes across as many equal columns as fit (each kept
 ≥ `min_col_w`) and **collapses to a single column** on a narrow window — the
 closure receives `cols: &mut [Ui]` and must handle `cols.len() == 1`; and
-`ui_kit::reading_column(ui, max_w, |ui| …)` width-caps prose / markdown to a
-readable line length (callers pass `720.0`). Both keep the same `&mut Ui` +
+`ui_kit::reading_column(ui, |ui| …)` width-caps prose / markdown to a
+readable line length (hardcoded to `720.0`). Both keep the same `&mut Ui` +
 plain-data contract and are smoke-covered by `widgets_paint_headless`. (The
 `master_detail` wrapper sketched in COLUMNS.md §4.3 was deliberately **not**
 added: passing two `&mut state`-capturing closures to one helper is two
@@ -2069,7 +2070,7 @@ showcase-quality tier on top of §UO; playbook in [BEAUTY.md](BEAUTY.md)).
 - *Design tokens* ([gui-core/src/design.rs](gui-core/src/design.rs), `§DESIGN`) —
   the single source of truth for *form* primitives, so bespoke components draw
   every value from a small disciplined set rather than scattered literals: a 4 px
-  **spacing** grid (`SPACE_XS`…`SPACE_XL`), one **radius** family (`RADIUS_SM/MD`
+  **spacing** grid (`SPACE_XS`…`SPACE_LG`), one **radius** family (`RADIUS_SM/MD`
   = 4/8 with the `rounding_md()` helper), three **elevation** shadow presets
   (`elev_low/med/high`, each taking `dark` so the alpha tracks the preset),
   **motion** durations (`MOTION_FAST/BASE/SLOW` = 0.08/0.14/0.24 s) with
@@ -2592,13 +2593,14 @@ opt in; the headless snapshot test in
 goldens stay deterministic.
 
 Semantic map tokens live in
-[`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph` and
-`MapRegionOverlay`. `SectorView` converts
-`SystemKind` and `RegionConditionKind` into those tokens before
-painting, then the renderer and `RenderMapTheme` match on tokens only. When a new
-system kind or region condition is added, the compiler points at
-the one token conversion / paint match that must be updated, keeping the
-viewer, editor MAP panel, and builder MAP tab from drifting.
+[`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph`.
+`SectorView` converts `SystemKind` into that token before painting glyphs,
+then the renderer and `RenderMapTheme` match on the token only; region
+condition colors are painted by matching `RegionConditionKind` directly (no
+intermediate token). When a new system kind or region condition is added,
+the compiler points at the one conversion / paint match that must be
+updated, keeping the viewer, editor MAP panel, and builder MAP tab from
+drifting.
 
 Map visual snapshots live in
 [`map_snapshots.rs`](gui-core/tests/map_snapshots.rs) with committed PNG/hash
@@ -2902,11 +2904,16 @@ double-computed.
 *Off-thread path.* Seven background-eligible kinds — Relations, History,
 Personae, Hooks, Sites, Missions, Prose — re-derive on a worker via
 [`gui-core::jobs::JobHandle`](gui-core/src/jobs.rs).
-[derivation_jobs.rs](builder/src/builder/derivation_jobs.rs) holds the pure
-compute fns (`compute_relations`, `compute_chronicle`, …); each takes
-owned/borrowed snapshots (sector + cloned cfg + scalars) with no `&mut self` and
-is shared by the worker and the synchronous `recompute_*`, so both compute
-byte-identical output from identical inputs. `dispatch_background_derivations`
+[derivation_jobs.rs](builder/src/builder/derivation_jobs.rs) holds
+`compute_chronicle`, the one derivation with real logic beyond a bare
+`derive_with` call (it preserves `manual = true` events); the other six
+overlays (relations / personae / hooks / sites / missions / prose) are
+one-line `sectorforge::*::derive_with`/`derive_with_threshold` passthroughs
+called directly from both the worker and the synchronous `recompute_*` in
+[state/derivations.rs](builder/src/builder/state/derivations.rs). Either way
+each takes owned/borrowed snapshots (sector + cloned cfg + scalars) with no
+`&mut self`, so both call sites compute byte-identical output from identical
+inputs. `dispatch_background_derivations`
 (in [state/derivations.rs](builder/src/builder/state/derivations.rs)) snapshots
 inputs (`sector.share()` `Arc`-clone + cloned cfg) and spawns one job per stale
 off-tab kind that has no in-flight slot; `pump_derivation_jobs` drains
@@ -3135,7 +3142,7 @@ through the command bus; the SYSTEM tab owns the inspector + bulk-ops surface.
 | S1 toolbox + click handlers | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) — `show_hex_map` + `handle_click` + `handle_drag_drop`. Rendering is delegated to the shared `sectorforge_gui_core::sector_view::SectorView` so the MAP tab matches the main viewer pixel-for-pixel (region tints, subsector borders + capital markers, route control glyphs, viewport culling, pip-disc backgrounds). Builder-only overlays (`drag_override`, `pending_route_preview`, `rect_select`, `multi_selected`, `pinned`) are passed in as optional fields; click dispatch is handled by the panel via `SectorGeom::{hit_system, pick_hex}` instead of `SectorView`'s built-in one. ADD SYSTEM opens an inline placement dialog (`BuilderState::pending_place`); DELETE / MOVE run `BuilderCommand::{RemoveSystem, MoveSystem}`; double-click opens the rename dialog (`pending_rename`) which commits `BuilderCommand::RenameSystem`. Subsector + per-hex lookup is memoised in [`BuilderState::map_view_cache`](builder/src/builder/state/mod.rs) (`MapViewCache { digest, subsectors, lookup }` in [state/types.rs](builder/src/builder/state/types.rs)); the digest is BLAKE3 over the system/route/region slice and refreshed by `refresh_map_cache` on entry. |
 | S2 inspector | [builder/src/builder/panels/system/mod.rs](builder/src/builder/panels/system/mod.rs) — collapsing sections for In-system map (§CTX0) / Identity / Star / Tags + Notes / Worlds (deep-link) / Routes (deep-link) / Primary factions / Control / Overlays. Every `GeneratedSystem` field is reachable; sibling panels manage the structured fields (§8 worlds, §10 factions, §11 control, §28..§32 overlays) and the SYSTEM tab provides "→" jumps via `BuilderState::active_tab`. |
 | CTX0 in-system map | [builder/src/builder/panels/system/mod.rs](builder/src/builder/panels/system/mod.rs) `show_system_map_section` — embeds the shared `sectorforge_gui_core::system_view::SystemView` widget at the top of the SYSTEM tab. Click on a planet routes through `handle_system_view_click` and writes `BuilderState::selected_world_id`; click on the central star sets `BuilderState::scroll_target = Some("sys_star_grid")`, which `show()` consumes on the same frame via `Response::scroll_to_me` on the Star section's header so it scrolls into view. Phase 0 of [docs/CONTEXT_MENU.txt](docs/CONTEXT_MENU.txt) — prerequisite for the Phase 6 system-view context menus. |
-| System-view layout toggle | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) `SystemLayout::{Orbital, Horizontal}` plus the `layout` field on `SystemView`. `Horizontal` is the default (star at left, planets arrayed rightward in orbit order, axis ticks for empty slots); `Orbital` keeps the concentric-rings behaviour. `SystemGeom::new(side, height, sys, layout)` and `pick_world(side, height, sys, layout, local_pos)` are layout-aware so hit-testing matches whichever layout is being painted. Builder stores the selected layout in [`BuilderState::system_layout`](builder/src/builder/state/mod.rs) (in-memory only — never serialised); the SYSTEM-tab `show_system_map_section` renders Horizontal/Orbital `selectable_label`s above the embedded widget and passes the choice through to both `SystemView::show` and `panels/system_map.rs::arm_system_context_menu` so right-click empty-orbit picks land on the same slot the user sees. The viewer mirrors the toggle on its System-view bottom controls via `App::system_layout`. |
+| System-view layout toggle | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) `SystemLayout::{Orbital, Horizontal}` plus the `layout` field on `SystemView`. `Horizontal` is the default (star at left, planets arrayed rightward in orbit order, axis ticks for empty slots); `Orbital` keeps the concentric-rings behaviour. The internal `SystemGeom::new(side, height, sys, layout)` (private to `system_view.rs`) backs the public `pick_world(side, height, sys, layout, local_pos)`; both are layout-aware so hit-testing matches whichever layout is being painted. Builder stores the selected layout in [`BuilderState::system_layout`](builder/src/builder/state/mod.rs) (in-memory only — never serialised); the SYSTEM-tab `show_system_map_section` renders Horizontal/Orbital `selectable_label`s above the embedded widget and passes the choice through to both `SystemView::show` and `panels/system_map.rs::arm_system_context_menu` so right-click empty-orbit picks land on the same slot the user sees. The viewer mirrors the toggle on its System-view bottom controls via `App::system_layout`. |
 | CTX1 sector right-click menu (plumbing) | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `resolve_sector_context` + `show_sector_context_menu` + `should_dismiss_sector_context_menu`. On `Response::secondary_clicked` the panel resolves the target (System / MultiSelection / EmptyHex) into `BuilderState::sector_context_menu = Some(SectorContextMenu { screen_pos, target })`. `SectorContextMenu` + `SectorMenuTarget` live in [state/types.rs](builder/src/builder/state/types.rs); the field is initialised `None` in both `BuilderState::new_blank` and `session.rs::default_builder_state` and never serialised. The renderer is an `egui::Area` + `Frame::menu` floating at `screen_pos`. Dismissal funnels through `should_dismiss_sector_context_menu(esc, focused, primary_click_outside)`. Guards: drag in progress / live rect-select / open collision dialog suppress the menu entirely; `MapTool::RegionPaint` keeps its existing secondary-click paint-erase binding unless `Ctrl` is held (the `Ctrl` branch opens the menu). While the menu is open the panel paints a yellow `paint_system_rings` overlay around the context system. Phase 1 of [docs/CONTEXT_MENU.txt](docs/CONTEXT_MENU.txt). |
 | CTX1 sector menu items | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `SectorMenuAction` + `OpenInTarget` + `apply_sector_menu_action` + `render_empty_hex_menu` + `render_system_menu`. Phase 2 wires the §6.1 (empty hex) and §6.2 (single system) schemas. Each menu row calls `apply_sector_menu_action(state, …)` which is the pure-state-mutation side of every item — render fns own the UI, action fn owns the side-effect, tests call the action fn directly without an egui context. Empty-hex items: `PLACE SYSTEM HERE…` (arms `pending_place`), `PAINT REGION HERE` (gated on `selected_region_id`), `ERASE REGION HERE` (gated on the hex belonging to a region — scanned inline until Phase 5 plumbs the `SectorMapCache::region_for_hex` lookup), `COPY COORD`. System items: `FOCUS SYSTEM`, `RENAME…` (arms `pending_rename` with the current name), `DELETE` (`BuilderCommand::RemoveSystem`), `ADD ROUTE FROM HERE…` (arms `MapTool::AddRoute` + `pending_route_start`), `ADD WORLD` (`BuilderCommand::AddWorld` with a `World-N` default where N is the system's current world count + 1), `REGENERATE SYSTEM` (disabled for pinned, calls `BuilderState::generate_system_here`), `TOGGLE PIN` (flips `pinned_systems` membership), `Open in ▸` flat-indented submenu wired to System / World / Routes destinations (the Conflict / Orbital / Archetype / Intel destinations from the spec wait on a per-section scroll-anchor refactor under SYSTEM-tab sub-panels — deferred to a polish phase that touches conflict.rs / orbital.rs / intel.rs), `COPY ID`, `COPY COORD`. Phase 5 lights up the `Route` and `RegionHex` variants (see the next row); `SubsectorBorder` keeps the Phase 1 placeholder until a future phase. Phase 2 of [docs/CONTEXT_MENU.txt](docs/CONTEXT_MENU.txt). |
 | CTX1 sector route + region-hex menus | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `render_route_menu` + `render_region_hex_menu` + `show_region_rename_dialog` + the §6.4 / §6.5 variants of `SectorMenuAction` (`FocusRoute`, `RemoveRoute`, `SetRouteType { id, value }`, `SetRouteStability { id, value }`, `FocusRegion`, `EraseRegionHex`, `SetRegionKind { region, value }`, `RenameRegionOpen`). Phase 5 of [docs/CONTEXT_MENU.txt](docs/CONTEXT_MENU.txt) wires the route + region-hex schemas. Hit-tests funnel through two new gui-core helpers: `SectorGeom::hit_route(&sector, screen_pos) -> Option<RouteId>` in [gui-core/src/sector_view/render.rs](gui-core/src/sector_view/render.rs) (point-to-segment via `point_segment_distance`, threshold `hex_size * 0.18`, lex-id tie-break) and `SectorMapCache::region_for_hex(coord) -> Option<&str>` (O(1) over the existing `hex_region` table). `resolve_sector_context` now picks `Route` before falling through to the hex pick, and consults the cache so the empty-hex schema only fires when no region owns the hex. Mutations flow through four new `BuilderCommand` variants in [builder/src/builder/command.rs](builder/src/builder/command.rs) — `SetRouteType { id, before, after }`, `SetRouteStability { id, before, after }`, `SetRegionKind { region, before, after }` (renamed from the spec's `SetRegionColor` because the overlay colour is derived from `kind`), `RenameRegion { region, before, after }` — each with an `apply` / `revert` pair that the command bus undoes byte-for-byte. The route menu surfaces `CYCLE ROUTE TYPE ▸` / `CYCLE STABILITY ▸` as real nested submenus (resolves §14 Q14.1 in favour of the submenu — every variant is a 1-click row, the active one bullet-marked); the region menu surfaces `RECOLOR ▸` over `RegionConditionKind::ALL`. Same-value cycles short-circuit before reaching the bus so the command log stays clean. `RENAME REGION…` arms `BuilderState::pending_region_rename: Option<PendingRegionRename>` (in [state/types.rs](builder/src/builder/state/types.rs)); the modal is `show_region_rename_dialog` and commits via `BuilderCommand::RenameRegion`. Like every other transient dialog the field is in-memory only and not serialised by `session.rs`. |
@@ -3254,7 +3261,7 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world/mod.rs](builder/
 | Piece | Where it lives |
 |---|---|
 | W1 inspector | [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays summary (§28 / §32), the §SU1/§SU2 surface-region editor ([builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs)), and the §W4 re-roll collapse. |
-| W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
+| W2 enum pickers | `combo_enum(ui, salt, target, variants, display)` in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) takes `E::VARIANTS` and `E::display_name` as explicit arguments (no turbofish, no trait bound) and walks them to build the dropdown. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
 | W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/gen/generation/mod.rs](src/gen/generation/mod.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
 | W5 features picker | `show_features_section` searchable multi-select. Weight previews are computed by `feature_weights_for_world` which sums per-world-type, per-star-colour, and global tiers of the pool's `FeaturePool` — empty when no worlds catalog is loaded. Already-present features are hidden from the add list. |
@@ -3812,7 +3819,7 @@ Public surface:
 
 Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `ProjectCatalogs`, `InvariantReport`,
 `InvariantViolation`, `GeneratedSector`, `GeneratedSystem`, `HexCoord`,
-`Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
+`Subsector`, `SubsectorConfig`, `SubsectorBuildError`,
 `ConflictState`, `HYSTERESIS_TICKS`,
 `MapTheme`, `MapThemeConfig`, `LabelDensity`, `LegendStyle`,
 `RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`,

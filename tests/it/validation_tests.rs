@@ -2,6 +2,8 @@
 
 use camino::Utf8PathBuf;
 
+use crate::shared::fixture_dir;
+
 #[test]
 fn missing_world_data_fails_validation() {
     // Build a temp project that points at a nonexistent world-data dir.
@@ -102,17 +104,12 @@ fn oversized_sector_dims_fail_validation() {
     );
 }
 
-fn manifest_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
-}
-
 // ── Shared helpers for the per-code validation gaps below ───────────────────
 
 /// Load a fresh, unmutated copy of the m42 example project. Baseline:
 /// `report.ok == true`, no errors, no warnings.
 fn m42() -> sectorforge::ProjectInput {
-    let project = manifest_dir().join("examples/m42_project");
-    sectorforge::load_project(project).unwrap()
+    sectorforge::load_project(fixture_dir()).unwrap()
 }
 
 fn has_err(r: &sectorforge::ValidationReport, code: &str) -> bool {

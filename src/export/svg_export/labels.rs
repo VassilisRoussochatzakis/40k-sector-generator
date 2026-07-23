@@ -42,7 +42,7 @@ pub(super) fn draw_system_labels(
     }
     let star_r = HEX_SIZE * star_radius_ratio();
     for sys in sector.systems.iter() {
-        if !system_label_visible(sys, subsectors, &opts.theme, sector) {
+        if !system_label_visible(sys, subsectors, &opts.theme) {
             continue;
         }
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r);

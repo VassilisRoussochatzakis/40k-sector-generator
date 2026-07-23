@@ -19,20 +19,16 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 
-use crate::shared::{bin, copy_dir_all};
+use crate::shared::{bin, copy_dir_all, fixture_dir};
 
-/// The checked-in `examples/m42_project` — a valid project that validates with
-/// 0 warnings and generates cleanly. Used as the cheapest valid fixture.
-fn m42_source() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
-/// Copy `examples/m42_project` into `<base>/<name>` and return its path. Any
+/// Copy `examples/m42_project` — a valid project that validates with 0
+/// warnings and generates cleanly, the cheapest valid fixture — into
+/// `<base>/<name>` and return its path. Any
 /// pre-existing `out/` from the checked-in tree is removed so that the later
 /// existence of `out/sector.json` proves *this* run wrote it.
 fn copy_m42(base: &Path, name: &str) -> Utf8PathBuf {
     let dst = base.join(name);
-    copy_dir_all(m42_source().as_std_path(), &dst);
+    copy_dir_all(fixture_dir().as_std_path(), &dst);
     let _ = std::fs::remove_dir_all(dst.join("out"));
     Utf8PathBuf::from_path_buf(dst).expect("utf8 project path")
 }

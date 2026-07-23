@@ -14,6 +14,7 @@ use super::geom::Geom;
 use super::primitives::{draw_line_thick, draw_rect_outline, draw_text, fill_circle, fill_rect};
 use super::routes::{draw_route_pattern_legend, ControlKind};
 use super::RenderOptions;
+use crate::export::render_core::labels::factions_visible;
 
 pub(super) fn legend_height(sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) -> i32 {
     if matches!(opts.theme.legend, LegendStyle::Hidden) {
@@ -61,18 +62,6 @@ pub(super) fn legend_height(sector: &GeneratedSector, g: &Geom, opts: &RenderOpt
         + factions_visible(sector) as i32
         + heatmap_lines;
     g.legend_pad * 2 + lines * g.line_h
-}
-
-fn factions_visible(sector: &GeneratedSector) -> usize {
-    if sector.factions.is_empty() {
-        return 0;
-    }
-    let buckets = crate::importance::compute_display_buckets(
-        sector,
-        FACTION_MINOR_FRACTION,
-        FACTION_DISPLAY_CAP,
-    );
-    1 + buckets.len()
 }
 
 pub(super) fn draw_legend(

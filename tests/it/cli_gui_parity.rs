@@ -19,17 +19,17 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 
+use crate::shared::{bin, fixture_dir};
+
 #[test]
 fn cli_and_library_produce_identical_sector_json() {
-    let bin = env!("CARGO_BIN_EXE_sectorforge");
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let project = Utf8PathBuf::from(manifest_dir).join("examples/m42_project");
+    let project = fixture_dir();
 
     let tmp = tempfile::tempdir().expect("tempdir");
     let out_dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).expect("utf8 tmp");
 
     // 1. CLI path
-    let status = Command::new(bin)
+    let status = Command::new(bin())
         .args([
             "generate",
             "--project",
@@ -87,11 +87,9 @@ fn cli_and_library_produce_identical_sector_json() {
 /// in-process `validate_project` report byte-for-byte.
 #[test]
 fn cli_and_library_validate_produce_identical_report() {
-    let bin = env!("CARGO_BIN_EXE_sectorforge");
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let project = Utf8PathBuf::from(manifest_dir).join("examples/m42_project");
+    let project = fixture_dir();
 
-    let cli_out = Command::new(bin)
+    let cli_out = Command::new(bin())
         .args(["validate", "--project", project.as_str(), "--json"])
         .output()
         .expect("spawn sectorforge CLI validate");
@@ -124,11 +122,9 @@ fn cli_and_library_validate_produce_identical_report() {
 /// in-process `analyze` of that sector.
 #[test]
 fn cli_and_library_analyze_produce_identical_json() {
-    let bin = env!("CARGO_BIN_EXE_sectorforge");
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let project = Utf8PathBuf::from(manifest_dir).join("examples/m42_project");
+    let project = fixture_dir();
 
-    let cli_out = Command::new(bin)
+    let cli_out = Command::new(bin())
         .args(["analyze", "--project", project.as_str(), "--json"])
         .output()
         .expect("spawn sectorforge CLI analyze");

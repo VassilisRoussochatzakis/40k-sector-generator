@@ -15,7 +15,7 @@
 
 use camino::Utf8PathBuf;
 
-use crate::shared::{assert_blake3_golden, fixture_dir, fixture_sector, goldens_dir};
+use crate::shared::{assert_blake3_golden, fixture_sector, goldens_dir};
 
 // ── heatmap ──────────────────────────────────────────────────────────────────
 //
@@ -131,42 +131,7 @@ fn html_export_matches_pinned_blake3_hash() {
 // surfaces the exact field that drifted under `git diff tests/goldens/`.
 
 fn segmentum_base_file() -> sectorforge::segmentum::SegmentumFile {
-    use sectorforge::segmentum::{
-        ChildEntry, FactionMode, SegmentumConfig, SegmentumFile, StitchConfig,
-    };
-    SegmentumFile {
-        segmentum: SegmentumConfig {
-            id: "seg-golden".into(),
-            title: "Golden Segmentum".into(),
-            stitch_seed: "stitch-golden".into(),
-            columns: 2,
-            rows: 1,
-            faction_mode: FactionMode::Shared,
-        },
-        stitch: StitchConfig {
-            max_links_per_pair: 2,
-            border_depth: 2,
-            ..Default::default()
-        },
-        children: vec![
-            ChildEntry {
-                id: "alpha".into(),
-                project: fixture_dir(),
-                column: 0,
-                row: 0,
-                seed: Some("alpha-seed".into()),
-                title: Some("Alpha".into()),
-            },
-            ChildEntry {
-                id: "beta".into(),
-                project: fixture_dir(),
-                column: 1,
-                row: 0,
-                seed: Some("beta-seed".into()),
-                title: Some("Beta".into()),
-            },
-        ],
-    }
+    crate::segmentum_tests::base_file("seg-golden", "Golden Segmentum", "stitch-golden")
 }
 
 #[test]

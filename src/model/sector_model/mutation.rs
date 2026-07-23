@@ -370,26 +370,6 @@ impl GeneratedSector {
         Ok(id)
     }
 
-    pub fn remove_faction(&mut self, id: &FactionId) -> Result<(), MutationError> {
-        let pos = self
-            .factions
-            .iter()
-            .position(|f| f.id == *id)
-            .ok_or_else(|| MutationError::FactionNotFound(id.to_string()))?;
-        self.factions.remove(pos);
-
-        // Strip the faction from every world presence + system primary list +
-        // claim entry.
-        for sys in &mut self.systems {
-            sys.primary_factions.retain(|f| f != id);
-            for w in &mut sys.worlds {
-                w.factions.retain(|p| &p.faction_id != id);
-                w.claims.retain(|c| &c.faction_id != id);
-            }
-        }
-        Ok(())
-    }
-
     // ── Region mutations ────────────────────────────────────────────────────
 
     pub fn add_region(

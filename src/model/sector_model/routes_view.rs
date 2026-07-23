@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{GeneratedRoute, RouteKind, RouteStability, RouteType};
+use super::{GeneratedRoute, RouteKind, RouteType};
 
 impl GeneratedRoute {
     /// Deterministic visual rhythm for this route. `salt` should be a sector
@@ -22,7 +22,7 @@ impl GeneratedRoute {
             self.from_system_id,
             self.to_system_id,
             self.distance,
-            self.stability.pattern_key()
+            self.stability.as_slug()
         );
         self.route_type.pattern_for_key(&key, mode)
     }
@@ -208,17 +208,6 @@ impl RoutePattern {
             RoutePattern::Pebble => &[1.0, 1.0],
             RoutePattern::Whisper => &[1.0, 14.0],
             RoutePattern::March => &[3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-        }
-    }
-}
-
-impl RouteStability {
-    fn pattern_key(self) -> &'static str {
-        match self {
-            RouteStability::Stable => "stable",
-            RouteStability::Unstable => "unstable",
-            RouteStability::Hazardous => "hazardous",
-            RouteStability::Perilous => "perilous",
         }
     }
 }

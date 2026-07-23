@@ -305,13 +305,13 @@ pub struct WorkbookStats {
 }
 
 pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
-    let (tables, rows) =
-        crate::worlds::load_generation_rows(std::path::Path::new(path)).map_err(|source| {
-            SectorError::WorldDataLoad {
-                path: path.to_string(),
-                source,
-            }
-        })?;
+    let load = crate::worlds::load_worlds_data(std::path::Path::new(path)).map_err(|source| {
+        SectorError::WorldDataLoad {
+            path: path.to_string(),
+            source,
+        }
+    })?;
+    let (tables, rows) = (load.tables, load.rows);
 
     let cfg = WorldSelectionConfig::default();
     let pool = build_pool(&rows, &tables, &cfg);

@@ -522,8 +522,8 @@ fn patch_regions_toml(text: &str, count: u32, mean_size: u32) -> String {
 /// Synthesise, generate, and fully derive a random sector into `dest`.
 ///
 /// `presets_dir` must contain the [`FULL_PRESET_ID`] preset (use
-/// [`crate::presets::default_presets_dir`] for the standard location, or call
-/// [`generate_random_sector_default`]). `dest` must **not** already exist — it
+/// [`crate::presets::default_presets_dir`] for the standard location). `dest`
+/// must **not** already exist — it
 /// is created fresh, so callers headless of the builder typically pass a path
 /// inside a [`tempfile::TempDir`].
 ///
@@ -696,21 +696,6 @@ pub fn generate_random_sector_from_with_progress(
         input,
         seed,
     })
-}
-
-/// Convenience over [`generate_random_sector`] that resolves the presets
-/// directory via [`crate::presets::default_presets_dir`].
-///
-/// # Errors
-///
-/// Forwards every error from [`generate_random_sector`].
-pub fn generate_random_sector_default(
-    size: SectorSize,
-    seed: Option<String>,
-    dest: &Utf8Path,
-) -> Result<RandomReport, SectorError> {
-    let presets_dir = crate::presets::default_presets_dir();
-    generate_random_sector(size, seed, &presets_dir, dest)
 }
 
 #[cfg(test)]

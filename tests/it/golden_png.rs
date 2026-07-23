@@ -13,14 +13,13 @@
 //! pipeline trips the test (the run-to-run check alone could not catch a
 //! deterministic-but-changed render). Pass `UPDATE_GOLDEN_PNG=1` to refresh.
 
-use camino::Utf8PathBuf;
 use sectorforge::bitmap::{encode_png_bytes, render_sector_image, RenderOptions};
 
-use crate::shared::assert_blake3_golden;
+use crate::shared::{assert_blake3_golden, fixture_dir};
 
 #[test]
 fn png_export_is_deterministic_for_fixed_seed() {
-    let project_dir = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project");
+    let project_dir = fixture_dir();
 
     // Two independent loads + generations: catches RNG / iteration-order leaks
     // that survive a single in-process run.
@@ -56,7 +55,7 @@ fn png_export_is_deterministic_for_fixed_seed() {
 
 #[test]
 fn png_export_changes_when_seed_changes() {
-    let project_dir = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project");
+    let project_dir = fixture_dir();
 
     let mut proj_a = sectorforge::load_project(&project_dir).expect("load A");
     let mut proj_b = proj_a.clone();
@@ -79,7 +78,7 @@ fn png_export_changes_when_seed_changes() {
 
 #[test]
 fn png_export_matches_pinned_blake3_hash() {
-    let project_dir = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project");
+    let project_dir = fixture_dir();
     let proj = sectorforge::load_project(&project_dir).expect("load");
     let sector = sectorforge::generate_sector(proj).expect("generate");
     let img = render_sector_image(&sector, 2, None, RenderOptions::default());

@@ -22,7 +22,6 @@ pub(crate) fn system_label_visible(
     sys: &GeneratedSystem,
     subsectors: &[Subsector],
     theme: &MapTheme,
-    _sector: &GeneratedSector,
 ) -> bool {
     match theme.label_density {
         LabelDensity::All => true,
@@ -35,6 +34,22 @@ pub(crate) fn system_label_visible(
                 })
         }
     }
+}
+
+/// Number of legend lines the FACTIONS block occupies in both legend
+/// backends: a header line plus one row per importance-display bucket. Pure
+/// sector-model logic with no pixel geometry, so sharing it is byte-safe
+/// (was a verbatim copy in each backend's `legend.rs`).
+pub(crate) fn factions_visible(sector: &GeneratedSector) -> usize {
+    if sector.factions.is_empty() {
+        return 0;
+    }
+    let buckets = crate::importance::compute_display_buckets(
+        sector,
+        crate::importance::DEFAULT_MINOR_FRACTION,
+        crate::importance::DEFAULT_DISPLAY_CAP,
+    );
+    1 + buckets.len()
 }
 
 /// Whether the same-subsector hexes that must back a two-line label block at

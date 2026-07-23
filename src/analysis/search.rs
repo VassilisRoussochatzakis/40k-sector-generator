@@ -232,27 +232,10 @@ impl core::fmt::Display for StanceName {
 }
 
 impl StanceName {
+    /// Slug-for-slug mirror of [`crate::relations::Stance`], so equal slugs
+    /// mean the same stance.
     fn matches(self, s: crate::relations::Stance) -> bool {
-        use crate::relations::Stance as S;
-        matches!(
-            (self, s),
-            (StanceName::Allied, S::Allied)
-                | (StanceName::Aligned, S::Aligned)
-                | (StanceName::Neutral, S::Neutral)
-                | (StanceName::Rival, S::Rival)
-                | (StanceName::Hostile, S::Hostile)
-                | (StanceName::AtWar, S::AtWar)
-        )
-    }
-    fn debug_name(self) -> &'static str {
-        match self {
-            Self::Allied => "Allied",
-            Self::Aligned => "Aligned",
-            Self::Neutral => "Neutral",
-            Self::Rival => "Rival",
-            Self::Hostile => "Hostile",
-            Self::AtWar => "AtWar",
-        }
+        self.as_slug() == s.as_slug()
     }
 }
 
@@ -283,25 +266,10 @@ impl core::fmt::Display for RegionKindName {
 }
 
 impl RegionKindName {
+    /// Slug-for-slug mirror of [`crate::regions::RegionConditionKind`], so
+    /// equal slugs mean the same kind (kinds this mirror lacks never match).
     fn matches(self, k: crate::regions::RegionConditionKind) -> bool {
-        use crate::regions::RegionConditionKind as K;
-        matches!(
-            (self, k),
-            (RegionKindName::WarpStorm, K::WarpStorm)
-                | (RegionKindName::Turbulence, K::Turbulence)
-                | (RegionKindName::CalmCorridor, K::CalmCorridor)
-                | (RegionKindName::Blackout, K::Blackout)
-                | (RegionKindName::Anomaly, K::Anomaly)
-        )
-    }
-    fn debug_name(self) -> &'static str {
-        match self {
-            Self::WarpStorm => "WarpStorm",
-            Self::Turbulence => "Turbulence",
-            Self::CalmCorridor => "CalmCorridor",
-            Self::Blackout => "Blackout",
-            Self::Anomaly => "Anomaly",
-        }
+        self.as_slug() == k.as_slug()
     }
 }
 
@@ -349,7 +317,7 @@ impl SystemStateFilter {
         s == Some(SystemState::from(self.system_state))
     }
     pub fn debug_name(&self) -> String {
-        format!("state={}", self.system_state.debug_name())
+        format!("state={:?}", self.system_state)
     }
 }
 
@@ -399,20 +367,6 @@ impl From<SystemStateName> for SystemState {
             SystemStateName::Infiltrated => SystemState::Infiltrated,
             SystemStateName::Quarantined => SystemState::Quarantined,
             SystemStateName::Uncharted => SystemState::Uncharted,
-        }
-    }
-}
-
-impl SystemStateName {
-    fn debug_name(self) -> &'static str {
-        match self {
-            Self::Pacified => "Pacified",
-            Self::Fragmented => "Fragmented",
-            Self::Blockaded => "Blockaded",
-            Self::Warzone => "Warzone",
-            Self::Infiltrated => "Infiltrated",
-            Self::Quarantined => "Quarantined",
-            Self::Uncharted => "Uncharted",
         }
     }
 }
@@ -856,7 +810,7 @@ fn evaluate(
                 (*min as f32) - n as f32
             };
             ConstraintReport {
-                label: format!("system_state_count_min({})", state.debug_name()),
+                label: format!("system_state_count_min({state:?})"),
                 passed,
                 observed: n.to_string(),
                 required: format!(">= {min}"),
@@ -868,7 +822,7 @@ fn evaluate(
             let passed = n <= *max;
             let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
             ConstraintReport {
-                label: format!("system_state_count_max({})", state.debug_name()),
+                label: format!("system_state_count_max({state:?})"),
                 passed,
                 observed: n.to_string(),
                 required: format!("<= {max}"),
@@ -1016,7 +970,7 @@ fn evaluate(
             let passed = n >= *min;
             let miss = (*min as f32 - n as f32).max(0.0);
             ConstraintReport {
-                label: format!("stance_count_min:{}", stance.debug_name()),
+                label: format!("stance_count_min:{stance:?}"),
                 passed,
                 observed: n.to_string(),
                 required: format!(">= {min}"),
@@ -1033,7 +987,7 @@ fn evaluate(
             let passed = n <= *max;
             let miss = (n as f32 - *max as f32).max(0.0);
             ConstraintReport {
-                label: format!("stance_count_max:{}", stance.debug_name()),
+                label: format!("stance_count_max:{stance:?}"),
                 passed,
                 observed: n.to_string(),
                 required: format!("<= {max}"),
@@ -1049,7 +1003,7 @@ fn evaluate(
             let passed = n >= *min;
             let miss = (*min as f32 - n as f32).max(0.0);
             ConstraintReport {
-                label: format!("region_count_min:{}", region_kind.debug_name()),
+                label: format!("region_count_min:{region_kind:?}"),
                 passed,
                 observed: n.to_string(),
                 required: format!(">= {min}"),
@@ -1065,7 +1019,7 @@ fn evaluate(
             let passed = n <= *max;
             let miss = (n as f32 - *max as f32).max(0.0);
             ConstraintReport {
-                label: format!("region_count_max:{}", region_kind.debug_name()),
+                label: format!("region_count_max:{region_kind:?}"),
                 passed,
                 observed: n.to_string(),
                 required: format!("<= {max}"),

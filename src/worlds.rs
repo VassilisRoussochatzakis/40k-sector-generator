@@ -1,7 +1,6 @@
 /// World parameter types. The enum set in this module is the authoritative
 /// taxonomy; project data is loaded from `worlds.toml` via [`load_worlds_data`].
 use std::collections::HashMap;
-use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
@@ -385,64 +384,30 @@ pub struct KeyTables {
     pub notable_features: Vec<String>,
 }
 
+// ── FromStr implementations for Key-tab enums ────────────────────────────────
+//
+// Each parser accepts exactly the enum's canonical `display_name()` strings
+// (for `StarColour` that is the spectral `code()`), found via `VARIANTS`.
+
 impl std::str::FromStr for StarColour {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "O" => Ok(Self::BlueHypergiant),
-            "B" => Ok(Self::BlueWhite),
-            "A" => Ok(Self::White),
-            "F" => Ok(Self::YellowWhite),
-            "G" => Ok(Self::Yellow),
-            "K" => Ok(Self::OrangeDwarf),
-            "M" => Ok(Self::RedDwarf),
-            _ => Err(()),
-        }
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .copied()
+            .ok_or(())
     }
 }
-
-/// Load a project's world data from the given dir.
-///
-/// `worlds.toml` is the sole supported source of truth — the legacy
-/// twin-CSV path (`key.csv` + `generator.csv`) has been removed.
-pub fn load_generation_rows(
-    data_dir: impl AsRef<Path>,
-) -> Result<(KeyTables, Vec<GenerationRow>), WorldError> {
-    Ok(load_worlds_data(data_dir)?.into_legacy_tuple())
-}
-
-// ── FromStr implementations for Key-tab enums ────────────────────────────────
 
 impl std::str::FromStr for WorldType {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Agri-World" => Self::AgriWorld,
-            "Asteroid" => Self::Asteroid,
-            "Bastion World" => Self::BastionWorld,
-            "Death World" => Self::DeathWorld,
-            "Dead World" => Self::DeadWorld,
-            "Extractive Colony" => Self::ExtractiveColony,
-            "Feral World" => Self::FeralWorld,
-            "Feudal World" => Self::FeudalWorld,
-            "Forge World" => Self::ForgeWorld,
-            "Frontier World" => Self::FrontierWorld,
-            "Hive World" => Self::HiveWorld,
-            "Imperial World" => Self::ImperialWorld,
-            "Industrial World" => Self::IndustrialWorld,
-            "Orbital" => Self::Orbital,
-            "Penal World" => Self::PenalWorld,
-            "Planetary Dump" => Self::PlanetaryDump,
-            "Planetary Monument" => Self::PlanetaryMonument,
-            "Pleasure World" => Self::PleasureWorld,
-            "Research Station" => Self::ResearchStation,
-            "Shrine World" => Self::ShrineWorld,
-            "Tomb World" => Self::TombWorld,
-            "Warp-Lost World" => Self::WarpLostWorld,
-            "Worldship" => Self::Worldship,
-            "Xenos World" => Self::XenosWorld,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -455,16 +420,11 @@ impl std::fmt::Display for WorldType {
 impl std::str::FromStr for Atmosphere {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Airless" => Self::Airless,
-            "Breathable" => Self::Breathable,
-            "Corrosive" => Self::Corrosive,
-            "Exotic" => Self::Exotic,
-            "Thin" => Self::Thin,
-            "Tainted" => Self::Tainted,
-            "Toxic" => Self::Toxic,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -477,14 +437,11 @@ impl std::fmt::Display for Atmosphere {
 impl std::str::FromStr for Temperature {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Freezing" => Self::Freezing,
-            "Cold" => Self::Cold,
-            "Temperate" => Self::Temperate,
-            "Hot" => Self::Hot,
-            "Boiling" => Self::Boiling,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -497,15 +454,11 @@ impl std::fmt::Display for Temperature {
 impl std::str::FromStr for Biosphere {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Nonexistent" => Self::Nonexistent,
-            "Minimal" => Self::Minimal,
-            "Thriving" => Self::Thriving,
-            "Poisoned" => Self::Poisoned,
-            "Xeno Hybrid" => Self::XenoHybrid,
-            "Xeno Dominance" => Self::XenoDominance,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -518,15 +471,11 @@ impl std::fmt::Display for Biosphere {
 impl std::str::FromStr for Population {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Uninhabited" => Self::Uninhabited,
-            "Minimal" => Self::Minimal,
-            "Lightly Populated" => Self::LightlyPopulated,
-            "Sole Settlement" => Self::SoleSettlement,
-            "Densely Populated" => Self::DenselyPopulated,
-            "Extremely Dense" => Self::ExtremelyDense,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -539,15 +488,11 @@ impl std::fmt::Display for Population {
 impl std::str::FromStr for TechLevel {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Primitive" => Self::Primitive,
-            "Low" => Self::Low,
-            "Standard" => Self::Standard,
-            "High" => Self::High,
-            "Xeno Hybrid" => Self::XenoHybrid,
-            "Archaeotech" => Self::Archaeotech,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -560,39 +505,11 @@ impl std::fmt::Display for TechLevel {
 impl std::str::FromStr for Government {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Balkanized Local Factions" => Self::BalkanizedLocalFactions,
-            "Chaos Cult" => Self::ChaosCult,
-            "Clans / Tribes" => Self::ClansTribes,
-            "Communards" => Self::Communards,
-            "Corrupt Aristocrats" => Self::CorruptAristocrats,
-            "Demagogue" => Self::Demagogue,
-            "Ecclesiarchical Appointee" => Self::EcclesiarchicalAppointee,
-            "Elitist Tyrant" => Self::ElitistTyrant,
-            "Explorator Authority" => Self::ExploratorAuthority,
-            "Guilds / Combines" => Self::GuildsCombine,
-            "Hereteks" => Self::Hereteks,
-            "Heretical Imperial Cult" => Self::HereticalImperialCult,
-            "Infractionist Gang" => Self::InfractionistGang,
-            "Local Religious Authorities" => Self::LocalReligiousAuthorities,
-            "Loyalist Mass Movement" => Self::LoyalistMassMovement,
-            "Magistrate Council" => Self::MagistrateCouncil,
-            "Mechanicus Forge-Lord" => Self::MechanicusForgeLord,
-            "Megacorporations" => Self::Megacorporations,
-            "Military Governor" => Self::MilitaryGovernor,
-            "None" => Self::None,
-            "Populist Tyrant" => Self::PopulistTyrant,
-            "Puppet Government" => Self::PuppetGovernment,
-            "Revolutionary Junta" => Self::RevolutionaryJunta,
-            "Rogue Trader Dynasty" => Self::RogueTraderDynasty,
-            "Shadowy Psyker Cabal" => Self::ShadowyPsykerCabal,
-            "Traditional Oligarchy" => Self::TraditionalOligarchy,
-            "Traditionalist Aristocracy" => Self::TraditionalistAristocracy,
-            "Warlords" => Self::Warlords,
-            "Warrior Aristocracy" => Self::WarriorAristocracy,
-            "Xenos Overlords" => Self::XenosOverlords,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 
@@ -605,109 +522,11 @@ impl std::fmt::Display for Government {
 impl std::str::FromStr for NotableFeature {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "Abhumans" => Self::Abhumans,
-            "Altered Humans" => Self::AlteredHumans,
-            "Ancient Archive" => Self::AncientArchive,
-            "Ancient Tombs" => Self::AncientTombs,
-            "Archaeotech Ruins" => Self::ArchaeotechRuins,
-            "Blinding Mists" => Self::BlindingMists,
-            "Celestial Phenomena" => Self::CelestialPhenomena,
-            "Chaos Cultists" => Self::ChaosCultists,
-            "Civil War" => Self::CivilWar,
-            "Cold War" => Self::ColdWar,
-            "Crumbling Arcologies" => Self::CrumblingArcologies,
-            "Daemonic Corruption" => Self::DaemonicCorruption,
-            "Dangerous Wildlife" => Self::DangerousWildlife,
-            "Desert World" => Self::DesertWorld,
-            "Deviant Religion" => Self::DeviantReligion,
-            "Eugenic Cult" => Self::EugenicCult,
-            "Extreme Environment" => Self::ExtremeEnvironment,
-            "Factional Fragmentation" => Self::FactionalFragmentation,
-            "Failed Paradise" => Self::FailedParadise,
-            "Flying Cities" => Self::FlyingCities,
-            "Forbidden Tech" => Self::ForbiddenTech,
-            "Foreign Control" => Self::ForeignControl,
-            "Freak Geology" => Self::FreakGeology,
-            "Freak Weather" => Self::FreakWeather,
-            "Freeport" => Self::Freeport,
-            "Friendly Xenos" => Self::FriendlyXenos,
-            "Frozen World" => Self::FrozenWorld,
-            "Gold Rush" => Self::GoldRush,
-            "Great Work" => Self::GreatWork,
-            "Heavy Industry" => Self::HeavyIndustry,
-            "Heavy Mining" => Self::HeavyMining,
-            "Hereteks" => Self::Hereteks,
-            "Holy War" => Self::HolyWar,
-            "Hostile Biosphere" => Self::HostileBiosphere,
-            "Hostile Xenos" => Self::HostileXenos,
-            "Impending Doom" => Self::ImpendingDoom,
-            "Imperial Knights" => Self::ImperialKnights,
-            "Important Shrine" => Self::ImportantShrine,
-            "Inquisition Outpost" => Self::InquisitionOutpost,
-            "Jungle World" => Self::JungleWorld,
-            "Libertines" => Self::Libertines,
-            "Local Specialty" => Self::LocalSpecialty,
-            "Local Tech" => Self::LocalTech,
-            "Major Spaceyard" => Self::MajorSpaceyard,
-            "Martial Law" => Self::MartialLaw,
-            "Mass Panic" => Self::MassPanic,
-            "Minimal Contact" => Self::MinimalContact,
-            "Missionaries" => Self::Missionaries,
-            "Mutant Hordes" => Self::MutantHordes,
-            "Naval Blockade" => Self::NavalBlockade,
-            "Naval Outpost" => Self::NavalOutpost,
-            "Navigator House" => Self::NavigatorHouse,
-            "Nomadic Cities" => Self::NomadicCities,
-            "Notable Local" => Self::NotableLocal,
-            "Ocean World" => Self::OceanWorld,
-            "Out of Contact" => Self::OutOfContact,
-            "Pandemic" => Self::Pandemic,
-            "Pilgrimage Site" => Self::PilgrimageSite,
-            "Pocket Empire" => Self::PocketEmpire,
-            "Police State" => Self::PoliceState,
-            "Popular Uprising" => Self::PopularUprising,
-            "Powerful Criminals" => Self::PowerfulCriminals,
-            "Powerful Nobles" => Self::PowerfulNobles,
-            "Primitive Xenos" => Self::PrimitiveXenos,
-            "Prosperous" => Self::Prosperous,
-            "Psyker Academy" => Self::PsykerAcademy,
-            "Psyker Cult" => Self::PsykerCult,
-            "Quarantined" => Self::Quarantined,
-            "Radioactive" => Self::Radioactive,
-            "Recently Rediscovered" => Self::RecentlyRediscovered,
-            "Schola Progenium" => Self::ScholaProgenium,
-            "Seagoing Cities" => Self::SeagoingCities,
-            "Sealed Menace" => Self::SealedMenace,
-            "Secret Masters" => Self::SecretMasters,
-            "Sectarians" => Self::Sectarians,
-            "Seismic Instability" => Self::SeismicInstability,
-            "Separatists" => Self::Separatists,
-            "Silica Animus" => Self::SilicaAnimus,
-            "Sole Suppliers" => Self::SoleSuppliers,
-            "Sororitas Convent" => Self::SororitasConvent,
-            "Space Hulks" => Self::SpaceHulks,
-            "Strange Customs" => Self::StrangeCustoms,
-            "Strange Hatred" => Self::StrangeHatred,
-            "Subsector Hegemon" => Self::SubsectorHegemon,
-            "Tech-Priest Cult" => Self::TechPriestCult,
-            "Test Site" => Self::TestSite,
-            "The Silent Trade" => Self::TheSilentTrade,
-            "Trade Hub" => Self::TradeHub,
-            "Administrative Hub" => Self::AdministrativeHub,
-            "Unmapped Wastes" => Self::UnmappedWastes,
-            "Vast Fortresses" => Self::VastFortresses,
-            "Verdant Ecology" => Self::VerdantEcology,
-            "War Zone" => Self::WarZone,
-            "Warp Phenomena" => Self::WarpPhenomena,
-            "Witch Hunt" => Self::WitchHunt,
-            "Xeno Ruins" => Self::XenoRuins,
-            "Xenophiles" => Self::Xenophiles,
-            "Xenophobes" => Self::Xenophobes,
-            "Xenos Infiltrators" => Self::XenosInfiltrators,
-            "Zombies" => Self::Zombies,
-            _ => return Err(()),
-        })
+        Self::VARIANTS
+            .iter()
+            .find(|v| v.display_name() == s)
+            .cloned()
+            .ok_or(())
     }
 }
 

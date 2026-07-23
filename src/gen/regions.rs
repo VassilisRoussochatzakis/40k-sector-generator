@@ -16,7 +16,6 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write as _;
-use std::fs;
 
 use camino::Utf8Path;
 use rand::seq::SliceRandom;
@@ -247,24 +246,6 @@ pub struct WarpRegion {
     pub hexes: Vec<HexCoord>,
     /// Centre hex of the seed blob (informational).
     pub centre: HexCoord,
-}
-
-// ── Loader ─────────────────────────────────────────────────────────────────────
-
-/// Load `regions.toml` from disk. Missing file → defaults (disabled).
-///
-/// # Errors
-///
-/// Returns [`SectorError::ConfigParse`] on a malformed file and
-/// [`SectorError::Io`] on read failure.
-pub fn load_regions_file(path: &Utf8Path) -> Result<RegionsConfig, SectorError> {
-    if !path.exists() {
-        return Ok(RegionsConfig::default());
-    }
-    let text = fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
-    let parsed: RegionsFile = toml::from_str(&text)
-        .map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))?;
-    Ok(parsed.regions)
 }
 
 // ── Stage entry point ─────────────────────────────────────────────────────────

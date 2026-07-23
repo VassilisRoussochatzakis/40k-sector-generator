@@ -171,7 +171,7 @@ pub fn export_all_with_progress(
     if output_config.write_manifest {
         let fmt = JsonFormat::from_flag(output_config.pretty_json);
         write_manifest(sector, output_dir, fmt)?;
-        write_validation_placeholder(sector, output_dir, fmt)?;
+        write_validation_placeholder(output_dir, fmt)?;
     }
 
     let bm = &output_config.bitmap;
@@ -336,7 +336,6 @@ fn write_manifest(
 }
 
 fn write_validation_placeholder(
-    _sector: &GeneratedSector,
     output_dir: &Utf8Path,
     format: JsonFormat,
 ) -> Result<(), SectorError> {
@@ -351,15 +350,6 @@ fn write_validation_placeholder(
         .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
     fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
     Ok(())
-}
-
-/// Export the canonical `sector.json` to the given directory.
-/// Per-system JSON files duplicate `sector.json.systems[]`; use a full
-/// [`OutputConfig`] with `write_per_system_files = true` when callers need
-/// those convenience files.
-pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {
-    write_sector_json_file(sector, output_dir, JsonFormat::Pretty, &mut |_| {})?;
-    remove_per_system_json_files(sector, output_dir)
 }
 
 /// Export everything for the sector EXCEPT images: sector JSON,
@@ -383,11 +373,11 @@ pub fn export_bundle_with_progress(
     let out_dir = sector_dir.join("out");
     fs::create_dir_all(&out_dir).map_err(|e| SectorError::io(out_dir.as_str(), e))?;
 
-    // Equivalent to `export_json` but with progress reporting on the big write.
+    // Sector JSON write, with progress reporting on the big write.
     write_sector_json_file(sector, &out_dir, JsonFormat::Pretty, on_progress)?;
     remove_per_system_json_files(sector, &out_dir)?;
     write_manifest(sector, &out_dir, JsonFormat::Pretty)?;
-    write_validation_placeholder(sector, &out_dir, JsonFormat::Pretty)?;
+    write_validation_placeholder(&out_dir, JsonFormat::Pretty)?;
     write_markdown(sector, &out_dir)?;
 
     if let Some(src) = data_dir {

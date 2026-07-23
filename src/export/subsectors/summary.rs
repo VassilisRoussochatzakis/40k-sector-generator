@@ -10,11 +10,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::sector_model::{
     FactionInfluence, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld,
 };
+use crate::worlds::{Population, TechLevel};
 
-use super::{
-    ControlDenominator, FactionControlSummary, ScoredId, Subsector, SubsectorConfig,
-    SubsectorSummary,
-};
+use super::{FactionControlSummary, ScoredId, Subsector, SubsectorConfig, SubsectorSummary};
 
 // ── Ownership resolution (spec §10.4.1) ────────────────────────────────────────
 
@@ -43,7 +41,7 @@ pub(super) fn resolve_system_owners(
         // Find capital-like and highest-pop worlds (sec §10.4.1 bonuses).
         let mut max_pop_world: Option<(&GeneratedWorld, i32)> = None;
         for w in sys.worlds.iter() {
-            let rank = population_rank(w.world.population.to_string());
+            let rank = population_rank(&w.world.population);
             if rank > 0 {
                 inhabited = true;
             }
@@ -167,7 +165,6 @@ fn influence_rank_inclusive(i: FactionInfluence) -> u8 {
 // ── Summary aggregation (spec §10) ─────────────────────────────────────────────
 
 pub(super) struct SummaryParams<'a> {
-    pub sector: &'a GeneratedSector,
     pub cell: &'a mut Subsector,
     pub sys_by_id: &'a BTreeMap<&'a str, &'a GeneratedSystem>,
     pub route_by_id: &'a BTreeMap<&'a str, &'a GeneratedRoute>,
@@ -179,7 +176,6 @@ pub(super) struct SummaryParams<'a> {
 
 pub(super) fn populate_summary(params: SummaryParams) {
     let SummaryParams {
-        sector,
         cell,
         sys_by_id,
         route_by_id,
@@ -284,15 +280,13 @@ pub(super) fn populate_summary(params: SummaryParams) {
     summary.dominant_factions = dominant;
 
     // Faction control. Build per-faction ownership tallies from member systems.
-    let (faction_control, controlling) =
-        build_faction_control(sector, cell, sys_by_id, owners, config);
+    let (faction_control, controlling) = build_faction_control(cell, sys_by_id, owners, config);
     summary.faction_control = faction_control;
     summary.controlling_faction_id = controlling;
 
     // Primary and capital systems.
-    summary.primary_system_id = pick_primary_system(sector, cell, sys_by_id, route_degree);
+    summary.primary_system_id = pick_primary_system(cell, sys_by_id, route_degree);
     let (cap_sys, cap_world) = pick_capital(
-        sector,
         cell,
         sys_by_id,
         route_degree,
@@ -316,7 +310,6 @@ fn dominant_influence_weight(i: FactionInfluence) -> i32 {
 }
 
 fn build_faction_control(
-    _sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
@@ -364,7 +357,9 @@ fn build_faction_control(
         }
     }
 
-    let use_inhabited = config.control_denominator == ControlDenominator::InhabitedSystems;
+    // `config.control_denominator` (an always-`InhabitedSystems` knob) was
+    // removed as dead — the `AllSystems` variant was never constructed.
+    let use_inhabited = true;
     let eligible_system_count: u32 = if use_inhabited && inhabited_system_count > 0 {
         inhabited_system_count
     } else {
@@ -436,38 +431,11 @@ fn build_faction_control(
         }
     }
 
-    // Truncate to top N, then append tracked factions with zero rows if absent.
+    // Truncate to top N. `rows` is already fully ordered (sorted above) and
+    // `truncate` preserves order, so no re-sort is needed afterward.
     if config.faction_control_top_n < rows.len() {
         rows.truncate(config.faction_control_top_n);
     }
-    for tid in &config.tracked_faction_ids {
-        if !rows.iter().any(|r| r.faction_id.as_str() == tid.as_str()) {
-            rows.push(FactionControlSummary {
-                faction_id: crate::ids::FactionId::new(tid.as_str()),
-                owned_system_count: 0,
-                owned_inhabited_system_count: 0,
-                owned_world_count: 0,
-                system_share_basis_points: 0,
-                inhabited_system_share_basis_points: 0,
-                world_share_basis_points: 0,
-                control_score: 0,
-                control_tier: "trace".to_string().into(),
-                contested_system_count: 0,
-            });
-        }
-    }
-    // Final deterministic sort after possible tracked-faction appends.
-    rows.sort_by(|a, b| {
-        b.control_score
-            .cmp(&a.control_score)
-            .then_with(|| {
-                let pa = primary_share(a, use_inhabited);
-                let pb = primary_share(b, use_inhabited);
-                pb.cmp(&pa)
-            })
-            .then_with(|| b.owned_system_count.cmp(&a.owned_system_count))
-            .then_with(|| a.faction_id.cmp(&b.faction_id))
-    });
 
     let controlling = rows
         .first()
@@ -513,7 +481,6 @@ fn basis_points(numerator: u32, denominator: u32) -> u32 {
 // ── Primary system + capital selection (spec §10.5) ────────────────────────────
 
 fn pick_primary_system(
-    _sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,
@@ -527,12 +494,12 @@ fn pick_primary_system(
         let worlds = &sys.worlds;
         let max_pop = worlds
             .iter()
-            .map(|w| population_rank(w.world.population.to_string()))
+            .map(|w| population_rank(&w.world.population))
             .max()
             .unwrap_or(0);
         let max_tech = worlds
             .iter()
-            .map(|w| tech_rank(w.world.tech_level.to_string()))
+            .map(|w| tech_rank(&w.world.tech_level))
             .max()
             .unwrap_or(0);
         // ... (rest of logic)
@@ -557,7 +524,6 @@ fn pick_primary_system(
 }
 
 pub(super) fn pick_capital(
-    _sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,
@@ -608,13 +574,13 @@ pub(super) fn pick_capital(
         let max_pop = sys
             .worlds
             .iter()
-            .map(|w| population_rank(w.world.population.to_string()))
+            .map(|w| population_rank(&w.world.population))
             .max()
             .unwrap_or(0);
         let max_tech = sys
             .worlds
             .iter()
-            .map(|w| tech_rank(w.world.tech_level.to_string()))
+            .map(|w| tech_rank(&w.world.tech_level))
             .max()
             .unwrap_or(0);
         let max_prosperity = sys
@@ -626,7 +592,7 @@ pub(super) fn pick_capital(
         let inhabited_worlds = sys
             .worlds
             .iter()
-            .filter(|w| population_rank(w.world.population.to_string()) > 0)
+            .filter(|w| population_rank(&w.world.population) > 0)
             .count();
 
         // Best world inside this system.
@@ -715,9 +681,9 @@ fn score_world_as_capital(
     controlling_faction: Option<&str>,
     stable_deg: i32,
 ) -> i32 {
-    let pop = population_rank(w.world.population.to_string());
+    let pop = population_rank(&w.world.population);
     let prosperity = inferred_prosperity_rank(sys, w, 0, stable_deg);
-    let tech = tech_rank(w.world.tech_level.to_string());
+    let tech = tech_rank(&w.world.tech_level);
     let mut score = pop * 8 + prosperity * 7 + tech * 4;
 
     let capital_like = any_capital_like(
@@ -757,8 +723,8 @@ fn inferred_prosperity_rank(
     route_degree: i32,
     stable_deg: i32,
 ) -> i32 {
-    let pop = population_rank(w.world.population.to_string());
-    let tech = tech_rank(w.world.tech_level.to_string());
+    let pop = population_rank(&w.world.population);
+    let tech = tech_rank(&w.world.tech_level);
     let lower = |s: &str| s.to_ascii_lowercase();
     let mut bonus = 0;
     let tokens = w
@@ -818,25 +784,23 @@ fn any_capital_like<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> bool {
     iter.into_iter().any(is_capital_like_tag)
 }
 
-pub(super) fn population_rank(value: impl AsRef<str>) -> i32 {
-    match value.as_ref() {
-        "Uninhabited" => 0,
-        "Minimal" => 1,
-        "SoleSettlement" => 2,
-        "LightlyPopulated" => 3,
-        "DenselyPopulated" => 4,
-        "ExtremelyDense" => 5,
-        _ => 0,
+pub(super) fn population_rank(value: &Population) -> i32 {
+    match value {
+        Population::Uninhabited => 0,
+        Population::Minimal => 1,
+        Population::SoleSettlement => 2,
+        Population::LightlyPopulated => 3,
+        Population::DenselyPopulated => 4,
+        Population::ExtremelyDense => 5,
     }
 }
 
-pub(super) fn tech_rank(value: impl AsRef<str>) -> i32 {
-    match value.as_ref() {
-        "Primitive" => 0,
-        "Low" => 1,
-        "Standard" => 2,
-        "High" => 3,
-        "Archaeotech" | "XenoHybrid" => 4,
-        _ => 0,
+pub(super) fn tech_rank(value: &TechLevel) -> i32 {
+    match value {
+        TechLevel::Primitive => 0,
+        TechLevel::Low => 1,
+        TechLevel::Standard => 2,
+        TechLevel::High => 3,
+        TechLevel::Archaeotech | TechLevel::XenoHybrid => 4,
     }
 }

@@ -43,9 +43,7 @@ use systems::draw_systems;
 
 pub(crate) const HEX_SIZE: f32 = 26.0;
 
-pub(crate) fn star_radius_ratio() -> f32 {
-    0.2016
-}
+pub(crate) use crate::export::render_core::routes::star_radius_ratio;
 
 fn legend_width(theme: &MapTheme) -> f32 {
     match theme.legend {

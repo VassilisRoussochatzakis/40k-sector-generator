@@ -126,8 +126,9 @@ impl ResourceVector {
         }
     }
     /// Mutable refs to every resource field, in declaration order — single
-    /// source of the field list for `scale` and the `add` free fn (B5).
-    pub(super) fn fields_mut(&mut self) -> [&mut f32; 6] {
+    /// source of the field list for `scale` and per-field accumulation
+    /// (builder `recompute_economy`, B5).
+    pub fn fields_mut(&mut self) -> [&mut f32; 6] {
         [
             &mut self.ore,
             &mut self.promethium,
@@ -138,7 +139,7 @@ impl ResourceVector {
         ]
     }
 
-    pub(super) fn fields(&self) -> [f32; 6] {
+    pub fn fields(&self) -> [f32; 6] {
         [
             self.ore,
             self.promethium,
@@ -275,7 +276,9 @@ impl StrategicOutput {
         ]
     }
 
-    pub(super) fn add_assign(&mut self, other: &Self) {
+    /// Sum `other`'s fields into `self`, in declaration order — used by the
+    /// builder's `recompute_economy` to re-total per-system/sector rows.
+    pub fn add_assign(&mut self, other: &Self) {
         let others = other.fields();
         for (f, o) in self.fields_mut().into_iter().zip(others) {
             *f += o;

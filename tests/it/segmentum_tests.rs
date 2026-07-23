@@ -7,12 +7,12 @@ use sectorforge::segmentum::{
 
 use crate::shared::fixture_dir;
 
-fn base_file() -> SegmentumFile {
+pub(crate) fn base_file(id: &str, title: &str, stitch_seed: &str) -> SegmentumFile {
     SegmentumFile {
         segmentum: SegmentumConfig {
-            id: "seg-test".into(),
-            title: "Test Segmentum".into(),
-            stitch_seed: "stitch-test".into(),
+            id: id.into(),
+            title: title.into(),
+            stitch_seed: stitch_seed.into(),
             columns: 2,
             rows: 1,
             faction_mode: FactionMode::Shared,
@@ -48,7 +48,7 @@ fn base_file() -> SegmentumFile {
 fn compose_produces_children_and_links() {
     let tmp = tempfile::tempdir().unwrap();
     let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-    let file = base_file();
+    let file = base_file("seg-test", "Test Segmentum", "stitch-test");
     let base = Utf8PathBuf::from(".");
     let seg = sectorforge::compose_segmentum(&file, &base, &out).expect("compose");
     assert_eq!(seg.children.len(), 2);
@@ -68,7 +68,7 @@ fn compose_is_byte_deterministic() {
     let tmp_b = tempfile::tempdir().unwrap();
     let out_a = Utf8PathBuf::from_path_buf(tmp_a.path().to_path_buf()).unwrap();
     let out_b = Utf8PathBuf::from_path_buf(tmp_b.path().to_path_buf()).unwrap();
-    let file = base_file();
+    let file = base_file("seg-test", "Test Segmentum", "stitch-test");
     let base = Utf8PathBuf::from(".");
     let a = sectorforge::compose_segmentum(&file, &base, &out_a).unwrap();
     let b = sectorforge::compose_segmentum(&file, &base, &out_b).unwrap();
@@ -86,8 +86,8 @@ fn different_stitch_seed_can_change_links() {
     let tmp_b = tempfile::tempdir().unwrap();
     let out_a = Utf8PathBuf::from_path_buf(tmp_a.path().to_path_buf()).unwrap();
     let out_b = Utf8PathBuf::from_path_buf(tmp_b.path().to_path_buf()).unwrap();
-    let mut file_a = base_file();
-    let mut file_b = base_file();
+    let mut file_a = base_file("seg-test", "Test Segmentum", "stitch-test");
+    let mut file_b = base_file("seg-test", "Test Segmentum", "stitch-test");
     file_a.segmentum.stitch_seed = "stitch-A".into();
     file_b.segmentum.stitch_seed = "stitch-B".into();
     let base = Utf8PathBuf::from(".");
@@ -140,7 +140,7 @@ fn segmentum_example_parses_and_children_fit_grid() {
 
 #[test]
 fn duplicate_child_slot_is_rejected() {
-    let mut file = base_file();
+    let mut file = base_file("seg-test", "Test Segmentum", "stitch-test");
     file.children[1].column = 0; // collide with alpha
     let tmp = tempfile::tempdir().unwrap();
     let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
@@ -155,7 +155,7 @@ fn duplicate_child_slot_is_rejected() {
 fn writers_emit_expected_artifacts() {
     let tmp = tempfile::tempdir().unwrap();
     let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-    let file = base_file();
+    let file = base_file("seg-test", "Test Segmentum", "stitch-test");
     let base = Utf8PathBuf::from(".");
     let seg = sectorforge::compose_segmentum(&file, &base, &out).unwrap();
     sectorforge::write_segmentum(&out, &seg).unwrap();

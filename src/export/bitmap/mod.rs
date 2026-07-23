@@ -36,10 +36,11 @@ mod systems;
 use geom::{map_bounds, Geom, MapBounds};
 
 pub(crate) use colors::{darken, short, star_color, tint_against};
-#[allow(unused_imports)]
+// These cross the `bitmap` module boundary (used by `system_map.rs`);
+// submodule callers reach `primitives` directly via `super::primitives::*`.
 pub(crate) use primitives::{
-    draw_circle, draw_line, draw_line_thick, draw_rect_outline, draw_ring, draw_text, fill_circle,
-    fill_rect, text_size, GLYPH_H,
+    draw_circle, draw_line, draw_rect_outline, draw_ring, draw_text, fill_circle, fill_rect,
+    text_size,
 };
 
 /// Per-render options independent of the project config. Backwards-compat
@@ -79,17 +80,8 @@ pub fn write_bitmap_with(
     save_png_fast(&img, &path)
 }
 
-/// Render the sector PNG to an explicit file path (caller chooses the name).
-pub fn write_sector_png_to(
-    sector: &GeneratedSector,
-    path: &Utf8Path,
-    scale: u32,
-    subsectors: Option<&[Subsector]>,
-) -> Result<(), SectorError> {
-    write_sector_png_to_with(sector, path, scale, subsectors, RenderOptions::default())
-}
-
-/// Variant of [`write_sector_png_to`] that takes [`RenderOptions`].
+/// Render the sector PNG to an explicit file path (caller chooses the name),
+/// with explicit [`RenderOptions`].
 pub fn write_sector_png_to_with(
     sector: &GeneratedSector,
     path: &Utf8Path,
@@ -117,7 +109,7 @@ pub fn render_sector_image(
 /// docs/OPTIMIZE.txt G1: encode an in-memory RGBA image to PNG bytes. Same encoder
 /// settings as [`write_bitmap_with`] (fast deflate, no filter). Bench /
 /// golden-test only — production callers should use [`write_bitmap_with`] /
-/// [`write_sector_png_to`] which stream straight to disk.
+/// [`write_sector_png_to_with`] which stream straight to disk.
 ///
 /// # Errors
 ///

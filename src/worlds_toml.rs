@@ -187,12 +187,6 @@ pub struct WorldsLoad {
     pub authored_features: Option<crate::worlds_toml::ResolvedFeaturePool>,
 }
 
-impl WorldsLoad {
-    pub fn into_legacy_tuple(self) -> (KeyTables, Vec<GenerationRow>) {
-        (self.tables, self.rows)
-    }
-}
-
 /// Load both row data and (when available) the authored feature pool.
 ///
 /// Reads `<data_dir>/worlds.toml` (the only supported format).

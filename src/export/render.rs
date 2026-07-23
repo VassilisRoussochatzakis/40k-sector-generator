@@ -117,7 +117,6 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     for sys in &sector.systems {
         s.push_str(&format_system_section(
             sys,
-            sector,
             &events_by_system,
             &events_by_world,
         ));
@@ -207,9 +206,7 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     s.push('\n');
     s.push_str(&format_world_table(sys));
     let empty_map = FxMap::default();
-    s.push_str(&format_world_control_blocks(
-        sys, None, &empty_map, &empty_map,
-    ));
+    s.push_str(&format_world_control_blocks(sys, &empty_map, &empty_map));
     s
 }
 
@@ -583,7 +580,6 @@ fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
 
 fn format_system_section(
     sys: &GeneratedSystem,
-    sector: &GeneratedSector,
     events_by_system: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
     events_by_world: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
 ) -> String {
@@ -624,7 +620,6 @@ fn format_system_section(
     s.push_str(&format_world_table(sys));
     s.push_str(&format_world_control_blocks(
         sys,
-        Some(sector),
         events_by_system,
         events_by_world,
     ));
@@ -753,7 +748,6 @@ fn format_stability_line(st: &crate::stability::StabilityState) -> String {
 
 fn format_world_control_blocks(
     sys: &GeneratedSystem,
-    _sector: Option<&GeneratedSector>,
     events_by_system: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
     events_by_world: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
 ) -> String {

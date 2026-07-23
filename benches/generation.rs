@@ -163,24 +163,16 @@ fn bench_derive_warm_500(c: &mut Criterion) {
     let mut sector = generate_sector(input.clone()).expect("generate 500-system fixture");
     let cats = &input.catalogs;
 
-    // Cold pass once: install every derived overlay onto the sector, mirroring
-    // the generation enrichment / builder recompute install points. Overlays
-    // not carried as sector fields (personae/sites/hooks/missions/prose/
-    // interestingness reports) are derived here so the warm read reflects a
-    // fully enriched sector; the warm measurement below only re-reads the
-    // installed `Arc` overlays — the cache-hit return path.
+    // Cold pass once: install the overlays carried as sector fields (economy /
+    // relations / chronicle), mirroring the generation enrichment / builder
+    // recompute install points. The warm measurement below only re-reads these
+    // installed overlays — the cache-hit return path.
     sector.economy = std::sync::Arc::new(sectorforge::derive_economy_with(&sector, &cats.economy));
     sector.relations =
         std::sync::Arc::new(sectorforge::derive_relations_with(&sector, &cats.relations));
     // `SectorChronicle` is a type alias for `HistoryReport`, so the derived
     // report installs directly onto the field (the generation/builder pattern).
     sector.chronicle = sectorforge::derive_history_with(&sector, &cats.history);
-    let _ = sectorforge::derive_personae_with(&sector, &cats.personae);
-    let _ = sectorforge::derive_sites_with(&sector, &cats.sites);
-    let _ = sectorforge::derive_hooks_with(&sector, &cats.hooks);
-    let _ = sectorforge::derive_missions_with(&sector, &cats.missions);
-    let _ = sectorforge::derive_prose_with(&sector, &cats.prose);
-    let _ = sectorforge::derive_interestingness(&sector);
 
     let mut group = c.benchmark_group("derive_warm");
     group.bench_function("500", |b| {

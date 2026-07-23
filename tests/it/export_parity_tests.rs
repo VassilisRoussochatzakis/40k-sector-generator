@@ -46,10 +46,10 @@ fn write_html_matches_render_html_and_is_path_stable() {
     );
 }
 
-// GAP 146: `encode_png_bytes` (in-memory) vs `write_sector_png_to` (disk). Both
-// use the same fast/no-filter PNG encoder, so for the same image (rendered with
-// the same scale + `RenderOptions::default()` that `write_sector_png_to` uses
-// internally) the byte streams are identical.
+// GAP 146: `encode_png_bytes` (in-memory) vs `write_sector_png_to_with` (disk).
+// Both use the same fast/no-filter PNG encoder, so for the same image
+// (rendered with the same scale + `RenderOptions::default()`) the byte
+// streams are identical.
 #[test]
 fn in_memory_png_equals_on_disk_png() {
     let sector = fixture_sector();
@@ -65,10 +65,17 @@ fn in_memory_png_equals_on_disk_png() {
     );
     let mem_png = sectorforge::bitmap::encode_png_bytes(&img).unwrap();
 
-    // On-disk: write_sector_png_to (hard-codes RenderOptions::default()).
+    // On-disk: write_sector_png_to_with, same scale + default RenderOptions.
     let dir = tempfile::tempdir().unwrap();
     let path = camino::Utf8PathBuf::from_path_buf(dir.path().join("s.png")).unwrap();
-    sectorforge::bitmap::write_sector_png_to(sector, &path, scale, None).unwrap();
+    sectorforge::bitmap::write_sector_png_to_with(
+        sector,
+        &path,
+        scale,
+        None,
+        sectorforge::bitmap::RenderOptions::default(),
+    )
+    .unwrap();
     let disk_png = std::fs::read(path.as_std_path()).unwrap();
 
     assert_eq!(

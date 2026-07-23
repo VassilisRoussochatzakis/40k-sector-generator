@@ -164,7 +164,7 @@ pub use map_theme::{
     resolve_map_theme, LabelDensity, LegendStyle, MapTheme, MapThemeConfig, RouteLineMode,
     SymbolSet, BUILTIN_THEME_NAMES,
 };
-pub use regions::{load_regions_file, RegionConditionKind, RegionsConfig, RegionsFile, WarpRegion};
+pub use regions::{RegionConditionKind, RegionsConfig, RegionsFile, WarpRegion};
 pub use relations::{
     load_relations_file, DirectionalRelation, FactionRelation, RelationAttitude, RelationMetrics,
     RelationOverride, RelationsConfig, RelationsFile, RelationsMatrix, RelationsReport, Stance,
@@ -178,9 +178,7 @@ pub use segmentum::{
     SegmentumChild, SegmentumConfig, SegmentumFile, SegmentumManifest, SegmentumProgress,
     StitchConfig,
 };
-pub use subsectors::{
-    build_subsectors, ControlDenominator, Subsector, SubsectorBuildError, SubsectorConfig,
-};
+pub use subsectors::{build_subsectors, Subsector, SubsectorBuildError, SubsectorConfig};
 pub use validation::{ValidationIssue, ValidationReport};
 
 pub const GENERATOR_NAME: &str = "sectorforge";
@@ -554,20 +552,6 @@ where
     F: FnMut(ExportProgress),
 {
     export::export_all_with_progress(sector, output_config, output_dir.as_ref(), &mut on_progress)
-}
-
-/// §11 NEW.md: write a self-contained interactive HTML sector view to
-/// `output_dir/sector.html`. Returns the resulting path.
-///
-/// # Errors
-///
-/// [`SectorError::Io`] / [`SectorError::ExportFailed`] from the writer.
-pub fn write_interactive_html(
-    sector: &GeneratedSector,
-    output_dir: impl AsRef<Utf8Path>,
-    cfg: &config::HtmlConfig,
-) -> Result<camino::Utf8PathBuf, SectorError> {
-    html_export::write_html(sector, output_dir.as_ref(), cfg)
 }
 
 /// §8 NEW.md: read-only sector analytics dashboard.

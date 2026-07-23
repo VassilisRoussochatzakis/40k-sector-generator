@@ -109,15 +109,6 @@ pub struct SubsectorConfig {
     pub max_iterations: u32,
     pub include_empty_subsectors: bool,
     pub faction_control_top_n: usize,
-    pub tracked_faction_ids: Vec<String>,
-    pub control_denominator: ControlDenominator,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum ControlDenominator {
-    AllSystems,
-    InhabitedSystems,
 }
 
 impl Default for SubsectorConfig {
@@ -127,8 +118,6 @@ impl Default for SubsectorConfig {
             max_iterations: DEFAULT_CLUSTER_ITERATIONS,
             include_empty_subsectors: true,
             faction_control_top_n: 5,
-            tracked_faction_ids: Vec::new(),
-            control_denominator: ControlDenominator::InhabitedSystems,
         }
     }
 }
@@ -295,7 +284,6 @@ pub fn build_subsectors(
     // Pick capital per cluster using existing scoring helper.
     for cell in &mut cells {
         let (cap_sys_id, cap_world_id) = pick_capital(
-            sector,
             cell,
             &sys_by_id,
             &route_degree,
@@ -316,8 +304,8 @@ pub fn build_subsectors(
     // a cell has no capital.
     let mut order: Vec<usize> = (0..cells.len()).collect();
     order.sort_by(|&a, &b| {
-        let ca = capital_or_seed_coord(&cells[a], &sys_by_id, &sector.systems, &seed_ids);
-        let cb = capital_or_seed_coord(&cells[b], &sys_by_id, &sector.systems, &seed_ids);
+        let ca = capital_or_seed_coord(&cells[a], &sys_by_id, &seed_ids);
+        let cb = capital_or_seed_coord(&cells[b], &sys_by_id, &seed_ids);
         ca.1.cmp(&cb.1)
             .then_with(|| ca.0.cmp(&cb.0))
             .then_with(|| cells[a].name.cmp(&cells[b].name))
@@ -399,7 +387,6 @@ pub fn build_subsectors(
     // Summaries.
     for cell in &mut cells {
         populate_summary(SummaryParams {
-            sector,
             cell,
             sys_by_id: &sys_by_id,
             route_by_id: &route_by_id,
@@ -420,7 +407,6 @@ pub fn build_subsectors(
 fn capital_or_seed_coord(
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
-    _systems: &[GeneratedSystem],
     seed_ids: &[SystemId],
 ) -> (i32, i32) {
     if let Some(id) = &cell.summary.subsector_capital_system_id {
@@ -437,25 +423,10 @@ fn capital_or_seed_coord(
 }
 
 fn update_bounds(cell: &mut Subsector) {
-    if cell.hex_cells.is_empty() {
-        cell.bounds = SubsectorBounds {
-            q_min: 0,
-            q_max: 0,
-            r_min: 0,
-            r_max: 0,
-        };
-        return;
-    }
-    let mut q_min = u32::MAX;
-    let mut q_max = 0;
-    let mut r_min = u32::MAX;
-    let mut r_max = 0;
-    for &(q, r) in &cell.hex_cells {
-        q_min = q_min.min(q);
-        q_max = q_max.max(q);
-        r_min = r_min.min(r);
-        r_max = r_max.max(r);
-    }
+    let q_min = cell.hex_cells.iter().map(|&(q, _)| q).min().unwrap_or(0);
+    let q_max = cell.hex_cells.iter().map(|&(q, _)| q).max().unwrap_or(0);
+    let r_min = cell.hex_cells.iter().map(|&(_, r)| r).min().unwrap_or(0);
+    let r_max = cell.hex_cells.iter().map(|&(_, r)| r).max().unwrap_or(0);
     cell.bounds = SubsectorBounds {
         q_min,
         q_max,
@@ -630,12 +601,12 @@ fn seed_score(sys: &GeneratedSystem, route_degree: &BTreeMap<&str, u32>) -> i32 
     let worlds = &sys.worlds;
     let max_pop = worlds
         .iter()
-        .map(|w| population_rank(w.world.population.to_string()))
+        .map(|w| population_rank(&w.world.population))
         .max()
         .unwrap_or(0);
     let max_tech = worlds
         .iter()
-        .map(|w| tech_rank(w.world.tech_level.to_string()))
+        .map(|w| tech_rank(&w.world.tech_level))
         .max()
         .unwrap_or(0);
     deg * 4 + max_pop * 5 + max_tech * 2 + worlds.len() as i32
@@ -742,9 +713,7 @@ use summary::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sector_model::{
-        GeneratedStar, GeneratedSystem, GenerationManifest, HexCoord, WorldDto,
-    };
+    use crate::sector_model::{GeneratedStar, GeneratedSystem, GenerationManifest, HexCoord};
 
     fn mini_sector(width: u32, height: u32, systems: Vec<(i32, i32)>) -> GeneratedSector {
         let mut sys_vec = Vec::new();
@@ -813,8 +782,6 @@ mod tests {
             ..Default::default()
         }
     }
-
-    fn _unused(_w: WorldDto) {}
 
     #[test]
     fn label_spreadsheet_extends_past_z() {

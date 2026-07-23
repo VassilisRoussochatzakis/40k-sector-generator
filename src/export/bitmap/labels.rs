@@ -37,7 +37,7 @@ pub(super) fn draw_system_labels(
     let pad_y = g.scale;
     let star_r = (g.hex_size * star_radius_ratio()) as i32;
     for sys in sector.systems.iter() {
-        if !system_label_visible(sys, subsectors, &opts.theme, sector) {
+        if !system_label_visible(sys, subsectors, &opts.theme) {
             continue;
         }
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);

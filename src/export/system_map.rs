@@ -147,16 +147,12 @@ pub fn render_system(
         fill_circle(&mut img, cx, cy, g.star_r, star);
         draw_circle(&mut img, cx, cy, g.star_r, darken(star, 0.55));
     } else {
-        // Special location: draw a grey diamond.
+        // Special location: draw a grey diamond outline.
         let r = g.star_r;
         let pts = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)];
-        // fill_polygon not available? I'll use draw_line segments.
         for i in 0..4 {
             let (x1, y1) = pts[i];
             let (x2, y2) = pts[(i + 1) % 4];
-            // I'll just draw the outline for now.
-            // Actually I should probably add a primitive for this if needed.
-            // But I'll use what's available.
             crate::bitmap::draw_line(&mut img, x1, y1, x2, y2, opts.theme.text_dim);
         }
     }
@@ -352,7 +348,10 @@ fn orbit_angle(index: usize, orbit: i32) -> f32 {
     (base + phase + 200.0).rem_euclid(360.0)
 }
 
-fn world_type_color(t: &str) -> Rgba<u8> {
+/// Color for a world type, keyed by its display name (exact, case-sensitive
+/// match; unknown types fall back to grey). Shared with `gui-core::palette`,
+/// which converts this to `egui::Color32` — see PONYTAIL #24.
+pub fn world_type_color(t: &str) -> Rgba<u8> {
     match t {
         "AgriWorld" => Rgba([120, 200, 110, 255]),
         "Asteroid" => Rgba([150, 145, 130, 255]),

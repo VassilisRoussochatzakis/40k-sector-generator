@@ -10,6 +10,7 @@ use crate::sector_model::{GeneratedSector, RouteStability, RouteType};
 use super::colors::{darken, rgba_from_tuple, route_thickness, short, stability_color};
 use super::primitives::{circle, line, rect, text};
 use super::routes::{draw_route_pattern, ControlKind};
+use crate::export::render_core::labels::factions_visible;
 
 pub(super) const LEGEND_PAD: f32 = 16.0;
 const LINE_H: f32 = 18.0;
@@ -52,18 +53,6 @@ pub(super) fn legend_height(sector: &GeneratedSector, opts: &RenderOptions) -> f
         + factions_visible(sector) as i32
         + heatmap_lines;
     LEGEND_PAD.mul_add(2.0, lines as f32 * LINE_H)
-}
-
-fn factions_visible(sector: &GeneratedSector) -> usize {
-    if sector.factions.is_empty() {
-        return 0;
-    }
-    let buckets = crate::importance::compute_display_buckets(
-        sector,
-        crate::importance::DEFAULT_MINOR_FRACTION,
-        crate::importance::DEFAULT_DISPLAY_CAP,
-    );
-    1 + buckets.len()
 }
 
 pub(super) fn draw_legend(

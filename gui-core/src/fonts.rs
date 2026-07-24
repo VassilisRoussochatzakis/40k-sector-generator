@@ -25,7 +25,7 @@
 pub fn install(ctx: &egui::Context) {
     #[cfg(feature = "bundled-fonts")]
     {
-        use egui::{FontData, FontDefinitions, FontFamily};
+        use egui::{FontData, FontDefinitions, FontFamily, FontTweak};
 
         // Start from egui's built-ins so the bundled faces keep emoji / CJK
         // fallbacks behind them rather than replacing the family wholesale.
@@ -35,9 +35,19 @@ pub fn install(ctx: &egui::Context) {
             "sf-display".to_owned(),
             FontData::from_static(include_bytes!("../assets/fonts/display.ttf")),
         );
+        // The body face carries a 250/1000 hhea line-gap (row box = 1.25 em; the
+        // other two faces are exactly 1.0 em), which egui pads below the baseline —
+        // floating every Button/Body label ~3 px above centre at 15 px. Shift the
+        // glyphs down to optical centre, split between cap-height and x-height
+        // centring (caps end ~0.6 px high, lowercase ~0.8 px low).
+        // ponytail: constant derived from the font's metrics; re-eyeball if
+        // body.ttf is swapped. display/mono measure dead-centre — no tweak.
         fonts.font_data.insert(
             "sf-body".to_owned(),
-            FontData::from_static(include_bytes!("../assets/fonts/body.ttf")),
+            FontData::from_static(include_bytes!("../assets/fonts/body.ttf")).tweak(FontTweak {
+                y_offset_factor: 0.15,
+                ..Default::default()
+            }),
         );
         fonts.font_data.insert(
             "sf-mono".to_owned(),

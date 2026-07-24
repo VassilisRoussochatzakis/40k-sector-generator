@@ -167,8 +167,8 @@ pub fn show_nav_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
         .show(ui, |ui| {
             for (label, tabs) in TAB_CLUSTERS {
                 ui_kit::collapsing_section(ui, ("nav_cluster", *label), label, true, |ui| {
-                    // A fixed-width, cross-justified column makes each
-                    // `selectable_label` fill `item_w` (left-aligned text).
+                    // A fixed-width, cross-justified column makes each tab
+                    // plate fill `item_w`; the label centres within the plate.
                     ui.allocate_ui_with_layout(
                         egui::vec2(item_w, 0.0),
                         egui::Layout::top_down_justified(egui::Align::LEFT),
@@ -186,7 +186,14 @@ pub fn show_nav_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
                                     ("nav_tab", *tab),
                                     selected,
                                     |ui| {
-                                        ui.label(tab.label());
+                                        ui.centered_and_justified(|ui| {
+                                            // `Extend` so the widest label can never
+                                            // wrap if plate padding tightens.
+                                            ui.add(
+                                                egui::Label::new(tab.label())
+                                                    .wrap_mode(egui::TextWrapMode::Extend),
+                                            );
+                                        });
                                     },
                                 );
                                 if resp.clicked() {

@@ -6,11 +6,14 @@ on every turn. Reach for this file when you need the exact home of a
 specific function/type, not for routine exploration — `rust-explorer` is
 faster.
 
-> Coverage note: this map aims to list every `.rs` file in the workspace.
-> Per-module `mod.rs` files that only re-export children are noted at the
-> head of their section rather than given their own row. If you add a file,
-> add its row here (CLAUDE.md: "update GUIDE.md / docs on non-trivial
-> changes").
+> Coverage note: this map aims to list every `.rs` file in the crate sources
+> and test suites — `src/`, `builder/src/`, `viewer/src/`, `gui-core/src/`,
+> `tests/it/`, and `gui-core/tests/`. Per-module `mod.rs` files that only
+> re-export children are noted at the head of their section rather than given
+> their own row; benchmarks (`benches/`, `builder/benches/`,
+> `gui-core/benches/`) and fuzz targets (`fuzz/fuzz_targets/`) are
+> deliberately out of scope. If you add a file in a mapped tree, add its row
+> here (CLAUDE.md: "update GUIDE.md / docs on non-trivial changes").
 
 ## Parent-module layout (REFACTOR.txt Task 2)
 
@@ -71,12 +74,13 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | File | Purpose |
 |---|---|
 | [src/gen/generation/mod.rs](../src/gen/generation/mod.rs) | Sector generation facade: `SectorProgress`, `generate*` orchestrator, manifest build |
-| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | RANDOM.md size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector`, `RandomReport` |
+| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | Size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector`, `RandomReport` |
 | [src/gen/generation/placement.rs](../src/gen/generation/placement.rs) | Hex grid placement with min-distance relaxation |
 | [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming, spectral fallback |
 | [src/gen/generation/world_placement.rs](../src/gen/generation/world_placement.rs) | Per-world build: candidate pick, features, naming, tags, `regenerate_world_payload` |
 | [src/gen/generation/factions.rs](../src/gen/generation/factions.rs) | Faction assignment + `aggregate_factions` + `assign_factions_for_systems` |
 | [src/gen/generation/routes.rs](../src/gen/generation/routes.rs) | Public route graph + `classify_route` + union-find connector |
+| [src/gen/generation/reroll.rs](../src/gen/generation/reroll.rs) | Iterative-generation prefix-run seam: `Stage` (18 variants; declaration order = pipeline order, `Stage::LAST`) + `RerollNonces` (`bump`/`get`/`suffix`) folding a `":r{n}"` suffix into each stage's RNG discriminator — empty at nonce 0, so one-shot output stays byte-identical |
 | [src/gen/world_pool.rs](../src/gen/world_pool.rs) | GenerationRow → weighted candidate pool (+ authored-feature overlay) |
 | [src/gen/archetypes.rs](../src/gen/archetypes.rs) | Archetype activations (necron/tyranid/ork/GSC/tau/aeldari/chaos) |
 | [src/gen/faction_style.rs](../src/gen/faction_style.rs) | Per-faction glyph + colour palette |
@@ -102,7 +106,6 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/analysis/power_projection.rs](../src/analysis/power_projection.rs) | Faction power-projection model |
 | [src/analysis/route_control.rs](../src/analysis/route_control.rs) | Per-route control derivation |
 | [src/analysis/stability.rs](../src/analysis/stability.rs) | System stability state machine |
-| [src/analysis/scores.rs](../src/analysis/scores.rs) | TF-NT-2 score newtypes: thin `f32` wrappers for comparable scores |
 | [src/analysis/intel.rs](../src/analysis/intel.rs) | §7 NEXT fog-of-war record |
 | [src/analysis/missions.rs](../src/analysis/missions.rs) | §3 NEW2 mission seeds |
 | [src/analysis/briefing.rs](../src/analysis/briefing.rs) | §9 NEW2 redacted briefing packs |
@@ -197,7 +200,7 @@ exist and both backends import them.
 | [src/cli/validate.rs](../src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
 | [src/cli/analyze.rs](../src/cli/analyze.rs) | `analyze` runner |
 | [src/cli/presets.rs](../src/cli/presets.rs) | `new` + `list-presets` runners |
-| [src/cli/random.rs](../src/cli/random.rs) | `random` runner — RANDOM.md (synthesise + generate + export bundle & five reports) |
+| [src/cli/random.rs](../src/cli/random.rs) | `random` runner — synthesise + generate + export bundle & five reports |
 | [src/cli/search.rs](../src/cli/search.rs) | `search` runner |
 | [src/cli/history.rs](../src/cli/history.rs) | `history` runner |
 | [src/cli/personae.rs](../src/cli/personae.rs) | `personae` runner |
@@ -232,10 +235,10 @@ exist and both backends import them.
 | [gui-core/src/ui_kit.rs](../gui-core/src/ui_kit.rs) | §UO shared chrome widgets — `section`/`collapsing_section`/`field`/`combo`/`kv` (kv is the §BEAUTY aligned ledger), text helpers, responsive columns |
 | [gui-core/src/design.rs](../gui-core/src/design.rs) | §DESIGN form tokens — spacing/radius/elevation/motion/type scale, accent ramp, `vertical_gradient`, `FONT_DISPLAY`/`display_family` |
 | [gui-core/src/card.rs](../gui-core/src/card.rs) | §BEAUTY `selectable_plate` — hand-painted hover/selection-animated roster + nav row |
-| [gui-core/src/widgets.rs](../gui-core/src/widgets.rs) | §BEAUTY bespoke painted controls — `primary_button` (brass) + `toggle`/`toggle_with_label` (sliding); shared `enum_combo` (F2) — generic `Option<T>` enum dropdown over `ui_kit::combo` with per-caller hover policy (viewer data editor + builder worlds panel) |
+| [gui-core/src/widgets.rs](../gui-core/src/widgets.rs) | §BEAUTY bespoke painted controls — `primary_button` (brass) + `toggle`/`toggle_with_label` (sliding); shared `enum_combo` (F2) — generic `Option<T>` enum dropdown over `ui_kit::combo` with per-caller hover policy (called from the builder's conflict / surface-regions / orbital / worlds-editor panels and the viewer's data editor + editor dialogs) |
 | [gui-core/src/modal.rs](../gui-core/src/modal.rs) | §BEAUTY `scrim(ctx, open)` — fading modal backdrop (dims + inerts page) returning the eased entrance factor |
 | [gui-core/src/diagnostics.rs](../gui-core/src/diagnostics.rs) | Process-level crash diagnostics: panic hook for GUI binaries that writes timestamped crash notes before abort |
-| [gui-core/src/fonts.rs](../gui-core/src/fonts.rs) | §BEAUTY §5.5 custom-font registration (`install`); opt-in `bundled-fonts` feature, `FontData::from_static` from `assets/fonts/` |
+| [gui-core/src/fonts.rs](../gui-core/src/fonts.rs) | §BEAUTY §5.5 custom-font registration (`install`); opt-in `bundled-fonts` feature, `FontData::from_static` from `assets/fonts/`. The **body** face alone carries a `FontTweak { y_offset_factor: 0.15 }` to optically re-centre its 250/1000 hhea line-gap (egui pads that below the baseline, floating labels ~3 px high); display + mono measure dead-centre and are untweaked |
 | [gui-core/tests/map_snapshots.rs](../gui-core/tests/map_snapshots.rs) | Snapshot tests for shared map rendering |
 
 ## sectorforge-viewer
@@ -263,7 +266,6 @@ per-view modules; `viewer/src/editor/` is the in-place sector/world editor.
 | [viewer/src/app/lifecycle.rs](../viewer/src/app/lifecycle.rs) | App lifecycle: init / load / save wiring |
 | [viewer/src/app/layout.rs](../viewer/src/app/layout.rs) | App panel layout scaffolding |
 | [viewer/src/app/types.rs](../viewer/src/app/types.rs) | App-level types (tab/state enums) |
-| [viewer/src/app/ui_helpers.rs](../viewer/src/app/ui_helpers.rs) | Shared egui helpers across views |
 | [viewer/src/app/sector_view.rs](../viewer/src/app/sector_view.rs) | Sector hex-map view |
 | [viewer/src/app/system_view.rs](../viewer/src/app/system_view.rs) | System detail view |
 | [viewer/src/app/factions_view.rs](../viewer/src/app/factions_view.rs) | Factions view |
@@ -329,7 +331,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/segmentum_run.rs](../builder/src/builder/segmentum_run.rs) | §SG1..§SG5 SEGMENTUM runtime: editable `segmentum.toml` + off-thread compose job + composed result |
 | [builder/src/builder/derivation_jobs.rs](../builder/src/builder/derivation_jobs.rs) | §39 LD3 off-thread overlay re-derivation: stale overlay dispatcher + drain over background worker |
 | [builder/src/builder/export_run.rs](../builder/src/builder/export_run.rs) | §EX1..§EX8 EXPORT runtime: output folder, standalone-system form, cached markdown preview, last error |
-| [builder/src/builder/random_run.rs](../builder/src/builder/random_run.rs) | RANDOM.md §7.4 random-sector generation runtime: off-thread synthesise-generate-derive job with live progress |
+| [builder/src/builder/random_run.rs](../builder/src/builder/random_run.rs) | §7.4 random-sector generation runtime: off-thread synthesise-generate-derive job with live progress |
 | [builder/src/builder/smoke_test.rs](../builder/src/builder/smoke_test.rs) | Headless GUI smoke test (T6 / §40): off-screen egui frame per core tab, crash-only verification |
 
 ### Builder state (builder/src/builder/state/)
@@ -346,6 +348,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/state/regions_ops.rs](../builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region helpers: add/remove/paint/erase/update/next id |
 | [builder/src/builder/state/generation_ops.rs](../builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4: `generate_system_here`, `regenerate_world`, `apply_preview`, `regenerate_partial`, `reroll_seed`, `find_world_indices` |
 | [builder/src/builder/state/catalog_session.rs](../builder/src/builder/state/catalog_session.rs) | Audit #8 catalog-edit undo/redo via command bus: session-coalesced edits to `data_catalogs` mirrors |
+| [builder/src/builder/state/iterative_gen.rs](../builder/src/builder/state/iterative_gen.rs) | Iterative-generation session state: `GenStep` (7 steps, `stage`/`preview_through`), transient `IterativeGenSession` + `IterativeJobResult`, off-thread `spawn_prefix`/`pump_prefix`/`cancel_prefix`, DAG invalidation via `reroll_step`/`note_config_edit`/`step_next`/`step_back`, `precheck_generatable` guard, `commit_new_project` |
 | [builder/src/builder/state/tests.rs](../builder/src/builder/state/tests.rs) | Unit tests for builder state + command bus |
 
 ### Builder panels — MAP tab (split per REFACTOR.txt Task 1)
@@ -380,7 +383,8 @@ top-level tab router.
 | [builder/src/builder/panels/project.rs](../builder/src/builder/panels/project.rs) | PROJECT tab (§N1/§N2): composes Phase-A project I/O surfaces |
 | [builder/src/builder/panels/project_tree.rs](../builder/src/builder/panels/project_tree.rs) | §P4 PROJECT tree panel |
 | [builder/src/builder/panels/new_project.rs](../builder/src/builder/panels/new_project.rs) | New-project wizard (§P1) |
-| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard (RANDOM.md) — `ModalKind::GenerateRandom` → `generate_random_sector` → `open_project` |
+| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard — `ModalKind::GenerateRandom` → `generate_random_sector` → `open_project` |
+| [builder/src/builder/panels/iterative_gen.rs](../builder/src/builder/panels/iterative_gen.rs) | Iterative-generation wizard (`show`): 7-step rail with per-step knob forms, a live `SectorView` preview of the current prefix run, and the reroll/back/forward/accept/cancel action bar. Grid size is edited only through `BuilderState::set_grid_dim` so width and height can never diverge (square-sector invariant) |
 | [builder/src/builder/panels/open_project.rs](../builder/src/builder/panels/open_project.rs) | Open-project picker (§P2) |
 | [builder/src/builder/panels/save_project.rs](../builder/src/builder/panels/save_project.rs) | Save-project actions (§P3) |
 | [builder/src/builder/panels/preferences.rs](../builder/src/builder/panels/preferences.rs) | §P6 preferences panel: recent-projects MRU |
@@ -443,3 +447,10 @@ that declares the modules below.
 | [tests/it/invariants_proptest.rs](../tests/it/invariants_proptest.rs) | Property-based fuzz over spec §11.11 invariants |
 | [tests/it/validation_tests.rs](../tests/it/validation_tests.rs) | Validation behaviour in adverse cases |
 | [tests/it/imports_test.rs](../tests/it/imports_test.rs) | Import/round-trip coverage |
+| [tests/it/cli_behavior.rs](../tests/it/cli_behavior.rs) | Behavioural CLI subprocess tests beyond `cli_smoke`: exit codes, stdout/stderr text, and files written/not-written for `generate-all` / `generate` / `validate` |
+| [tests/it/export_byte_goldens.rs](../tests/it/export_byte_goldens.rs) | #28 pinned byte-stability goldens (blake3 + committed files) for the `heatmap`, `system_map`, `html_export`, and `segmentum` writers (segmentum cases slow; `#[ignore]`) |
+| [tests/it/export_parity_tests.rs](../tests/it/export_parity_tests.rs) | Disk-I/O parity: in-memory HTML/PNG render must equal the bytes written to disk |
+| [tests/it/iterative_gen_tests.rs](../tests/it/iterative_gen_tests.rs) | `generate_prefix`/`Stage`/`RerollNonces` seam: prefix ≡ the same prefix of a full run, nonce-0 ≡ one-shot generation, per-stage reroll isolation |
+| [tests/it/loading_tests.rs](../tests/it/loading_tests.rs) | `read_relative` path-escape guards via `load_project`, plus `big_test`/`big_sparse_test` example parse + dims |
+| [tests/it/random_sector_tests.rs](../tests/it/random_sector_tests.rs) | Size-only random-sector completeness, seed determinism, the `random` CLI bundle, and `_full`/themed presets (Huge + 80×80 `#[ignore]`) |
+| [tests/it/route_monotonicity.rs](../tests/it/route_monotonicity.rs) | docs/TEST_GAPS.md §2c gap 1 proptest: a shorter route is never less safe within a hazard bucket, and every `Webway` is `Stable` |

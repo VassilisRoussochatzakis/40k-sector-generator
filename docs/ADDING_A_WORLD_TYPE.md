@@ -1,36 +1,42 @@
 # Adding a new world type
 
-`WorldType` is a closed Rust enum ([src/worlds.rs:57](../src/worlds.rs#L57)). Most downstream code keys off the variant's **string name** (e.g. `"HiveWorld"`) rather than matching the enum, so adding a variant is mostly mechanical edits in one file plus a few keyed lookups.
+`WorldType` is a closed Rust enum ([src/worlds.rs:54](../src/worlds.rs#L54)). Most downstream code keys off the variant's **string name** (e.g. `"HiveWorld"`) rather than matching the enum, so adding a variant is mostly mechanical edits in one file plus a few keyed lookups.
 
 This checklist covers the full surface. Skip steps explicitly marked *optional* if your variant inherits sensible defaults.
 
 ## 1. Rust enum + string round-trip — [src/worlds.rs](../src/worlds.rs)
 
-All four sites are in `src/worlds.rs` and must stay in sync:
+All three sites are in `src/worlds.rs` and must stay in sync:
 
-1. **Enum variant** (line ~57): add to `pub enum WorldType { … }` in alphabetical order.
-2. **`FromStr`** (line ~452): add the display-string → variant arm. Use the same human-readable form as `display_name`.
-3. **`VARIANTS` array** (line ~884): add the variant. Order here drives UI dropdowns and golden tests.
-4. **`display_name`** (line ~911): add the variant → human string arm.
+1. **Enum variant** (line ~54): add to `pub enum WorldType { … }`, keeping the same (roughly alphabetical) order as `VARIANTS`.
+2. **`VARIANTS` array** (line ~668): add the variant. Order here drives UI dropdowns and golden tests.
+3. **`display_name`** (line ~694): add the variant → human string arm. Must be **unique** — `FromStr` (line ~403) resolves by linear search over `VARIANTS` comparing `display_name()`, so a duplicate string makes one variant unparseable.
+
+`FromStr` needs no manual arm: it derives from `VARIANTS` + `display_name()`.
 
 The `Debug`/`Display` impls use the Rust identifier (`Self::HiveWorld` prints `HiveWorld`), so the variant name is what TOML files reference. Pick a `CamelCase` name that won't need quoting in TOML.
 
-## 2. Taxonomy string→enum — [src/model/taxonomy.rs](../src/model/taxonomy.rs)
+## 2. Taxonomy string→enum — [src/model/taxonomy.rs](../src/model/taxonomy.rs) *(no action needed)*
 
-Add the `"YourVariantName" => WorldType::YourVariant` arm at line ~50. This is the serde/loader-facing map and accepts the *Rust identifier* form (no spaces or dashes).
+`parse_world_type_variant` (line ~42) — the serde/loader-facing map, which accepts the *Rust identifier* form (no spaces or dashes) — is derived from `WorldType::VARIANTS` via `format!("{v:?}")`. It picks up the new variant for free once step 1 is done.
 
-## 3. Economy defaults — [src/analysis/economy.rs](../src/analysis/economy.rs)
+## 3. Economy defaults — [src/analysis/economy/tables.rs](../src/analysis/economy/tables.rs)
 
 Two string-keyed match tables provide built-in behavior. Either extend them or supply equivalents via TOML overrides.
 
-1. **`default_world_type_vector`** (line ~290): production/consumption vector (ore / promethium / foodstuffs / manufactured / archeotech / recruits). Falls through to a neutral default if absent.
-2. **`default_strategic_world_type`** (line ~419): strategic output bucket. Same fallback behavior.
+1. **`default_world_type_vector`** (line ~10): production/consumption vector (ore / promethium / foodstuffs / manufactured / archeotech / recruits). Falls through to a neutral default if absent.
+2. **`default_strategic_world_type`** (line ~139): strategic output bucket. Same fallback behavior.
 
-*Optional* if your project's `economy.toml` already covers the variant via `[resources.world_type.<Name>]` — the TOML rule wins.
+*Optional* if your project's `economy.toml` already covers the variant — note the two tables have **different** TOML keys, and they merge differently:
 
-## 4. Worlds data — [WOW/data/worlds/worlds.toml](../WOW/data/worlds/worlds.toml)
+- `[economy.by_world_type.<Name>]` replaces the vector outright (the TOML entry wins over `default_world_type_vector`).
+- `[resources.world_type.<Name>]` is a *partial overlay* applied on top of `default_strategic_world_type` — only the fields it names are overridden.
 
-Add weighted `[[generation]]` rows for the variant. Without rows, the generator will never roll the variant.
+Two further string-keyed tables in [src/analysis/economy/derive.rs](../src/analysis/economy/derive.rs) — `base_resilience` (line ~330) and `strategic_needs_for_world` (line ~350) — have no TOML escape hatch. Both fall through to a neutral `_` arm, so they're optional flavor, not required edits.
+
+## 4. Worlds data — [presets/\_full/data/worlds/worlds.toml](../presets/_full/data/worlds/worlds.toml)
+
+Add weighted `[[generation]]` rows for the variant. Without rows, the generator will never roll the variant. Repeat for any other project you want it to appear in — each `presets/*/` and `examples/*/` carries its own `data/worlds/worlds.toml`.
 
 A minimal contribution is one row per plausible `(star_colour, atmosphere, temperature, biosphere, population, tech_level, government, notable_feature)` tuple. Weights are relative — copy the magnitudes of an adjacent variant with similar prevalence.
 
@@ -43,7 +49,7 @@ YourVariant = [
 ]
 ```
 
-## 5. Faction preferences — [WOW/data/factions/factions.toml](../WOW/data/factions/factions.toml) *(optional)*
+## 5. Faction preferences — [presets/\_full/data/factions/factions.toml](../presets/_full/data/factions/factions.toml) *(optional)*
 
 If the variant should bias which factions claim it, add the variant name to the relevant `preferred_world_types = [...]` lists. Factions without an entry treat it as neutral.
 
@@ -58,6 +64,8 @@ cargo test --workspace                       # enum coverage + loader tests
 cargo test --test it -- golden               # byte-stable output check
 ```
 
+One test **will** fail by construction: `assert_eq!(WorldType::VARIANTS.len(), 24)` in [builder/src/builder/panels/world/mod.rs:289](../builder/src/builder/panels/world/mod.rs#L289). Bump the count.
+
 If the new variant appears in golden inputs, golden tests will fail — review the diff, confirm it's expected, and re-bake the goldens. The CLAUDE.md determinism invariant still applies: only re-bake when *you* changed the rendering or generation logic, not because a flaky byte changed.
 
 ## 8. Cross-check
@@ -68,10 +76,15 @@ Quick grep to confirm no stragglers:
 grep -rn "HiveWorld" src/ builder/ viewer/ gui-core/ --include="*.rs"
 ```
 
-If there are hard-coded variant references outside `src/worlds.rs`, `src/model/taxonomy.rs`, and `src/gen/world_pool.rs:394` (the only known hard match at time of writing), add equivalent handling for your variant.
+Most hits are test fixtures (including `src/gen/world_pool.rs:384`, which is inside `#[cfg(test)] mod tests`). The production code that genuinely branches per world type, outside `src/worlds.rs` and the economy tables of step 3, is:
+
+- `src/gen/surface_region.rs:94` — surface-region mix per world type.
+- `src/gen/sites.rs:285` — candidate site kinds per world type.
+
+Both end in a `_ =>` fallback, so a new variant compiles and generates without an arm; add one only if the default mix is wrong for it. Anything else the grep turns up outside those files needs equivalent handling.
 
 ## What this checklist deliberately omits
 
-- **Renaming** an existing variant. That breaks savefiles and every TOML overlay. Use serde aliases (see `RouteType` in [src/model/sector_model/mod.rs:403](../src/model/sector_model/mod.rs#L403)) rather than a rename.
+- **Renaming** an existing variant. That breaks savefiles and every TOML overlay. Use serde aliases (see `RouteType` in [src/model/sector_model/mod.rs:557](../src/model/sector_model/mod.rs#L557)) rather than a rename.
 - **Adding new economy axes** (a new resource). Out of scope; touches the `ResourceVector` struct itself.
 - **Adding a new world property axis** (e.g. a sibling of `Temperature`). Separate effort — needs a new key-tab enum and weight table.

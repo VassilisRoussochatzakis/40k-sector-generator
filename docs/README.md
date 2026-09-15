@@ -14,14 +14,12 @@ as the code evolves.
 | [MAP.md](MAP.md) | File-by-file map of the workspace source tree; externalized from CLAUDE.md so the top-level doc stays small. |
 | [BUILDER_REQS.txt](BUILDER_REQS.txt) | Requirements for the full GUI sector builder (1:1 parity with the CLI/generator); target crate `sectorforge-builder`. |
 | [GUIBUILDER.txt](GUIBUILDER.txt) | Specification for the interactive sector builder GUI — the move from scaffold-then-generate to a real-time design environment. |
-| [CONTEXT_MENU.txt](CONTEXT_MENU.txt) | Build guide for the builder's right-click context menus on the sector hex map and per-system view. |
 | [IMPROVEMENT.txt](IMPROVEMENT.txt) | Codebase improvement plan: whole-repo audit against REFACTOR.txt with cross-checked OPTIMIZE.txt items. |
 | [OPTIMIZE.txt](OPTIMIZE.txt) | Catalogue of suggested correctness/performance changes with severity, evidence, and risk. |
 | [REFACTOR.txt](REFACTOR.txt) | Reusable LLM prompt for reviewing, planning, and executing a careful refactor of a large Rust application. |
 | [ADDING_A_WORLD_TYPE.md](ADDING_A_WORLD_TYPE.md) | Checklist for adding a new `WorldType` variant and the keyed lookups that depend on it. |
 | [FRIENDLY_PANEL_PASS.md](FRIENDLY_PANEL_PASS.md) | Reusable recipe for making a builder panel friendly/self-explanatory without changing its data model. |
 | [BEAUTY.md](BEAUTY.md) | Self-contained brief for a future session asked to beautify the GUI to showcase quality. |
-| [UI_OVERHAUL.md](UI_OVERHAUL.md) | Execution playbook for the GUI overhaul: current state with `path:line` evidence, target design system, step-by-step instructions (`§UO<n>`). |
 
 ## Point-in-time / process docs
 

@@ -42,7 +42,7 @@ now **done — do not redo them:**
   title+sub-label rows wrapped in a `ui.vertical`). Verified across Grimdark / Light /
   Slate via the §0 capture loop.
 - **Star-map hero (§6.1) — DONE.** Live-only void flourishes in
-  `gui-core/src/sector_view.rs`: deterministic **star dust** (hashed positions, no
+  `gui-core/src/sector_view/render.rs`: deterministic **star dust** (hashed positions, no
   shimmer), a radial **vignette** (8-point triangle fan), and a gilded **chart frame**
   (hairline border + brass corner brackets/rivets in the active accent). Gated on a
   dark map theme (`is_dark`) + a min canvas size. Decoupled from the golden exporters
@@ -83,23 +83,23 @@ typography *wiring* are now **done — do not redo them:**
   (so stacked rows align into a ledger) with a very low-alpha hairline row separator,
   theme-aware. Lifts every kv table in `info_panel` (control / stability / counts /
   environment / society) at once.
-- **Typography (§5.5) — WIRED, dormant (one handoff left).** The full registration
+- **Typography (§5.5) — DONE.** The full registration
   path landed: `gui-core/src/fonts.rs::install(ctx)` (called once at startup from both
   apps' eframe creation closure, *before* the first theme apply), `design::FONT_DISPLAY`
   + `design::display_family()` (a named family titles opt into; resolves to
   `Proportional` until active), and `theme.rs` routes `Heading` through it. It is gated
-  behind the **`bundled-fonts`** Cargo feature (off by default) so the stock build is
-  byte-for-byte unchanged and never references a missing binary. `design.rs` also gained
+  behind the **`bundled-fonts`** Cargo feature — now **on by default** in both apps;
+  `--no-default-features` gives the byte-for-byte stock build. `design.rs` also gained
   `vertical_gradient` (a per-vertex `Mesh` quad, §5.6).
 
 **Start a future run here:**
 
-1. **Commit the three OFL font binaries** — the *only* remaining typography step.
-   `gui-core/assets/fonts/FONTS.md` names the exact files (`display.ttf` / `body.ttf` /
-   `mono.ttf`), suggests OFL faces, and gives the one-line build command. Drop them in,
-   build with `--features sectorforge-gui-core/bundled-fonts` (or add it to a crate
-   `default`), screenshot under Grimdark/Light, and the display face lights up every
-   title. No code change needed — only the binaries + flipping the feature on.
+1. **The three OFL font binaries — DONE.** `display.ttf` / `body.ttf` / `mono.ttf`
+   (plus their OFL licences) are committed at `gui-core/assets/fonts/`, and both
+   `builder/Cargo.toml` and `viewer/Cargo.toml` carry
+   `default = ["sectorforge-gui-core/bundled-fonts"]` — so the bundled faces ship
+   **by default** and the display face lights up every title. Build with
+   `--no-default-features` to fall back to stock egui.
 2. **Optional refinements** (nice-to-have, not blockers): glowing route lines /
    per-system hover halos / a smooth selection ring on the star map (§6.1); a single
    nav bar that *slides* between tabs vs. the per-row bar today (§6.3); a per-dialog
@@ -108,8 +108,7 @@ typography *wiring* are now **done — do not redo them:**
    dim+fade only).
 
 The sections below are the full playbook; with the above landed, treat §4 and all of §6
-as reference rather than to-do — the remaining work is the font handoff (#1) and the
-optional polish (#2).
+as reference rather than to-do — the remaining work is the optional polish (#2).
 
 ---
 
@@ -180,11 +179,11 @@ Read these before designing. Exact ownership:
 |---|---|---|
 | `gui-core/src/theme.rs` | The **global style entry point**. `Theme::apply(ctx)` builds `Visuals` from a `Pal` (per-preset flat color set), then `tune_spacing` + `tune_typography`. 8 presets; default `Grimdark`. | This is where global radius/shadow/spacing/type defaults live today. Raise the *baseline* here; do per-component bespoke work elsewhere. **Single-writer file (§3).** |
 | `gui-core/src/palette.rs` | Chrome colors (`set_chrome`, `chrome_text()`, `chrome_text_dim()`, `PANEL_BG`) **and** low-level custom painters (`rect_filled`/`rect_stroke` helpers, faction swatches, selection borders). | The painting primitives you'll extend. Reuse these helpers; add new bespoke painters here or in a new module. **Single-writer file (§3).** |
-| `gui-core/src/ui_kit.rs` | **§UO chrome widget kit**: `section` / `collapsing_section` (framed boxes), `field` (label-left/control-right row), `combo`, `kv`, text helpers (`mono_title/section/body/dim`), responsive `columns_responsive`, `reading_column`. Type scale consts `TITLE/SECTION/BODY/DIM`. **Takes `&mut Ui` + plain data — never `BuilderState`.** | The container/layout vocabulary. Make these *prettier* and they lift every panel at once. Keep the "no `BuilderState`" rule. **Single-writer file (§3).** |
-| `gui-core/src/sector_view.rs`, `system_view.rs`, `map_theme.rs`, `info_panel.rs`, `nav.rs`, `heatmap.rs` | The custom-painted map/system renderers + nav rail + info panel. | The hero surfaces. The star map is the single highest-impact thing to make beautiful. **But see the determinism caveat in §8.** |
+| `gui-core/src/ui_kit.rs` | **§UO chrome widget kit**: `section` / `collapsing_section` (framed boxes), `labeled` (label-left/control-right row), `combo`, `kv`, `placeholder`, responsive `columns_responsive`, `reading_column`. Type scale consts `TITLE/SECTION/BODY/DIM`. **Takes `&mut Ui` + plain data — never `BuilderState`.** | The container/layout vocabulary. Make these *prettier* and they lift every panel at once. Keep the "no `BuilderState`" rule. **Single-writer file (§3).** |
+| `gui-core/src/sector_view/` (`view.rs`, `render.rs`, `cache.rs`), `system_view.rs`, `map_theme.rs`, `gui-core/src/info_panel/` (`mod.rs`, `overview.rs`, `system.rs`, `route.rs`, `world.rs`, `subsector.rs`, `history.rs`), `nav.rs`, `heatmap.rs` | The custom-painted map/system renderers + nav rail + info panel. | The hero surfaces. The star map is the single highest-impact thing to make beautiful. **But see the determinism caveat in §8.** |
 | `gui-core/src/visual_tokens.rs` | **Map *semantic* tokens** — system glyphs, route line styles, region overlays. **Despite the name, NOT design tokens.** | Do not put spacing/radius/motion here. Leave it alone unless adding a map symbol. |
 | `builder/src/builder/panels/*.rs` | ~50 builder panels (factions, world, system, routes, regions, economy, briefing, export…). Each `show()` takes `&mut BuilderState`. | Where most chrome lives. Beautify via the shared kit, not per-panel snowflakes. **Independent files → safe to fan out across agents (§3).** |
-| `docs/UI_OVERHAUL.md` | The **§UO playbook** — the earlier "make panels coherent" pass (sections, fields, spacing). | **Read it** (or have an agent summarize it). BEAUTY.md is the *next tier up* (showcase, not merely coherent). Reference §UO; don't duplicate or contradict it. |
+| `§UO` (spec archived) | The **§UO playbook** — the earlier "make panels coherent" pass (sections, fields, spacing). | Spec archived; **reference by tag only.** BEAUTY.md is the *next tier up* (showcase, not merely coherent). Reference §UO; don't duplicate or contradict it. |
 
 **Design-token module — LANDED.** `gui-core/src/design.rs` (`§DESIGN`) now holds
 the named primitives: a 4 px **spacing** grid, one **radius** family
@@ -195,8 +194,8 @@ source of truth), and a theme-derived **accent ramp** (`accent` / `lerp_color` /
 `accent_bright` / `accent_glow`). `theme.rs` + `ui_kit.rs` route through it, the
 scattered radius literals (`4.0`/`6.0`/`7.0`) are gone, and the first motion lives
 in `card.rs`. **Extend this module** when a component needs a new primitive — do
-not reintroduce literals, and do not recreate it. (The one §5.5 primitive still
-missing: a registered display font — type is still `default_fonts`.)
+not reintroduce literals, and do not recreate it. (The §5.5 display font is now
+registered too — see `fonts.rs` + the `bundled-fonts` default feature.)
 
 ---
 
@@ -239,7 +238,7 @@ at screenshots and judge beauty**.
 | Job | Agent | Mode |
 |---|---|---|
 | Map a surface ("where is the faction card painted? what calls `draw_faction_swatch`?") | `rust-explorer` (Haiku, path:line) or `Explore` | **parallel**, read-only |
-| Summarize `docs/UI_OVERHAUL.md` / verify egui-0.29 API via the `egui`/`eframe` skills | `Explore` / `general-purpose` | **parallel**, read-only |
+| Verify egui-0.29 API via the `egui`/`eframe` skills | `general-purpose` | **parallel**, read-only |
 | Sequence the overall plan | `Plan` | one-shot, read-only |
 | Apply an approved recipe to a **builder panel** | `panel-implementer` (knows `BuilderState`/command pattern) | **parallel**, one panel per agent |
 | Small bounded 1–2 file tweak | main thread | single |
@@ -256,7 +255,7 @@ at screenshots and judge beauty**.
 
 - **Phase A · Recon (parallel, read-only).** Fan out 4–5 agents at once: one each
   mapping `sector_view`/`map_theme`, the faction/swatch paint path, `nav`,
-  `info_panel`; plus one summarizing `docs/UI_OVERHAUL.md`; plus one verifying
+  `info_panel`; plus one verifying
   the exact egui-0.29 signatures you'll use (`Rounding`, `epaint::Shadow`,
   `animate_bool_with_time`, `FontDefinitions`, `Mesh`, glow `PaintCallback`).
   Merge their path:line + API findings in the main thread.
@@ -279,15 +278,15 @@ at screenshots and judge beauty**.
 ### Two concrete dispatches
 
 - *Recon fan-out:* "Dispatch in parallel — `rust-explorer`: (1) cite every paint
-  call in `gui-core/src/sector_view.rs`; (2) trace the faction-card render in
+  call in `gui-core/src/sector_view/`; (2) trace the faction-card render in
   `builder/src/builder/panels/factions.rs` + swatch helpers in `palette.rs`; (3)
-  map `nav.rs`. `Explore`: summarize `docs/UI_OVERHAUL.md §UO`. `general-purpose`:
+  map `nav.rs`. `general-purpose`:
   confirm 0.29 signatures for `Shadow`, `animate_bool_with_time`, `set_fonts` via
   the `egui` skill."
 - *Recipe propagation:* "The approved card recipe is `design::card(ui, …)` +
   `design::ELEV_LOW` + 120ms eased hover. Dispatch `panel-implementer` in
   parallel, one per file, to replace the ad-hoc framed boxes in `factions.rs`,
-  `world.rs`, `system.rs`, `routes.rs`, `regions.rs` with it. Do not change
+  `world/`, `system/`, `routes.rs`, `regions.rs` with it. Do not change
   semantics or colors; visual swap only."
 
 ---
@@ -399,10 +398,10 @@ Do them in roughly this order; each lists the file and what "showcase" means.
 Pick **one** as the Phase C hero; the rest become Phase D propagation once the
 recipe exists.
 
-1. **The star-map frame & star field** (`gui-core/src/sector_view.rs`,
+1. **The star-map frame & star field** (`gui-core/src/sector_view/`,
    `map_theme.rs`) — the hero. **Partly DONE:** the gilded corner-bracket frame,
    the void vignette, and the faint deterministic star dust have landed (live-only
-   in `sector_view.rs`; export goldens green, live `map_snapshots` re-blessed).
+   in `sector_view/render.rs`; export goldens green, live `map_snapshots` re-blessed).
    *Still open:* glowing route lines, per-system hover halos, and a smooth selection
    ring. **§8 confirmed:** the live view is fully decoupled from the deterministic
    exporters (separate `MapTheme`/`Canvas`/geometry) — flourishes there are safe.
@@ -421,7 +420,7 @@ recipe exists.
    `card::selectable_plate`, so the active tab is a lit brass-barred plate with a
    hover wash, consistent with every roster. *Optional refinement left:* a single
    bar that *slides* between tabs (vs. the per-row bar that grows in place today).
-4. **Info panel** (`gui-core/src/info_panel.rs`) — tabular. Showcase = refined
+4. **Info panel** (`gui-core/src/info_panel/`) — tabular. Showcase = refined
    kv typography, aligned columns, hairline row separators, restrained accents.
 5. **Section containers** (`ui_kit::section`) — lifts every panel at once.
    **DONE:** `section` / `collapsing_section` now carry an `elev_low` contact
@@ -554,7 +553,7 @@ agents are blind, so a uniform recipe can still land wrong in an odd layout.
 > "Imperial cartographic instrument: parchment + brass + void-black"]**.
 >
 > 1. **Phase A (parallel agents):** dispatch `rust-explorer`/`Explore` to map the
->    target's paint path, summarize `docs/UI_OVERHAUL.md §UO`, and verify the
+>    target's paint path and verify the
 >    egui-0.29 APIs I'll need. Merge findings here.
 > 2. **Phase B — already landed.** `gui-core/src/design.rs` (tokens) and
 >    `gui-core/src/card.rs` (the `selectable_plate` recipe) exist, and
@@ -577,6 +576,5 @@ agents are blind, so a uniform recipe can still land wrong in an odd layout.
 
 ---
 
-*Companion docs: `docs/UI_OVERHAUL.md` (§UO — the coherence pass this builds on),
-`CLAUDE.md` (determinism + command-bus + subagent-routing invariants), `GUIDE.md`
-(project map).*
+*Companion docs: `CLAUDE.md` (determinism + command-bus + subagent-routing
+invariants), `GUIDE.md` (project map).*

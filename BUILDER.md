@@ -461,7 +461,7 @@ prefixed with their spec reference):
   dropdown bound to a canonical enum).
 - **Society** — population scale, tech level, government.
 - **§W5 — Notable features** — multi-select of `NotableFeature` tags
-  (`TradeHub`, `AdministrativeCapital`, `CultActivity`, etc.).
+  (`TradeHub`, `AdministrativeHub`, `PsykerCult`, etc.).
 - **§W6 — Coupling warnings** — derived sanity checks across the world's
   fields.
 - **Tags + Notes** — free-form strings.

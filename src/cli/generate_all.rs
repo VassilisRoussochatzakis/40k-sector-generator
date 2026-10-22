@@ -12,10 +12,24 @@ use super::generate::run_generate;
 /// contains a `sectorforge.toml`. Subdirectories are processed in sorted order
 /// (filesystem listing order is not relied upon); one project's failure is
 /// reported but does not abort the rest. Exits non-zero if any project failed.
+#[derive(Debug, clap::Args)]
+pub(super) struct GenerateAllArgs {
+    /// Directory whose immediate subdirectories are sector projects.
+    #[arg(long, default_value = "examples")]
+    pub dir: Utf8PathBuf,
+    /// Continue a project if its validation produced warnings (not errors).
+    #[arg(long)]
+    pub allow_warnings: bool,
+}
+
 pub(crate) fn run_generate_all(
-    dir: Utf8PathBuf,
-    allow_warnings: bool,
+    args: GenerateAllArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    let GenerateAllArgs {
+        dir,
+        allow_warnings,
+    } = args;
+
     // Collect immediate subdirectories that look like sector projects.
     let read = dir
         .read_dir_utf8()
@@ -45,20 +59,20 @@ pub(crate) fn run_generate_all(
         // out = None -> each project's <outputs.directory> (its own `out/`),
         // overwriting it. All other knobs default so each project's own
         // sectorforge.toml drives seed and formats.
-        let result = run_generate(
-            project.clone(),
-            None, // seed
-            None, // out
+        let result = run_generate(super::generate::GenerateArgs {
+            project: project.clone(),
+            seed: None,
+            out: None,
             allow_warnings,
-            None,  // heatmap
-            false, // no_faction_fill
-            None,  // theme
-            None,  // constraints
-            None,  // max_candidates
-            None,  // formats
-            false, // light
-            None,  // exclude
-        );
+            heatmap: None,
+            no_faction_fill: false,
+            theme: None,
+            constraints: None,
+            max_candidates: None,
+            formats: None,
+            light: false,
+            exclude: None,
+        });
         if let Err(e) = result {
             // A single project's failure is non-fatal (the run continues), so
             // it is a warning in the progress stream rather than a hard error.

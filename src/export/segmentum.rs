@@ -75,13 +75,7 @@ pub enum FactionMode {
 enum_slug!(FactionMode {
     Shared => "shared",
     Independent => "independent",
-});
-
-impl core::fmt::Display for FactionMode {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StitchConfig {

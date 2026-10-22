@@ -4,12 +4,40 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-pub(crate) fn run_new(
-    out: &Utf8PathBuf,
-    preset: &str,
-    seed: Option<&str>,
-    presets_dir: &Utf8PathBuf,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct NewArgs {
+    /// Destination project directory to create.
+    #[arg(long)]
+    pub out: Utf8PathBuf,
+    /// Preset name (matches a sub-directory of `presets/`).
+    #[arg(long)]
+    pub preset: String,
+    /// Override the preset's bundled seed.
+    #[arg(long)]
+    pub seed: Option<String>,
+    /// Source directory holding presets. Defaults to `./presets`.
+    #[arg(long, default_value = "presets")]
+    pub presets_dir: Utf8PathBuf,
+}
+
+#[derive(Debug, clap::Args)]
+pub(super) struct ListPresetsArgs {
+    #[arg(long, default_value = "presets")]
+    pub presets_dir: Utf8PathBuf,
+}
+
+pub(crate) fn run_new(args: NewArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let NewArgs {
+        out,
+        preset,
+        seed,
+        presets_dir,
+    } = args;
+    let out = &out;
+    let preset = &preset;
+    let seed = seed.as_deref();
+    let presets_dir = &presets_dir;
+
     sectorforge::presets::scaffold(presets_dir, preset, out, seed).map(|_| {
         println!("Scaffolded project '{out}' from preset '{preset}'.");
         println!("Next:  cargo run --bin sectorforge -- generate --project {out}");
@@ -18,8 +46,11 @@ pub(crate) fn run_new(
 }
 
 pub(crate) fn run_list_presets(
-    presets_dir: &Utf8PathBuf,
+    args: ListPresetsArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    let ListPresetsArgs { presets_dir } = args;
+    let presets_dir = &presets_dir;
+
     let entries = sectorforge::presets::list(presets_dir)?;
     if entries.is_empty() {
         println!("No presets found in {presets_dir}");

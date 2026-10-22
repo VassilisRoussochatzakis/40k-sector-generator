@@ -418,13 +418,7 @@ enum_slug!(TitheStatus {
     Delinquent => "delinquent",
     Failed => "failed",
     Falsified => "falsified",
-});
-
-impl core::fmt::Display for TitheStatus {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[serde(rename_all = "snake_case")]
@@ -442,13 +436,7 @@ enum_slug!(SupplyRisk {
     Vulnerable => "vulnerable",
     Disrupted => "disrupted",
     Collapsing => "collapsing",
-});
-
-impl core::fmt::Display for SupplyRisk {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[serde(rename_all = "snake_case")]
@@ -468,13 +456,7 @@ enum_slug!(StrategicPriority {
     Subsector => "subsector",
     Sector => "sector",
     CrusadeLevel => "crusade_level",
-});
-
-impl core::fmt::Display for StrategicPriority {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DependencyEdge {

@@ -137,13 +137,7 @@ enum_slug!(AudiencePreset {
     RogueTrader => "rogue_trader",
     LocalGovernor => "local_governor",
     PublicAtlas => "public_atlas",
-});
-
-impl core::fmt::Display for AudiencePreset {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl AudiencePreset {
     fn apply(self, p: &mut BriefingProfile) {

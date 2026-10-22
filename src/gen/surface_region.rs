@@ -66,13 +66,7 @@ enum_slug!(RegionKind {
     TombComplex => "tomb_complex",
     Hideout => "hideout",
     Other => "other",
-});
-
-impl core::fmt::Display for RegionKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// Build the per-world region list. Returns an empty Vec when the world
 /// type/population doesn't warrant a region split (e.g. uninhabited barren

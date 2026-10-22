@@ -203,41 +203,7 @@ pub enum Constraint {
     },
 }
 
-/// §4 NEW.md mirror of [`crate::relations::Stance`].
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum StanceName {
-    Allied,
-    Aligned,
-    Neutral,
-    Rival,
-    Hostile,
-    AtWar,
-}
-
-enum_slug!(StanceName {
-    Allied => "allied",
-    Aligned => "aligned",
-    Neutral => "neutral",
-    Rival => "rival",
-    Hostile => "hostile",
-    AtWar => "at_war",
-});
-
-impl core::fmt::Display for StanceName {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
-impl StanceName {
-    /// Slug-for-slug mirror of [`crate::relations::Stance`], so equal slugs
-    /// mean the same stance.
-    fn matches(self, s: crate::relations::Stance) -> bool {
-        self.as_slug() == s.as_slug()
-    }
-}
+pub use crate::relations::Stance as StanceName;
 
 /// §5 NEW.md mirror of [`crate::regions::RegionConditionKind`].
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -257,13 +223,7 @@ enum_slug!(RegionKindName {
     CalmCorridor => "calm_corridor",
     Blackout => "blackout",
     Anomaly => "anomaly",
-});
-
-impl core::fmt::Display for RegionKindName {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl RegionKindName {
     /// Slug-for-slug mirror of [`crate::regions::RegionConditionKind`], so
@@ -277,35 +237,7 @@ fn default_one() -> u32 {
     1
 }
 
-/// Serializable mirror of [`SystemState`] for use inside constraint files.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum SystemStateName {
-    Pacified,
-    Fragmented,
-    Blockaded,
-    Warzone,
-    Infiltrated,
-    Quarantined,
-    Uncharted,
-}
-
-enum_slug!(SystemStateName {
-    Pacified => "pacified",
-    Fragmented => "fragmented",
-    Blockaded => "blockaded",
-    Warzone => "warzone",
-    Infiltrated => "infiltrated",
-    Quarantined => "quarantined",
-    Uncharted => "uncharted",
-});
-
-impl core::fmt::Display for SystemStateName {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+pub use crate::sector_model::SystemState as SystemStateName;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SystemStateFilter {
@@ -314,7 +246,7 @@ pub struct SystemStateFilter {
 
 impl SystemStateFilter {
     pub fn matches(&self, s: Option<SystemState>) -> bool {
-        s == Some(SystemState::from(self.system_state))
+        s == Some(self.system_state)
     }
     pub fn debug_name(&self) -> String {
         format!("state={:?}", self.system_state)
@@ -336,13 +268,7 @@ enum_slug!(PresenceName {
     Minor => "Minor",
     Significant => "Significant",
     Dominant => "Dominant",
-});
-
-impl core::fmt::Display for PresenceName {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl PresenceName {
     fn matches(self, inf: crate::sector_model::FactionInfluence) -> bool {
@@ -354,20 +280,6 @@ impl PresenceName {
                 | (PresenceName::Significant, I::Significant)
                 | (PresenceName::Dominant, I::Dominant)
         )
-    }
-}
-
-impl From<SystemStateName> for SystemState {
-    fn from(s: SystemStateName) -> Self {
-        match s {
-            SystemStateName::Pacified => SystemState::Pacified,
-            SystemStateName::Fragmented => SystemState::Fragmented,
-            SystemStateName::Blockaded => SystemState::Blockaded,
-            SystemStateName::Warzone => SystemState::Warzone,
-            SystemStateName::Infiltrated => SystemState::Infiltrated,
-            SystemStateName::Quarantined => SystemState::Quarantined,
-            SystemStateName::Uncharted => SystemState::Uncharted,
-        }
     }
 }
 
@@ -656,6 +568,66 @@ fn count_systems_matching_distance(
     n
 }
 
+fn minimum_count(label: impl Into<String>, observed: u32, minimum: u32) -> ConstraintReport {
+    let passed = observed >= minimum;
+    ConstraintReport {
+        label: label.into(),
+        passed,
+        observed: observed.to_string(),
+        required: format!(">= {minimum}"),
+        miss: if passed {
+            0.0
+        } else {
+            minimum as f32 - observed as f32
+        },
+    }
+}
+
+fn maximum_count(label: impl Into<String>, observed: u32, maximum: u32) -> ConstraintReport {
+    let passed = observed <= maximum;
+    ConstraintReport {
+        label: label.into(),
+        passed,
+        observed: observed.to_string(),
+        required: format!("<= {maximum}"),
+        miss: if passed {
+            0.0
+        } else {
+            observed as f32 - maximum as f32
+        },
+    }
+}
+
+fn minimum_value(
+    label: impl Into<String>,
+    observed: f32,
+    minimum: f32,
+    precision: usize,
+) -> ConstraintReport {
+    ConstraintReport {
+        label: label.into(),
+        passed: observed >= minimum,
+        observed: format!("{observed:.precision$}"),
+        required: format!(">= {minimum:.precision$}"),
+        miss: (minimum - observed).max(0.0),
+    }
+}
+
+fn maximum_value(
+    label: impl Into<String>,
+    observed: f32,
+    maximum: f32,
+    precision: usize,
+) -> ConstraintReport {
+    ConstraintReport {
+        label: label.into(),
+        passed: observed <= maximum,
+        observed: format!("{observed:.precision$}"),
+        required: format!("<= {maximum:.precision$}"),
+        miss: (observed - maximum).max(0.0),
+    }
+}
+
 /// Evaluate a single constraint. Returns a per-constraint report including a
 /// non-negative `miss` distance used for ranking near-misses.
 fn evaluate(
@@ -667,83 +639,27 @@ fn evaluate(
     match c {
         Constraint::FactionShareMin { faction_id, min } => {
             let s = share_of(fac_idx, faction_id);
-            let passed = s >= *min;
-            let miss = (*min - s).max(0.0);
-            ConstraintReport {
-                label: format!("faction_share_min({faction_id})"),
-                passed,
-                observed: format!("{:.3}", s),
-                required: format!(">= {:.3}", min),
-                miss,
-            }
+            minimum_value(format!("faction_share_min({faction_id})"), s, *min, 3)
         }
         Constraint::FactionShareMax { faction_id, max } => {
             let s = share_of(fac_idx, faction_id);
-            let passed = s <= *max;
-            let miss = (s - *max).max(0.0);
-            ConstraintReport {
-                label: format!("faction_share_max({faction_id})"),
-                passed,
-                observed: format!("{:.3}", s),
-                required: format!("<= {:.3}", max),
-                miss,
-            }
+            maximum_value(format!("faction_share_max({faction_id})"), s, *max, 3)
         }
         Constraint::FactionWorldCountMin { faction_id, min } => {
             let n = world_count_of(fac_idx, faction_id);
-            let passed = n >= *min;
-            let miss = if passed {
-                0.0
-            } else {
-                (*min as f32) - n as f32
-            };
-            ConstraintReport {
-                label: format!("faction_world_count_min({faction_id})"),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+            minimum_count(format!("faction_world_count_min({faction_id})"), n, *min)
         }
         Constraint::FactionWorldCountMax { faction_id, max } => {
             let n = world_count_of(fac_idx, faction_id);
-            let passed = n <= *max;
-            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
-            ConstraintReport {
-                label: format!("faction_world_count_max({faction_id})"),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count(format!("faction_world_count_max({faction_id})"), n, *max)
         }
         Constraint::FactionSystemCountMin { faction_id, min } => {
             let n = system_count_of(fac_idx, faction_id);
-            let passed = n >= *min;
-            let miss = if passed {
-                0.0
-            } else {
-                (*min as f32) - n as f32
-            };
-            ConstraintReport {
-                label: format!("faction_system_count_min({faction_id})"),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+            minimum_count(format!("faction_system_count_min({faction_id})"), n, *min)
         }
         Constraint::FactionSystemCountMax { faction_id, max } => {
             let n = system_count_of(fac_idx, faction_id);
-            let passed = n <= *max;
-            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
-            ConstraintReport {
-                label: format!("faction_system_count_max({faction_id})"),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count(format!("faction_system_count_max({faction_id})"), n, *max)
         }
         Constraint::WorldTypeExists {
             world_type,
@@ -751,83 +667,31 @@ fn evaluate(
             min_count,
         } => {
             let n = count_world_type_dominant(sector, world_type, dominant_faction_id.as_deref());
-            let passed = n >= *min_count;
-            let miss = if passed {
-                0.0
-            } else {
-                (*min_count as f32) - n as f32
-            };
             let label = match dominant_faction_id {
                 Some(fid) => format!("world_type_exists({world_type} dominant={fid})"),
                 None => format!("world_type_exists({world_type})"),
             };
-            ConstraintReport {
-                label,
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min_count}"),
-                miss,
-            }
+            minimum_count(label, n, *min_count)
         }
         Constraint::ContestedWorldMin { min, n_way } => {
             let n = count_contested_worlds(sector, *n_way);
-            let passed = n >= *min;
-            let miss = if passed {
-                0.0
-            } else {
-                (*min as f32) - n as f32
-            };
             let label = match n_way {
                 Some(k) => format!("contested_world_min(n_way={k})"),
                 None => "contested_world_min".to_string(),
             };
-            ConstraintReport {
-                label,
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+            minimum_count(label, n, *min)
         }
         Constraint::ContestedWorldMax { max } => {
             let n = count_contested_worlds(sector, None);
-            let passed = n <= *max;
-            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
-            ConstraintReport {
-                label: "contested_world_max".to_string(),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count("contested_world_max".to_string(), n, *max)
         }
         Constraint::SystemStateCountMin { state, min } => {
-            let n = count_system_state(sector, SystemState::from(*state));
-            let passed = n >= *min;
-            let miss = if passed {
-                0.0
-            } else {
-                (*min as f32) - n as f32
-            };
-            ConstraintReport {
-                label: format!("system_state_count_min({state:?})"),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+            let n = count_system_state(sector, *state);
+            minimum_count(format!("system_state_count_min({state:?})"), n, *min)
         }
         Constraint::SystemStateCountMax { state, max } => {
-            let n = count_system_state(sector, SystemState::from(*state));
-            let passed = n <= *max;
-            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
-            ConstraintReport {
-                label: format!("system_state_count_max({state:?})"),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            let n = count_system_state(sector, *state);
+            maximum_count(format!("system_state_count_max({state:?})"), n, *max)
         }
         Constraint::FactionPresenceCountMin {
             faction_id,
@@ -835,22 +699,14 @@ fn evaluate(
             presence,
         } => {
             let n = count_faction_presence(sector, faction_id, *presence);
-            let passed = n >= *min;
-            let miss = if passed {
-                0.0
-            } else {
-                (*min as f32) - n as f32
-            };
-            ConstraintReport {
-                label: format!(
+            minimum_count(
+                format!(
                     "faction_presence_count_min({faction_id} presence={:?})",
                     presence
                 ),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+                n,
+                *min,
+            )
         }
         Constraint::MinimumSystemsMatching {
             count,
@@ -859,22 +715,14 @@ fn evaluate(
             where_cond,
         } => {
             let n = count_systems_matching_distance(sector, within_hops_of, *max_hops, where_cond);
-            let passed = n >= *count;
-            let miss = if passed {
-                0.0
-            } else {
-                (*count as f32) - n as f32
-            };
-            ConstraintReport {
-                label: format!(
+            minimum_count(
+                format!(
                     "minimum_systems_matching({} within {max_hops} hops of {within_hops_of})",
                     where_cond.debug_name()
                 ),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {count}"),
-                miss,
-            }
+                n,
+                *count,
+            )
         }
         Constraint::RouteGraphConnected => {
             let n = analysis.connectivity.component_count;
@@ -938,61 +786,29 @@ fn evaluate(
         }
         Constraint::ContestedRatioMax { max } => {
             let r = analysis.contested_world_ratio;
-            let passed = r <= *max;
-            let miss = (r - *max).max(0.0);
-            ConstraintReport {
-                label: "contested_ratio_max".to_string(),
-                passed,
-                observed: format!("{:.3}", r),
-                required: format!("<= {:.3}", max),
-                miss,
-            }
+            maximum_value("contested_ratio_max".to_string(), r, *max, 3)
         }
         Constraint::ContestedRatioMin { min } => {
             let r = analysis.contested_world_ratio;
-            let passed = r >= *min;
-            let miss = (*min - r).max(0.0);
-            ConstraintReport {
-                label: "contested_ratio_min".to_string(),
-                passed,
-                observed: format!("{:.3}", r),
-                required: format!(">= {:.3}", min),
-                miss,
-            }
+            minimum_value("contested_ratio_min".to_string(), r, *min, 3)
         }
         Constraint::StanceCountMin { stance, min } => {
             let n = sector
                 .relations
                 .pairs
                 .iter()
-                .filter(|p| stance.matches(p.stance))
+                .filter(|p| p.stance == *stance)
                 .count() as u32;
-            let passed = n >= *min;
-            let miss = (*min as f32 - n as f32).max(0.0);
-            ConstraintReport {
-                label: format!("stance_count_min:{stance:?}"),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+            minimum_count(format!("stance_count_min:{stance:?}"), n, *min)
         }
         Constraint::StanceCountMax { stance, max } => {
             let n = sector
                 .relations
                 .pairs
                 .iter()
-                .filter(|p| stance.matches(p.stance))
+                .filter(|p| p.stance == *stance)
                 .count() as u32;
-            let passed = n <= *max;
-            let miss = (n as f32 - *max as f32).max(0.0);
-            ConstraintReport {
-                label: format!("stance_count_max:{stance:?}"),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count(format!("stance_count_max:{stance:?}"), n, *max)
         }
         Constraint::RegionCountMin { region_kind, min } => {
             let n = sector
@@ -1000,15 +816,7 @@ fn evaluate(
                 .iter()
                 .filter(|r| region_kind.matches(r.kind))
                 .count() as u32;
-            let passed = n >= *min;
-            let miss = (*min as f32 - n as f32).max(0.0);
-            ConstraintReport {
-                label: format!("region_count_min:{region_kind:?}"),
-                passed,
-                observed: n.to_string(),
-                required: format!(">= {min}"),
-                miss,
-            }
+            minimum_count(format!("region_count_min:{region_kind:?}"), n, *min)
         }
         Constraint::RegionCountMax { region_kind, max } => {
             let n = sector
@@ -1016,27 +824,11 @@ fn evaluate(
                 .iter()
                 .filter(|r| region_kind.matches(r.kind))
                 .count() as u32;
-            let passed = n <= *max;
-            let miss = (n as f32 - *max as f32).max(0.0);
-            ConstraintReport {
-                label: format!("region_count_max:{region_kind:?}"),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count(format!("region_count_max:{region_kind:?}"), n, *max)
         }
         Constraint::EconomyStrandedMax { max } => {
             let n = sector.economy.worlds.iter().filter(|w| w.stranded).count() as u32;
-            let passed = n <= *max;
-            let miss = (n as f32 - *max as f32).max(0.0);
-            ConstraintReport {
-                label: "economy_stranded_max".to_string(),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count("economy_stranded_max".to_string(), n, *max)
         }
         Constraint::EconomyResourceMin { resource, min } => {
             let v = match resource.as_str() {
@@ -1048,15 +840,7 @@ fn evaluate(
                 "recruits" => sector.economy.sector_balance.recruits,
                 _ => 0.0,
             };
-            let passed = v >= *min;
-            let miss = (*min - v).max(0.0);
-            ConstraintReport {
-                label: format!("economy_resource_min:{resource}"),
-                passed,
-                observed: format!("{v:.1}"),
-                required: format!(">= {min:.1}"),
-                miss,
-            }
+            minimum_value(format!("economy_resource_min:{resource}"), v, *min, 1)
         }
     }
 }

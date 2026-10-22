@@ -36,25 +36,19 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
             });
         });
 
-    egui::CentralPanel::default()
-        .frame(
-            egui::Frame::none()
-                .fill(palette::chrome_bg())
-                .inner_margin(14.0),
-        )
-        .show(ctx, |ui| {
-            ScrollArea::vertical().show(ui, |ui| match app.factions_mode {
-                FactionsMode::Overview => {
-                    factions_overview::show_readonly(ui, &sector);
-                }
-                FactionsMode::Designer => {
-                    factions_overview::show_designer(
-                        ui,
-                        &sector,
-                        &mut app.faction_designer,
-                        app.project_dir.as_deref(),
-                    );
-                }
-            });
+    super::page(ctx, |ui| {
+        ScrollArea::vertical().show(ui, |ui| match app.factions_mode {
+            FactionsMode::Overview => {
+                factions_overview::show_readonly(ui, &sector);
+            }
+            FactionsMode::Designer => {
+                factions_overview::show_designer(
+                    ui,
+                    &sector,
+                    &mut app.faction_designer,
+                    app.project_dir.as_deref(),
+                );
+            }
         });
+    });
 }

@@ -72,7 +72,7 @@ enum_slug!(KindGroup {
     Xenos => "xenos",
     Criminal => "criminal",
     Other => "other",
-});
+}, display);
 
 impl KindGroup {
     #[must_use]
@@ -86,12 +86,6 @@ impl KindGroup {
             KindGroup::Criminal => "Criminal Networks",
             KindGroup::Other => "Other Factions",
         }
-    }
-}
-
-impl core::fmt::Display for KindGroup {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
     }
 }
 

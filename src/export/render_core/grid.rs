@@ -5,7 +5,9 @@ use std::collections::HashMap;
 use image::Rgba;
 
 use super::canvas::Canvas;
-use super::colors::blend_heat;
+use super::colors::{blend_heat, rgba};
+use super::RenderOptions;
+use crate::heatmap::{HeatCellRgb, HeatmapMode};
 use crate::map_theme::MapTheme;
 use crate::regions::RegionConditionKind;
 use crate::sector_model::{offset_r_neighbors, GeneratedSector};
@@ -128,4 +130,27 @@ pub(crate) fn region_colour(kind: RegionConditionKind) -> Rgba<u8> {
         RegionConditionKind::BeaconChain => Rgba([230, 210, 100, 255]),
         RegionConditionKind::EmpyricBleed => Rgba([190, 70, 160, 255]),
     }
+}
+
+/// Per-hex heatmap tint (no faction fill — the live map never tints by
+/// faction). Mirrors the live renderer: `blend_heat(hex_empty, cell, intensity)`.
+pub(crate) fn compute_heat_tints(
+    sector: &GeneratedSector,
+    opts: &RenderOptions,
+    heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
+) -> HashMap<(i32, i32), Rgba<u8>> {
+    let mut out = HashMap::new();
+    if matches!(opts.heatmap, HeatmapMode::Off) {
+        return out;
+    }
+    for sys in sector.systems.iter() {
+        if let Some(cell) = heat.get(&sys.id) {
+            let key = (sys.coord.q, sys.coord.r);
+            out.insert(
+                key,
+                blend_heat(opts.theme.hex_empty, rgba(cell.rgb), cell.intensity),
+            );
+        }
+    }
+    out
 }

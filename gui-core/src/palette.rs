@@ -175,20 +175,6 @@ pub fn info() -> Color32 {
     status().info
 }
 
-/// Color a validation summary by state (SPRUCE D7): muted when clean, warning
-/// amber for warnings only, danger red once any error fires. The muted/clean
-/// case is [`chrome_text_dim`] so a `0 err / 0 warn` line never reads as amber.
-#[must_use]
-pub fn validation_color(errors: usize, warnings: usize) -> Color32 {
-    if errors > 0 {
-        danger()
-    } else if warnings > 0 {
-        warning()
-    } else {
-        chrome_text_dim()
-    }
-}
-
 pub fn star_color(code: &str) -> Color32 {
     match code.trim().to_ascii_uppercase().as_str() {
         "O" => Color32::from_rgb(255, 150, 70),
@@ -1130,30 +1116,6 @@ mod tests {
         assert_eq!(id, "b");
         assert!(matches!(kind, RouteControlKind::Interdiction));
         assert_eq!(score, 80.0);
-    }
-
-    // ── Gap 2: validation_color (errors mask warnings) ────────────────────────
-    // status/chrome colours are process-global statics another test could swap;
-    // assert against the live helpers so the branch logic is proven independent
-    // of any concurrently-installed theme. (Default DARK literals noted inline.)
-    #[test]
-    fn validation_color_clean_is_dim() {
-        // (0,0) -> chrome_text_dim() (default TEXT_DIM = rgb(150,145,165)).
-        assert_eq!(validation_color(0, 0), chrome_text_dim());
-    }
-
-    #[test]
-    fn validation_color_warnings_only_is_warning() {
-        // (0,3) -> warning() (default StatusColors::DARK.warning = rgb(224,145,58)).
-        assert_eq!(validation_color(0, 3), warning());
-    }
-
-    #[test]
-    fn validation_color_errors_take_precedence() {
-        // (2,0) -> danger() (default StatusColors::DARK.danger = rgb(210,96,63)).
-        assert_eq!(validation_color(2, 0), danger());
-        // (2,5) -> danger() as well: any error masks warnings.
-        assert_eq!(validation_color(2, 5), danger());
     }
 
     // ── Gap 10: star_color (trim+upper tolerant) vs world_type_color (exact) ──

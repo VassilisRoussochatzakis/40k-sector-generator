@@ -38,13 +38,7 @@ enum_slug!(Severity {
     Error => "error",
     Warning => "warning",
     Info => "info",
-});
-
-impl core::fmt::Display for Severity {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct WorldWorkbookValidation {
@@ -263,7 +257,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     for (idx, f) in input.catalogs.factions.iter().enumerate() {
         if !faction_ids.insert(f.id.clone()) {
             errors.push(ValidationIssue {
-                code: ValidationCode::FactionDuplicateId.as_slug().to_string(),
+                code: FACTION_DUPLICATE_ID.to_string(),
                 message: format!("duplicate faction id '{}'", f.id),
                 path: Some(format!("factions[{idx}]")),
                 row: None,
@@ -272,7 +266,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         }
         if !(f.weight.is_finite() && f.weight > 0.0) {
             errors.push(ValidationIssue {
-                code: ValidationCode::FactionBadWeight.as_slug().to_string(),
+                code: FACTION_BAD_WEIGHT.to_string(),
                 message: format!("faction '{}' has non-positive or non-finite weight", f.id),
                 path: Some(format!("factions[{idx}]")),
                 row: None,
@@ -282,9 +276,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_world_types {
             if taxonomy::parse_world_type_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: ValidationCode::FactionUnknownWorldType
-                        .as_slug()
-                        .to_string(),
+                    code: FACTION_UNKNOWN_WORLD_TYPE.to_string(),
                     message: format!("faction '{}' references unknown world type '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_world_types")),
                     row: None,
@@ -295,9 +287,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_governments {
             if taxonomy::parse_government_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: ValidationCode::FactionUnknownGovernment
-                        .as_slug()
-                        .to_string(),
+                    code: FACTION_UNKNOWN_GOVERNMENT.to_string(),
                     message: format!("faction '{}' references unknown government '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_governments")),
                     row: None,
@@ -308,7 +298,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_notable_features {
             if taxonomy::parse_notable_feature_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: ValidationCode::FactionUnknownFeature.as_slug().to_string(),
+                    code: FACTION_UNKNOWN_FEATURE.to_string(),
                     message: format!("faction '{}' references unknown feature '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_notable_features")),
                     row: None,
@@ -338,7 +328,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for (i, m) in r.modifiers.iter().enumerate() {
             if !(m.multiplier.is_finite() && m.multiplier > 0.0) {
                 errors.push(ValidationIssue {
-                    code: ValidationCode::RouteBadMultiplier.as_slug().to_string(),
+                    code: ROUTE_BAD_MULTIPLIER.to_string(),
                     message: "route modifier multiplier must be positive and finite".to_string(),
                     path: Some(format!("routes.modifiers[{i}]")),
                     row: None,
@@ -404,7 +394,7 @@ fn validate_relations(
         for (i, r) in cfg.kind_rules.iter().enumerate() {
             if r.a.is_empty() || r.b.is_empty() {
                 warnings.push(ValidationIssue {
-                    code: ValidationCode::RelationsKindRuleEmpty.as_slug().to_string(),
+                    code: RELATIONS_KIND_RULE_EMPTY.to_string(),
                     message: format!("relations.kind_rules[{i}] has empty kind id"),
                     path: Some(format!("relations.kind_rules[{i}]")),
                     row: None,
@@ -429,9 +419,7 @@ fn validate_relations(
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
                 errors.push(ValidationIssue {
-                    code: ValidationCode::RelationsPairUnknownFaction
-                        .as_slug()
-                        .to_string(),
+                    code: RELATIONS_PAIR_UNKNOWN_FACTION.to_string(),
                     message: format!(
                         "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
@@ -446,9 +434,7 @@ fn validate_relations(
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
                 errors.push(ValidationIssue {
-                    code: ValidationCode::RelationsOverrideUnknownFaction
-                        .as_slug()
-                        .to_string(),
+                    code: RELATIONS_OVERRIDE_UNKNOWN_FACTION.to_string(),
                     message: format!(
                         "relations.overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
@@ -462,7 +448,7 @@ fn validate_relations(
     for (i, r) in cfg.kind_rules.iter().enumerate() {
         if r.a.is_empty() || r.b.is_empty() {
             warnings.push(ValidationIssue {
-                code: ValidationCode::RelationsKindRuleEmpty.as_slug().to_string(),
+                code: RELATIONS_KIND_RULE_EMPTY.to_string(),
                 message: format!("relations.kind_rules[{i}] has empty kind id"),
                 path: Some(format!("relations.kind_rules[{i}]")),
                 row: None,
@@ -511,9 +497,7 @@ fn validate_regions(
     for (i, c) in cfg.conditions.iter().enumerate() {
         if !c.weight.is_finite() || c.weight < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::RegionsConditionBadWeight
-                    .as_slug()
-                    .to_string(),
+                code: REGIONS_CONDITION_BAD_WEIGHT.to_string(),
                 message: format!(
                     "regions.conditions[{i}].weight {} is not a finite non-negative number",
                     c.weight
@@ -538,9 +522,7 @@ fn validate_economy(
     for (k, v) in &cfg.by_tech_level {
         if !v.is_finite() || *v < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::EconomyTechMultiplierBad
-                    .as_slug()
-                    .to_string(),
+                code: ECONOMY_TECH_MULTIPLIER_BAD.to_string(),
                 message: format!(
                     "economy.by_tech_level[{k}] = {v} is not a finite non-negative number"
                 ),
@@ -553,9 +535,7 @@ fn validate_economy(
     for (k, v) in &cfg.by_population {
         if !v.is_finite() || *v < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::EconomyPopMultiplierBad
-                    .as_slug()
-                    .to_string(),
+                code: ECONOMY_POP_MULTIPLIER_BAD.to_string(),
                 message: format!(
                     "economy.by_population[{k}] = {v} is not a finite non-negative number"
                 ),
@@ -586,7 +566,7 @@ fn validate_resource_rule(
         if let Some(v) = value {
             if !v.is_finite() || !(0.0..=100.0).contains(&v) {
                 errors.push(ValidationIssue {
-                    code: ValidationCode::ResourceScoreBad.as_slug().to_string(),
+                    code: RESOURCE_SCORE_BAD.to_string(),
                     message: format!("resources.{scope}.{name}.{field} = {v} is not 0..=100"),
                     path: Some(path(field)),
                     row: None,
@@ -608,9 +588,7 @@ fn validate_resource_rule(
     if let Some(v) = rule.trade_multiplier {
         if !v.is_finite() || v < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::ResourceTradeMultiplierBad
-                    .as_slug()
-                    .to_string(),
+                code: RESOURCE_TRADE_MULTIPLIER_BAD.to_string(),
                 message: format!(
                     "resources.{scope}.{name}.trade_multiplier = {v} is not finite non-negative"
                 ),
@@ -623,9 +601,7 @@ fn validate_resource_rule(
     if let Some(v) = rule.supply_resilience {
         if !v.is_finite() || !(-100.0..=100.0).contains(&v) {
             errors.push(ValidationIssue {
-                code: ValidationCode::ResourceSupplyResilienceBad
-                    .as_slug()
-                    .to_string(),
+                code: RESOURCE_SUPPLY_RESILIENCE_BAD.to_string(),
                 message: format!(
                     "resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"
                 ),
@@ -647,153 +623,18 @@ fn issue(code: &str, message: &str, severity: Severity) -> ValidationIssue {
     }
 }
 
-/// Enum-backed subset of the validation `code` strings. Each variant maps to a
-/// stable SCREAMING_SNAKE_CASE slug via [`Self::as_slug`], which is what
-/// surfaces in the report JSON and the markdown render.
-///
-/// **This enum is *not* the complete code registry.** Today only the
-/// config-driven `resources`/`relations`/`economy`/`regions`/`route`/`faction`
-/// validators route through it; the structural checks (`GEN_*`, `OUT_*`,
-/// `WB_*`, `KEY_TABLE_EMPTY`, `NAME_POOL_EMPTY`, …) still emit their codes as
-/// bare string literals via the [`issue`] helper. Both forms produce the same
-/// `ValidationIssue { code: String, .. }`; this enum simply gives a portion of
-/// them compile-time-checked, single-site definitions. Preferring
-/// `ValidationCode::Foo.as_slug()` over an inline literal — where a variant
-/// exists — buys:
-///
-/// 1. Typos caught at compile time.
-/// 2. Central enumerability for that subset (e.g. documentation, or a future
-///    `--list-codes` CLI flag).
-/// 3. Renaming a code as a single-site edit.
-///
-/// New codes do not *have* to be added here, but doing so is encouraged. The
-/// `validation_code_slugs_are_unique_and_screaming_snake_case` test guards the
-/// casing and uniqueness of the slugs this enum does own.
-///
-/// `#[non_exhaustive]` so adding a new code is not a SemVer break.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[non_exhaustive]
-pub enum ValidationCode {
-    FactionDuplicateId,
-    FactionBadWeight,
-    FactionUnknownWorldType,
-    FactionUnknownGovernment,
-    FactionUnknownFeature,
-    RouteBadMultiplier,
-    RelationsKindRuleEmpty,
-    RelationsPairUnknownFaction,
-    RelationsOverrideUnknownFaction,
-    RegionsConditionBadWeight,
-    EconomyTechMultiplierBad,
-    EconomyPopMultiplierBad,
-    ResourceScoreBad,
-    ResourceTradeMultiplierBad,
-    ResourceSupplyResilienceBad,
-}
-
-enum_slug!(const ValidationCode {
-    FactionDuplicateId => "FACTION_DUPLICATE_ID",
-    FactionBadWeight => "FACTION_BAD_WEIGHT",
-    FactionUnknownWorldType => "FACTION_UNKNOWN_WORLD_TYPE",
-    FactionUnknownGovernment => "FACTION_UNKNOWN_GOVERNMENT",
-    FactionUnknownFeature => "FACTION_UNKNOWN_FEATURE",
-    RouteBadMultiplier => "ROUTE_BAD_MULTIPLIER",
-    RelationsKindRuleEmpty => "RELATIONS_KIND_RULE_EMPTY",
-    RelationsPairUnknownFaction => "RELATIONS_PAIR_UNKNOWN_FACTION",
-    RelationsOverrideUnknownFaction => "RELATIONS_OVERRIDE_UNKNOWN_FACTION",
-    RegionsConditionBadWeight => "REGIONS_CONDITION_BAD_WEIGHT",
-    EconomyTechMultiplierBad => "ECONOMY_TECH_MULTIPLIER_BAD",
-    EconomyPopMultiplierBad => "ECONOMY_POP_MULTIPLIER_BAD",
-    ResourceScoreBad => "RESOURCE_SCORE_BAD",
-    ResourceTradeMultiplierBad => "RESOURCE_TRADE_MULTIPLIER_BAD",
-    ResourceSupplyResilienceBad => "RESOURCE_SUPPLY_RESILIENCE_BAD",
-});
-
-#[cfg(test)]
-mod code_registry_tests {
-    use super::ValidationCode;
-
-    /// Every [`ValidationCode`] variant, enumerated for the guard test below.
-    /// Kept in lock-step with the enum by [`assert_listed`], which `match`es
-    /// exhaustively (no `_` arm) — so adding a new variant is a compile error
-    /// until it is also added here, and no code can silently escape the guard.
-    const ALL: &[ValidationCode] = &[
-        ValidationCode::FactionDuplicateId,
-        ValidationCode::FactionBadWeight,
-        ValidationCode::FactionUnknownWorldType,
-        ValidationCode::FactionUnknownGovernment,
-        ValidationCode::FactionUnknownFeature,
-        ValidationCode::RouteBadMultiplier,
-        ValidationCode::RelationsKindRuleEmpty,
-        ValidationCode::RelationsPairUnknownFaction,
-        ValidationCode::RelationsOverrideUnknownFaction,
-        ValidationCode::RegionsConditionBadWeight,
-        ValidationCode::EconomyTechMultiplierBad,
-        ValidationCode::EconomyPopMultiplierBad,
-        ValidationCode::ResourceScoreBad,
-        ValidationCode::ResourceTradeMultiplierBad,
-        ValidationCode::ResourceSupplyResilienceBad,
-    ];
-
-    /// Compile-time anchor: this exhaustive `match` (no `_` arm) fails to compile
-    /// if a `ValidationCode` variant is added without also being added to `ALL`.
-    /// Called from the test below so it is never dead code.
-    fn assert_listed(code: ValidationCode) {
-        match code {
-            ValidationCode::FactionDuplicateId
-            | ValidationCode::FactionBadWeight
-            | ValidationCode::FactionUnknownWorldType
-            | ValidationCode::FactionUnknownGovernment
-            | ValidationCode::FactionUnknownFeature
-            | ValidationCode::RouteBadMultiplier
-            | ValidationCode::RelationsKindRuleEmpty
-            | ValidationCode::RelationsPairUnknownFaction
-            | ValidationCode::RelationsOverrideUnknownFaction
-            | ValidationCode::RegionsConditionBadWeight
-            | ValidationCode::EconomyTechMultiplierBad
-            | ValidationCode::EconomyPopMultiplierBad
-            | ValidationCode::ResourceScoreBad
-            | ValidationCode::ResourceTradeMultiplierBad
-            | ValidationCode::ResourceSupplyResilienceBad => {}
-        }
-    }
-
-    /// Every enum-backed slug is SCREAMING_SNAKE_CASE and unique. Guards the
-    /// "split-brain" code registry (Finding #39): the enum owns only a subset of
-    /// the codes, but the slugs it does own must stay well-formed and collision
-    /// free.
-    #[test]
-    fn validation_code_slugs_are_unique_and_screaming_snake_case() {
-        use std::collections::BTreeSet;
-
-        let mut seen: BTreeSet<&'static str> = BTreeSet::new();
-        for &code in ALL {
-            assert_listed(code);
-            let slug = code.as_slug();
-
-            // SCREAMING_SNAKE_CASE: starts with an uppercase letter, then only
-            // uppercase letters, digits, or underscores. No leading digit, no
-            // lowercase, no other punctuation, never empty.
-            assert!(
-                matches!(slug.chars().next(), Some('A'..='Z')),
-                "slug {slug:?} must start with an uppercase ASCII letter"
-            );
-            assert!(
-                slug.chars()
-                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_'),
-                "slug {slug:?} must be SCREAMING_SNAKE_CASE (^[A-Z][A-Z0-9_]*$)"
-            );
-
-            assert!(
-                seen.insert(slug),
-                "duplicate validation code slug: {slug:?}"
-            );
-        }
-
-        assert_eq!(
-            seen.len(),
-            ALL.len(),
-            "every ValidationCode variant must contribute a distinct slug"
-        );
-    }
-}
+const FACTION_DUPLICATE_ID: &str = "FACTION_DUPLICATE_ID";
+const FACTION_BAD_WEIGHT: &str = "FACTION_BAD_WEIGHT";
+const FACTION_UNKNOWN_WORLD_TYPE: &str = "FACTION_UNKNOWN_WORLD_TYPE";
+const FACTION_UNKNOWN_GOVERNMENT: &str = "FACTION_UNKNOWN_GOVERNMENT";
+const FACTION_UNKNOWN_FEATURE: &str = "FACTION_UNKNOWN_FEATURE";
+const ROUTE_BAD_MULTIPLIER: &str = "ROUTE_BAD_MULTIPLIER";
+const RELATIONS_KIND_RULE_EMPTY: &str = "RELATIONS_KIND_RULE_EMPTY";
+const RELATIONS_PAIR_UNKNOWN_FACTION: &str = "RELATIONS_PAIR_UNKNOWN_FACTION";
+const RELATIONS_OVERRIDE_UNKNOWN_FACTION: &str = "RELATIONS_OVERRIDE_UNKNOWN_FACTION";
+const REGIONS_CONDITION_BAD_WEIGHT: &str = "REGIONS_CONDITION_BAD_WEIGHT";
+const ECONOMY_TECH_MULTIPLIER_BAD: &str = "ECONOMY_TECH_MULTIPLIER_BAD";
+const ECONOMY_POP_MULTIPLIER_BAD: &str = "ECONOMY_POP_MULTIPLIER_BAD";
+const RESOURCE_SCORE_BAD: &str = "RESOURCE_SCORE_BAD";
+const RESOURCE_TRADE_MULTIPLIER_BAD: &str = "RESOURCE_TRADE_MULTIPLIER_BAD";
+const RESOURCE_SUPPLY_RESILIENCE_BAD: &str = "RESOURCE_SUPPLY_RESILIENCE_BAD";

@@ -4,8 +4,6 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use rand_chacha::ChaCha8Rng;
-
 use crate::config::{AppConfig, StabilityTargets};
 use crate::ids;
 use crate::routes::RouteRules;
@@ -40,7 +38,6 @@ pub(super) fn generate_routes(
     config: &AppConfig,
     rules: &RouteRules,
     systems: &[GeneratedSystem],
-    rng: &mut ChaCha8Rng,
 ) -> Vec<GeneratedRoute> {
     if systems.len() < 2 {
         return Vec::new();
@@ -185,7 +182,6 @@ pub(super) fn generate_routes(
         for (i, j, _, _) in &chosen {
             union(&mut parent, *i, *j);
         }
-        let _ = rng; // RNG reserved for future stochastic edges
         for i in 0..systems.len() {
             for j in (i + 1)..systems.len() {
                 if find(&mut parent, i) == find(&mut parent, j) {

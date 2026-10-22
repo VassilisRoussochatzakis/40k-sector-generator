@@ -9,6 +9,22 @@ use serde::{Deserialize, Serialize};
 // this module's `[load_worlds_data]` doc-link stay stable.
 pub use crate::worlds_toml::{load_worlds_data, WorldError, WorldsLoad};
 
+// Keep enum order, picker order, and display labels in one declaration.
+macro_rules! world_enum {
+    ($(#[$meta:meta])* $name:ident { $($variant:ident => $label:literal),+ $(,)? }) => {
+        $(#[$meta])*
+        pub enum $name { $($variant),+ }
+
+        impl $name {
+            pub const VARIANTS: &'static [Self] = &[$(Self::$variant),+];
+
+            pub fn display_name(&self) -> &'static str {
+                match self { $(Self::$variant => $label),+ }
+            }
+        }
+    };
+}
+
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -49,228 +65,244 @@ impl StarColour {
     }
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum WorldType {
-    AgriWorld,
-    Asteroid,
-    BastionWorld,
-    DeathWorld,
-    DeadWorld,
-    ExtractiveColony,
-    FeralWorld,
-    FeudalWorld,
-    ForgeWorld,
-    FrontierWorld,
-    HiveWorld,
-    ImperialWorld,
-    IndustrialWorld,
-    Orbital,
-    PenalWorld,
-    PlanetaryDump,
-    PlanetaryMonument,
-    PleasureWorld,
-    ResearchStation,
-    ShrineWorld,
-    TombWorld,
-    WarpLostWorld,
-    Worldship,
-    XenosWorld,
+WorldType {
+    AgriWorld => "Agri-World",
+    Asteroid => "Asteroid",
+    BastionWorld => "Bastion World",
+    DeathWorld => "Death World",
+    DeadWorld => "Dead World",
+    ExtractiveColony => "Extractive Colony",
+    FeralWorld => "Feral World",
+    FeudalWorld => "Feudal World",
+    ForgeWorld => "Forge World",
+    FrontierWorld => "Frontier World",
+    HiveWorld => "Hive World",
+    ImperialWorld => "Imperial World",
+    IndustrialWorld => "Industrial World",
+    Orbital => "Orbital",
+    PenalWorld => "Penal World",
+    PlanetaryDump => "Planetary Dump",
+    PlanetaryMonument => "Planetary Monument",
+    PleasureWorld => "Pleasure World",
+    ResearchStation => "Research Station",
+    ShrineWorld => "Shrine World",
+    TombWorld => "Tomb World",
+    WarpLostWorld => "Warp-Lost World",
+    Worldship => "Worldship",
+    XenosWorld => "Xenos World",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum Atmosphere {
-    Airless,
-    Breathable,
-    Corrosive,
-    Exotic,
-    Thin,
-    Tainted,
-    Toxic,
+Atmosphere {
+    Airless => "Airless",
+    Breathable => "Breathable",
+    Corrosive => "Corrosive",
+    Exotic => "Exotic",
+    Thin => "Thin",
+    Tainted => "Tainted",
+    Toxic => "Toxic",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum Temperature {
-    Freezing,
-    Cold,
-    Temperate,
-    Hot,
-    Boiling,
+Temperature {
+    Freezing => "Freezing",
+    Cold => "Cold",
+    Temperate => "Temperate",
+    Hot => "Hot",
+    Boiling => "Boiling",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum Biosphere {
-    Nonexistent,
-    Minimal,
-    Thriving,
-    Poisoned,
-    XenoHybrid,
-    XenoDominance,
+Biosphere {
+    Nonexistent => "Nonexistent",
+    Minimal => "Minimal",
+    Thriving => "Thriving",
+    Poisoned => "Poisoned",
+    XenoHybrid => "Xeno Hybrid",
+    XenoDominance => "Xeno Dominance",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum Population {
-    Uninhabited,
-    Minimal,
-    LightlyPopulated,
-    SoleSettlement,
-    DenselyPopulated,
-    ExtremelyDense,
+Population {
+    Uninhabited => "Uninhabited",
+    Minimal => "Minimal",
+    LightlyPopulated => "Lightly Populated",
+    SoleSettlement => "Sole Settlement",
+    DenselyPopulated => "Densely Populated",
+    ExtremelyDense => "Extremely Dense",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum TechLevel {
-    Primitive,
-    Low,
-    Standard,
-    High,
-    XenoHybrid,
-    Archaeotech,
+TechLevel {
+    Primitive => "Primitive",
+    Low => "Low",
+    Standard => "Standard",
+    High => "High",
+    XenoHybrid => "Xeno Hybrid",
+    Archaeotech => "Archaeotech",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum Government {
-    BalkanizedLocalFactions,
-    ChaosCult,
-    ClansTribes,
-    Communards,
-    CorruptAristocrats,
-    Demagogue,
-    EcclesiarchicalAppointee,
-    ElitistTyrant,
-    ExploratorAuthority,
-    GuildsCombine,
-    Hereteks,
-    HereticalImperialCult,
-    InfractionistGang,
-    LocalReligiousAuthorities,
-    LoyalistMassMovement,
-    MagistrateCouncil,
-    MechanicusForgeLord,
-    Megacorporations,
-    MilitaryGovernor,
-    None,
-    PopulistTyrant,
-    PuppetGovernment,
-    RevolutionaryJunta,
-    RogueTraderDynasty,
-    ShadowyPsykerCabal,
-    TraditionalOligarchy,
-    TraditionalistAristocracy,
-    Warlords,
-    WarriorAristocracy,
-    XenosOverlords,
+Government {
+    BalkanizedLocalFactions => "Balkanized Local Factions",
+    ChaosCult => "Chaos Cult",
+    ClansTribes => "Clans / Tribes",
+    Communards => "Communards",
+    CorruptAristocrats => "Corrupt Aristocrats",
+    Demagogue => "Demagogue",
+    EcclesiarchicalAppointee => "Ecclesiarchical Appointee",
+    ElitistTyrant => "Elitist Tyrant",
+    ExploratorAuthority => "Explorator Authority",
+    GuildsCombine => "Guilds / Combines",
+    Hereteks => "Hereteks",
+    HereticalImperialCult => "Heretical Imperial Cult",
+    InfractionistGang => "Infractionist Gang",
+    LocalReligiousAuthorities => "Local Religious Authorities",
+    LoyalistMassMovement => "Loyalist Mass Movement",
+    MagistrateCouncil => "Magistrate Council",
+    MechanicusForgeLord => "Mechanicus Forge-Lord",
+    Megacorporations => "Megacorporations",
+    MilitaryGovernor => "Military Governor",
+    None => "None",
+    PopulistTyrant => "Populist Tyrant",
+    PuppetGovernment => "Puppet Government",
+    RevolutionaryJunta => "Revolutionary Junta",
+    RogueTraderDynasty => "Rogue Trader Dynasty",
+    ShadowyPsykerCabal => "Shadowy Psyker Cabal",
+    TraditionalOligarchy => "Traditional Oligarchy",
+    TraditionalistAristocracy => "Traditionalist Aristocracy",
+    Warlords => "Warlords",
+    WarriorAristocracy => "Warrior Aristocracy",
+    XenosOverlords => "Xenos Overlords",
+}
 }
 
+world_enum! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum NotableFeature {
-    Abhumans,
-    AlteredHumans,
-    AncientArchive,
-    AncientTombs,
-    ArchaeotechRuins,
-    BlindingMists,
-    CelestialPhenomena,
-    ChaosCultists,
-    CivilWar,
-    ColdWar,
-    CrumblingArcologies,
-    DaemonicCorruption,
-    DangerousWildlife,
-    DesertWorld,
-    DeviantReligion,
-    EugenicCult,
-    ExtremeEnvironment,
-    FactionalFragmentation,
-    FailedParadise,
-    FlyingCities,
-    ForbiddenTech,
-    ForeignControl,
-    FreakGeology,
-    FreakWeather,
-    Freeport,
-    FriendlyXenos,
-    FrozenWorld,
-    GoldRush,
-    GreatWork,
-    HeavyIndustry,
-    HeavyMining,
-    Hereteks,
-    HolyWar,
-    HostileBiosphere,
-    HostileXenos,
-    ImpendingDoom,
-    ImperialKnights,
-    ImportantShrine,
-    InquisitionOutpost,
-    JungleWorld,
-    Libertines,
-    LocalSpecialty,
-    LocalTech,
-    MajorSpaceyard,
-    MartialLaw,
-    MassPanic,
-    MinimalContact,
-    Missionaries,
-    MutantHordes,
-    NavalBlockade,
-    NavalOutpost,
-    NavigatorHouse,
-    NomadicCities,
-    NotableLocal,
-    OceanWorld,
-    OutOfContact,
-    Pandemic,
-    PilgrimageSite,
-    PocketEmpire,
-    PoliceState,
-    PopularUprising,
-    PowerfulCriminals,
-    PowerfulNobles,
-    PrimitiveXenos,
-    Prosperous,
-    PsykerAcademy,
-    PsykerCult,
-    Quarantined,
-    Radioactive,
-    RecentlyRediscovered,
-    ScholaProgenium,
-    SeagoingCities,
-    SealedMenace,
-    SecretMasters,
-    Sectarians,
-    SeismicInstability,
-    Separatists,
-    SilicaAnimus,
-    SoleSuppliers,
-    SororitasConvent,
-    SpaceHulks,
-    StrangeCustoms,
-    StrangeHatred,
-    SubsectorHegemon,
-    TechPriestCult,
-    TestSite,
-    TheSilentTrade,
-    TradeHub,
-    AdministrativeHub,
-    UnmappedWastes,
-    VastFortresses,
-    VerdantEcology,
-    WarZone,
-    WarpPhenomena,
-    WitchHunt,
-    XenoRuins,
-    Xenophiles,
-    Xenophobes,
-    XenosInfiltrators,
-    Zombies,
+NotableFeature {
+    Abhumans => "Abhumans",
+    AlteredHumans => "Altered Humans",
+    AncientArchive => "Ancient Archive",
+    AncientTombs => "Ancient Tombs",
+    ArchaeotechRuins => "Archaeotech Ruins",
+    BlindingMists => "Blinding Mists",
+    CelestialPhenomena => "Celestial Phenomena",
+    ChaosCultists => "Chaos Cultists",
+    CivilWar => "Civil War",
+    ColdWar => "Cold War",
+    CrumblingArcologies => "Crumbling Arcologies",
+    DaemonicCorruption => "Daemonic Corruption",
+    DangerousWildlife => "Dangerous Wildlife",
+    DesertWorld => "Desert World",
+    DeviantReligion => "Deviant Religion",
+    EugenicCult => "Eugenic Cult",
+    ExtremeEnvironment => "Extreme Environment",
+    FactionalFragmentation => "Factional Fragmentation",
+    FailedParadise => "Failed Paradise",
+    FlyingCities => "Flying Cities",
+    ForbiddenTech => "Forbidden Tech",
+    ForeignControl => "Foreign Control",
+    FreakGeology => "Freak Geology",
+    FreakWeather => "Freak Weather",
+    Freeport => "Freeport",
+    FriendlyXenos => "Friendly Xenos",
+    FrozenWorld => "Frozen World",
+    GoldRush => "Gold Rush",
+    GreatWork => "Great Work",
+    HeavyIndustry => "Heavy Industry",
+    HeavyMining => "Heavy Mining",
+    Hereteks => "Hereteks",
+    HolyWar => "Holy War",
+    HostileBiosphere => "Hostile Biosphere",
+    HostileXenos => "Hostile Xenos",
+    ImpendingDoom => "Impending Doom",
+    ImperialKnights => "Imperial Knights",
+    ImportantShrine => "Important Shrine",
+    InquisitionOutpost => "Inquisition Outpost",
+    JungleWorld => "Jungle World",
+    Libertines => "Libertines",
+    LocalSpecialty => "Local Specialty",
+    LocalTech => "Local Tech",
+    MajorSpaceyard => "Major Spaceyard",
+    MartialLaw => "Martial Law",
+    MassPanic => "Mass Panic",
+    MinimalContact => "Minimal Contact",
+    Missionaries => "Missionaries",
+    MutantHordes => "Mutant Hordes",
+    NavalBlockade => "Naval Blockade",
+    NavalOutpost => "Naval Outpost",
+    NavigatorHouse => "Navigator House",
+    NomadicCities => "Nomadic Cities",
+    NotableLocal => "Notable Local",
+    OceanWorld => "Ocean World",
+    OutOfContact => "Out of Contact",
+    Pandemic => "Pandemic",
+    PilgrimageSite => "Pilgrimage Site",
+    PocketEmpire => "Pocket Empire",
+    PoliceState => "Police State",
+    PopularUprising => "Popular Uprising",
+    PowerfulCriminals => "Powerful Criminals",
+    PowerfulNobles => "Powerful Nobles",
+    PrimitiveXenos => "Primitive Xenos",
+    Prosperous => "Prosperous",
+    PsykerAcademy => "Psyker Academy",
+    PsykerCult => "Psyker Cult",
+    Quarantined => "Quarantined",
+    Radioactive => "Radioactive",
+    RecentlyRediscovered => "Recently Rediscovered",
+    ScholaProgenium => "Schola Progenium",
+    SeagoingCities => "Seagoing Cities",
+    SealedMenace => "Sealed Menace",
+    SecretMasters => "Secret Masters",
+    Sectarians => "Sectarians",
+    SeismicInstability => "Seismic Instability",
+    Separatists => "Separatists",
+    SilicaAnimus => "Silica Animus",
+    SoleSuppliers => "Sole Suppliers",
+    SororitasConvent => "Sororitas Convent",
+    SpaceHulks => "Space Hulks",
+    StrangeCustoms => "Strange Customs",
+    StrangeHatred => "Strange Hatred",
+    SubsectorHegemon => "Subsector Hegemon",
+    TechPriestCult => "Tech-Priest Cult",
+    TestSite => "Test Site",
+    TheSilentTrade => "The Silent Trade",
+    TradeHub => "Trade Hub",
+    AdministrativeHub => "Administrative Hub",
+    UnmappedWastes => "Unmapped Wastes",
+    VastFortresses => "Vast Fortresses",
+    VerdantEcology => "Verdant Ecology",
+    WarZone => "War Zone",
+    WarpPhenomena => "Warp Phenomena",
+    WitchHunt => "Witch Hunt",
+    XenoRuins => "Xeno Ruins",
+    Xenophiles => "Xenophiles",
+    Xenophobes => "Xenophobes",
+    XenosInfiltrators => "Xenos Infiltrators",
+    Zombies => "Zombies",
+}
 }
 
 // ── Generator-template row types ─────────────────────────────────────────────
@@ -329,34 +361,6 @@ pub struct World {
     pub tech_level: TechLevel,
     pub government: Government,
     pub notable_features: Vec<NotableFeature>,
-}
-
-/// A single world within a solar system.
-#[derive(Debug, Clone)]
-pub struct WorldEntry {
-    /// System identifier / seed (col L in template).
-    pub system_seed: Option<f64>,
-    /// Star spectral type (col M).
-    pub star_type: Option<String>,
-    /// Human-readable location name (col N).
-    pub location_name: Option<String>,
-    /// The resolved world parameters.
-    pub world: World,
-    /// Three notable features assigned to this world.
-    pub features: [Option<NotableFeature>; 3],
-}
-
-/// A solar system containing multiple worlds and a star designation.
-#[derive(Debug, Clone)]
-pub struct System {
-    /// System index (col K).
-    pub system_index: Option<f64>,
-    /// Star type from the template.
-    pub star_type: Option<String>,
-    /// Named location.
-    pub location_name: Option<String>,
-    /// Orbiting worlds.
-    pub worlds: Vec<WorldEntry>,
 }
 
 // ── Key-tab parsing ──────────────────────────────────────────────────────────
@@ -661,446 +665,6 @@ impl StarColour {
     ];
     pub fn display_name(self) -> &'static str {
         self.code()
-    }
-}
-
-impl WorldType {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::AgriWorld,
-        Self::Asteroid,
-        Self::BastionWorld,
-        Self::DeathWorld,
-        Self::DeadWorld,
-        Self::ExtractiveColony,
-        Self::FeralWorld,
-        Self::FeudalWorld,
-        Self::ForgeWorld,
-        Self::FrontierWorld,
-        Self::HiveWorld,
-        Self::ImperialWorld,
-        Self::IndustrialWorld,
-        Self::Orbital,
-        Self::PenalWorld,
-        Self::PlanetaryDump,
-        Self::PlanetaryMonument,
-        Self::PleasureWorld,
-        Self::ResearchStation,
-        Self::ShrineWorld,
-        Self::TombWorld,
-        Self::WarpLostWorld,
-        Self::Worldship,
-        Self::XenosWorld,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::AgriWorld => "Agri-World",
-            Self::Asteroid => "Asteroid",
-            Self::BastionWorld => "Bastion World",
-            Self::DeathWorld => "Death World",
-            Self::DeadWorld => "Dead World",
-            Self::ExtractiveColony => "Extractive Colony",
-            Self::FeralWorld => "Feral World",
-            Self::FeudalWorld => "Feudal World",
-            Self::ForgeWorld => "Forge World",
-            Self::FrontierWorld => "Frontier World",
-            Self::HiveWorld => "Hive World",
-            Self::ImperialWorld => "Imperial World",
-            Self::IndustrialWorld => "Industrial World",
-            Self::Orbital => "Orbital",
-            Self::PenalWorld => "Penal World",
-            Self::PlanetaryDump => "Planetary Dump",
-            Self::PlanetaryMonument => "Planetary Monument",
-            Self::PleasureWorld => "Pleasure World",
-            Self::ResearchStation => "Research Station",
-            Self::ShrineWorld => "Shrine World",
-            Self::TombWorld => "Tomb World",
-            Self::WarpLostWorld => "Warp-Lost World",
-            Self::Worldship => "Worldship",
-            Self::XenosWorld => "Xenos World",
-        }
-    }
-}
-
-impl Atmosphere {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::Airless,
-        Self::Breathable,
-        Self::Corrosive,
-        Self::Exotic,
-        Self::Thin,
-        Self::Tainted,
-        Self::Toxic,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Airless => "Airless",
-            Self::Breathable => "Breathable",
-            Self::Corrosive => "Corrosive",
-            Self::Exotic => "Exotic",
-            Self::Thin => "Thin",
-            Self::Tainted => "Tainted",
-            Self::Toxic => "Toxic",
-        }
-    }
-}
-
-impl Temperature {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::Freezing,
-        Self::Cold,
-        Self::Temperate,
-        Self::Hot,
-        Self::Boiling,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Freezing => "Freezing",
-            Self::Cold => "Cold",
-            Self::Temperate => "Temperate",
-            Self::Hot => "Hot",
-            Self::Boiling => "Boiling",
-        }
-    }
-}
-
-impl Biosphere {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::Nonexistent,
-        Self::Minimal,
-        Self::Thriving,
-        Self::Poisoned,
-        Self::XenoHybrid,
-        Self::XenoDominance,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Nonexistent => "Nonexistent",
-            Self::Minimal => "Minimal",
-            Self::Thriving => "Thriving",
-            Self::Poisoned => "Poisoned",
-            Self::XenoHybrid => "Xeno Hybrid",
-            Self::XenoDominance => "Xeno Dominance",
-        }
-    }
-}
-
-impl Population {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::Uninhabited,
-        Self::Minimal,
-        Self::LightlyPopulated,
-        Self::SoleSettlement,
-        Self::DenselyPopulated,
-        Self::ExtremelyDense,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Uninhabited => "Uninhabited",
-            Self::Minimal => "Minimal",
-            Self::LightlyPopulated => "Lightly Populated",
-            Self::SoleSettlement => "Sole Settlement",
-            Self::DenselyPopulated => "Densely Populated",
-            Self::ExtremelyDense => "Extremely Dense",
-        }
-    }
-}
-
-impl TechLevel {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::Primitive,
-        Self::Low,
-        Self::Standard,
-        Self::High,
-        Self::XenoHybrid,
-        Self::Archaeotech,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Primitive => "Primitive",
-            Self::Low => "Low",
-            Self::Standard => "Standard",
-            Self::High => "High",
-            Self::XenoHybrid => "Xeno Hybrid",
-            Self::Archaeotech => "Archaeotech",
-        }
-    }
-}
-
-impl Government {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::BalkanizedLocalFactions,
-        Self::ChaosCult,
-        Self::ClansTribes,
-        Self::Communards,
-        Self::CorruptAristocrats,
-        Self::Demagogue,
-        Self::EcclesiarchicalAppointee,
-        Self::ElitistTyrant,
-        Self::ExploratorAuthority,
-        Self::GuildsCombine,
-        Self::Hereteks,
-        Self::HereticalImperialCult,
-        Self::InfractionistGang,
-        Self::LocalReligiousAuthorities,
-        Self::LoyalistMassMovement,
-        Self::MagistrateCouncil,
-        Self::MechanicusForgeLord,
-        Self::Megacorporations,
-        Self::MilitaryGovernor,
-        Self::None,
-        Self::PopulistTyrant,
-        Self::PuppetGovernment,
-        Self::RevolutionaryJunta,
-        Self::RogueTraderDynasty,
-        Self::ShadowyPsykerCabal,
-        Self::TraditionalOligarchy,
-        Self::TraditionalistAristocracy,
-        Self::Warlords,
-        Self::WarriorAristocracy,
-        Self::XenosOverlords,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::BalkanizedLocalFactions => "Balkanized Local Factions",
-            Self::ChaosCult => "Chaos Cult",
-            Self::ClansTribes => "Clans / Tribes",
-            Self::Communards => "Communards",
-            Self::CorruptAristocrats => "Corrupt Aristocrats",
-            Self::Demagogue => "Demagogue",
-            Self::EcclesiarchicalAppointee => "Ecclesiarchical Appointee",
-            Self::ElitistTyrant => "Elitist Tyrant",
-            Self::ExploratorAuthority => "Explorator Authority",
-            Self::GuildsCombine => "Guilds / Combines",
-            Self::Hereteks => "Hereteks",
-            Self::HereticalImperialCult => "Heretical Imperial Cult",
-            Self::InfractionistGang => "Infractionist Gang",
-            Self::LocalReligiousAuthorities => "Local Religious Authorities",
-            Self::LoyalistMassMovement => "Loyalist Mass Movement",
-            Self::MagistrateCouncil => "Magistrate Council",
-            Self::MechanicusForgeLord => "Mechanicus Forge-Lord",
-            Self::Megacorporations => "Megacorporations",
-            Self::MilitaryGovernor => "Military Governor",
-            Self::None => "None",
-            Self::PopulistTyrant => "Populist Tyrant",
-            Self::PuppetGovernment => "Puppet Government",
-            Self::RevolutionaryJunta => "Revolutionary Junta",
-            Self::RogueTraderDynasty => "Rogue Trader Dynasty",
-            Self::ShadowyPsykerCabal => "Shadowy Psyker Cabal",
-            Self::TraditionalOligarchy => "Traditional Oligarchy",
-            Self::TraditionalistAristocracy => "Traditionalist Aristocracy",
-            Self::Warlords => "Warlords",
-            Self::WarriorAristocracy => "Warrior Aristocracy",
-            Self::XenosOverlords => "Xenos Overlords",
-        }
-    }
-}
-
-impl NotableFeature {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::Abhumans,
-        Self::AlteredHumans,
-        Self::AncientArchive,
-        Self::AncientTombs,
-        Self::ArchaeotechRuins,
-        Self::BlindingMists,
-        Self::CelestialPhenomena,
-        Self::ChaosCultists,
-        Self::CivilWar,
-        Self::ColdWar,
-        Self::CrumblingArcologies,
-        Self::DaemonicCorruption,
-        Self::DangerousWildlife,
-        Self::DesertWorld,
-        Self::DeviantReligion,
-        Self::EugenicCult,
-        Self::ExtremeEnvironment,
-        Self::FactionalFragmentation,
-        Self::FailedParadise,
-        Self::FlyingCities,
-        Self::ForbiddenTech,
-        Self::ForeignControl,
-        Self::FreakGeology,
-        Self::FreakWeather,
-        Self::Freeport,
-        Self::FriendlyXenos,
-        Self::FrozenWorld,
-        Self::GoldRush,
-        Self::GreatWork,
-        Self::HeavyIndustry,
-        Self::HeavyMining,
-        Self::Hereteks,
-        Self::HolyWar,
-        Self::HostileBiosphere,
-        Self::HostileXenos,
-        Self::ImpendingDoom,
-        Self::ImperialKnights,
-        Self::ImportantShrine,
-        Self::InquisitionOutpost,
-        Self::JungleWorld,
-        Self::Libertines,
-        Self::LocalSpecialty,
-        Self::LocalTech,
-        Self::MajorSpaceyard,
-        Self::MartialLaw,
-        Self::MassPanic,
-        Self::MinimalContact,
-        Self::Missionaries,
-        Self::MutantHordes,
-        Self::NavalBlockade,
-        Self::NavalOutpost,
-        Self::NavigatorHouse,
-        Self::NomadicCities,
-        Self::NotableLocal,
-        Self::OceanWorld,
-        Self::OutOfContact,
-        Self::Pandemic,
-        Self::PilgrimageSite,
-        Self::PocketEmpire,
-        Self::PoliceState,
-        Self::PopularUprising,
-        Self::PowerfulCriminals,
-        Self::PowerfulNobles,
-        Self::PrimitiveXenos,
-        Self::Prosperous,
-        Self::PsykerAcademy,
-        Self::PsykerCult,
-        Self::Quarantined,
-        Self::Radioactive,
-        Self::RecentlyRediscovered,
-        Self::ScholaProgenium,
-        Self::SeagoingCities,
-        Self::SealedMenace,
-        Self::SecretMasters,
-        Self::Sectarians,
-        Self::SeismicInstability,
-        Self::Separatists,
-        Self::SilicaAnimus,
-        Self::SoleSuppliers,
-        Self::SororitasConvent,
-        Self::SpaceHulks,
-        Self::StrangeCustoms,
-        Self::StrangeHatred,
-        Self::SubsectorHegemon,
-        Self::TechPriestCult,
-        Self::TestSite,
-        Self::TheSilentTrade,
-        Self::TradeHub,
-        Self::AdministrativeHub,
-        Self::UnmappedWastes,
-        Self::VastFortresses,
-        Self::VerdantEcology,
-        Self::WarZone,
-        Self::WarpPhenomena,
-        Self::WitchHunt,
-        Self::XenoRuins,
-        Self::Xenophiles,
-        Self::Xenophobes,
-        Self::XenosInfiltrators,
-        Self::Zombies,
-    ];
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Abhumans => "Abhumans",
-            Self::AlteredHumans => "Altered Humans",
-            Self::AncientArchive => "Ancient Archive",
-            Self::AncientTombs => "Ancient Tombs",
-            Self::ArchaeotechRuins => "Archaeotech Ruins",
-            Self::BlindingMists => "Blinding Mists",
-            Self::CelestialPhenomena => "Celestial Phenomena",
-            Self::ChaosCultists => "Chaos Cultists",
-            Self::CivilWar => "Civil War",
-            Self::ColdWar => "Cold War",
-            Self::CrumblingArcologies => "Crumbling Arcologies",
-            Self::DaemonicCorruption => "Daemonic Corruption",
-            Self::DangerousWildlife => "Dangerous Wildlife",
-            Self::DesertWorld => "Desert World",
-            Self::DeviantReligion => "Deviant Religion",
-            Self::EugenicCult => "Eugenic Cult",
-            Self::ExtremeEnvironment => "Extreme Environment",
-            Self::FactionalFragmentation => "Factional Fragmentation",
-            Self::FailedParadise => "Failed Paradise",
-            Self::FlyingCities => "Flying Cities",
-            Self::ForbiddenTech => "Forbidden Tech",
-            Self::ForeignControl => "Foreign Control",
-            Self::FreakGeology => "Freak Geology",
-            Self::FreakWeather => "Freak Weather",
-            Self::Freeport => "Freeport",
-            Self::FriendlyXenos => "Friendly Xenos",
-            Self::FrozenWorld => "Frozen World",
-            Self::GoldRush => "Gold Rush",
-            Self::GreatWork => "Great Work",
-            Self::HeavyIndustry => "Heavy Industry",
-            Self::HeavyMining => "Heavy Mining",
-            Self::Hereteks => "Hereteks",
-            Self::HolyWar => "Holy War",
-            Self::HostileBiosphere => "Hostile Biosphere",
-            Self::HostileXenos => "Hostile Xenos",
-            Self::ImpendingDoom => "Impending Doom",
-            Self::ImperialKnights => "Imperial Knights",
-            Self::ImportantShrine => "Important Shrine",
-            Self::InquisitionOutpost => "Inquisition Outpost",
-            Self::JungleWorld => "Jungle World",
-            Self::Libertines => "Libertines",
-            Self::LocalSpecialty => "Local Specialty",
-            Self::LocalTech => "Local Tech",
-            Self::MajorSpaceyard => "Major Spaceyard",
-            Self::MartialLaw => "Martial Law",
-            Self::MassPanic => "Mass Panic",
-            Self::MinimalContact => "Minimal Contact",
-            Self::Missionaries => "Missionaries",
-            Self::MutantHordes => "Mutant Hordes",
-            Self::NavalBlockade => "Naval Blockade",
-            Self::NavalOutpost => "Naval Outpost",
-            Self::NavigatorHouse => "Navigator House",
-            Self::NomadicCities => "Nomadic Cities",
-            Self::NotableLocal => "Notable Local",
-            Self::OceanWorld => "Ocean World",
-            Self::OutOfContact => "Out of Contact",
-            Self::Pandemic => "Pandemic",
-            Self::PilgrimageSite => "Pilgrimage Site",
-            Self::PocketEmpire => "Pocket Empire",
-            Self::PoliceState => "Police State",
-            Self::PopularUprising => "Popular Uprising",
-            Self::PowerfulCriminals => "Powerful Criminals",
-            Self::PowerfulNobles => "Powerful Nobles",
-            Self::PrimitiveXenos => "Primitive Xenos",
-            Self::Prosperous => "Prosperous",
-            Self::PsykerAcademy => "Psyker Academy",
-            Self::PsykerCult => "Psyker Cult",
-            Self::Quarantined => "Quarantined",
-            Self::Radioactive => "Radioactive",
-            Self::RecentlyRediscovered => "Recently Rediscovered",
-            Self::ScholaProgenium => "Schola Progenium",
-            Self::SeagoingCities => "Seagoing Cities",
-            Self::SealedMenace => "Sealed Menace",
-            Self::SecretMasters => "Secret Masters",
-            Self::Sectarians => "Sectarians",
-            Self::SeismicInstability => "Seismic Instability",
-            Self::Separatists => "Separatists",
-            Self::SilicaAnimus => "Silica Animus",
-            Self::SoleSuppliers => "Sole Suppliers",
-            Self::SororitasConvent => "Sororitas Convent",
-            Self::SpaceHulks => "Space Hulks",
-            Self::StrangeCustoms => "Strange Customs",
-            Self::StrangeHatred => "Strange Hatred",
-            Self::SubsectorHegemon => "Subsector Hegemon",
-            Self::TechPriestCult => "Tech-Priest Cult",
-            Self::TestSite => "Test Site",
-            Self::TheSilentTrade => "The Silent Trade",
-            Self::TradeHub => "Trade Hub",
-            Self::AdministrativeHub => "Administrative Hub",
-            Self::UnmappedWastes => "Unmapped Wastes",
-            Self::VastFortresses => "Vast Fortresses",
-            Self::VerdantEcology => "Verdant Ecology",
-            Self::WarZone => "War Zone",
-            Self::WarpPhenomena => "Warp Phenomena",
-            Self::WitchHunt => "Witch Hunt",
-            Self::XenoRuins => "Xeno Ruins",
-            Self::Xenophiles => "Xenophiles",
-            Self::Xenophobes => "Xenophobes",
-            Self::XenosInfiltrators => "Xenos Infiltrators",
-            Self::Zombies => "Zombies",
-        }
     }
 }
 

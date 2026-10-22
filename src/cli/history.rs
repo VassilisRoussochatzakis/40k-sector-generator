@@ -6,12 +6,29 @@ use camino::Utf8PathBuf;
 
 use super::common::{emit_report, resolve_sector_with_cfg};
 
-pub(crate) fn run_history(
-    project: Option<&Utf8PathBuf>,
-    sector: Option<&Utf8PathBuf>,
-    out: Option<&Utf8PathBuf>,
-    json: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct HistoryArgs {
+    #[arg(long)]
+    pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub sector: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub json: bool,
+}
+
+pub(crate) fn run_history(args: HistoryArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let HistoryArgs {
+        project,
+        sector,
+        out,
+        json,
+    } = args;
+    let project = project.as_ref();
+    let sector = sector.as_ref();
+    let out = out.as_ref();
+
     let (sec, mut cfg) =
         resolve_sector_with_cfg(project, sector, |input| input.catalogs.history.clone())?;
     cfg.enabled = true;

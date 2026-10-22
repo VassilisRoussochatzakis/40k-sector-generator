@@ -143,13 +143,7 @@ enum_slug!(HookKind {
     SuccessionDispute => "succession_dispute",
     StarvingWorld => "starving_world",
     LifelineLane => "lifeline_lane",
-});
-
-impl core::fmt::Display for HookKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

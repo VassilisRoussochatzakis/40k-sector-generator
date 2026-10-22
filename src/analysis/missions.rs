@@ -119,13 +119,7 @@ enum_slug!(MissionKind {
     Recovery => "recovery",
     Defense => "defense",
     Exploration => "exploration",
-});
-
-impl core::fmt::Display for MissionKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -140,13 +134,7 @@ enum_slug!(MissionScale {
     OneShot => "one_shot",
     ShortArc => "short_arc",
     CampaignArc => "campaign_arc",
-});
-
-impl core::fmt::Display for MissionScale {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -163,13 +151,7 @@ enum_slug!(MissionVisibility {
     Restricted => "restricted",
     Secret => "secret",
     Misinformation => "misinformation",
-});
-
-impl core::fmt::Display for MissionVisibility {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

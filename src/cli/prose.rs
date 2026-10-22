@@ -6,13 +6,34 @@ use camino::Utf8PathBuf;
 
 use super::common::{emit_report, resolve_sector_with_cfg};
 
-pub(crate) fn run_prose(
-    project: Option<&Utf8PathBuf>,
-    sector: Option<&Utf8PathBuf>,
-    out: Option<&Utf8PathBuf>,
-    json: bool,
-    dispatch: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct ProseArgs {
+    #[arg(long)]
+    pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub sector: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub json: bool,
+    /// Use the terse Administratum-dispatch tone instead of the
+    /// florid gazetteer voice.
+    #[arg(long)]
+    pub dispatch: bool,
+}
+
+pub(crate) fn run_prose(args: ProseArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let ProseArgs {
+        project,
+        sector,
+        out,
+        json,
+        dispatch,
+    } = args;
+    let project = project.as_ref();
+    let sector = sector.as_ref();
+    let out = out.as_ref();
+
     // §PR1..§PR4: when a project is supplied, honour any `[inputs].prose`
     // entry so per-sector / per-system overrides authored via the builder
     // survive on the CLI path too. Falls back to defaults when no project is

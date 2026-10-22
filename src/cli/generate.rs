@@ -11,21 +11,95 @@ use super::common::{
     resolve_formats, to_json_pretty,
 };
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn run_generate(
-    project: Utf8PathBuf,
-    seed: Option<String>,
-    out: Option<Utf8PathBuf>,
-    allow_warnings: bool,
-    heatmap: Option<String>,
-    no_faction_fill: bool,
-    theme: Option<String>,
-    constraints: Option<Utf8PathBuf>,
-    max_candidates: Option<u32>,
-    formats: Option<Vec<String>>,
-    light: bool,
-    exclude: Option<Vec<String>>,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct GenerateArgs {
+    #[arg(long)]
+    pub project: Utf8PathBuf,
+    /// Override seed from sectorforge.toml.
+    #[arg(long)]
+    pub seed: Option<String>,
+    /// Override output directory.
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    /// Continue if validation produced warnings (but not errors).
+    #[arg(long)]
+    pub allow_warnings: bool,
+    /// PNG heatmap mode (§10). One of: off, control, military, trade,
+    /// industrial, covert, faith, threat, intel, tension, trade_volume,
+    /// food, tithe, supply. Overrides the project's `outputs.bitmap.heatmap`.
+    #[arg(long)]
+    pub heatmap: Option<String>,
+    /// Disable per-system faction tint in the PNG export (§8).
+    #[arg(long)]
+    pub no_faction_fill: bool,
+    /// PNG map theme (§13). One of: gm_dark, print_mono,
+    /// imperial_archive, navis_tactical, inquisition_redacted,
+    /// subsector_political.
+    #[arg(long)]
+    pub theme: Option<String>,
+    /// §15 NEW2.md: Constraint file to satisfy during generation.
+    #[arg(long)]
+    pub constraints: Option<Utf8PathBuf>,
+    /// §15 NEW2.md: Maximum number of candidate seeds to evaluate.
+    #[arg(long)]
+    pub max_candidates: Option<u32>,
+    /// Comma-separated output formats. Overrides
+    /// `[outputs].formats` in `sectorforge.toml`. Tokens: `json`,
+    /// `markdown`, `png` (alias for `bitmap`), `svg`, `html`.
+    #[arg(long, value_delimiter = ',')]
+    pub formats: Option<Vec<String>>,
+    /// Drop render-only artifacts (html, png, svg, markdown), keeping the
+    /// machine-readable `json` the viewer loads. Subtracts from `--formats`
+    /// / `[outputs].formats`.
+    #[arg(long)]
+    pub light: bool,
+    /// Comma-separated formats to *exclude* from the effective set. `json`
+    /// is load-bearing (the viewer reads `out/sector.json`) and cannot be
+    /// excluded. Applies after `--formats` / `--light`.
+    #[arg(long, value_delimiter = ',')]
+    pub exclude: Option<Vec<String>>,
+}
+
+#[derive(Debug, clap::Args)]
+pub(super) struct GenerateSystemArgs {
+    #[arg(long)]
+    pub project: Utf8PathBuf,
+    /// Override seed from sectorforge.toml.
+    #[arg(long)]
+    pub seed: Option<String>,
+    /// 1-based system index.
+    #[arg(long, default_value_t = 1)]
+    pub index: usize,
+    /// Axial hex coord q (defaults to 0).
+    #[arg(long, default_value_t = 0)]
+    pub coord_q: i32,
+    /// Axial hex coord r (defaults to 0).
+    #[arg(long, default_value_t = 0)]
+    pub coord_r: i32,
+    /// Output path for the system JSON (defaults to stdout).
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    /// Also write a Markdown snippet alongside the JSON.
+    #[arg(long)]
+    pub markdown: bool,
+}
+
+pub(crate) fn run_generate(args: GenerateArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let GenerateArgs {
+        project,
+        seed,
+        out,
+        allow_warnings,
+        heatmap,
+        no_faction_fill,
+        theme,
+        constraints,
+        max_candidates,
+        formats,
+        light,
+        exclude,
+    } = args;
+
     log_progress(format_args!("sector: loading project {project}"));
     let mut input = sectorforge::load_project(&project)?;
 
@@ -170,14 +244,18 @@ pub(crate) fn run_generate(
 }
 
 pub(crate) fn run_generate_system(
-    project: Utf8PathBuf,
-    seed: Option<String>,
-    index: usize,
-    coord_q: i32,
-    coord_r: i32,
-    out: Option<Utf8PathBuf>,
-    markdown: bool,
+    args: GenerateSystemArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    let GenerateSystemArgs {
+        project,
+        seed,
+        index,
+        coord_q,
+        coord_r,
+        out,
+        markdown,
+    } = args;
+
     let mut input = sectorforge::load_project(&project)?;
     if let Some(s) = seed {
         input.config.generation.seed = s;

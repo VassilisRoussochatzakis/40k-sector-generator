@@ -39,13 +39,7 @@ enum_slug!(OrbitalAssetKind {
     Shipyard => "shipyard",
     DefensePlatform => "defense_platform",
     BlockadeFleet => "blockade_fleet",
-});
-
-impl core::fmt::Display for OrbitalAssetKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OrbitalAsset {

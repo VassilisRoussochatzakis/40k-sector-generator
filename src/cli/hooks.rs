@@ -6,13 +6,33 @@ use camino::Utf8PathBuf;
 
 use super::common::{emit_report, resolve_sector_with_cfg};
 
-pub(crate) fn run_hooks(
-    project: Option<&Utf8PathBuf>,
-    sector: Option<&Utf8PathBuf>,
-    out: Option<&Utf8PathBuf>,
-    json: bool,
-    player: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct HooksArgs {
+    #[arg(long)]
+    pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub sector: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub json: bool,
+    /// Hide GM-only hooks (e.g. those derived from hidden-tier presences).
+    #[arg(long)]
+    pub player: bool,
+}
+
+pub(crate) fn run_hooks(args: HooksArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let HooksArgs {
+        project,
+        sector,
+        out,
+        json,
+        player,
+    } = args;
+    let project = project.as_ref();
+    let sector = sector.as_ref();
+    let out = out.as_ref();
+
     let (sec, mut cfg) =
         resolve_sector_with_cfg(project, sector, |input| input.catalogs.hooks.clone())?;
     cfg.hide_hidden_hooks = player;

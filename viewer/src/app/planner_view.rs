@@ -58,30 +58,13 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
             let path_waypoints = app.planner.waypoint_set();
 
             let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
-            let mut zoom_delta = ui.input(|i| i.zoom_delta());
-            if zoom_delta == 1.0 && response.hovered() {
-                let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-                if scroll != 0.0 {
-                    zoom_delta = (scroll / 400.0).exp();
-                }
-            }
-
-            if zoom_delta != 1.0 {
-                if let Some(mouse_pos) = response.hover_pos() {
-                    let old_zoom = app.planner_hex_size;
-                    app.planner_hex_size = (app.planner_hex_size * zoom_delta).clamp(5.0, 250.0);
-                    let actual_delta = app.planner_hex_size / old_zoom;
-                    let map_origin = rect.min + app.planner_pan;
-                    app.planner_pan =
-                        (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
-                } else {
-                    app.planner_hex_size = (app.planner_hex_size * zoom_delta).clamp(5.0, 250.0);
-                }
-            }
-
-            if response.dragged() {
-                app.planner_pan += response.drag_delta();
-            }
+            super::update_map_navigation(
+                ui,
+                &response,
+                rect,
+                &mut app.planner_hex_size,
+                &mut app.planner_pan,
+            );
 
             ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
                 let (_resp, click) = crate::sector_view::SectorView {

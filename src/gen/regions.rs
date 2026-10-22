@@ -130,13 +130,7 @@ enum_slug!(RegionConditionKind {
     NecropolisDrift => "necropolis_drift",
     BeaconChain => "beacon_chain",
     EmpyricBleed => "empyric_bleed",
-});
-
-impl core::fmt::Display for RegionConditionKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
@@ -592,99 +586,35 @@ pub fn apply_route_effects_with_progress(
         ) {
             if let Some(cond) = dominant_route_condition(regions, a, b) {
                 summary.affected_routes += 1;
-                let outcome = match cond {
-                    RegionConditionKind::WarpStorm => apply_route_stability_with_bridge_progress(
+                let target = match cond {
+                    RegionConditionKind::WarpStorm => Some(RouteStability::Perilous),
+                    RegionConditionKind::Turbulence | RegionConditionKind::EmpyricBleed => {
+                        Some(degrade(routes[idx].stability))
+                    }
+                    RegionConditionKind::CalmCorridor | RegionConditionKind::BeaconChain
+                        if !matches!(routes[idx].stability, RouteStability::Perilous) =>
+                    {
+                        // Navigation improvements cannot undercut the distance floor.
+                        let upgraded = crate::generation::stability_level(routes[idx].stability)
+                            .saturating_sub(1);
+                        let floor = crate::generation::distance_base_level(
+                            routes[idx].distance,
+                            max_route_distance,
+                        );
+                        Some(crate::generation::stability_from_level(upgraded.max(floor)))
+                    }
+                    _ => None,
+                };
+                let outcome = target.map_or_else(RouteEffectOutcome::default, |target| {
+                    apply_route_stability_with_bridge_progress(
                         routes,
                         idx,
-                        RouteStability::Perilous,
-                        "region:warp_storm",
+                        target,
+                        &format!("region:{}", cond.as_slug()),
                         &mut summary,
                         &mut progress,
-                    ),
-                    RegionConditionKind::Turbulence => {
-                        let target = degrade(routes[idx].stability);
-                        apply_route_stability_with_bridge_progress(
-                            routes,
-                            idx,
-                            target,
-                            "region:turbulence",
-                            &mut summary,
-                            &mut progress,
-                        )
-                    }
-                    // Empyric Bleed (precedence 2) is a Turbulence sibling: the
-                    // thin veil degrades routes by one hazard tier. Mirror the
-                    // Turbulence branch exactly, only the tag differs.
-                    RegionConditionKind::EmpyricBleed => {
-                        let target = degrade(routes[idx].stability);
-                        apply_route_stability_with_bridge_progress(
-                            routes,
-                            idx,
-                            target,
-                            "region:empyric_bleed",
-                            &mut summary,
-                            &mut progress,
-                        )
-                    }
-                    RegionConditionKind::CalmCorridor => {
-                        if matches!(routes[idx].stability, RouteStability::Perilous) {
-                            RouteEffectOutcome::default()
-                        } else {
-                            // A calm corridor can soothe hazard-driven danger,
-                            // but must not make a route safer than its sheer
-                            // length warrants — otherwise a long calm lane could
-                            // end up safer than a short one, breaking the
-                            // "short is safer than long" invariant. Upgrade one
-                            // tier, then clamp to the distance baseline floor.
-                            let upgraded =
-                                crate::generation::stability_level(routes[idx].stability)
-                                    .saturating_sub(1);
-                            let floor = crate::generation::distance_base_level(
-                                routes[idx].distance,
-                                max_route_distance,
-                            );
-                            let target =
-                                crate::generation::stability_from_level(upgraded.max(floor));
-                            apply_route_stability_with_bridge_progress(
-                                routes,
-                                idx,
-                                target,
-                                "region:calm_corridor",
-                                &mut summary,
-                                &mut progress,
-                            )
-                        }
-                    }
-                    // Beacon Chain (precedence 1) is a CalmCorridor sibling:
-                    // navigation beacons make routes more reliable (upgrade one
-                    // tier). Same Perilous-skip and distance-floor clamp so a
-                    // long beacon lane never ends up safer than a short one —
-                    // only the tag differs from the CalmCorridor branch.
-                    RegionConditionKind::BeaconChain => {
-                        if matches!(routes[idx].stability, RouteStability::Perilous) {
-                            RouteEffectOutcome::default()
-                        } else {
-                            let upgraded =
-                                crate::generation::stability_level(routes[idx].stability)
-                                    .saturating_sub(1);
-                            let floor = crate::generation::distance_base_level(
-                                routes[idx].distance,
-                                max_route_distance,
-                            );
-                            let target =
-                                crate::generation::stability_from_level(upgraded.max(floor));
-                            apply_route_stability_with_bridge_progress(
-                                routes,
-                                idx,
-                                target,
-                                "region:beacon_chain",
-                                &mut summary,
-                                &mut progress,
-                            )
-                        }
-                    }
-                    _ => RouteEffectOutcome::default(),
-                };
+                    )
+                });
                 if outcome.changed {
                     summary.changed_routes += 1;
                 }

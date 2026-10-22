@@ -54,6 +54,49 @@ fn require_sector(app: &App, ctx: &egui::Context) -> Option<Arc<GeneratedSector>
     sector
 }
 
+fn page(ctx: &egui::Context, body: impl FnOnce(&mut egui::Ui)) {
+    egui::CentralPanel::default()
+        .frame(
+            egui::Frame::none()
+                .fill(palette::chrome_bg())
+                .inner_margin(14.0),
+        )
+        .show(ctx, body);
+}
+
+/// Keep the map point under the cursor fixed while zooming, then apply drag.
+fn update_map_navigation(
+    ui: &egui::Ui,
+    response: &egui::Response,
+    rect: egui::Rect,
+    hex_size: &mut f32,
+    pan: &mut egui::Vec2,
+) {
+    let mut zoom_delta = ui.input(|i| i.zoom_delta());
+    if zoom_delta == 1.0 && response.hovered() {
+        let scroll = ui.input(|i| i.smooth_scroll_delta.y);
+        if scroll != 0.0 {
+            zoom_delta = (scroll / 400.0).exp();
+        }
+    }
+
+    if zoom_delta != 1.0 {
+        if let Some(mouse_pos) = response.hover_pos() {
+            let old_zoom = *hex_size;
+            *hex_size = (*hex_size * zoom_delta).clamp(5.0, 250.0);
+            let actual_delta = *hex_size / old_zoom;
+            let map_origin = rect.min + *pan;
+            *pan = (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
+        } else {
+            *hex_size = (*hex_size * zoom_delta).clamp(5.0, 250.0);
+        }
+    }
+
+    if response.dragged() {
+        *pan += response.drag_delta();
+    }
+}
+
 pub struct App {
     /// Derived read snapshot of the editor's source-of-truth sector (F-S1).
     /// Rebuilt only by the frame bridge / explicit load — never mutated in place.

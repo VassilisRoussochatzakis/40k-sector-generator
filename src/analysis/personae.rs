@@ -111,13 +111,7 @@ enum_slug!(DominanceTier {
     Contested => "contested",
     Controlled => "controlled",
     Stronghold => "stronghold",
-});
-
-impl core::fmt::Display for DominanceTier {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl DominanceTier {
     fn rank(self) -> u8 {
@@ -223,13 +217,7 @@ enum_slug!(FactionTier {
     Overall => "overall",
     Subfaction => "subfaction",
     Force => "force",
-});
-
-impl core::fmt::Display for FactionTier {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -246,13 +234,7 @@ enum_slug!(SystemSlot {
     OrbitalController => "orbital_controller",
     EconomicHegemon => "economic_hegemon",
     HiddenMaster => "hidden_master",
-});
-
-impl core::fmt::Display for SystemSlot {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

@@ -64,13 +64,7 @@ enum_slug!(ProfileId {
     Mercantile => "mercantile",
     Villainous => "villainous",
     Frontier => "frontier",
-});
-
-impl core::fmt::Display for ProfileId {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// One metric target band. `low..=high` defines the "ideal" range; outside it
 /// the fit decays linearly to 0 at `floor`/`ceil`.

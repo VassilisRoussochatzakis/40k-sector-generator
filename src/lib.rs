@@ -265,9 +265,7 @@ pub fn validate_project(project: &ProjectInput) -> Result<ValidationReport, Sect
 /// assert_eq!(sector.systems.len(), 24);
 /// # Ok::<(), sectorforge::SectorError>(())
 /// ```
-pub fn generate_sector(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
-    generation::generate(project)
-}
+pub use generation::generate as generate_sector;
 
 /// Deterministic sector generation with progress callbacks.
 ///
@@ -278,15 +276,7 @@ pub fn generate_sector(project: ProjectInput) -> Result<GeneratedSector, SectorE
 /// # Errors
 ///
 /// Same as [`generate_sector`].
-pub fn generate_sector_with_progress<F>(
-    project: ProjectInput,
-    progress: F,
-) -> Result<GeneratedSector, SectorError>
-where
-    F: FnMut(SectorProgress),
-{
-    generation::generate_with_progress(project, progress)
-}
+pub use generation::generate_with_progress as generate_sector_with_progress;
 
 /// Deterministic sector generation with progress callbacks and cooperative
 /// cancellation.
@@ -302,17 +292,7 @@ where
 ///
 /// Same as [`generate_sector`], plus [`SectorError::GenerationCancelled`] when
 /// `should_cancel` returns `true`.
-pub fn generate_sector_with_progress_and_cancel<F, C>(
-    project: ProjectInput,
-    progress: F,
-    should_cancel: C,
-) -> Result<GeneratedSector, SectorError>
-where
-    F: FnMut(SectorProgress),
-    C: FnMut() -> bool,
-{
-    generation::generate_with_progress_and_cancel(project, progress, should_cancel)
-}
+pub use generation::generate_with_progress_and_cancel as generate_sector_with_progress_and_cancel;
 
 /// Spec §11.11: post-generation invariants check on an already-built sector.
 ///
@@ -328,10 +308,7 @@ where
 /// assert!(report.violations.is_empty());
 /// # Ok::<(), sectorforge::SectorError>(())
 /// ```
-#[must_use]
-pub fn validate_sector(sector: &GeneratedSector) -> InvariantReport {
-    invariants::check_sector(sector)
-}
+pub use invariants::check_sector as validate_sector;
 
 /// Spec §10: generate one fully populated system standalone, using a project's
 /// catalogs/config. Routes and full sector context are not produced. Factions
@@ -430,16 +407,10 @@ pub use world_pool::apply_authored_features;
 pub use generation::regenerate_world_payload;
 
 /// Spec §12: deterministic Markdown overview for a generated sector.
-#[must_use]
-pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
-    render::render_sector_markdown(sector)
-}
+pub use render::render_sector_markdown;
 
 /// Standalone single-system Markdown snippet.
-#[must_use]
-pub fn render_system_markdown(system: &GeneratedSystem) -> String {
-    render::render_system_markdown(system)
-}
+pub use render::render_system_markdown;
 
 /// Load a previously generated sector from a JSON file. Round-trips through
 /// `serde_json` (spec §11.11 requires this).
@@ -555,25 +526,13 @@ where
 }
 
 /// §8 NEW.md: read-only sector analytics dashboard.
-#[must_use]
-pub fn analyze_sector(sector: &GeneratedSector) -> analytics::SectorAnalysis {
-    analytics::analyze(sector)
-}
+pub use analytics::analyze as analyze_sector;
 
 /// §8 NEW.md: analytics with explicit threshold config (overrides defaults).
-#[must_use]
-pub fn analyze_sector_with(
-    sector: &GeneratedSector,
-    cfg: &analytics::AnalyzeConfig,
-) -> analytics::SectorAnalysis {
-    analytics::analyze_with(sector, cfg)
-}
+pub use analytics::analyze_with as analyze_sector_with;
 
 /// §8 NEW.md: deterministic Markdown render of an analysis.
-#[must_use]
-pub fn render_analysis_markdown(analysis: &analytics::SectorAnalysis) -> String {
-    analytics::render_markdown(analysis)
-}
+pub use analytics::render_markdown as render_analysis_markdown;
 
 /// §8 NEW.md: write `analysis.md` and `analysis.json` next to each other.
 ///
@@ -603,12 +562,7 @@ pub fn write_analysis(
 /// Propagates any [`SectorError`] raised by `generate_sector` for an
 /// individual candidate. Preflight problems (unknown faction ids etc.) are
 /// reported inside the returned [`search::SearchOutcome`].
-pub fn run_seed_search(
-    project: &ProjectInput,
-    wishes: &search::WishesFile,
-) -> Result<search::SearchOutcome, SectorError> {
-    search::run_search(project, wishes)
-}
+pub use search::run_search as run_seed_search;
 
 /// §2 NEW.md: write `search.md` + `search.json` into a directory.
 ///
@@ -624,28 +578,15 @@ pub fn write_search_outcome(
 
 /// §10 NEW.md: pure structural diff between two sectors. Renames map to
 /// modifications, not delete+add, because entity ids are stable.
-#[must_use]
-pub fn diff_sectors(before: &GeneratedSector, after: &GeneratedSector) -> diff::SectorDiff {
-    diff::diff_sectors(before, after)
-}
+pub use diff::diff_sectors;
 
 /// §10 NEW.md: as [`diff_sectors`] but with explicit verbosity/threshold config.
-#[must_use]
-pub fn diff_sectors_with(
-    before: &GeneratedSector,
-    after: &GeneratedSector,
-    cfg: &diff::DiffConfig,
-) -> diff::SectorDiff {
-    diff::diff_sectors_with(before, after, cfg)
-}
+pub use diff::diff_sectors_with;
 
 /// §10 NEW.md: Markdown render of a sector diff. `cfg` supplies the digest
 /// knobs (e.g. `top_faction_deltas`); pass [`diff::DiffConfig::default`] for the
 /// canonical thresholds.
-#[must_use]
-pub fn render_diff_markdown(d: &diff::SectorDiff, cfg: &diff::DiffConfig) -> String {
-    diff::render_markdown(d, cfg)
-}
+pub use diff::render_markdown as render_diff_markdown;
 
 /// §10 NEW.md: write `diff.md` + `diff.json` into a directory.
 ///
@@ -662,13 +603,7 @@ pub fn write_diff(
 }
 
 /// §1 NEW.md: chronicle with explicit config.
-#[must_use]
-pub fn derive_history_with(
-    sector: &GeneratedSector,
-    cfg: &history::HistoryConfig,
-) -> history::HistoryReport {
-    history::derive_with(sector, cfg)
-}
+pub use history::derive_with as derive_history_with;
 
 /// §1 NEW.md: write `history.md` + `history.json` into a directory.
 ///
@@ -685,13 +620,7 @@ pub fn write_history(
 }
 
 /// §3 NEW.md: personae with explicit config.
-#[must_use]
-pub fn derive_personae_with(
-    sector: &GeneratedSector,
-    cfg: &personae::PersonaeConfig,
-) -> personae::PersonaeReport {
-    personae::derive_with(sector, cfg)
-}
+pub use personae::derive_with as derive_personae_with;
 
 /// §3 NEW.md: write `personae.md` + `personae.json` into a directory.
 ///
@@ -707,10 +636,7 @@ pub fn write_personae(
 }
 
 /// §7 NEW.md: hooks with explicit config.
-#[must_use]
-pub fn derive_hooks_with(sector: &GeneratedSector, cfg: &hooks::HooksConfig) -> hooks::HooksReport {
-    hooks::derive_with(sector, cfg)
-}
+pub use hooks::derive_with as derive_hooks_with;
 
 /// §7 NEW.md: write `hooks.md` + `hooks.json` into a directory.
 ///
@@ -727,10 +653,7 @@ pub fn write_hooks(
 }
 
 /// §6 NEW.md: prose with explicit config.
-#[must_use]
-pub fn derive_prose_with(sector: &GeneratedSector, cfg: &prose::ProseConfig) -> prose::ProseReport {
-    prose::derive_with(sector, cfg)
-}
+pub use prose::derive_with as derive_prose_with;
 
 /// §6 NEW.md: write `gazetteer.md` + `gazetteer.json` into a directory.
 ///
@@ -747,13 +670,7 @@ pub fn write_prose(
 
 /// §5 NEW2.md: derive the matrix with an explicit configuration (rules /
 /// overrides loaded from `relations.toml`).
-#[must_use]
-pub fn derive_relations_with(
-    sector: &GeneratedSector,
-    cfg: &relations::RelationsConfig,
-) -> relations::RelationsMatrix {
-    relations::derive_with(sector, cfg)
-}
+pub use relations::derive_with as derive_relations_with;
 
 /// §5 NEW2.md: write `relations.md` + `relations.json` into a directory.
 ///
@@ -770,15 +687,7 @@ pub fn write_relations(
 
 /// §5 NEW.md: build the regional warp-phenomena overlay for a sector grid.
 /// `cfg.enabled = false` returns an empty list (the default).
-#[must_use]
-pub fn build_regions(
-    seed: &str,
-    width: u32,
-    height: u32,
-    cfg: &regions::RegionsConfig,
-) -> Vec<regions::WarpRegion> {
-    regions::build_regions(seed, width, height, cfg)
-}
+pub use regions::build_regions;
 
 /// §5 NEW.md: write `regions.md` + `regions.json` into a directory.
 ///
@@ -795,13 +704,7 @@ pub fn write_regions(
 }
 
 /// §12 NEW.md: derive with explicit config.
-#[must_use]
-pub fn derive_economy_with(
-    sector: &GeneratedSector,
-    cfg: &economy::EconomyConfig,
-) -> economy::EconomyReport {
-    economy::derive_with(sector, cfg)
-}
+pub use economy::derive_with as derive_economy_with;
 
 /// §12 NEW.md: write `economy.md` + `economy.json` into a dir.
 ///
@@ -834,19 +737,10 @@ pub fn write_segmentum(
 }
 
 /// §18 NEW2.md: derive an interestingness scorecard for a sector.
-#[must_use]
-pub fn derive_interestingness(sector: &GeneratedSector) -> interestingness::InterestingnessReport {
-    interestingness::derive(sector)
-}
+pub use interestingness::derive as derive_interestingness;
 
 /// §18 NEW2.md: derive with explicit config.
-#[must_use]
-pub fn derive_interestingness_with(
-    sector: &GeneratedSector,
-    cfg: &interestingness::InterestingnessConfig,
-) -> interestingness::InterestingnessReport {
-    interestingness::derive_with(sector, cfg)
-}
+pub use interestingness::derive_with as derive_interestingness_with;
 
 /// §18 NEW2.md: write `interestingness.md` + `interestingness.json`.
 ///
@@ -862,13 +756,7 @@ pub fn write_interestingness(
 
 /// §9 NEW2.md: apply a [`briefing::BriefingProfile`] to a sector and return
 /// the redacted pack.
-#[must_use]
-pub fn apply_briefing(
-    sector: &GeneratedSector,
-    profile: &briefing::BriefingProfile,
-) -> briefing::BriefingPack {
-    briefing::apply(sector, profile)
-}
+pub use briefing::apply as apply_briefing;
 
 /// §9 NEW2.md: write `briefing-<id>.md` + `briefing-<id>.json`.
 ///
@@ -884,13 +772,7 @@ pub fn write_briefing(
 }
 
 /// §3 NEW2.md: derive missions with explicit config.
-#[must_use]
-pub fn derive_missions_with(
-    sector: &GeneratedSector,
-    cfg: &missions::MissionsConfig,
-) -> missions::MissionsReport {
-    missions::derive_with(sector, cfg)
-}
+pub use missions::derive_with as derive_missions_with;
 
 /// §3 NEW2.md: write `missions.md` + `missions.json`.
 ///
@@ -906,10 +788,7 @@ pub fn write_missions(
 }
 
 /// §7 NEW2.md: derive sites with explicit config.
-#[must_use]
-pub fn derive_sites_with(sector: &GeneratedSector, cfg: &sites::SitesConfig) -> sites::SitesReport {
-    sites::derive_with(sector, cfg)
-}
+pub use sites::derive_with as derive_sites_with;
 
 /// §7 NEW2.md: write `sites.md` + `sites.json`.
 ///
@@ -930,6 +809,4 @@ pub fn write_sites(
 ///
 /// Returns [`SectorError::WorldDataLoad`] if `worlds.toml` cannot
 /// be parsed.
-pub fn inspect_world_workbook(path: &str) -> Result<world_pool::WorkbookStats, SectorError> {
-    world_pool::inspect_workbook(path)
-}
+pub use world_pool::inspect_workbook as inspect_world_workbook;

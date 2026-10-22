@@ -43,26 +43,20 @@ impl App {
                 });
             });
 
-        egui::CentralPanel::default()
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::chrome_bg())
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| {
-                    let next = crate::segmentum_view::show_overview(
-                        ui,
-                        &bundle,
-                        self.segmentum_active_child.as_deref(),
-                        &mut self.segmentum_selected_link,
-                        self.route_view_mode,
-                    );
-                    if action.is_none() {
-                        action = next;
-                    }
-                });
+        super::page(ctx, |ui| {
+            ScrollArea::both().show(ui, |ui| {
+                let next = crate::segmentum_view::show_overview(
+                    ui,
+                    &bundle,
+                    self.segmentum_active_child.as_deref(),
+                    &mut self.segmentum_selected_link,
+                    self.route_view_mode,
+                );
+                if action.is_none() {
+                    action = next;
+                }
             });
+        });
 
         if let Some(action) = action {
             self.handle_segmentum_action(action);

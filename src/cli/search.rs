@@ -6,15 +6,43 @@ use camino::Utf8PathBuf;
 
 use super::common::emit_report;
 
-pub fn run_search(
-    project: &Utf8PathBuf,
-    wishes: &Utf8PathBuf,
-    base_seed: Option<String>,
-    budget: Option<u32>,
-    out: Option<&Utf8PathBuf>,
-    json: bool,
-    strict: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct SearchArgs {
+    #[arg(long)]
+    pub project: Utf8PathBuf,
+    #[arg(long)]
+    pub wishes: Utf8PathBuf,
+    /// Override the base seed from wishes/project (n=0 candidate).
+    #[arg(long)]
+    pub base_seed: Option<String>,
+    /// Override the search budget.
+    #[arg(long)]
+    pub budget: Option<u32>,
+    /// Write search.md + search.json into this directory.
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    /// Print JSON to stdout instead of Markdown.
+    #[arg(long)]
+    pub json: bool,
+    /// Exit 1 if no candidate satisfied the constraints.
+    #[arg(long)]
+    pub strict: bool,
+}
+
+pub(crate) fn run_search(args: SearchArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let SearchArgs {
+        project,
+        wishes,
+        base_seed,
+        budget,
+        out,
+        json,
+        strict,
+    } = args;
+    let project = &project;
+    let wishes = &wishes;
+    let out = out.as_ref();
+
     let input = sectorforge::load_project(project)?;
     let mut wishes_file = sectorforge::search::load_wishes(wishes)?;
     if let Some(b) = base_seed {

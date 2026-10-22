@@ -163,6 +163,7 @@ pub const INVARIANT_CODES: &[(&str, &str)] = &[
     ),
 ];
 
+#[must_use]
 pub fn check_sector(sector: &GeneratedSector) -> InvariantReport {
     let mut v: Vec<InvariantViolation> = Vec::new();
 

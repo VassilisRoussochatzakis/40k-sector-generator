@@ -70,13 +70,7 @@ enum_slug!(IntelSource {
     InquisitorialAnalysis => "inquisitorial_analysis",
     Rumor => "rumor",
     ImaginedDeduction => "imagined_deduction",
-});
-
-impl core::fmt::Display for IntelSource {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -96,13 +90,7 @@ enum_slug!(PropagandaState {
     OfficialContested => "official_contested",
     OfficialLost => "official_lost",
     Counterfactual => "counterfactual",
-});
-
-impl core::fmt::Display for PropagandaState {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -120,13 +108,7 @@ enum_slug!(ClassifiedState {
     CodexRedactus => "codex_redactus",
     PurgatusSigillum => "purgatus_sigillum",
     ExterminatusFlag => "exterminatus_flag",
-});
-
-impl core::fmt::Display for ClassifiedState {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// Build the default-observer intel record for a system. Records what
 /// faction-id-equals-"observer" would see — i.e. each faction-as-observer

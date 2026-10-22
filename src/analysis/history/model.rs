@@ -135,13 +135,7 @@ enum_slug!(EventKind {
     TauContact => "tau_contact",
     AeldariActivity => "aeldari_activity",
     ChaosIncursion => "chaos_incursion",
-});
-
-impl core::fmt::Display for EventKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -166,13 +160,7 @@ enum_slug!(HistoryEntityKind {
     Claim => "claim",
     Subsector => "subsector",
     Region => "region",
-});
-
-impl core::fmt::Display for HistoryEntityKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HistoryEntityRef {
@@ -209,13 +197,7 @@ enum_slug!(HistoryConsequenceKind {
     FactionMemory => "faction_memory",
     SubsectorCapitalNamed => "subsector_capital_named",
     RegionRecorded => "region_recorded",
-});
-
-impl core::fmt::Display for HistoryConsequenceKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HistoryConsequence {

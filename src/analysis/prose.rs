@@ -86,13 +86,7 @@ pub enum ProseTone {
 enum_slug!(ProseTone {
     Gazetteer => "gazetteer",
     Dispatch => "dispatch",
-});
-
-impl core::fmt::Display for ProseTone {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Output DTOs ────────────────────────────────────────────────────────────────
 

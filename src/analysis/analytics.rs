@@ -151,13 +151,7 @@ enum_slug!(FlagSeverity {
     Info => "info",
     Warning => "warning",
     Error => "error",
-});
-
-impl core::fmt::Display for FlagSeverity {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

@@ -50,13 +50,7 @@ pub enum RouteViewMode {
 enum_slug!(RouteViewMode {
     Detailed => "detailed",
     TopLevel => "top_level",
-});
-
-impl core::fmt::Display for RouteViewMode {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl RouteType {
     /// Canonical legend/default pattern for this route type.

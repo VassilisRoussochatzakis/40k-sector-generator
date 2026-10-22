@@ -132,13 +132,7 @@ enum_slug!(SiteKind {
     ForgeReactor => "forge_reactor",
     TombComplex => "tomb_complex",
     NavalAnchorage => "naval_anchorage",
-});
-
-impl core::fmt::Display for SiteKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -161,13 +155,7 @@ enum_slug!(SiteStatus {
     Sealed => "sealed",
     Contested => "contested",
     UnderConstruction => "under_construction",
-});
-
-impl core::fmt::Display for SiteStatus {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

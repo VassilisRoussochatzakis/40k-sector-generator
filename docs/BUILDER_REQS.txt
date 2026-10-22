@@ -327,6 +327,7 @@ D6.   [DONE] Implement `Serialize/Deserialize` for `BuilderState` so the in-prog
       containing base64-encoded files by default to avoid new dependencies.
       Optionally support a `.tar` format toggle for portability if the `tar`
       crate is enabled. Use `serde_json` only; no bincode.
+      WITHDRAWN 2026-10-22 (ponytail R2 B5): save_session removed — nothing could load .sgforge since load_session was cut in Round 1.
 
 ================================================================================
 5. PROJECT + I/O TASKS

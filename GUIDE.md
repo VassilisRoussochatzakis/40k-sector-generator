@@ -2721,7 +2721,7 @@ foundation layer lives in:
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3 cache primitives (`digest_input`) **and** the §39 live-derivation ledger (LD1..LD4): `DerivationKind` (16 overlays), `DepClass` (6 mutation-input classes) + the dependency table, `DerivationLedger` (per-kind fingerprints / stale set / deriving set), `DerivationStatus`. The generic key→value `DerivationCache` is flushed per command; the ledger is invalidated *precisely* by `BuilderCommand::dep_classes` (LD2). |
 | [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save points tying a `GeneratedSector` clone to a command-log position. |
-| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
+| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `SessionFile` JSON envelope, in memory only (`from_state` / `into_state`); no `.sgforge` save/load. |
 | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
 
 `BuilderState::run` routes a command through the bus enforcing the R4
@@ -2736,8 +2736,8 @@ same invariant / invalidation / auto-save tail so the status bar stays accurate.
 session used by the new-project wizard. It uses the new
 `GeneratedSector::empty` constructor under the hood.
 
-The `.sgforge` envelope is versioned (`SESSION_VERSION = 1`). Loaders refuse
-mismatched versions explicitly rather than partially decoding.
+`SessionFile::from_state` stamps `SESSION_VERSION = 1`; nothing reads it back,
+since no `.sgforge` file is written or loaded.
 
 #### R1–R10 architecture rails (DONE)
 
@@ -3920,7 +3920,7 @@ Notable suites:
 - [tests/it/personae_tests.rs](tests/it/personae_tests.rs) — §3 dramatis personae: faction/system/world anchor validity, sector-wide name uniqueness, `max_per_world`/`max_per_system` caps, golden markdown structure, proptest determinism (TEST-001)
 - [tests/it/hooks_tests.rs](tests/it/hooks_tests.rs) — §7 plot hooks: anchor validity for system/world/route variants, id uniqueness, descending weight ordering, `hide_hidden_hooks` filter, golden markdown attribute lines, proptest determinism (TEST-001)
 - [tests/it/segmentum_tests.rs](tests/it/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
-- [builder/src/builder/smoke_test.rs](builder/src/builder/smoke_test.rs) — §T6 headless builder GUI smoke test: `builder_smoke_paints_core_tabs_and_saves` drives PROJECT / MAP / SYSTEM / WORLD through one `egui::Context::run` frame each, then asserts `save_session` to a temp `.sgforge` succeeds and is non-empty (no display server needed)
+- [builder/src/builder/smoke_test.rs](builder/src/builder/smoke_test.rs) — §T6 headless builder GUI smoke test: `builder_smoke_paints_core_tabs_and_saves` drives PROJECT / MAP / SYSTEM / WORLD through one `egui::Context::run` frame each and asserts none of them panics (no display server needed; the name's "saves" predates the `save_session` removal)
 
 Benchmarks (criterion):
 
@@ -4107,7 +4107,7 @@ across runs, so a regression check is a diff away.
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory TOML mirrors (worlds/factions/relations/route_rules/regions/economy/history/names) |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache for derived overlays |
 | [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save-point structure |
-| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
+| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `SessionFile` in-memory JSON envelope (no `.sgforge` save/load) |
 | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
 | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
 | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes (`atomic_write`), manifest digest refresh, `refresh_watcher_baseline` (§PF5) |

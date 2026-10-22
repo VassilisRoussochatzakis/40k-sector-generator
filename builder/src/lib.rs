@@ -13,7 +13,7 @@ pub use builder::command::{ArchetypeApplyFlags, BuilderCommand};
 // exposed for benches/tests
 pub use builder::derivation_cache::{DepClass, DerivationKind};
 // exposed for benches/tests
-pub use builder::session::{save_session, SessionFile};
+pub use builder::session::SessionFile;
 // exposed for benches/tests
 pub use builder::state::BuilderState;
 

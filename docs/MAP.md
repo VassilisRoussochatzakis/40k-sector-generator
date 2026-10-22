@@ -315,7 +315,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 |---|---|
 | [builder/src/builder/mod.rs](../builder/src/builder/mod.rs) | GUI builder foundation facade (Phase A of docs/BUILDER_REQS.txt) |
 | [builder/src/builder/command.rs](../builder/src/builder/command.rs) | §U1 command bus: every structural mutation flows through `BuilderCommand` (undo/redo). Includes the coarse §R4 detail-editor commands `EditWorld` / `EditSystem` / `EditChronicle` / `BulkEditWorlds` / `DeriveBaselineIntel` (snapshot-replace; `apply` captures `before`) used by the WORLD/SYSTEM/CONTROL/INTEL/HISTORY inspectors |
-| [builder/src/builder/session.rs](../builder/src/builder/session.rs) | §D6 `.sgforge` session file (load/save round-trip) |
+| [builder/src/builder/session.rs](../builder/src/builder/session.rs) | §D6 `SessionFile` envelope, in memory only (`from_state`/`into_state`; no `.sgforge` save/load) |
 | [builder/src/builder/snapshot.rs](../builder/src/builder/snapshot.rs) | §U3/§U4 named save points (freeze sector + cursor position) |
 | [builder/src/builder/project_io.rs](../builder/src/builder/project_io.rs) | §P1–§P3 project file I/O for the GUI builder |
 | [builder/src/builder/preview.rs](../builder/src/builder/preview.rs) | §G3 live preview pipeline |

@@ -70,7 +70,6 @@ pub(super) fn resolve_system_context(
             Some(SystemMenuTarget::World {
                 system,
                 world: w.id.clone(),
-                orbit: w.orbit,
             })
         }
         SystemPick::EmptyOrbit(orbit) => Some(SystemMenuTarget::EmptyOrbit { system, orbit }),
@@ -782,7 +781,6 @@ mod tests {
             SystemMenuTarget::World {
                 system: sys,
                 world: wid,
-                orbit: 1
             }
         );
     }
@@ -959,7 +957,6 @@ mod tests {
             target: SystemMenuTarget::World {
                 system: sys,
                 world: wid,
-                orbit: 1,
             },
         });
         assert_eq!(
@@ -1034,11 +1031,9 @@ mod tests {
         // id — removing only the planet (while the host stays) is enough.
         let mut state = blank();
         let (sys, wid) = add_sys_world(&mut state);
-        let orbit = state.sector.systems[0].worlds[0].orbit;
         let target = SystemMenuTarget::World {
             system: sys.clone(),
             world: wid.clone(),
-            orbit,
         };
         assert!(!system_menu_target_is_stale(&state, &target));
         state.sector.systems[0].worlds.retain(|w| w.id != wid);

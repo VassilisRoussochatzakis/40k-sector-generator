@@ -25,7 +25,3 @@ tempfile.workspace = true
 # belong in gui-core).
 [lints]
 workspace = true
-
-[[bin]]
-name = "sectorforge-viewer"
-path = "src/main.rs"

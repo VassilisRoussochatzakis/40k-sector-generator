@@ -304,7 +304,7 @@ impl IterativeGenSession {
     /// for a brand-new wizard).
     ///
     /// Invariant #4 (square sectors): the rolled config's
-    /// `sector_width == sector_height == size.dim()`; the panel's size field must
+    /// `(sector_width, sector_height) == size.dims()`; the panel's size field must
     /// drive both via [`BuilderState::set_grid_dim`].
     #[must_use]
     pub fn new(baseline: AppConfig, seed: String, size: SectorSize) -> Self {

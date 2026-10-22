@@ -27,10 +27,6 @@ criterion = { workspace = true }
 [lints]
 workspace = true
 
-[[bin]]
-name = "sectorforge-builder"
-path = "src/main.rs"
-
 # T7/§40, PERF1/§42 — large-sector mutation benchmark. `harness = false` because
 # the bench supplies its own `criterion_main!` entry point.
 [[bench]]

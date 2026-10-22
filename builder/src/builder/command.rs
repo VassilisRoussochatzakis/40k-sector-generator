@@ -420,6 +420,25 @@ fn world_mut<'a>(
         .ok_or_else(|| MutationError::WorldNotFound(id.to_string()))
 }
 
+/// Warp-region counterpart to [`system_mut`]/[`world_mut`]. `sector.regions`
+/// is a shared `Arc<Vec<_>>`, so `f` edits a clone that replaces it only when
+/// `id` is found; a miss leaves the sector untouched (undo arms discard the
+/// `Err` so a missing region stays a no-op).
+fn with_region_mut<R>(
+    sector: &mut GeneratedSector,
+    id: &str,
+    f: impl FnOnce(&mut WarpRegion) -> R,
+) -> Result<R, MutationError> {
+    let mut regions = (*sector.regions).clone();
+    let reg = regions
+        .iter_mut()
+        .find(|r| r.id == id)
+        .ok_or_else(|| MutationError::RegionNotFound(id.to_string()))?;
+    let out = f(reg);
+    sector.regions = Arc::new(regions);
+    Ok(out)
+}
+
 impl BuilderCommand {
     /// LD2 — the §39 mutation-input classes this command touches. The command
     /// bus passes the result to [`crate::builder::DerivationLedger::invalidate`]
@@ -730,32 +749,18 @@ impl BuilderCommand {
                 region,
                 before,
                 after,
-            } => {
-                let mut regions = (*sector.regions).clone();
-                let reg = regions
-                    .iter_mut()
-                    .find(|r| r.id == *region)
-                    .ok_or_else(|| MutationError::RegionNotFound(region.clone()))?;
+            } => with_region_mut(sector, region, |reg| {
                 *before = reg.kind;
                 reg.kind = *after;
-                sector.regions = std::sync::Arc::new(regions);
-                Ok(())
-            }
+            }),
             Self::RenameRegion {
                 region,
                 before,
                 after,
-            } => {
-                let mut regions = (*sector.regions).clone();
-                let reg = regions
-                    .iter_mut()
-                    .find(|r| r.id == *region)
-                    .ok_or_else(|| MutationError::RegionNotFound(region.clone()))?;
+            } => with_region_mut(sector, region, |reg| {
                 *before = reg.name.clone();
                 reg.name = after.clone();
-                sector.regions = std::sync::Arc::new(regions);
-                Ok(())
-            }
+            }),
             Self::AddRegion {
                 id,
                 name,
@@ -780,12 +785,7 @@ impl BuilderCommand {
                 region,
                 before,
                 after,
-            } => {
-                let mut regions = (*sector.regions).clone();
-                let slot = regions
-                    .iter_mut()
-                    .find(|r| r.id == *region)
-                    .ok_or_else(|| MutationError::RegionNotFound(region.clone()))?;
+            } => with_region_mut(sector, region, |slot| {
                 // D1: keep a caller-supplied pre-stroke snapshot. A paint stroke
                 // pre-applies to the live region for feedback, then commits with
                 // `before` already set, so re-capturing here would record the
@@ -796,9 +796,7 @@ impl BuilderCommand {
                     *before = Some(Box::new(slot.clone()));
                 }
                 *slot = (**after).clone();
-                sector.regions = std::sync::Arc::new(regions);
-                Ok(())
-            }
+            }),
             Self::SetStar {
                 system,
                 before,
@@ -1094,19 +1092,11 @@ impl BuilderCommand {
                 Ok(())
             }
             Self::SetRegionKind { region, before, .. } => {
-                let mut regions = (*sector.regions).clone();
-                if let Some(reg) = regions.iter_mut().find(|r| r.id == *region) {
-                    reg.kind = *before;
-                    sector.regions = std::sync::Arc::new(regions);
-                }
+                let _ = with_region_mut(sector, region, |reg| reg.kind = *before);
                 Ok(())
             }
             Self::RenameRegion { region, before, .. } => {
-                let mut regions = (*sector.regions).clone();
-                if let Some(reg) = regions.iter_mut().find(|r| r.id == *region) {
-                    reg.name = before.clone();
-                    sector.regions = std::sync::Arc::new(regions);
-                }
+                let _ = with_region_mut(sector, region, |reg| reg.name = before.clone());
                 Ok(())
             }
             // D1: `add_region` appends, so revert removes by id. Like the
@@ -1123,11 +1113,7 @@ impl BuilderCommand {
             }
             Self::EditRegion { region, before, .. } => {
                 if let Some(prev) = before {
-                    let mut regions = (*sector.regions).clone();
-                    if let Some(slot) = regions.iter_mut().find(|r| r.id == *region) {
-                        *slot = (**prev).clone();
-                        sector.regions = std::sync::Arc::new(regions);
-                    }
+                    let _ = with_region_mut(sector, region, |slot| *slot = (**prev).clone());
                 }
                 Ok(())
             }

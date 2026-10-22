@@ -569,11 +569,7 @@ pub enum SystemMenuTarget {
     /// Click landed on (or near) the central star disk.
     Star { system: SystemId },
     /// Click landed on a planet/world disk.
-    World {
-        system: SystemId,
-        world: WorldId,
-        orbit: u8,
-    },
+    World { system: SystemId, world: WorldId },
     /// Click landed on an orbit ring but not on any planet currently on that
     /// ring.
     EmptyOrbit { system: SystemId, orbit: u8 },

@@ -117,9 +117,8 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/analysis/history/mod.rs](../src/analysis/history/mod.rs) | §1 chronicle facade: `derive*`, orchestration, `anchor_key`, `pub use` surface |
 | [src/analysis/history/config.rs](../src/analysis/history/config.rs) | `HistoryConfig`/`HistoryFile`/`HistoryEra`/`HistoryEventRule` + defaults |
 | [src/analysis/history/model.rs](../src/analysis/history/model.rs) | DTOs: `HistoryReport`, `HistoryEvent`, `HistoryAnchor`, `EventKind`, entity/consequence types |
-| [src/analysis/history/context.rs](../src/analysis/history/context.rs) | `EmitContext` borrowed state threaded into emit families |
 | [src/analysis/history/progress.rs](../src/analysis/history/progress.rs) | `HistoryProgress` enum + progress-stride helpers |
-| [src/analysis/history/build.rs](../src/analysis/history/build.rs) | Event construction: `build_event`, date/era synthesis, entity refs, consequences |
+| [src/analysis/history/build.rs](../src/analysis/history/build.rs) | Event construction: `build_event`, date/era synthesis, entity refs, consequences; `EmitContext` borrowed state threaded into emit families |
 | [src/analysis/history/worlds.rs](../src/analysis/history/worlds.rs) | Per-world emission: foundation, claims, contested control, hidden cults, purges |
 | [src/analysis/history/systems.rs](../src/analysis/history/systems.rs) | Per-system emission: system state + archetype activations; `flush_capped` tail shared with worlds/routes |
 | [src/analysis/history/routes.rs](../src/analysis/history/routes.rs) | Per-route emission: warp hazards, concealed passages, pirate/interdictor control |

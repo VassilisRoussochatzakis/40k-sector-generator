@@ -18,6 +18,7 @@ use crate::sector_model::{
 /// Default target system count per subsector. Cluster count is derived as
 /// `ceil(system_count / target)`.
 pub const DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR: u32 = 12;
+/// Hard cap on Lloyd refinement iterations.
 pub const DEFAULT_CLUSTER_ITERATIONS: u32 = 24;
 
 #[derive(Debug, Clone)]
@@ -98,19 +99,12 @@ pub struct SubsectorConfig {
     /// Average number of systems each cluster should contain. Cluster count
     /// `K = ceil(system_count / target_systems_per_subsector)`.
     pub target_systems_per_subsector: u32,
-    /// Hard cap on Lloyd refinement iterations.
-    pub max_iterations: u32,
-    pub include_empty_subsectors: bool,
-    pub faction_control_top_n: usize,
 }
 
 impl Default for SubsectorConfig {
     fn default() -> Self {
         Self {
             target_systems_per_subsector: DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
-            max_iterations: DEFAULT_CLUSTER_ITERATIONS,
-            include_empty_subsectors: true,
-            faction_control_top_n: 5,
         }
     }
 }
@@ -378,12 +372,7 @@ pub fn build_subsectors(
             route_degree: &route_degree,
             stable_route_degree: &stable_route_degree,
             owners: &owners,
-            config: &config,
         });
-    }
-
-    if !config.include_empty_subsectors {
-        cells.retain(|c| !c.system_ids.is_empty());
     }
 
     Ok(cells)
@@ -542,7 +531,7 @@ fn cluster_systems(
 
     // Lloyd refinement over hex distance.
     let mut assignment: Vec<usize> = vec![usize::MAX; n];
-    for _iter in 0..config.max_iterations {
+    for _iter in 0..DEFAULT_CLUSTER_ITERATIONS {
         // Assign each system to its nearest seed; ties favor the lower seed idx.
         for i in 0..n {
             let mut best = (u32::MAX, usize::MAX);
@@ -770,13 +759,9 @@ mod tests {
     }
 
     #[test]
-    fn empty_subsectors_dropped_when_requested_yields_one_for_single_system() {
+    fn single_system_yields_one_subsector() {
         let sector = mini_sector(32, 32, vec![(0, 0)]);
-        let cfg = SubsectorConfig {
-            include_empty_subsectors: false,
-            ..SubsectorConfig::default()
-        };
-        let subs = build_subsectors(&sector, cfg).unwrap();
+        let subs = build_subsectors(&sector, SubsectorConfig::default()).unwrap();
         assert_eq!(subs.len(), 1);
     }
 
@@ -795,7 +780,6 @@ mod tests {
         sector.systems[1].name = "Bromios".into();
         let cfg = SubsectorConfig {
             target_systems_per_subsector: 1,
-            ..SubsectorConfig::default()
         };
         let subs = build_subsectors(&sector, cfg).unwrap();
         // Each cluster should have one system, named after it.
@@ -841,7 +825,6 @@ mod tests {
         // sys-0003 forms its own cluster.
         let cfg = SubsectorConfig {
             target_systems_per_subsector: 2,
-            ..SubsectorConfig::default()
         };
         let subs = build_subsectors(&sector, cfg).unwrap();
         let owner_of = |sid: &str| -> &Subsector {

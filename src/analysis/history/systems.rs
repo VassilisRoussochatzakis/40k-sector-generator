@@ -7,8 +7,7 @@ use std::cmp::Ordering;
 use crate::archetypes::{GscStage, NecronPhase, TauSphereBand, TyranidStage};
 use crate::sector_model::{GeneratedSystem, SystemState};
 
-use super::build::build_event;
-use super::context::EmitContext;
+use super::build::{build_event, EmitContext};
 use super::labels::{gsc_stage_label, tau_band_label};
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
 

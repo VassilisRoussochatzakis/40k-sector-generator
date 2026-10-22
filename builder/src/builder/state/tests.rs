@@ -2213,9 +2213,9 @@ mod off_bus_seam {
         );
     }
 
-    /// D2 follow-up — `save_project_as` re-establishes the in-sector derived
-    /// state before writing, so `sector.json` never carries the relations or
-    /// chronicle an un-viewed edit left stale.
+    /// D2 follow-up — `save_project_as` refreshes the in-sector relations and
+    /// chronicle before writing, so `sector.json` never carries what an
+    /// un-viewed edit left stale; a stale economy is left alone (no §E4 nudge).
     #[test]
     fn save_project_as_writes_fresh_relations_and_chronicle() {
         let dir = tempfile::TempDir::new().unwrap();
@@ -2223,6 +2223,7 @@ mod off_bus_seam {
         let mut s = seeded();
         // Fixture: a warzone puts "alpha" in the chronicle.
         s.sector.systems[0].control.state = Some(sectorforge::sector_model::SystemState::Warzone);
+        s.recompute_economy(); // prime economy too, so the rename stales it
         s.recompute_relations(); // prime both (no factions yet ⇒ empty matrix)
         s.recompute_chronicle();
         // Fixture: two factions arrive off-bus; the rename is the staling edit.
@@ -2238,6 +2239,10 @@ mod off_bus_seam {
         .unwrap();
 
         crate::builder::project_io::save_project_as(&mut s, &root).unwrap();
+        assert!(
+            s.derivations.is_stale(DerivationKind::Economy),
+            "save never recomputes economy"
+        );
 
         let saved = read_saved(&root.join("out/sector.json"));
         assert_eq!(

@@ -622,9 +622,9 @@ Internal layout (post-SPLIT-003): `src/analysis/history/` is split by emission
 family. `mod.rs` is the public facade (`derive*`, orchestration, `pub
 use`). `config.rs` holds `HistoryConfig`/`HistoryEra`/`HistoryEventRule`
 + defaults; `model.rs` holds the output DTOs and `EventKind`
-(topo/weight); `progress.rs` holds `HistoryProgress`; `context.rs` holds
-the borrowed `EmitContext`. `build.rs` is the shared event constructor
-(date/era/id/entity/consequence). Emission families are one file each:
+(topo/weight); `progress.rs` holds `HistoryProgress`. `build.rs` is the
+shared event constructor (date/era/id/entity/consequence) and holds the
+borrowed `EmitContext`. Emission families are one file each:
 `worlds.rs`, `systems.rs`, `routes.rs`, `subsectors.rs`, `regions.rs`.
 `rules.rs` enforces `[[event_rules]]`. `labels.rs` is tiny string
 helpers. `markdown.rs` renders the chronicle Markdown + writes
@@ -1943,9 +1943,6 @@ Cluster count derives from `target_systems_per_subsector` (default 12):
 ```rust
 let subs = sectorforge::build_subsectors(&sector, sectorforge::SubsectorConfig {
     target_systems_per_subsector: 12,
-    max_iterations: 24,
-    include_empty_subsectors: true,
-    faction_control_top_n: 5,
 })?;
 ```
 
@@ -2887,9 +2884,11 @@ yellow `stale M` tag (hover lists the kinds). `DerivationStatus` is `Cold` /
 *Synchronous on view.* `BuilderState::pump_derivations` (called each frame from
 `pump_active_state`) runs `ensure_fresh` on the active tab's overlay, so the
 visible panel paints a live value the same frame. Off-tab overlays stay stale
-until their tab is shown; undo/redo, `save_project_as` and the close-time
-`flush_auto_save` also re-establish the in-sector economy / relations /
-chronicle (`reestablish_persisted_derived`). The off-thread pre-warm of off-tab
+until their tab is shown; undo/redo also re-establish the in-sector economy /
+relations / chronicle (`reestablish_persisted_derived`), while
+`save_project_as`, the export bundle and the close-time `flush_auto_save`
+refresh only relations / chronicle (`refresh_for_save`) — a save never applies
+the §E4 stability nudge. The off-thread pre-warm of off-tab
 overlays was withdrawn (2026-10-22), so a throttled mid-edit auto-save writes
 whatever is cached.
 

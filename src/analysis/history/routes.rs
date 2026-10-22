@@ -3,7 +3,7 @@
 
 use crate::sector_model::{GeneratedRoute, RouteStability, RouteType};
 
-use super::context::EmitContext;
+use super::build::EmitContext;
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
 use super::systems::{flush_capped, Draft};
 

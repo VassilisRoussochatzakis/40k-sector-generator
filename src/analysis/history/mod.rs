@@ -19,7 +19,6 @@ use crate::sector_model::GeneratedSector;
 
 mod build;
 mod config;
-mod context;
 mod labels;
 mod markdown;
 mod model;
@@ -42,7 +41,7 @@ pub use model::{
 };
 pub use progress::{should_report_progress, HistoryProgress};
 
-use context::EmitContext;
+use build::EmitContext;
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryReport {

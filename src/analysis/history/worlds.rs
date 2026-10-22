@@ -3,7 +3,7 @@
 
 use crate::sector_model::{ClaimType, GeneratedSystem, GeneratedWorld};
 
-use super::context::EmitContext;
+use super::build::EmitContext;
 use super::labels::article_phrase;
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
 use super::systems::{flush_capped, heaviest_then_topo, Draft};

@@ -37,7 +37,6 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
         &state.sector,
         SubsectorConfig {
             target_systems_per_subsector: state.subsector_target_systems.max(1),
-            ..SubsectorConfig::default()
         },
     ) {
         Ok(v) => {

@@ -12,7 +12,7 @@ use crate::sector_model::{
 };
 use crate::worlds::{Population, TechLevel};
 
-use super::{FactionControlSummary, ScoredId, Subsector, SubsectorConfig, SubsectorSummary};
+use super::{FactionControlSummary, ScoredId, Subsector, SubsectorSummary};
 
 // ── Ownership resolution (spec §10.4.1) ────────────────────────────────────────
 
@@ -171,7 +171,6 @@ pub(super) struct SummaryParams<'a> {
     pub route_degree: &'a BTreeMap<&'a str, u32>,
     pub stable_route_degree: &'a BTreeMap<&'a str, u32>,
     pub owners: &'a BTreeMap<crate::ids::SystemId, SystemOwnership>,
-    pub config: &'a SubsectorConfig,
 }
 
 pub(super) fn populate_summary(params: SummaryParams) {
@@ -182,7 +181,6 @@ pub(super) fn populate_summary(params: SummaryParams) {
         route_degree,
         stable_route_degree,
         owners,
-        config,
     } = params;
     let mut summary = SubsectorSummary {
         system_count: cell.system_ids.len() as u32,
@@ -263,7 +261,7 @@ pub(super) fn populate_summary(params: SummaryParams) {
     summary.dominant_factions = dominant;
 
     // Faction control. Build per-faction ownership tallies from member systems.
-    let (faction_control, controlling) = build_faction_control(cell, sys_by_id, owners, config);
+    let (faction_control, controlling) = build_faction_control(cell, sys_by_id, owners);
     summary.faction_control = faction_control;
     summary.controlling_faction_id = controlling;
 
@@ -296,7 +294,6 @@ fn build_faction_control(
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
-    config: &SubsectorConfig,
 ) -> (Vec<FactionControlSummary>, Option<crate::ids::FactionId>) {
     // Tallies per faction inside this subsector.
     #[derive(Default)]
@@ -403,11 +400,9 @@ fn build_faction_control(
         }
     }
 
-    // Truncate to top N. `rows` is already fully ordered (sorted above) and
+    // Truncate to the top 5. `rows` is already fully ordered (sorted above) and
     // `truncate` preserves order, so no re-sort is needed afterward.
-    if config.faction_control_top_n < rows.len() {
-        rows.truncate(config.faction_control_top_n);
-    }
+    rows.truncate(5);
 
     let controlling = rows
         .first()

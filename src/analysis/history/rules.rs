@@ -5,9 +5,8 @@ use std::collections::BTreeMap;
 
 use crate::sector_model::GeneratedSystem;
 
-use super::build::build_event;
+use super::build::{build_event, EmitContext};
 use super::config::HistoryEventRule;
-use super::context::EmitContext;
 use super::labels::kind_slug;
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
 

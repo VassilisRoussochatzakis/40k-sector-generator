@@ -139,11 +139,13 @@ impl BuilderState {
         if self.suspend_auto_save_writes {
             return;
         }
-        // ponytail: no `reestablish_persisted_derived` here or in
-        // `tick_auto_save` — a synchronous recompute per edit would sit on the
-        // editing hot path. Ceiling: a mid-edit auto-save can carry stale
-        // relations/chronicle, as economy always could (explicit saves and the
-        // close flush refresh first). Upgrade: refresh before every write.
+        // ponytail: no `refresh_for_save` here or in `tick_auto_save` — a
+        // synchronous recompute per edit would sit on the editing hot path.
+        // Ceiling: a mid-edit auto-save can carry stale relations/chronicle, as
+        // any save can carry a stale economy (explicit saves and the close
+        // flush refresh only relations/chronicle first). Auto-save is test-only
+        // today: `auto_save_path` is never set outside tests. Upgrade: refresh
+        // before every write.
         let due = self
             .last_auto_save
             .is_none_or(|t| t.elapsed() >= Self::AUTO_SAVE_MIN_INTERVAL);
@@ -183,10 +185,10 @@ impl BuilderState {
     /// Audit finding #30: force the pending auto-save to disk *now*, ignoring
     /// the debounce interval. Wired to app close/exit so the trailing edit of
     /// a burst is never dropped. No-op when nothing is owed or no path is set.
-    /// Re-establishes the in-sector derived state first, like an explicit save.
+    /// Refreshes the in-sector relations / chronicle first, like an explicit save.
     pub fn flush_auto_save(&mut self) {
         if self.auto_save_pending && self.auto_save_path.is_some() {
-            self.reestablish_persisted_derived();
+            self.refresh_for_save();
             self.write_auto_save_now();
         }
     }
@@ -292,9 +294,8 @@ impl BuilderState {
         Ok(())
     }
 
-    /// Audit finding #22: after an `undo` / `redo`, and before an explicit save
-    /// or the close flush, re-establish the derived state that is stored
-    /// *inside* the `GeneratedSector` and thus serialized
+    /// Audit finding #22: after an `undo` / `redo` re-establish the derived
+    /// state that is stored *inside* the `GeneratedSector` and thus serialized
     /// into `sector.json` — `economy` (`sector.economy`), `relations`
     /// (`sector.relations`), and `chronicle` (`sector.chronicle`). Each is
     /// recomputed via [`Self::ensure_fresh`], which is a no-op unless the
@@ -304,7 +305,7 @@ impl BuilderState {
     /// (`personae` / `hooks` / …) live on `BuilderState` fields, not in the
     /// sector, so they do not affect the persisted artifact and are refreshed
     /// lazily by the normal LD3/LD4 pump.
-    pub(crate) fn reestablish_persisted_derived(&mut self) {
+    fn reestablish_persisted_derived(&mut self) {
         use crate::builder::derivation_cache::DerivationKind;
         // Suspend immediate auto-save writes so the internal `recompute_*`
         // writes during this burst collapse into the single trailing
@@ -314,6 +315,20 @@ impl BuilderState {
         // ordering below then refreshes against the nudged graph).
         let prev = std::mem::replace(&mut self.suspend_auto_save_writes, true);
         self.ensure_fresh(DerivationKind::Economy);
+        self.ensure_fresh(DerivationKind::Relations);
+        self.ensure_fresh(DerivationKind::History);
+        self.suspend_auto_save_writes = prev;
+    }
+
+    /// Save-time refresh (`save_project_as`, the export bundle and
+    /// [`Self::flush_auto_save`]): re-derive the in-sector `relations` and
+    /// `chronicle` if stale, so `sector.json` never persists what an un-viewed
+    /// edit left stale. Economy is left as cached: its §E4 feed-stability
+    /// nudge would let a save change stability, which the pre-D2 background
+    /// derivations never did.
+    pub(crate) fn refresh_for_save(&mut self) {
+        use crate::builder::derivation_cache::DerivationKind;
+        let prev = std::mem::replace(&mut self.suspend_auto_save_writes, true);
         self.ensure_fresh(DerivationKind::Relations);
         self.ensure_fresh(DerivationKind::History);
         self.suspend_auto_save_writes = prev;

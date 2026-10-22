@@ -330,7 +330,6 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/diff_run.rs](../builder/src/builder/diff_run.rs) | §DF1..§DF5 DIFF runtime: two scratch sector slots + diff/tick |
 | [builder/src/builder/search_run.rs](../builder/src/builder/search_run.rs) | §SR1..§SR5 SEARCH runtime: editable wishes doc + search driver |
 | [builder/src/builder/segmentum_run.rs](../builder/src/builder/segmentum_run.rs) | §SG1..§SG5 SEGMENTUM runtime: editable `segmentum.toml` + off-thread compose job + composed result |
-| [builder/src/builder/derivation_jobs.rs](../builder/src/builder/derivation_jobs.rs) | §39 LD3 off-thread overlay re-derivation: stale overlay dispatcher + drain over background worker |
 | [builder/src/builder/export_run.rs](../builder/src/builder/export_run.rs) | §EX1..§EX8 EXPORT runtime: output folder, standalone-system form, cached markdown preview, last error |
 | [builder/src/builder/random_run.rs](../builder/src/builder/random_run.rs) | §7.4 random-sector generation runtime: off-thread synthesise-generate-derive job with live progress |
 | [builder/src/builder/smoke_test.rs](../builder/src/builder/smoke_test.rs) | Headless GUI smoke test (T6 / §40): off-screen egui frame per core tab, crash-only verification |

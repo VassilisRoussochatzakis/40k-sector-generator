@@ -1162,8 +1162,7 @@ brass brand accent, so a clean status line can never be mistaken for a warning.)
   `stale M` tag appears (hover it to see which overlays are affected). The
   builder re-derives a stale overlay automatically the moment you open its
   tab, so you always read a live result; the tag just tells you what is
-  waiting to refresh. A blue `deriving K` tag shows when a background
-  refresh is in flight.
+  waiting to refresh.
 
 - **Validation** counts pre-generation rule checks (your config and data
   are coherent).

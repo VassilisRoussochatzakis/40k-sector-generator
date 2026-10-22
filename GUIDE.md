@@ -1602,9 +1602,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   variant (`*JobResult::Failed`) via the `FromJobPanic` trait and delivered over
   the normal channel, instead of dropping the sender and leaving the receiver to
   observe only `Disconnected`. A result type that can't represent a panic
-  returns `None` from `FromJobPanic` (e.g. `DerivationPayload`, since every
-  derivation is total and a panic just leaves the kind stale to re-dispatch)
-  and falls back to the `Disconnected` path. Under the release profile
+  returns `None` from `FromJobPanic` and falls back to the `Disconnected` path. Under the release profile
   (`panic = "abort"`) `catch_unwind` is a no-op,
   so this surfacing only applies to unwinding builds.
 - **Crash-note panic hook.** Both GUI mains install
@@ -2756,7 +2754,7 @@ mismatched versions explicitly rather than partially decoding.
 | R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
 | R10 panel contract | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
 
-#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 DONE, LD4 DONE)
+#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 DONE (background half withdrawn), LD4 DONE)
 
 The overlay tabs (economy, relations, history, personae, hooks, sites, missions,
 prose, analytics, briefing, interestingness, …) render *derived* state. Each
@@ -2880,50 +2878,18 @@ row is a focus button that jumps the inspector to the offending file or entity.
 The status bar still reads `validation_report` directly for the always-visible
 health pip.
 
-**LD3 — stale tag + background re-derivation.**
-The status bar (`render_derivations`) shows `deriv N` (cached overlays), a yellow
-`stale M` tag (hover lists the kinds), and a blue `deriving K` tag.
-`DerivationStatus` is `Cold` / `Fresh` / `Stale` / `Deriving`.
+**LD3 — stale tag.**
+The status bar (`render_derivations`) shows `deriv N` (cached overlays) and a
+yellow `stale M` tag (hover lists the kinds). `DerivationStatus` is `Cold` /
+`Fresh` / `Stale` / `Deriving`.
 
-*Active-tab fast path (synchronous).* `BuilderState::pump_derivations` (called
-each frame from `pump_active_state`) re-derives the active tab's stale overlay
-first, so the visible panel paints a live value the same frame — and the kind is
-cleared from `stale` before background dispatch reads the set, so it is never
-double-computed.
-
-*Off-thread path.* Seven background-eligible kinds — Relations, History,
-Personae, Hooks, Sites, Missions, Prose — re-derive on a worker via
-[`gui-core::jobs::JobHandle`](gui-core/src/jobs.rs).
-[derivation_jobs.rs](builder/src/builder/derivation_jobs.rs) holds
-`compute_chronicle`, the one derivation with real logic beyond a bare
-`derive_with` call (it preserves `manual = true` events); the other six
-overlays (relations / personae / hooks / sites / missions / prose) are
-one-line `sectorforge::*::derive_with`/`derive_with_threshold` passthroughs
-called directly from both the worker and the synchronous `recompute_*` in
-[state/derivations.rs](builder/src/builder/state/derivations.rs). Either way
-each takes owned/borrowed snapshots (sector + cloned cfg + scalars) with no
-`&mut self`, so both call sites compute byte-identical output from identical
-inputs. `dispatch_background_derivations`
-(in [state/derivations.rs](builder/src/builder/state/derivations.rs)) snapshots
-inputs (`sector.share()` `Arc`-clone + cloned cfg) and spawns one job per stale
-off-tab kind that has no in-flight slot; `pump_derivation_jobs` drains
-`DerivationKind::ALL` deterministically and, for each `Done` result, runs a
-**fingerprint stale-guard** — the dispatch-time `derivation_fingerprint` is
-compared against the live one: a mismatch discards the result (and leaves the
-kind stale to re-dispatch against current inputs), a match installs the off-bus
-derived-cache write + `mark_derivation_fresh`. All ledger writes stay on the UI
-thread. The job store is transient UI state
-(`BuilderState::derivation_jobs: DerivationJobs`, a
-`BTreeMap<DerivationKind, InFlightDerivation>` keyed by kind), written directly —
-not a command, not serialized.
-
-*Economy stays synchronous.* Its install runs `apply_stability_nudge`, which
-mutates per-world stability and re-invalidates `SystemsWorlds` — a
-document-affecting cascade that must run on the UI thread — so economy is
-excluded from `is_background_eligible`. Tests:
-`pure_compute_relations_equals_sync_recompute`,
-`background_drain_installs_and_clears_when_fingerprint_stable`,
-`background_drain_discards_result_when_fingerprint_changed`.
+*Synchronous on view.* `BuilderState::pump_derivations` (called each frame from
+`pump_active_state`) runs `ensure_fresh` on the active tab's overlay, so the
+visible panel paints a live value the same frame. Off-tab overlays stay stale
+until their tab is shown; undo/redo also re-establish the in-sector economy /
+relations / chronicle. The off-thread pre-warm of off-tab overlays was
+withdrawn (2026-10-22), so nothing sets `Deriving` (or the blue `deriving K`
+tag) any more, and a save writes whatever is cached.
 
 **LD4 — panels consume the live cache.**
 The eight overlays with a state-level `recompute_*` are kept fresh centrally by

@@ -2161,6 +2161,7 @@ LD2.  [DONE] On mutation, invalidate caches whose key inputs changed (precise
 
 LD3.  [DONE] Background re-derivation thread: when cache invalidated,
       kicks off recompute; UI shows stale-tag until refresh completes.
+      WITHDRAWN 2026-10-22 (ponytail R2 D2): background pre-warming removed; derived tabs recompute synchronously on view via ensure_fresh.
       `DerivationLedger` carries a `stale` set (LD2) and a `deriving` set; the
       status bar (`panels/status.rs::render_derivations`) shows `deriv N`
       (cached overlays) plus a yellow `stale M` tag (hover lists the kinds) and a

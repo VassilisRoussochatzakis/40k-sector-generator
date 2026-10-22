@@ -147,15 +147,6 @@ impl BuilderApp {
         // prior mutation left it stale, so the panel about to paint reads a live
         // result this frame (the fast path).
         state.pump_derivations();
-        // §39 LD3: push every *other* stale (off-tab) overlay onto a background
-        // worker so it is fresh by the time the user visits it, then drain any
-        // worker results that landed this tick. The drain's fingerprint
-        // stale-guard discards results whose inputs drifted mid-flight; a fresh
-        // install requests a repaint so the now-updated overlay paints.
-        state.dispatch_background_derivations(ctx);
-        if state.pump_derivation_jobs() {
-            ctx.request_repaint();
-        }
         if state.pump_validation() {
             ctx.request_repaint();
         }

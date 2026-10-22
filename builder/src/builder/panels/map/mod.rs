@@ -28,6 +28,7 @@ use sectorforge_gui_core::{
 };
 
 pub(super) use context_menu::menu_anchor_pivot;
+pub(super) use dialogs::prompt_window;
 
 pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Map");
@@ -386,8 +387,7 @@ mod tests {
     use super::cache::refresh_map_cache;
     use super::context_menu::{
         apply_sector_menu_action, menu_anchor_pivot, resolve_sector_context,
-        sector_menu_action_label, sector_menu_target_is_stale, should_dismiss_sector_context_menu,
-        OpenInTarget, SectorMenuAction,
+        sector_menu_action_label, sector_menu_target_is_stale, OpenInTarget, SectorMenuAction,
     };
     use super::interactions::{
         apply_partial_regen_anchor_click, apply_rect_select, handle_click, handle_drag_drop,
@@ -679,20 +679,6 @@ mod tests {
             }
             other => panic!("expected MultiSelection, got {other:?}"),
         }
-    }
-
-    #[test]
-    fn escape_closes_menu() {
-        assert!(should_dismiss_sector_context_menu(true, true, false));
-        assert!(
-            should_dismiss_sector_context_menu(false, false, false),
-            "focus loss dismisses"
-        );
-        assert!(
-            should_dismiss_sector_context_menu(false, true, true),
-            "outside primary click dismisses"
-        );
-        assert!(!should_dismiss_sector_context_menu(false, true, false));
     }
 
     #[test]
@@ -1553,19 +1539,12 @@ mod tests {
     }
 
     #[test]
-    fn sector_menu_target_not_stale_for_empty_hex_or_subsector_border() {
+    fn sector_menu_target_not_stale_for_empty_hex() {
         let state = blank(4, 4);
         assert!(!sector_menu_target_is_stale(
             &state,
             &SectorMenuTarget::EmptyHex {
                 coord: HexCoord { q: 1, r: 1 }
-            }
-        ));
-        assert!(!sector_menu_target_is_stale(
-            &state,
-            &SectorMenuTarget::SubsectorBorder {
-                subsector: "sub-A".into(),
-                coord: HexCoord { q: 1, r: 1 },
             }
         ));
     }

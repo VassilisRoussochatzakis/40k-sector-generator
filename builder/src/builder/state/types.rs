@@ -610,12 +610,6 @@ pub enum SectorMenuTarget {
         region: String,
         coord: sectorforge::sector_model::HexCoord,
     },
-    /// Click hit a subsector border edge — reserved for the future
-    /// "subsector right-click" workflow (Phase 8+).
-    SubsectorBorder {
-        subsector: String,
-        coord: sectorforge::sector_model::HexCoord,
-    },
     /// Click landed inside the live rect-select box or on a system already in
     /// `BuilderState::selection.systems` with `len >= 2`. Phase 3
     /// reads this to surface bulk actions.

@@ -1,6 +1,6 @@
 //! §CTX1 — right-click target resolution + pure menu predicates for the MAP
-//! tab. The hit-test ([`resolve_sector_context`]), the dismiss / staleness
-//! predicates, and the floating-menu anchor pivot live here. All are pure reads
+//! tab. The hit-test ([`resolve_sector_context`]), the staleness predicate,
+//! and the floating-menu anchor pivot live here. All are pure reads
 //! of [`BuilderState`], so the `map/mod.rs` test module exercises them directly
 //! without standing up an egui interaction loop.
 
@@ -81,15 +81,6 @@ pub(in crate::builder::panels::map) fn resolve_sector_context(
     None
 }
 
-/// §CTX1 — Phase 1: pure dismiss predicate.
-pub(in crate::builder::panels::map) fn should_dismiss_sector_context_menu(
-    esc_pressed: bool,
-    focused: bool,
-    primary_click_outside: bool,
-) -> bool {
-    esc_pressed || !focused || primary_click_outside
-}
-
 /// §CTX1 §10 — returns `true` when the target referenced by an open menu no
 /// longer exists in `state.sector`.
 pub(in crate::builder::panels::map) fn sector_menu_target_is_stale(
@@ -105,7 +96,7 @@ pub(in crate::builder::panels::map) fn sector_menu_target_is_stale(
         SectorMenuTarget::MultiSelection { ids } => ids
             .iter()
             .all(|id| !state.sector.systems.iter().any(|s| &s.id == id)),
-        SectorMenuTarget::EmptyHex { .. } | SectorMenuTarget::SubsectorBorder { .. } => false,
+        SectorMenuTarget::EmptyHex { .. } => false,
     }
 }
 

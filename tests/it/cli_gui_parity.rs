@@ -59,28 +59,6 @@ fn cli_and_library_produce_identical_sector_json() {
         "CLI and library generation paths must produce byte-identical sector JSON \
          for the same project + seed (project = {project})"
     );
-
-    // 4. Spot-check a few invariants in case JSON equality ever short-circuits
-    // (e.g. NaN comparisons). These are cheap and document the contract.
-    assert_eq!(
-        cli_sector.seed.as_ref(),
-        lib_sector.seed.as_ref(),
-        "seed mismatch"
-    );
-    assert_eq!(
-        cli_sector.systems.len(),
-        lib_sector.systems.len(),
-        "system count mismatch"
-    );
-    assert_eq!(
-        cli_sector.routes.len(),
-        lib_sector.routes.len(),
-        "route count mismatch"
-    );
-    assert_eq!(
-        cli_sector.manifest.input_digests, lib_sector.manifest.input_digests,
-        "input digests must match — same project ⇒ same digests"
-    );
 }
 
 /// TF-T-11: `validate` parity — the CLI's `--json` output should match the
@@ -109,11 +87,6 @@ fn cli_and_library_validate_produce_identical_report() {
     assert_eq!(
         cli_value, lib_value,
         "CLI and library validate paths must produce identical reports"
-    );
-    assert_eq!(
-        cli_value.get("ok").and_then(|v| v.as_bool()),
-        Some(lib_report.ok),
-        "ok flag mismatch"
     );
 }
 

@@ -453,5 +453,5 @@ that declares the modules below.
 | [tests/it/export_parity_tests.rs](../tests/it/export_parity_tests.rs) | Disk-I/O parity: in-memory HTML/PNG render must equal the bytes written to disk |
 | [tests/it/iterative_gen_tests.rs](../tests/it/iterative_gen_tests.rs) | `generate_prefix`/`Stage`/`RerollNonces` seam: prefix ≡ the same prefix of a full run, nonce-0 ≡ one-shot generation, per-stage reroll isolation |
 | [tests/it/loading_tests.rs](../tests/it/loading_tests.rs) | `read_relative` path-escape guards via `load_project`, plus `big_test`/`big_sparse_test` example parse + dims |
-| [tests/it/random_sector_tests.rs](../tests/it/random_sector_tests.rs) | Size-only random-sector completeness, seed determinism, the `random` CLI bundle, and `_full`/themed presets (Huge + 80×80 `#[ignore]`) |
+| [tests/it/random_sector_tests.rs](../tests/it/random_sector_tests.rs) | Size-only random-sector completeness, seed determinism, the `random` CLI bundle, and `_full`/themed presets (Huge `#[ignore]`) |
 | [tests/it/route_monotonicity.rs](../tests/it/route_monotonicity.rs) | docs/TEST_GAPS.md §2c gap 1 proptest: a shorter route is never less safe within a hazard bucket, and every `Webway` is `Stable` |

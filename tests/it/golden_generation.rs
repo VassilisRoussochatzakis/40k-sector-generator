@@ -143,8 +143,8 @@ fn route_ids_sort_with_lower_system_first() {
 // GAP 171: when `min_worlds_per_system == max_worlds_per_system`,
 // `generate_worlds_for_system` skips `gen_range` and uses the bound directly,
 // so every placed system gets exactly that many worlds. Driven through the
-// public `generate_sector` entry point because the fn and its `WorldGenParams`
-// are `pub(super)` (not reachable from the integration suite). The m42 fixture
+// public `generate_sector` entry point because the fn is `pub(super)` (not
+// reachable from the integration suite). The m42 fixture
 // is already square (10×10) with `allow_empty_hexes = true`; we clone it and
 // override only min/max so the shared memoized fixture stays untouched.
 #[test]
@@ -220,27 +220,19 @@ fn single_format_config(format: OutputFormat) -> OutputConfig {
 // by the integration suite (only Json + Markdown). Smoke-test that each writes
 // its artifact; existence + non-empty only, no content pin.
 #[test]
-fn export_writes_bitmap_png() {
-    let cfg = single_format_config(OutputFormat::Bitmap);
-    let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-    sectorforge::export_sector(sector, &cfg, &tmp_path).unwrap();
-    let png = tmp_path.join("sector.png");
-    assert!(png.exists());
-    assert!(fs::metadata(&png).unwrap().len() > 0);
-}
-
-#[test]
-fn export_writes_interactive_html() {
-    let cfg = single_format_config(OutputFormat::Html);
-    let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-    sectorforge::export_sector(sector, &cfg, &tmp_path).unwrap();
-    let html = tmp_path.join("sector.html");
-    assert!(html.exists());
-    assert!(fs::metadata(&html).unwrap().len() > 0);
+fn export_writes_bitmap_png_and_interactive_html() {
+    for (format, file) in [
+        (OutputFormat::Bitmap, "sector.png"),
+        (OutputFormat::Html, "sector.html"),
+    ] {
+        let cfg = single_format_config(format);
+        let tmp = tempfile::tempdir().unwrap();
+        let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+        sectorforge::export_sector(fixture_sector(), &cfg, &tmp_path).unwrap();
+        let path = tmp_path.join(file);
+        assert!(path.exists(), "{file} not written");
+        assert!(fs::metadata(&path).unwrap().len() > 0, "{file} is empty");
+    }
 }
 
 fn assert_exported_sector_matches(output_dir: &Utf8PathBuf, expected: &GeneratedSector) {

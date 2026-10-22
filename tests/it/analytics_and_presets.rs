@@ -56,10 +56,6 @@ fn analysis_is_deterministic_for_same_sector() {
 #[test]
 fn list_presets_returns_starter_bundles() {
     let dir = presets_dir();
-    if !dir.exists() {
-        eprintln!("presets/ dir missing — skipping");
-        return;
-    }
     let entries = sectorforge::presets::list(&dir).unwrap();
     let ids: Vec<&str> = entries.iter().map(|e| e.id.as_str()).collect();
     assert!(ids.contains(&"m42-classic"));
@@ -73,10 +69,6 @@ fn list_presets_returns_starter_bundles() {
 #[test]
 fn scaffold_starter_preset_produces_loadable_project() {
     let dir = presets_dir();
-    if !dir.exists() {
-        eprintln!("presets/ dir missing — skipping");
-        return;
-    }
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = Utf8PathBuf::from_path_buf(tmp.path().join("scaffolded")).unwrap();
     sectorforge::presets::scaffold(&dir, "embattled-frontier", &dest, Some("test-seed")).unwrap();

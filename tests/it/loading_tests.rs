@@ -35,39 +35,26 @@ fn load_m42_with_bitmap_theme_file(
 }
 
 #[test]
-fn read_relative_rejects_parent_dir_escape() {
-    let tmp = tempfile::tempdir().unwrap();
-    let err = load_m42_with_bitmap_theme_file(&tmp, "../escape.toml")
-        .expect_err("a `..` theme_file path must be rejected by the escape guard");
-    assert!(
-        matches!(err, SectorError::ConfigParse { .. }),
-        "expected ConfigParse, got: {err:?}"
-    );
-    let msg = format!("{err}");
-    assert!(
-        msg.contains("escapes project root"),
-        "error message should name the escape: {msg}"
-    );
-    assert!(
-        msg.contains("../escape.toml"),
-        "error message should echo the offending path: {msg}"
-    );
-}
-
-#[test]
-fn read_relative_rejects_absolute_path_escape() {
-    let tmp = tempfile::tempdir().unwrap();
-    let err = load_m42_with_bitmap_theme_file(&tmp, "/abs/escape.toml")
-        .expect_err("an absolute theme_file path must be rejected by the escape guard");
-    assert!(
-        matches!(err, SectorError::ConfigParse { .. }),
-        "expected ConfigParse, got: {err:?}"
-    );
-    let msg = format!("{err}");
-    assert!(
-        msg.contains("escapes project root"),
-        "error message should name the escape: {msg}"
-    );
+fn read_relative_rejects_escaping_paths() {
+    // `..` first: `/abs/...` is not absolute on Windows, so that row fails there.
+    for value in ["../escape.toml", "/abs/escape.toml"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let err = load_m42_with_bitmap_theme_file(&tmp, value)
+            .expect_err("an escaping theme_file path must be rejected by the escape guard");
+        assert!(
+            matches!(err, SectorError::ConfigParse { .. }),
+            "{value}: expected ConfigParse, got: {err:?}"
+        );
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("escapes project root"),
+            "{value}: error message should name the escape: {msg}"
+        );
+        assert!(
+            msg.contains(value),
+            "{value}: error message should echo the offending path: {msg}"
+        );
+    }
 }
 
 #[test]
@@ -88,12 +75,15 @@ fn example_dir(name: &str) -> Utf8PathBuf {
 }
 
 #[test]
-fn big_examples_load_and_are_square() {
-    for name in ["big_test", "big_sparse_test"] {
+fn big_examples_load_with_expected_dims() {
+    for (name, systems) in [("big_test", 200), ("big_sparse_test", 80)] {
         let input = load_project(example_dir(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
         let g = &input.config.generation;
-        assert_eq!(g.sector_width, g.sector_height, "{name}: not square");
-        assert!(g.system_count > 0, "{name}: zero systems");
+        assert_eq!(
+            (g.sector_width, g.sector_height, g.system_count),
+            (32, 32, systems),
+            "{name}: (width, height, system_count)"
+        );
         assert!(
             !input.catalogs.world_rows.is_empty(),
             "{name}: empty world rows"
@@ -103,18 +93,4 @@ fn big_examples_load_and_are_square() {
             "{name}: empty factions"
         );
     }
-}
-
-#[test]
-fn big_examples_have_expected_dims() {
-    // Stronger, concrete assertions on the checked-in example configs.
-    let big = load_project(example_dir("big_test")).unwrap();
-    assert_eq!(big.config.generation.sector_width, 32);
-    assert_eq!(big.config.generation.sector_height, 32);
-    assert_eq!(big.config.generation.system_count, 200);
-
-    let sparse = load_project(example_dir("big_sparse_test")).unwrap();
-    assert_eq!(sparse.config.generation.sector_width, 32);
-    assert_eq!(sparse.config.generation.sector_height, 32);
-    assert_eq!(sparse.config.generation.system_count, 80);
 }

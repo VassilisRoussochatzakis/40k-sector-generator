@@ -194,62 +194,40 @@ fn generate_all_counts_only_direct_children() {
 // ── Gap 6: generate with bad format flags ──────────────────────────────────
 
 #[test]
-fn generate_exclude_json_is_rejected_and_writes_nothing() {
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let proj = copy_m42(tmp.path(), "proj");
-    let genout = tmp.path().join("genout");
+fn generate_bad_format_flags_are_rejected_and_write_nothing() {
+    for (flag, value, needle) in [
+        ("--exclude", "json", "json cannot be excluded"),
+        ("--formats", "bogus", "unknown --formats token 'bogus'"),
+    ] {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let proj = copy_m42(tmp.path(), "proj");
+        let genout = tmp.path().join("genout");
 
-    let (code, _stdout, stderr) = run(&[
-        "generate",
-        "--project",
-        proj.as_str(),
-        "--out",
-        genout.to_str().unwrap(),
-        "--exclude",
-        "json",
-    ]);
+        let (code, _stdout, stderr) = run(&[
+            "generate",
+            "--project",
+            proj.as_str(),
+            "--out",
+            genout.to_str().unwrap(),
+            flag,
+            value,
+        ]);
 
-    // InvalidConfig -> 78, fired in resolve_formats before any export.
-    assert_eq!(
-        code,
-        Some(78),
-        "excluding json should exit 78; stderr: {stderr}"
-    );
-    assert!(
-        stderr.contains("json cannot be excluded"),
-        "stderr missing json-exclusion message: {stderr}"
-    );
-    assert!(
-        !genout.join("sector.json").exists(),
-        "no output should be written when --exclude json errors"
-    );
-}
-
-#[test]
-fn generate_unknown_format_token_is_rejected() {
-    let tmp = tempfile::TempDir::new().expect("tempdir");
-    let proj = copy_m42(tmp.path(), "proj");
-    let genout = tmp.path().join("genout2");
-
-    let (code, _stdout, stderr) = run(&[
-        "generate",
-        "--project",
-        proj.as_str(),
-        "--out",
-        genout.to_str().unwrap(),
-        "--formats",
-        "bogus",
-    ]);
-
-    assert_eq!(
-        code,
-        Some(78),
-        "bad --formats token should exit 78; stderr: {stderr}"
-    );
-    assert!(
-        stderr.contains("unknown --formats token 'bogus'"),
-        "stderr missing unknown-token message: {stderr}"
-    );
+        // InvalidConfig -> 78, fired in resolve_formats before any export.
+        assert_eq!(
+            code,
+            Some(78),
+            "{flag} {value} should exit 78; stderr: {stderr}"
+        );
+        assert!(
+            stderr.contains(needle),
+            "stderr missing {needle:?}: {stderr}"
+        );
+        assert!(
+            !genout.join("sector.json").exists(),
+            "no output should be written when {flag} {value} errors"
+        );
+    }
 }
 
 // ── Gap 7: validate / validate-sector exit codes ───────────────────────────

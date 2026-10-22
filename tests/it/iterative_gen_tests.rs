@@ -10,12 +10,18 @@
 use std::sync::Arc;
 
 use sectorforge::regions::RegionsConfig;
-use sectorforge::{generate_prefix, RerollNonces, Stage};
+use sectorforge::{generate_prefix, GeneratedSector, ProjectInput, RerollNonces, Stage};
 
 use super::shared::{fixture_dir, fixture_sector};
 
 fn fixture_input() -> sectorforge::ProjectInput {
     sectorforge::load_project(fixture_dir()).expect("load fixture project")
+}
+
+/// `generate_prefix` with no progress callback and no cancellation.
+#[track_caller]
+fn run_prefix(input: ProjectInput, cutoff: Stage, nonces: &RerollNonces) -> GeneratedSector {
+    generate_prefix(input, cutoff, nonces, |_| {}, || false).expect("generate_prefix")
 }
 
 /// Clone `fixture_input` but substitute a different `RegionsConfig` for the
@@ -34,14 +40,7 @@ fn fixture_input_with_regions(regions: RegionsConfig) -> sectorforge::ProjectInp
 /// the legacy one-shot `generate_sector` (which the wrapper now delegates to).
 #[test]
 fn prefix_last_default_equals_one_shot() {
-    let prefix = generate_prefix(
-        fixture_input(),
-        Stage::LAST,
-        &RerollNonces::default(),
-        |_| {},
-        || false,
-    )
-    .expect("generate_prefix LAST");
+    let prefix = run_prefix(fixture_input(), Stage::LAST, &RerollNonces::default());
 
     let one_shot_json = serde_json::to_string(fixture_sector()).expect("serialize one-shot");
     let prefix_json = serde_json::to_string(&prefix).expect("serialize prefix");
@@ -75,22 +74,8 @@ fn prefix_stages_match_full_run_prefix() {
         Stage::RouteControls,
         Stage::LAST,
     ] {
-        let run_a = generate_prefix(
-            fixture_input(),
-            cutoff,
-            &RerollNonces::default(),
-            |_| {},
-            || false,
-        )
-        .expect("prefix run a");
-        let run_b = generate_prefix(
-            fixture_input(),
-            cutoff,
-            &RerollNonces::default(),
-            |_| {},
-            || false,
-        )
-        .expect("prefix run b");
+        let run_a = run_prefix(fixture_input(), cutoff, &RerollNonces::default());
+        let run_b = run_prefix(fixture_input(), cutoff, &RerollNonces::default());
         assert_eq!(
             serde_json::to_string(&run_a).unwrap(),
             serde_json::to_string(&run_b).unwrap(),
@@ -147,14 +132,7 @@ fn prefix_stages_match_full_run_prefix() {
 fn early_cutoff_returns_valid_sector() {
     let full = fixture_sector();
 
-    let placement = generate_prefix(
-        fixture_input(),
-        Stage::Placement,
-        &RerollNonces::default(),
-        |_| {},
-        || false,
-    )
-    .expect("prefix Placement");
+    let placement = run_prefix(fixture_input(), Stage::Placement, &RerollNonces::default());
 
     // Identity + dimensions are populated from config regardless of cutoff.
     assert_eq!(placement.seed.as_ref(), full.seed.as_ref());
@@ -181,10 +159,8 @@ fn reroll_is_deterministic_and_distinct() {
     let mut bumped = RerollNonces::default();
     bumped.bump(Stage::Placement);
 
-    let a = generate_prefix(fixture_input(), Stage::LAST, &bumped, |_| {}, || false)
-        .expect("prefix bumped a");
-    let b = generate_prefix(fixture_input(), Stage::LAST, &bumped, |_| {}, || false)
-        .expect("prefix bumped b");
+    let a = run_prefix(fixture_input(), Stage::LAST, &bumped);
+    let b = run_prefix(fixture_input(), Stage::LAST, &bumped);
     let a_json = serde_json::to_string(&a).unwrap();
     let b_json = serde_json::to_string(&b).unwrap();
     assert_eq!(a_json, b_json, "same nonce must reproduce identical output");
@@ -204,14 +180,7 @@ fn late_nonce_leaves_earlier_stages_unchanged() {
 
     let mut chron_bumped = RerollNonces::default();
     chron_bumped.bump(Stage::Chronicle);
-    let rolled = generate_prefix(
-        fixture_input(),
-        Stage::LAST,
-        &chron_bumped,
-        |_| {},
-        || false,
-    )
-    .expect("prefix chronicle-bumped");
+    let rolled = run_prefix(fixture_input(), Stage::LAST, &chron_bumped);
 
     // Earlier structural stages are byte-identical.
     assert_eq!(
@@ -265,8 +234,7 @@ fn regions_override_changes_preview_and_none_is_byte_identical() {
     let nonces = RerollNonces::default();
 
     // Baseline: the fixture's own catalog (m42's regions.toml is enabled).
-    let legacy = generate_prefix(fixture_input(), cutoff, &nonces, |_| {}, || false)
-        .expect("legacy prefix run");
+    let legacy = run_prefix(fixture_input(), cutoff, &nonces);
     assert!(
         legacy.regions.iter().count() > 0,
         "fixture precondition: m42 regions.toml is enabled, so the baseline grows regions",
@@ -286,28 +254,14 @@ fn regions_override_changes_preview_and_none_is_byte_identical() {
             label: Some("Override Storm".to_string()),
         }],
     };
-    let patched = generate_prefix(
-        fixture_input_with_regions(patch.clone()),
-        cutoff,
-        &nonces,
-        |_| {},
-        || false,
-    )
-    .expect("override prefix run");
+    let patched = run_prefix(fixture_input_with_regions(patch.clone()), cutoff, &nonces);
     assert_ne!(
         serde_json::to_string(&legacy.regions).unwrap(),
         serde_json::to_string(&patched.regions).unwrap(),
         "a changed regions override must change the generated regions overlay",
     );
     // Determinism: the same override reproduces itself.
-    let patched_again = generate_prefix(
-        fixture_input_with_regions(patch),
-        cutoff,
-        &nonces,
-        |_| {},
-        || false,
-    )
-    .expect("override prefix run (repeat)");
+    let patched_again = run_prefix(fixture_input_with_regions(patch), cutoff, &nonces);
     assert_eq!(
         serde_json::to_string(&patched.regions).unwrap(),
         serde_json::to_string(&patched_again.regions).unwrap(),
@@ -317,14 +271,7 @@ fn regions_override_changes_preview_and_none_is_byte_identical() {
     // (2) Substituting the catalog config *verbatim* (the "override == None"
     //     case at the engine layer) reproduces the legacy run byte-for-byte.
     let verbatim = fixture_input().catalogs.regions.clone();
-    let none_equiv = generate_prefix(
-        fixture_input_with_regions(verbatim),
-        cutoff,
-        &nonces,
-        |_| {},
-        || false,
-    )
-    .expect("verbatim prefix run");
+    let none_equiv = run_prefix(fixture_input_with_regions(verbatim), cutoff, &nonces);
     assert_eq!(
         serde_json::to_string(&legacy).unwrap(),
         serde_json::to_string(&none_equiv).unwrap(),

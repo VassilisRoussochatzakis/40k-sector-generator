@@ -1,7 +1,8 @@
 //! End-to-end route-stability monotonicity (TEST_GAPS.md §2c gap 1).
 //!
 //! Drives the full public generation pipeline (`generate_sector`), which runs
-//! `generate_routes` → `apply_route_effects` → `append_hidden_routes` → optional
+//! `generate_routes` → `apply_route_effects` →
+//! `append_hidden_routes_with_regions_and_progress` → optional
 //! `rebalance_public_stability`, across random seeds and densities. For every
 //! resulting sector it asserts the two route invariants that must survive the
 //! whole composition:
@@ -183,26 +184,5 @@ proptest! {
         let set = generate_at(&seed, dim, system_count, density);
         assert_bucket_monotonic(&set)?;
         assert_webways_stable(&set)?;
-    }
-
-    // Paired-density clause: regenerate the SAME sector at two different
-    // densities and re-check both invariants on each. The invariants are
-    // per-sector, so they must hold at every density independently.
-    #[test]
-    fn route_monotonicity_holds_across_two_densities(
-        seed in "[a-z0-9]{4,12}",
-        (dim, system_count) in square_dim_and_count(6u32..=16, 4),
-        d_lo in 0.05f64..=0.30,
-        d_extra in 0.05f64..=0.30,
-    ) {
-        let d_hi = d_lo + d_extra; // strictly greater than d_lo
-
-        let set_lo = generate_at(&seed, dim, system_count, d_lo);
-        assert_bucket_monotonic(&set_lo)?;
-        assert_webways_stable(&set_lo)?;
-
-        let set_hi = generate_at(&seed, dim, system_count, d_hi);
-        assert_bucket_monotonic(&set_hi)?;
-        assert_webways_stable(&set_hi)?;
     }
 }

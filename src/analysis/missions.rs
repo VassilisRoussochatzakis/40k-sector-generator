@@ -340,7 +340,6 @@ fn emit_world_missions(
     if w.claims.len() >= 2 {
         let ids: Vec<crate::ids::FactionId> =
             w.claims.iter().map(|c| c.faction_id.clone()).collect();
-        let _ = sector;
         let id_words: Vec<&str> = ids.iter().map(|id| id.as_str()).collect();
         out.push(MissionSeed {
             id: format!("mission-{}-{}-diplomacy", sys.id, w.id).into(),

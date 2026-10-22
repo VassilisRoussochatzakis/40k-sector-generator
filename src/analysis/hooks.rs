@@ -157,15 +157,15 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HooksConfig) -> HooksReport {
     let mut out: Vec<Hook> = Vec::new();
 
     for sys in &sector.systems {
-        emit_system_hooks(sys, cfg, &mut out);
+        emit_system_hooks(sys, &mut out);
         for w in &sys.worlds {
-            emit_world_hooks(sys, w, cfg, &mut out);
+            emit_world_hooks(sys, w, &mut out);
         }
     }
     for r in &sector.routes {
-        emit_route_hooks(r, sector, cfg, &mut out);
+        emit_route_hooks(r, &mut out);
     }
-    emit_economy_hooks(sector, cfg, &mut out);
+    emit_economy_hooks(sector, &mut out);
 
     // §HK3 / §HK4 — drop any derived hook whose id collides with a manual
     // entry so the user's authored prose wins, then append the manual block.
@@ -212,7 +212,7 @@ impl crate::analysis::WeightedAnchored for Hook {
 
 // ── Economy hooks (§12 NEW.md) ─────────────────────────────────────────────────
 
-fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Vec<Hook>) {
+fn emit_economy_hooks(sector: &GeneratedSector, out: &mut Vec<Hook>) {
     if !sector.economy.enabled {
         return;
     }
@@ -354,12 +354,7 @@ fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Ve
 
 // ── World hooks ────────────────────────────────────────────────────────────────
 
-fn emit_world_hooks(
-    sys: &GeneratedSystem,
-    w: &GeneratedWorld,
-    _cfg: &HooksConfig,
-    out: &mut Vec<Hook>,
-) {
+fn emit_world_hooks(sys: &GeneratedSystem, w: &GeneratedWorld, out: &mut Vec<Hook>) {
     let anchor = HookAnchor::World {
         system_id: sys.id.clone(),
         world_id: w.id.clone(),
@@ -500,7 +495,7 @@ fn emit_world_hooks(
 
 // ── System hooks ───────────────────────────────────────────────────────────────
 
-fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Hook>) {
+fn emit_system_hooks(sys: &GeneratedSystem, out: &mut Vec<Hook>) {
     let anchor = HookAnchor::System {
         system_id: sys.id.clone(),
     };
@@ -614,12 +609,7 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
 
 // ── Route hooks ────────────────────────────────────────────────────────────────
 
-fn emit_route_hooks(
-    r: &GeneratedRoute,
-    _: &GeneratedSector,
-    _cfg: &HooksConfig,
-    out: &mut Vec<Hook>,
-) {
+fn emit_route_hooks(r: &GeneratedRoute, out: &mut Vec<Hook>) {
     if r.stability == RouteStability::Perilous {
         out.push(Hook {
             id: format!("hook-{}-lost_passage", r.id).into(),

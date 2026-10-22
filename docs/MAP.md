@@ -121,7 +121,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/analysis/history/progress.rs](../src/analysis/history/progress.rs) | `HistoryProgress` enum + progress-stride helpers |
 | [src/analysis/history/build.rs](../src/analysis/history/build.rs) | Event construction: `build_event`, date/era synthesis, entity refs, consequences |
 | [src/analysis/history/worlds.rs](../src/analysis/history/worlds.rs) | Per-world emission: foundation, claims, contested control, hidden cults, purges |
-| [src/analysis/history/systems.rs](../src/analysis/history/systems.rs) | Per-system emission: system state + archetype activations |
+| [src/analysis/history/systems.rs](../src/analysis/history/systems.rs) | Per-system emission: system state + archetype activations; `flush_capped` tail shared with worlds/routes |
 | [src/analysis/history/routes.rs](../src/analysis/history/routes.rs) | Per-route emission: warp hazards, concealed passages, pirate/interdictor control |
 | [src/analysis/history/subsectors.rs](../src/analysis/history/subsectors.rs) | Per-subsector emission: clustering vs deterministic sampling |
 | [src/analysis/history/regions.rs](../src/analysis/history/regions.rs) | Per-region emission: warp phenomena → chronicle entries |

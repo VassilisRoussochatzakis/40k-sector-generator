@@ -130,7 +130,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
         .map(|f| (f.id.as_str(), f.name.as_ref()))
         .collect();
     let (overview, overview_is_override) = if cfg.include_overview {
-        let derived = sector_overview(sector, cfg, &faction_names);
+        let derived = sector_overview(sector, cfg);
         if let Some(over) = cfg
             .overrides
             .overview
@@ -173,11 +173,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
     }
 }
 
-fn sector_overview(
-    sector: &GeneratedSector,
-    cfg: &ProseConfig,
-    faction_names: &BTreeMap<&str, &str>,
-) -> String {
+fn sector_overview(sector: &GeneratedSector, cfg: &ProseConfig) -> String {
     let mut rng = stage_rng(&sector.seed, "prose", "sector");
     let n_sys = sector.systems.len();
     let n_worlds: usize = sector.systems.iter().map(|s| s.worlds.len()).sum();
@@ -188,12 +184,7 @@ fn sector_overview(
         .max_by(|a, b| {
             crate::analysis::cmp_f32_asc(a.power.total_projection(), b.power.total_projection())
         })
-        .map(|f| {
-            faction_names
-                .get(f.id.as_str())
-                .copied()
-                .unwrap_or_else(|| f.name.as_ref())
-        });
+        .map(|f| f.name.as_ref());
 
     let opener_pool: &[&str] = match cfg.tone {
         ProseTone::Gazetteer => &[

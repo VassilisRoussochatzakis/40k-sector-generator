@@ -823,15 +823,7 @@ fn evaluate(
             maximum_count("economy_stranded_max".to_string(), n, *max)
         }
         Constraint::EconomyResourceMin { resource, min } => {
-            let v = match resource.as_str() {
-                "ore" => sector.economy.sector_balance.ore,
-                "promethium" => sector.economy.sector_balance.promethium,
-                "foodstuffs" => sector.economy.sector_balance.foodstuffs,
-                "manufactured" => sector.economy.sector_balance.manufactured,
-                "archeotech" => sector.economy.sector_balance.archeotech,
-                "recruits" => sector.economy.sector_balance.recruits,
-                _ => 0.0,
-            };
+            let v = sector.economy.sector_balance.get(resource);
             minimum_value(format!("economy_resource_min:{resource}"), v, *min, 1)
         }
     }

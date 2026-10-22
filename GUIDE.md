@@ -4389,6 +4389,14 @@ protection, tags (`region:<condition slug>`, plus `region:perilous_applied` /
 generation consumes no RNG. Builder undo shares world lookup (`world_mut`) while
 retaining its no-op for missing worlds.
 
+The history chroniclers for systems, worlds and routes share one cap / re-sort /
+emit tail (`flush_capped` in
+[src/analysis/history/systems.rs](src/analysis/history/systems.rs)); each passes
+its own truncation order — systems and worlds break weight ties by topological
+rank, routes keep insertion order. Persona tier titles, agenda verbs and default
+pools are one `KIND_TABLE` row per canonical kind in
+[src/analysis/personae.rs](src/analysis/personae.rs).
+
 ### Determinism regression tests
 
 In addition to the JSON-byte test in

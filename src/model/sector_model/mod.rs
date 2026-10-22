@@ -11,8 +11,7 @@
 //! Fields stay `pub` deliberately. They are read at ~1800 sites across
 //! `builder/`, `viewer/`, `gui-core/` and the tests, and Rust visibility cannot
 //! separate read from write — demoting to `pub(crate)` would block those reads
-//! too (and break the viewer's bus-less editing path). The per-struct marker
-//! below restates this invariant at the type definition; enforcement is by
+//! too (and break the viewer's bus-less editing path). Enforcement is by
 //! review, not by the compiler. See `docs/reviews/AREA_A_model_generation.md`
 //! §A5 for the measurement behind this choice.
 
@@ -39,8 +38,6 @@ pub struct HexCoord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedSector {
     pub id: Arc<str>,
     pub title: Arc<str>,
@@ -151,8 +148,6 @@ impl SystemGlyph {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedSystem {
     pub id: SystemId,
     pub index: usize,
@@ -219,8 +214,6 @@ pub struct GeneratedStar {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedWorld {
     pub id: WorldId,
     pub index: usize,
@@ -272,8 +265,6 @@ pub struct GeneratedWorld {
 /// `Display` for most fields; `short_name()` + `code()` for the star colour).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(into = "WorldDtoRaw", try_from = "WorldDtoRaw")]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct WorldDto {
     pub star_colour: StarColour,
     pub world_type: WorldType,
@@ -431,14 +422,7 @@ impl GeneratedSector {
 
     #[must_use]
     pub fn get_world(&self, id: &WorldId) -> Option<&GeneratedWorld> {
-        for sys in &self.systems {
-            for w in &sys.worlds {
-                if w.id == *id {
-                    return Some(w);
-                }
-            }
-        }
-        None
+        self.all_worlds().find(|w| w.id == *id)
     }
 
     pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
@@ -529,8 +513,6 @@ impl GeneratedWorld {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedRoute {
     pub id: RouteId,
     pub from_system_id: SystemId,
@@ -642,15 +624,11 @@ impl RouteType {
 
     #[must_use]
     pub fn from_key(s: &str) -> Option<Self> {
-        Some(match s {
-            "stable_warp_lane" => RouteType::StableWarpLane,
-            "charted_passage" | "dangerous_passage" => RouteType::ChartedPassage,
-            "secret_passage" => RouteType::SecretPassage,
-            "webway" => RouteType::Webway,
-            "black_ship" => RouteType::BlackShip,
-            "smuggling_lane" => RouteType::SmugglingLane,
-            _ => return None,
-        })
+        // Legacy slug, same as the serde alias on `ChartedPassage`.
+        if s == "dangerous_passage" {
+            return Some(Self::ChartedPassage);
+        }
+        Self::ALL.into_iter().find(|t| t.as_slug() == s)
     }
 
     /// True for the three hidden classes introduced by §3 (NEXT.md). Hidden
@@ -920,15 +898,7 @@ impl From<String> for FactionKind {
     }
 }
 
-impl From<&String> for FactionKind {
-    fn from(s: &String) -> Self {
-        FactionKind::from_slug(s)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedFaction {
     pub id: FactionId,
     pub name: Arc<str>,
@@ -945,8 +915,6 @@ pub struct GeneratedFaction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedSubfaction {
     pub id: FactionId,
     pub name: Arc<str>,
@@ -961,8 +929,6 @@ pub struct GeneratedSubfaction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedForce {
     pub id: FactionId,
     pub name: Arc<str>,
@@ -974,8 +940,6 @@ pub struct GeneratedForce {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct WorldFactionPresence {
     /// Highest-level faction id (for example, `imperial`, `chaos`, `ork`).
     pub faction_id: FactionId,
@@ -1165,26 +1129,15 @@ impl PresenceDimensions {
     /// at the same weight as economic since both encode commercial strength.
     #[must_use]
     pub fn local_control_score(&self) -> f32 {
-        self.legitimacy.mul_add(
-            0.06,
-            self.logistics.mul_add(
-                0.10,
-                self.covert.mul_add(
-                    0.08,
-                    self.ideological.mul_add(
-                        0.10,
-                        self.industrial.mul_add(
-                            0.06,
-                            self.economic.mul_add(
-                                0.12,
-                                self.orbital
-                                    .mul_add(0.10, self.admin.mul_add(0.20, self.military * 0.18)),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        )
+        let mut s = self.military * 0.18;
+        s = self.admin.mul_add(0.20, s);
+        s = self.orbital.mul_add(0.10, s);
+        s = self.economic.mul_add(0.12, s);
+        s = self.industrial.mul_add(0.06, s);
+        s = self.ideological.mul_add(0.10, s);
+        s = self.covert.mul_add(0.08, s);
+        s = self.logistics.mul_add(0.10, s);
+        self.legitimacy.mul_add(0.06, s)
     }
 }
 
@@ -1265,8 +1218,6 @@ enum_slug!(ClaimType {
 }, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct FactionClaim {
     pub faction_id: FactionId,
     pub claim_type: ClaimType,
@@ -1290,8 +1241,6 @@ impl WorldControlSummary {
 
 /// Per-world multi-winner snapshot (§5.3 / §6.2).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct WorldControlSummary {
     /// Highest local-control-score faction — the map fill (§9.1).
     pub dominant: Option<FactionId>,
@@ -1335,8 +1284,6 @@ enum_slug!(SystemState {
 }, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
-/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct SystemControlSummary {
     pub state: Option<SystemState>,
     pub dominant: Option<FactionId>,
@@ -1371,28 +1318,15 @@ impl PowerProfile {
     /// Spec §4.3 default projection — weighted single-number total.
     #[must_use]
     pub fn total_projection(&self) -> f32 {
-        self.legitimacy.mul_add(
-            0.5,
-            self.logistical.mul_add(
-                1.0,
-                self.covert.mul_add(
-                    0.7,
-                    self.ideological.mul_add(
-                        0.7,
-                        self.industrial.mul_add(
-                            0.9,
-                            self.economic.mul_add(
-                                0.9,
-                                self.naval.mul_add(
-                                    1.2,
-                                    self.administrative.mul_add(0.8, self.military * 1.1),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        )
+        let mut t = self.military * 1.1;
+        t = self.administrative.mul_add(0.8, t);
+        t = self.naval.mul_add(1.2, t);
+        t = self.economic.mul_add(0.9, t);
+        t = self.industrial.mul_add(0.9, t);
+        t = self.ideological.mul_add(0.7, t);
+        t = self.covert.mul_add(0.7, t);
+        t = self.logistical.mul_add(1.0, t);
+        self.legitimacy.mul_add(0.5, t)
     }
 }
 

@@ -66,17 +66,7 @@ impl GeneratedSector {
         kind: SystemKind,
         star: Option<GeneratedStar>,
     ) -> Result<SystemId, MutationError> {
-        if coord.q < 0
-            || coord.r < 0
-            || (coord.q as u32) >= self.width
-            || (coord.r as u32) >= self.height
-        {
-            return Err(MutationError::CoordOutOfBounds(
-                coord,
-                self.width,
-                self.height,
-            ));
-        }
+        self.check_in_bounds(coord)?;
         if self.systems.iter().any(|s| s.coord == coord) {
             return Err(MutationError::CoordOccupied(coord));
         }
@@ -117,8 +107,8 @@ impl GeneratedSector {
         Ok(())
     }
 
-    /// Move a system to a new hex coord. Fails on out-of-bounds or collision.
-    pub fn move_system(&mut self, id: &SystemId, coord: HexCoord) -> Result<(), MutationError> {
+    /// `CoordOutOfBounds` unless `coord` lies on the sector grid.
+    fn check_in_bounds(&self, coord: HexCoord) -> Result<(), MutationError> {
         if coord.q < 0
             || coord.r < 0
             || (coord.q as u32) >= self.width
@@ -130,6 +120,12 @@ impl GeneratedSector {
                 self.height,
             ));
         }
+        Ok(())
+    }
+
+    /// Move a system to a new hex coord. Fails on out-of-bounds or collision.
+    pub fn move_system(&mut self, id: &SystemId, coord: HexCoord) -> Result<(), MutationError> {
+        self.check_in_bounds(coord)?;
         if self.systems.iter().any(|s| s.id != *id && s.coord == coord) {
             return Err(MutationError::CoordOccupied(coord));
         }
@@ -141,21 +137,7 @@ impl GeneratedSector {
         sys.coord = coord;
 
         // Refresh route distances anchored on this system.
-        let updated: Vec<(RouteId, u32)> = self
-            .routes
-            .iter()
-            .filter(|r| r.from_system_id == *id || r.to_system_id == *id)
-            .filter_map(|r| {
-                let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
-                let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
-                Some((r.id.clone(), super::hex_distance(from.coord, to.coord)))
-            })
-            .collect();
-        for (rid, dist) in updated {
-            if let Some(r) = self.routes.iter_mut().find(|r| r.id == rid) {
-                r.distance = dist;
-            }
-        }
+        self.refresh_route_distances(|r| r.from_system_id == *id || r.to_system_id == *id);
         Ok(())
     }
 
@@ -164,12 +146,19 @@ impl GeneratedSector {
     /// Idempotent: routes whose endpoints didn't move are rewritten to the same
     /// value. The viewer's map-edit paths call this after a system move, route
     /// add, or endpoint repoint instead of each hand-rolling the `hex_distance`
-    /// lookup (F7); `move_system` / `swap_*` keep their own narrower per-route
-    /// refresh for the targeted-distance unit tests.
+    /// lookup (F7); `move_system` / `swap_systems` refresh only the routes
+    /// anchored on the moved systems, so a hand-set distance elsewhere survives.
     pub fn recompute_route_distances(&mut self) {
+        self.refresh_route_distances(|_| true);
+    }
+
+    /// The [`recompute_route_distances`](Self::recompute_route_distances) body,
+    /// limited to the routes `touches` selects.
+    fn refresh_route_distances(&mut self, touches: impl Fn(&GeneratedRoute) -> bool) {
         let updated: Vec<(RouteId, u32)> = self
             .routes
             .iter()
+            .filter(|&r| touches(r))
             .filter_map(|r| {
                 let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
                 let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
@@ -222,26 +211,12 @@ impl GeneratedSector {
                 sys.coord = coord_a;
             }
         }
-        let touched: Vec<(RouteId, u32)> = self
-            .routes
-            .iter()
-            .filter(|r| {
-                r.from_system_id == *a
-                    || r.to_system_id == *a
-                    || r.from_system_id == *b
-                    || r.to_system_id == *b
-            })
-            .filter_map(|r| {
-                let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
-                let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
-                Some((r.id.clone(), super::hex_distance(from.coord, to.coord)))
-            })
-            .collect();
-        for (rid, dist) in touched {
-            if let Some(r) = self.routes.iter_mut().find(|r| r.id == rid) {
-                r.distance = dist;
-            }
-        }
+        self.refresh_route_distances(|r| {
+            r.from_system_id == *a
+                || r.to_system_id == *a
+                || r.from_system_id == *b
+                || r.to_system_id == *b
+        });
         Ok(())
     }
 

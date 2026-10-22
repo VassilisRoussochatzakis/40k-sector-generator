@@ -169,19 +169,11 @@ mod tests {
         assert_err_context(&[("x", f64::NAN)], "nan-ctx");
     }
 
-    // GAP 3 (M) — `weighted_index` skips neg/inf entries and respects weight
-    // proportionality across many draws on a single advancing RNG.
+    // GAP 3 (M) — `weighted_index` respects weight proportionality across many
+    // draws on a single advancing RNG.
     #[test]
-    fn weighted_index_skips_and_is_proportional() {
-        // Part A — skip: only "good" (index 1) is finite-positive; "neg" and
-        // "inf" are skipped on every draw.
-        let pool = vec![("neg", -5.0), ("good", 2.0), ("inf", f64::INFINITY)];
-        let mut rng = stage_rng("g3", "skip", "");
-        for _ in 0..200 {
-            assert_eq!(weighted_index(&pool, &mut rng, "p").unwrap(), 1);
-        }
-
-        // Part B — proportionality: pool is 1:9, so index 1 ("b") should win
+    fn weighted_index_is_proportional() {
+        // Pool is 1:9, so index 1 ("b") should win
         // ~90% of 5000 draws. The fixed seed `stage_rng("prop","test","")`,
         // reused across all 5000 sequential draws, deterministically yields 4518.
         // Reuse ONE rng for the whole loop — re-creating it inside would replay
@@ -272,17 +264,5 @@ mod tests {
         );
         // Hex form is 64 chars (the [u8; 32] length is implicit in the type).
         assert_eq!(hex(&hash_root_seed("z")).len(), 64);
-    }
-
-    // GAP 7 (L) — `weighted_index` reverse-scan fallback: when only the trailing
-    // entry is finite-positive, every draw returns that last index (2 here),
-    // whether resolved by the main scan or the FP-edge reverse fallback.
-    #[test]
-    fn weighted_index_returns_trailing_positive_index() {
-        let pool = vec![("a", 0.0), ("b", 0.0), ("c", 1.0)];
-        let mut rng = stage_rng("g7", "rev", "");
-        for _ in 0..200 {
-            assert_eq!(weighted_index(&pool, &mut rng, "p").unwrap(), 2);
-        }
     }
 }

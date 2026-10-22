@@ -52,7 +52,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 |---|---|---|---|
 | `GEN_SECTOR_NOT_SQUARE` (l.84) | int | 8×6 → `!ok` + code, severity Error, msg has "8"&"6"; 8×8 → absent; add 10×8 (other ordering) | **H** |
 | `GEN_SYSTEM_COUNT_OVERFLOW` + `allow_empty_hexes` (l.107) | int | 4×4(16), count=100, `allow_empty_hexes=false`→code; `=true`→absent; count==16→absent (strict `>`) | **H** |
-| `KEY_TABLE_EMPTY` (l.188) | int | clear `world_tables.world_types` → code, msg has "world_types"; intact → absent | **H** |
+| `KEY_TABLE_EMPTY` (removed) | int | n/a: the rule became unreachable once `KeyTables` was deleted and went with its 2 tests in f2dcf03 (2026-10-22, PONYTAIL X2) | — |
 | `WB_NO_ROWS` (l.198) | int | `world_rows.clear()` → `!ok` + `WB_NO_ROWS` + `WB_NO_USABLE_ROWS`, NOT `WB_EXCLUDED_ROWS_SEVERE` | **H** |
 | `WB_NO_USABLE_ROWS` (l.205) | int | N≥2 rows all `star_colour=None` → code + `WB_EXCLUDED_ROWS_SEVERE`, NOT `WB_NO_ROWS` | **H** |
 | `WB_EXCLUDED_ROWS` warning branch (l.216) | int | 3 valid+2 invalid → warning, NOT severe, `ok==true`; boundary 2+2 (n==usable) → still warning | **H** |
@@ -90,11 +90,11 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 |---|---|---|---|
 | `derive_stage_seed` discriminator/delimiter | unit | `assert_ne!` differing only in discriminator (`sys-1` vs `sys-2`, vs `""`); delimiter pairs `(a,b,c)`≠`(a,bc,"")`≠`(ab,c,"")` | **H** |
 | `weighted_index` error paths | unit | empty/`[]`, all-zero+neg, `[+inf]` → `Err(WeightedSelectionFailed{context})`, context verbatim | **H** |
-| `weighted_index` neg-skip + proportionality | unit | `[("neg",-5),("good",2),("inf",inf)]`→always idx 1 over 200 draws; `[1.0,9.0]`→b count ∈ 4300..4700 over 5000 (fixed seed) | M |
+| `weighted_index` proportionality (neg-skip half removed) | unit | `[1.0,9.0]`→b count ∈ 4300..4700 over 5000 (fixed seed); the `[("neg",-5),("good",2),("inf",inf)]` skip half was dropped as redundant with `weighted_index_skips_invalid` in 63419c0 (2026-10-22, PONYTAIL M19) | M |
 | `stage_rng` stream identity + decorrelation | unit | same key→identical 16-draw `Vec<u64>`; distinct discriminator AND distinct stage→non-identical | M |
 | `stage_rng` ChaCha8 cross-version pin | golden | `stage_rng("sectorforge-test","pin","").gen::<u64>()` == captured constant (canary for `rand_chacha` bump) | M |
 | `hex` | unit | `[]`→`""`, `[0x0f]`→`"0f"`, `[0xde,0xad]`→`"dead"`, len==2×input, lowercase | M |
-| `weighted_index` reverse-scan fallback (l.60) | unit | `[0.0,0.0,1.0]`→always idx 2 over 200 draws (trailing-valid index) | L |
+| `weighted_index` reverse-scan fallback (test removed) | unit | n/a: `weighted_index_returns_trailing_positive_index` was dropped as redundant with `weighted_index_skips_invalid` in 63419c0 (2026-10-22, PONYTAIL M19) | — |
 | `digest_bytes` | unit | deterministic, input-sensitive, len==64, lowercase hex; optionally pin blake3 of `b"abc"` | L |
 | `hash_root_seed` | unit | deterministic, seed-sensitive, **≠`derive_stage_seed(seed,"","")`** (guards against unifying the two), len==64 | L |
 
@@ -203,8 +203,8 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | `run()` redo-tail truncation | unit | AddSystem×3, undo×2, new branch → `log.len()==2`, cursor==2, redo no-op, survivors are sys-0+branch | M |
 | `recompute_economy` per-system rollup | unit | 1 system, 2 worlds: ore 15+10=25→surplus; food -15+-10=-25→shortage; `sector_balance` matches | M |
 | `recompute_chronicle_undoable` | unit | log grows by 1; manual event preserved; undo restores chronicle; redo re-applies | M |
-| `pump_derivation_jobs` multi-kind drain | unit | Relations+Personae both stale → 2 in-flight; drain → both Fresh, outputs present | M |
-| `is_background_eligible`/`dispatch` Economy exclusion | unit | stale Economy → never in-flight (mutates sector); eligible sibling still dispatched | M |
+| `pump_derivation_jobs` multi-kind drain (removed) | unit | n/a: the off-thread derivation jobs were withdrawn (§39 LD3) and this gap-207 test went with them in 4346867 (2026-10-22, PONYTAIL D2) | — |
+| `is_background_eligible`/`dispatch` Economy exclusion (removed) | unit | n/a: background dispatch was deleted with this gap-208 test in 4346867 (2026-10-22, PONYTAIL D2) | — |
 | `revalidate_now` D10 skip reason | unit | no worlds → `skip_reason==Some("no worlds catalog loaded")`; worlds present → cleared + report set | M |
 | `export_block_reason` refuse branch | unit | invariant violation → `Some("1 invariant violation(s)"+"Export refused")`; strict+warnings differs from non-strict | M |
 | `ReplaceSystem` before:None empty-hex | unit | drop on empty coord → `before` stays None; revert removes new system, resurrects nothing | L |
@@ -235,7 +235,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | `palette.rs top_route_control` | unit | empty→None; single→`(faction,kind,score)`; tie `(interdiction:50,patrol:50)`→Interdiction (strict `>`, probed first); cross-control max wins; raw score returned (no 40 threshold). **Use `faction_id()` newtype** | **H** |
 | `info_panel/history.rs event_mentions_world/system` | unit | World-anchor match; Route-anchor matches **both** endpoints; World-anchor→system surfacing; entities-list fallback w/ kind check | **H** |
 | `lib.rs human_bytes` | unit | 1023→"1023 B"; 1024→"1.0 KiB"; 1048575→"1024.0 KiB"; integer-`B` vs `{:.1}` split | M |
-| `map_theme.rs from_map_theme` `..base` preservation | unit | carried: bg from data; **preserved-from-default**: selection, path_highlight, region_*, star_radius_mul == base | M |
+| `map_theme.rs from_map_theme` `..base` preservation | unit | carried: bg from data; **preserved-from-default**: selection, path_highlight, region_* == base (the `star_radius_mul` check went with the knob in 746e99c, 2026-10-22, PONYTAIL G2) | M |
 | `palette.rs validation_color` (removed) | unit | n/a: the function had no production callers and was deleted along with its 3 unit tests and the `theme.rs` assertion in 61d1cfd (2026-10-22, PONYTAIL G4) | — |
 | `sector_view/render.rs blend_heat` | unit | t=0→`from` exactly; t=1→eff 0.85→channel 85; t=0.001→floor lifts to 20; monotone | M |
 | `pick_hex`/`hit_system` | unit | center→correct coord; beyond radius `hex_size*0.95`→None; nearest-wins; off-grid→None | M |
@@ -273,6 +273,6 @@ This audit is deep on `validation.rs`, `rng.rs`, the route layers, `analysis`, `
 4. **`src/export/subsectors/` partitioning.** Referenced only as a render input. The subsector-assignment algorithm itself (which hexes/systems land in which subsector, determinism of that partition) was not audited.
 5. **`gui-core` interaction wiring beyond pure helpers.** The audit (correctly, per scope) excluded live-render snapshots, but the *non-visual* `Response`/click-dispatch logic in `sector_view/view.rs` (which calls the now-flagged `pick_hex`/`point_segment_distance`) — i.e. which entity a click actually selects given a `Response` — is logic-testable and unmapped.
 6. **Builder panel `show` functions.** The audit covers `BuilderState`/`BuilderCommand` thoroughly but not the panels that call them. Panel-level logic (form validation, derived-field display, command dispatch on widget events) under `builder/src/builder/panels/` is a large untouched surface — though much is genuinely UI and out of scope.
-7. **Concurrency edges in derivations.** The background-job audit is good, but the **fingerprint-changed-during-flight discard** path (`background_drain_discards_result_when_fingerprint_changed` exists but multi-kind discard, and the race between `dispatch` and an intervening edit) could use property-style coverage.
+7. **Concurrency edges in derivations.** The background-job audit is good, but the **fingerprint-changed-during-flight discard** path (`background_drain_discards_result_when_fingerprint_changed` exists but multi-kind discard, and the race between `dispatch` and an intervening edit) could use property-style coverage. *(Obsolete: the background derivation jobs were withdrawn in 4346867, 2026-10-22, PONYTAIL D2.)*
 
 A focused second pass on (1) generation orchestration + cancellation and (2) segmentum/subsector partitioning would close the biggest remaining blind spots, as both are core deterministic pipelines with thin coverage.

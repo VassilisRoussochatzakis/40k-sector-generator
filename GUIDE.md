@@ -4282,7 +4282,9 @@ times `recompute_economy` (cold) vs cache-gated `ensure_fresh` (warm). All
 `command_apply` medians now clear the <1 ms PERF1 budget — the synchronous
 `check_sector` invariant re-check was deferred off `run`/`undo`/`redo` to the §V3
 debounced pump, dropping the heavy `auto_assign_archetypes` apply from ~1.31 ms to
-523 µs (move 78 µs, rename 76 µs).
+523 µs (move 78 µs, rename 76 µs). These timings predate T8 (4d1fa79, which moved
+the per-iteration command clone into `iter_batched` setup), so they include that
+clone.
 
 The gui-core map-redraw bench
 [gui-core/benches/sector_view_render.rs](gui-core/benches/sector_view_render.rs)

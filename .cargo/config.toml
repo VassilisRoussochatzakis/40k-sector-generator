@@ -27,9 +27,7 @@ sg = "run --profile quick --bin sectorforge -- generate --project"
 # with the `srun`/`sview`/`sbuild` run aliases. That's expected — building test
 # binaries is the whole point here.
 #
-# Caveats (both unreachable from a stable-toolchain `cargo build`, so not here):
+# Caveat (unreachable from a stable-toolchain `cargo build`, so not here):
 #   • Doctests aren't a buildable target; `--all-targets` skips them. To exercise
 #     them, run `cargo test --workspace` (without `--all-targets`).
-#   • The `fuzz` crate is intentionally outside `[workspace]` (needs nightly +
-#     cargo-fuzz). Build it separately: `cargo +nightly fuzz build`.
 build-all = "build --workspace --all-targets --all-features"

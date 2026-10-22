@@ -754,13 +754,6 @@ cargo test --test it segmentum -- --ignored
 
 Several criterion benchmarks (`generation`, `briefing`, `seed_search`, `influence_field`) are defined as `[[bench]]` targets and are separate from the test suite.
 
-**Fuzzing.** The `fuzz/` crate (cargo-fuzz + `libfuzzer-sys`) fuzzes the attacker-controlled parser surfaces. It is deliberately kept *outside* the workspace because `libfuzzer-sys` requires a nightly toolchain, so `--workspace` builds stay on stable. Six targets cover the config/data parsers: `config_parse`, `worlds_toml_parse`, `factions_toml_parse`, `sector_json_parse`, `presets_load`, `map_theme_parse_color`.
-
-```bash
-cargo install cargo-fuzz                      # one-time
-cd fuzz && cargo +nightly fuzz run config_parse
-```
-
 ## Documentation
 
 - **[GUIDE.md](GUIDE.md)** — the full user guide (prerequisites, quick start, config reference, workflows).

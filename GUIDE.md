@@ -1549,9 +1549,7 @@ id-canonicalised JSON so tail-reinserting reverts still count as identity; and a
 ([tests/it/search_and_diff.rs](tests/it/search_and_diff.rs)) that pins the whole
 serialized `SearchOutcome` — including the concurrently-built `near_misses` set —
 identical whether the search runs on a forced single-thread rayon pool or the
-default parallel pool. The two new cargo-fuzz targets `sector_json_parse`
-(`serde_json::from_slice::<GeneratedSector>`) and `factions_toml_parse`
-(`FactionsFile`) live under [fuzz/](fuzz/) alongside the existing parse targets.
+default parallel pool.
 
 To get different output, change the seed:
 

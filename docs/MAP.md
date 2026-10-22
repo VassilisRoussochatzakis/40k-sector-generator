@@ -11,8 +11,7 @@ faster.
 > `tests/it/`, and `gui-core/tests/`. Per-module `mod.rs` files that only
 > re-export children are noted at the head of their section rather than given
 > their own row; benchmarks (`benches/`, `builder/benches/`,
-> `gui-core/benches/`) and fuzz targets (`fuzz/fuzz_targets/`) are
-> deliberately out of scope. If you add a file in a mapped tree, add its row
+> `gui-core/benches/`) are deliberately out of scope. If you add a file in a mapped tree, add its row
 > here (CLAUDE.md: "update GUIDE.md / docs on non-trivial changes").
 
 ## Parent-module layout (REFACTOR.txt Task 2)

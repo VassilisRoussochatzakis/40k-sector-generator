@@ -21,7 +21,6 @@ id = "marchworld_foundation"
 label = "Foundation of the Marchworlds"
 relative_start = -1400
 relative_end = -900
-weight = 1.0
 allowed_events = ["foundation", "discovery"]
 
 [[history.eras]]
@@ -29,7 +28,6 @@ id = "compliance_drive"
 label = "Compliance Drive"
 relative_start = -899
 relative_end = -550
-weight = 1.0
 allowed_events = [
     "imperial_mandate_granted",
     "annexation",
@@ -42,7 +40,6 @@ id = "first_waaagh"
 label = "First Waaagh!"
 relative_start = -549
 relative_end = -300
-weight = 1.2
 allowed_events = ["ork_waaagh", "reconquest", "purge"]
 
 [[history.eras]]
@@ -50,7 +47,6 @@ id = "votann_arrival"
 label = "Arrival of the Kin"
 relative_start = -299
 relative_end = -150
-weight = 0.8
 allowed_events = ["commercial_charter", "discovery", "annexation"]
 
 [[history.eras]]
@@ -58,7 +54,6 @@ id = "frontier_collapse"
 label = "Frontier Collapse"
 relative_start = -149
 relative_end = -25
-weight = 1.4
 allowed_events = [
     "ork_waaagh",
     "secession",
@@ -73,7 +68,6 @@ id = "indomitus_relief"
 label = "Indomitus Relief"
 relative_start = -24
 relative_end = -1
-weight = 1.1
 allowed_events = ["reconquest", "consecration", "purge"]
 
 [[history.eras]]
@@ -81,7 +75,6 @@ id = "present_war"
 label = "Present War"
 relative_start = 0
 relative_end = 0
-weight = 1.5
 allowed_events = ["ork_waaagh", "reconquest", "blockade"]
 
 # ── Event rules ───────────────────────────────────────────────────────────────

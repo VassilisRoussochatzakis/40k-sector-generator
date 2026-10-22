@@ -38,7 +38,6 @@ id = "age_of_foundation"
 label = "Age of Foundation"
 relative_start = -1200
 relative_end = -700
-weight = 1.0
 allowed_events = ["foundation", "discovery"]
 
 [[history.eras]]
@@ -46,7 +45,6 @@ id = "great_crusade_echo"
 label = "Echoes of the Great Crusade"
 relative_start = -699
 relative_end = -500
-weight = 0.8
 allowed_events = ["imperial_mandate_granted", "consecration", "dynastic_claim"]
 
 [[history.eras]]
@@ -54,7 +52,6 @@ id = "age_of_compliance"
 label = "Age of Compliance"
 relative_start = -499
 relative_end = -300
-weight = 1.0
 allowed_events = [
     "imperial_mandate_granted",
     "commercial_charter",
@@ -68,7 +65,6 @@ id = "age_of_fracture"
 label = "Age of Fracture"
 relative_start = -299
 relative_end = -80
-weight = 1.0
 allowed_events = [
     "secession",
     "uprising",
@@ -82,7 +78,6 @@ id = "age_of_wounds"
 label = "Age of Wounds"
 relative_start = -79
 relative_end = -10
-weight = 1.0
 allowed_events = [
     "necron_awakening",
     "tyranid_contact",
@@ -98,7 +93,6 @@ id = "indomitus_dawn"
 label = "Indomitus Dawn"
 relative_start = -9
 relative_end = -1
-weight = 1.1
 allowed_events = ["reconquest", "purge", "consecration"]
 
 [[history.eras]]
@@ -106,7 +100,6 @@ id = "present_crisis"
 label = "Present Crisis"
 relative_start = 0
 relative_end = 0
-weight = 1.5
 allowed_events = ["reconquest", "purge", "chaos_incursion"]
 
 # ── Event rules ───────────────────────────────────────────────────────────────

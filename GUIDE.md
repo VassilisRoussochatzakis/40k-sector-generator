@@ -569,7 +569,6 @@ id = "age_of_compliance"
 label = "Age of Compliance"
 relative_start = -900
 relative_end = -650
-weight = 1.0
 allowed_events = ["Founding", "Compliance", "Treaty"]
 
 [[history.event_rules]]
@@ -594,7 +593,7 @@ under `BuilderTab::History` (`builder/src/builder/panels/history.rs`). It
 covers:
 * §H1 — chronicle config grid for `enabled`, `epoch_start`, `epoch_end`,
   per-anchor caps, and `max_subsector_events`.
-* §H2 — eras editor: id / label / relative_start / relative_end / weight
+* §H2 — eras editor: id / label / relative_start / relative_end
   plus an inline allowed-events toggle strip.
 * §H3 — event-rule editor: `when_system_state` (any | Pacified | … |
   Uncharted) + `prefer_event` + `minimum_events`.

@@ -73,8 +73,6 @@ pub struct HistoryEra {
     pub label: String,
     pub relative_start: i32,
     pub relative_end: i32,
-    #[serde(default = "default_era_weight")]
-    pub weight: f32,
     #[serde(default)]
     pub allowed_events: Vec<EventKind>,
 }
@@ -115,9 +113,6 @@ fn default_max_subsector_events() -> u32 {
 fn default_true() -> bool {
     true
 }
-fn default_era_weight() -> f32 {
-    1.0
-}
 fn default_minimum_events() -> u32 {
     1
 }
@@ -130,7 +125,6 @@ fn default_eras() -> Vec<HistoryEra> {
             label: "Age of Foundation".into(),
             relative_start: -900,
             relative_end: -650,
-            weight: 1.0,
             allowed_events: vec![Foundation, Discovery],
         },
         HistoryEra {
@@ -138,7 +132,6 @@ fn default_eras() -> Vec<HistoryEra> {
             label: "Age of Compliance".into(),
             relative_start: -649,
             relative_end: -300,
-            weight: 1.0,
             allowed_events: vec![
                 ImperialMandateGranted,
                 CommercialCharter,
@@ -152,7 +145,6 @@ fn default_eras() -> Vec<HistoryEra> {
             label: "Age of Fracture".into(),
             relative_start: -299,
             relative_end: -80,
-            weight: 1.0,
             allowed_events: vec![
                 Secession,
                 Uprising,
@@ -166,7 +158,6 @@ fn default_eras() -> Vec<HistoryEra> {
             label: "Age of Wounds".into(),
             relative_start: -79,
             relative_end: -1,
-            weight: 1.0,
             allowed_events: vec![
                 NecronAwakening,
                 TyranidContact,
@@ -182,7 +173,6 @@ fn default_eras() -> Vec<HistoryEra> {
             label: "Present Crisis".into(),
             relative_start: 0,
             relative_end: 0,
-            weight: 1.0,
             allowed_events: vec![Reconquest, Purge],
         },
     ]

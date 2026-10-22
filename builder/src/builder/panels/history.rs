@@ -326,18 +326,6 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .speed(1),
                         )
                         .changed();
-                    hint_label(
-                        ui,
-                        "Weight",
-                        "How heavily events cluster in this era (schema: weight). Higher = busier.",
-                    );
-                    changed |= ui
-                        .add(
-                            egui::DragValue::new(&mut era.weight)
-                                .range(0.0..=10.0)
-                                .speed(0.05),
-                        )
-                        .changed();
                 });
                 hint_label(
                     ui,
@@ -381,7 +369,6 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                 label: "New era".into(),
                 relative_start: 0,
                 relative_end: 0,
-                weight: 1.0,
                 allowed_events: Vec::new(),
             });
             changed = true;

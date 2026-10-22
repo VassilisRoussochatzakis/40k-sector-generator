@@ -251,28 +251,10 @@ pub enum HiddenRoutesProgress {
 /// Existing route ids are preserved; new ids get a `-webway` / `-blackship`
 /// / `-smuggling` suffix on the canonical `route-AAAA-BBBB` form so the
 /// invariants on uniqueness hold.
-#[cfg(test)]
-pub fn append_hidden_routes(
-    systems: &[GeneratedSystem],
-    factions: &[GeneratedFaction],
-    routes: &mut Vec<GeneratedRoute>,
-) -> usize {
-    append_hidden_routes_with_regions(systems, factions, &[], routes)
-}
-
+///
 /// §5 NEW.md `Blackout`: every system whose hex falls inside a Blackout
 /// region is removed from the set of viable endpoints, so no hidden routes
 /// terminate inside the blackout. Pure derivation, deterministic.
-#[cfg(test)]
-pub fn append_hidden_routes_with_regions(
-    systems: &[GeneratedSystem],
-    factions: &[GeneratedFaction],
-    regions: &[WarpRegion],
-    routes: &mut Vec<GeneratedRoute>,
-) -> usize {
-    append_hidden_routes_with_regions_and_progress(systems, factions, regions, routes, |_| {})
-}
-
 pub fn append_hidden_routes_with_regions_and_progress(
     systems: &[GeneratedSystem],
     factions: &[GeneratedFaction],
@@ -305,10 +287,8 @@ pub fn append_hidden_routes_with_regions_and_progress(
         &filtered,
         &kinds,
         routes,
-        "webway",
         &["aeldari", "harlequin"],
         RouteType::Webway,
-        "webway",
         |d| d.covert.mul_add(0.7, d.military * 0.3),
         &mut progress,
     );
@@ -316,10 +296,8 @@ pub fn append_hidden_routes_with_regions_and_progress(
         &filtered,
         &kinds,
         routes,
-        "blackship",
         &["inquisition", "deathwatch", "grey_knights"],
         RouteType::BlackShip,
-        "blackship",
         |d| d.covert.mul_add(0.5, d.admin * 0.5),
         &mut progress,
     );
@@ -327,10 +305,8 @@ pub fn append_hidden_routes_with_regions_and_progress(
         &filtered,
         &kinds,
         routes,
-        "smuggling",
         &["criminal", "drukhari", "rebel", "genestealer_cult"],
         RouteType::SmugglingLane,
-        "smuggling",
         |d| d.covert.mul_add(0.6, d.economic * 0.4),
         &mut progress,
     );
@@ -358,18 +334,17 @@ fn endpoint_score(
     s
 }
 
-#[allow(clippy::too_many_arguments)]
 fn emit_layer(
     systems: &[&GeneratedSystem],
     kinds: &BTreeMap<&str, &str>,
     routes: &mut Vec<GeneratedRoute>,
-    layer: &'static str,
     needles: &[&str],
     rtype: RouteType,
-    suffix: &str,
     score_fn: impl Fn(&crate::sector_model::PresenceDimensions) -> f32 + Copy,
     progress: &mut impl FnMut(HiddenRoutesProgress),
 ) -> usize {
+    // The layer name doubles as the route-id / `hidden:` tag suffix.
+    let layer = hidden_suffix(rtype);
     // Find every system whose accumulated needle-kind presence clears the
     // endpoint threshold.
     let mut endpoints: Vec<&GeneratedSystem> = systems
@@ -464,7 +439,7 @@ fn emit_layer(
             .expect("hidden-route pair endpoint not in index — invariant: pairs are built from endpoints only");
         let dist = hex_distance(a.coord, b.coord);
         let base_id = ids::route_id(&from, &to);
-        let id = crate::ids::RouteId::new(format!("{base_id}-{suffix}"));
+        let id = crate::ids::RouteId::new(format!("{base_id}-{layer}"));
         // Avoid duplicate inserts if a hidden lane of the same kind
         // already exists for this pair (e.g. from a re-run on a save).
         if !existing_route_ids.insert(id.clone()) {
@@ -486,7 +461,7 @@ fn emit_layer(
             distance: dist,
             route_type: rtype,
             stability: hidden_route_stability(rtype, dist),
-            tags: vec![format!("hidden:{suffix}").into()],
+            tags: vec![format!("hidden:{layer}").into()],
             controls: Vec::new(),
         });
         added += 1;
@@ -516,11 +491,7 @@ fn should_report_layer_progress(current: usize, total: usize) -> bool {
 }
 
 fn order_pair<'a>(a: &'a str, b: &'a str) -> (&'a str, &'a str) {
-    if a <= b {
-        (a, b)
-    } else {
-        (b, a)
-    }
+    (a.min(b), a.max(b))
 }
 
 #[cfg(test)]
@@ -627,7 +598,13 @@ mod tests {
         ];
         let factions = vec![fac("eld", "aeldari")];
         let mut routes: Vec<GeneratedRoute> = Vec::new();
-        let n = append_hidden_routes(&systems, &factions, &mut routes);
+        let n = append_hidden_routes_with_regions_and_progress(
+            &systems,
+            &factions,
+            &[],
+            &mut routes,
+            |_| {},
+        );
         assert_eq!(n, 1);
         assert_eq!(routes[0].route_type, RouteType::Webway);
         // A webway is always Stable regardless of the endpoints' hex distance
@@ -703,7 +680,13 @@ mod tests {
         ];
         let factions = vec![fac("inq", "inquisition"), fac("nav", "imperial_guard")];
         let mut routes: Vec<GeneratedRoute> = Vec::new();
-        let n = append_hidden_routes(&systems, &factions, &mut routes);
+        let n = append_hidden_routes_with_regions_and_progress(
+            &systems,
+            &factions,
+            &[],
+            &mut routes,
+            |_| {},
+        );
         assert_eq!(n, 0);
     }
 

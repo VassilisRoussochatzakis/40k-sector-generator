@@ -525,17 +525,13 @@ pub fn dominant_route_condition(
     from: HexCoord,
     to: HexCoord,
 ) -> Option<RegionConditionKind> {
-    let mut best: Option<RegionConditionKind> = None;
-    for c in [from, to] {
-        if let Some(r) = region_at(regions, c) {
-            best = match best {
-                None => Some(r.kind),
-                Some(cur) if r.kind.route_precedence() > cur.route_precedence() => Some(r.kind),
-                Some(cur) => Some(cur),
-            };
-        }
-    }
-    best.filter(|k| k.route_precedence() > 0)
+    // `min_by_key(Reverse)`, not `max_by_key`: on a precedence tie the first
+    // (`from`) kind wins.
+    [from, to]
+        .into_iter()
+        .filter_map(|c| region_at(regions, c).map(|r| r.kind))
+        .min_by_key(|k| std::cmp::Reverse(k.route_precedence()))
+        .filter(|k| k.route_precedence() > 0)
 }
 
 /// Apply route-affecting region conditions to a list of routes. Idempotent
@@ -1117,6 +1113,16 @@ mod route_effect_tests {
         assert_eq!(
             dominant_route_condition(&regions, from, to),
             Some(RegionConditionKind::Turbulence)
+        );
+
+        // Equal precedence (EmpyricBleed = Turbulence = 2): `from` wins the tie.
+        let regions = vec![
+            region("r1", RegionConditionKind::EmpyricBleed, &[(0, 0)]),
+            region("r2", RegionConditionKind::Turbulence, &[(5, 0)]),
+        ];
+        assert_eq!(
+            dominant_route_condition(&regions, from, to),
+            Some(RegionConditionKind::EmpyricBleed)
         );
     }
 

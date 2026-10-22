@@ -82,18 +82,10 @@ pub enum SectorSize {
 
 impl SectorSize {
     /// Grid dimensions `(width, height)` in hexes. Always square, so both
-    /// elements are equal — see [`Self::dim`].
+    /// elements are equal.
     #[must_use]
     pub fn dims(self) -> (u32, u32) {
-        let d = self.dim();
-        (d, d)
-    }
-
-    /// The square side length in hexes. Sectors are square, so one dimension
-    /// fully describes the grid.
-    #[must_use]
-    pub fn dim(self) -> u32 {
-        match self {
+        let d = match self {
             SectorSize::Small => 8,
             SectorSize::Medium => 16,
             SectorSize::Large => 32,
@@ -101,7 +93,8 @@ impl SectorSize {
             SectorSize::Massive => 64,
             SectorSize::Huge => 80,
             SectorSize::Custom { dim } => dim,
-        }
+        };
+        (d, d)
     }
 
     /// Parse a CLI-style size token
@@ -154,14 +147,6 @@ pub struct RandomReport {
     pub seed: String,
 }
 
-/// Region overlay knobs scaled to the grid (kept out of [`AppConfig`] because
-/// regions live in their own data file, patched separately).
-#[derive(Debug, Clone, Copy)]
-struct RegionKnobs {
-    count: u32,
-    mean_size: u32,
-}
-
 /// A coarse, ordered phase of the random-sector pipeline. The phases run in
 /// declaration order; [`generate_random_sector_from_with_progress`] emits each
 /// one as it begins, so the builder/CLI can drive a progress bar without
@@ -199,12 +184,6 @@ impl RandomPhase {
         RandomPhase::Missions,
         RandomPhase::Prose,
     ];
-
-    /// Zero-based index of this phase in [`Self::ALL`].
-    #[must_use]
-    pub fn index(self) -> usize {
-        Self::ALL.iter().position(|&p| p == self).unwrap_or(0)
-    }
 
     /// Human-readable label for the progress popup.
     #[must_use]
@@ -274,7 +253,21 @@ fn generation_substep(sp: &SectorProgress) -> Option<(f32, &'static str)> {
 /// its own slice. Phases each own an equal `1/ALL` slice of the bar.
 fn phase_fraction(phase: RandomPhase, intra: f32) -> f32 {
     let span = 1.0 / RandomPhase::ALL.len() as f32;
-    (phase.index() as f32 * span + intra.clamp(0.0, 1.0) * span).clamp(0.0, 1.0)
+    (phase as usize as f32 * span + intra.clamp(0.0, 1.0) * span).clamp(0.0, 1.0)
+}
+
+/// Report `phase`, `intra` (`0.0..=1.0`) of the way through its own slice.
+fn emit(
+    progress: &mut dyn FnMut(RandomProgress),
+    phase: RandomPhase,
+    intra: f32,
+    detail: Option<&str>,
+) {
+    progress(RandomProgress {
+        phase,
+        fraction: phase_fraction(phase, intra),
+        detail: detail.map(str::to_string),
+    });
 }
 
 /// Mint a fresh root seed from process entropy. This is the **only**
@@ -332,11 +325,13 @@ pub fn build_random_config(seed: &str, size: SectorSize) -> AppConfig {
     build_random_config_inner(seed, size, &mut rng).0
 }
 
+/// Also returns the region overlay's `(count, mean_size)`: regions live in
+/// their own data file, patched separately, so they stay out of [`AppConfig`].
 fn build_random_config_inner(
     seed: &str,
     size: SectorSize,
     rng: &mut impl Rng,
-) -> (AppConfig, RegionKnobs) {
+) -> (AppConfig, u32, u32) {
     let (width, height) = size.dims();
     let cells = width.saturating_mul(height).max(1);
     let cells_f = f64::from(cells);
@@ -479,13 +474,7 @@ fn build_random_config_inner(
         history: crate::history::HistoryConfig::default(),
     };
 
-    (
-        config,
-        RegionKnobs {
-            count: region_count,
-            mean_size,
-        },
-    )
+    (config, region_count, mean_size)
 }
 
 /// Lower-case alphanumeric, ≤ 8 chars, of a seed — used for the project id /
@@ -592,22 +581,15 @@ pub fn generate_random_sector_from_with_progress(
     // 1. Materialise the bundle (copies the baseline's data tree + a
     //    sectorforge.toml we immediately overwrite). scaffold requires `dest`
     //    not to exist.
-    progress(RandomProgress {
-        phase: RandomPhase::Scaffolding,
-        fraction: phase_fraction(RandomPhase::Scaffolding, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Scaffolding, 0.0, None);
     crate::presets::scaffold(presets_dir, baseline, dest, None)?;
 
     // 2. Roll the complete config from the seed and write it over the
     //    scaffolded one — we own every field, so nothing falls to a default.
-    progress(RandomProgress {
-        phase: RandomPhase::Configuring,
-        fraction: phase_fraction(RandomPhase::Configuring, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Configuring, 0.0, None);
     let mut cfg_rng = crate::rng::stage_rng(&seed, "config", "");
-    let (config, regions) = build_random_config_inner(&seed, size, &mut cfg_rng);
+    let (config, region_count, region_mean_size) =
+        build_random_config_inner(&seed, size, &mut cfg_rng);
     let toml_text = toml::to_string_pretty(&config).map_err(|e| {
         SectorError::InvalidConfig(format!("serialising random sectorforge.toml: {e}"))
     })?;
@@ -618,7 +600,7 @@ pub fn generate_random_sector_from_with_progress(
     let regions_path = dest.join("data/routes/regions.toml");
     let regions_text = std::fs::read_to_string(&regions_path)
         .map_err(|e| SectorError::io(regions_path.as_str(), e))?;
-    let patched = patch_regions_toml(&regions_text, regions.count, regions.mean_size);
+    let patched = patch_regions_toml(&regions_text, region_count, region_mean_size);
     std::fs::write(&regions_path, patched)
         .map_err(|e| SectorError::io(regions_path.as_str(), e))?;
 
@@ -632,50 +614,24 @@ pub fn generate_random_sector_from_with_progress(
         });
     }
 
-    // 5. Generate + invariant-check (invariants are advisory here; a hard
-    //    failure would surface as an empty/incoherent sector the tests catch).
-    //    The inner SectorProgress fraction is blended into the Generating slice.
+    // 5. Generate. The inner SectorProgress fraction is blended into the
+    //    Generating slice.
     let sector = crate::generate_sector_with_progress(input.clone(), |sp| {
         if let Some((intra, detail)) = generation_substep(&sp) {
-            progress(RandomProgress {
-                phase: RandomPhase::Generating,
-                fraction: phase_fraction(RandomPhase::Generating, intra),
-                detail: Some(detail.to_string()),
-            });
+            emit(progress, RandomPhase::Generating, intra, Some(detail));
         }
     })?;
-    let _invariants = crate::validate_sector(&sector);
 
     // 6. Run the five post-generation derivations the orchestrator skips.
-    progress(RandomProgress {
-        phase: RandomPhase::Personae,
-        fraction: phase_fraction(RandomPhase::Personae, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Personae, 0.0, None);
     let personae = crate::derive_personae_with(&sector, &input.catalogs.personae);
-    progress(RandomProgress {
-        phase: RandomPhase::Sites,
-        fraction: phase_fraction(RandomPhase::Sites, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Sites, 0.0, None);
     let sites = crate::derive_sites_with(&sector, &input.catalogs.sites);
-    progress(RandomProgress {
-        phase: RandomPhase::Hooks,
-        fraction: phase_fraction(RandomPhase::Hooks, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Hooks, 0.0, None);
     let hooks = crate::derive_hooks_with(&sector, &input.catalogs.hooks);
-    progress(RandomProgress {
-        phase: RandomPhase::Missions,
-        fraction: phase_fraction(RandomPhase::Missions, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Missions, 0.0, None);
     let missions = crate::derive_missions_with(&sector, &input.catalogs.missions);
-    progress(RandomProgress {
-        phase: RandomPhase::Prose,
-        fraction: phase_fraction(RandomPhase::Prose, 0.0),
-        detail: None,
-    });
+    emit(progress, RandomPhase::Prose, 0.0, None);
     let prose = crate::derive_prose_with(&sector, &input.catalogs.prose);
 
     Ok(RandomReport {

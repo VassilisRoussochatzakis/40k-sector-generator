@@ -827,23 +827,18 @@ fn kind_label(k: HookKind) -> &'static str {
 // ── save row ──────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.hooks.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save hooks"))
-            .on_hover_text("Write all hooks back to the project's hooks file.")
-            .clicked()
-        {
-            if state.config.inputs.hooks.is_none() {
-                state.config.inputs.hooks = Some(DEFAULT_HOOKS_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Could not save hooks: {e}"
-                )));
-            }
-        }
-        match state.config.inputs.hooks.clone() {
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.hooks.is_some(),
+        state,
+        |i| &mut i.hooks,
+        DEFAULT_HOOKS_PATH,
+        [
+            "💾  Save hooks",
+            "Write all hooks back to the project's hooks file.",
+            "Could not save hooks",
+        ],
+        |ui, path| match path {
             Some(path) => {
                 ui.colored_label(Color32::DARK_GRAY, format!("file: {path}"));
             }
@@ -851,8 +846,8 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 ui.colored_label(Color32::DARK_GRAY, "not saved yet")
                     .on_hover_text(format!("Will be written to {DEFAULT_HOOKS_PATH}."));
             }
-        }
-    });
+        },
+    );
 }
 
 // ── shared helpers ─────────────────────────────────────────────────────────

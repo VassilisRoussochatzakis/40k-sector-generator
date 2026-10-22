@@ -1416,30 +1416,22 @@ fn short_narrative(s: &str) -> String {
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Save history settings").strong());
-    let has_catalog = state.data_catalogs.history.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save"))
-            .on_hover_text("Write the chronicle settings, eras, and rules to disk")
-            .clicked()
-        {
-            if state.config.inputs.history.is_none() {
-                state.config.inputs.history = Some(DEFAULT_HISTORY_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save history.toml failed: {e}"
-                )));
-            }
-        }
-        let path_label = state
-            .config
-            .inputs
-            .history
-            .clone()
-            .unwrap_or_else(|| format!("will be saved to {DEFAULT_HISTORY_PATH}"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
-    });
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.history.is_some(),
+        state,
+        |i| &mut i.history,
+        DEFAULT_HISTORY_PATH,
+        [
+            "💾  Save",
+            "Write the chronicle settings, eras, and rules to disk",
+            "Save history.toml failed",
+        ],
+        |ui, path| {
+            let label = path.unwrap_or_else(|| format!("will be saved to {DEFAULT_HISTORY_PATH}"));
+            ui.colored_label(Color32::DARK_GRAY, label);
+        },
+    );
 }
 
 // ── focus / highlight ───────────────────────────────────────────────────────

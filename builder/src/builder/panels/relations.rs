@@ -1070,32 +1070,23 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Save").strong());
-    let has_catalog = state.data_catalogs.relations.is_some();
-    let has_path = state.config.inputs.relations.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save relations.toml"))
-            .on_hover_text("Write all rules, pins, and overrides back to relations.toml")
-            .clicked()
-        {
-            if state.config.inputs.relations.is_none() {
-                state.config.inputs.relations = Some(DEFAULT_RELATIONS_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save relations.toml failed: {e}"
-                )));
-            }
-        }
-        let path_label = state
-            .config
-            .inputs
-            .relations
-            .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_RELATIONS_PATH})"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
-        let _ = has_path;
-    });
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.relations.is_some(),
+        state,
+        |i| &mut i.relations,
+        DEFAULT_RELATIONS_PATH,
+        [
+            "💾  Save relations.toml",
+            "Write all rules, pins, and overrides back to relations.toml",
+            "Save relations.toml failed",
+        ],
+        |ui, path| {
+            let label =
+                path.unwrap_or_else(|| format!("(unset; will write to {DEFAULT_RELATIONS_PATH})"));
+            ui.colored_label(Color32::DARK_GRAY, label);
+        },
+    );
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────

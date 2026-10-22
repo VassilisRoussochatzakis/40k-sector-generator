@@ -919,27 +919,24 @@ fn faction_field(
 // ── save row ──────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.missions.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save missions"))
-            .on_hover_text("Write the mission settings and hand-written missions to disk.")
-            .clicked()
-        {
-            if state.config.inputs.missions.is_none() {
-                state.config.inputs.missions = Some(DEFAULT_MISSIONS_PATH.into());
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.missions.is_some(),
+        state,
+        |i| &mut i.missions,
+        DEFAULT_MISSIONS_PATH,
+        [
+            "💾  Save missions",
+            "Write the mission settings and hand-written missions to disk.",
+            "Saving missions failed",
+        ],
+        |ui, path| {
+            if path.is_none() {
+                ui.colored_label(Color32::DARK_GRAY, "not saved yet")
+                    .on_hover_text(format!("Will be written to {DEFAULT_MISSIONS_PATH}."));
             }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Saving missions failed: {e}"
-                )));
-            }
-        }
-        if state.config.inputs.missions.is_none() {
-            ui.colored_label(Color32::DARK_GRAY, "not saved yet")
-                .on_hover_text(format!("Will be written to {DEFAULT_MISSIONS_PATH}."));
-        }
-    });
+        },
+    );
 }
 
 // ── shared helpers ─────────────────────────────────────────────────────────

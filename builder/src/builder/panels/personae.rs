@@ -771,28 +771,24 @@ fn csv_row(ui: &mut Ui, label: &str, help: &str, values: &mut Vec<String>) -> bo
 // ── save row ────────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.personae.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save personae"))
-            .on_hover_text("Write the personae file to disk")
-            .clicked()
-        {
-            if state.config.inputs.personae.is_none() {
-                state.config.inputs.personae = Some(DEFAULT_PERSONAE_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Could not save the personae file: {e}"
-                )));
-            }
-        }
-        let path_label =
-            state.config.inputs.personae.clone().unwrap_or_else(|| {
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.personae.is_some(),
+        state,
+        |i| &mut i.personae,
+        DEFAULT_PERSONAE_PATH,
+        [
+            "💾  Save personae",
+            "Write the personae file to disk",
+            "Could not save the personae file",
+        ],
+        |ui, path| {
+            let label = path.unwrap_or_else(|| {
                 format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})")
             });
-        ui.colored_label(Color32::DARK_GRAY, path_label);
-    });
+            ui.colored_label(Color32::DARK_GRAY, label);
+        },
+    );
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────

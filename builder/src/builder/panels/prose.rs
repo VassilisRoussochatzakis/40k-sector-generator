@@ -457,33 +457,29 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── save row ──────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.prose.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save prose"))
-            .on_hover_text("Write the prose for this project to disk.")
-            .clicked()
-        {
-            if state.config.inputs.prose.is_none() {
-                state.config.inputs.prose = Some(DEFAULT_PROSE_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Couldn't save prose: {e}"
-                )));
-            }
-        }
-        let saved_path = state.config.inputs.prose.clone();
-        let (status, where_hover) = match &saved_path {
-            Some(p) => ("Saves to the project prose file.", p.clone()),
-            None => (
-                "Not saved yet — will create a new prose file.",
-                DEFAULT_PROSE_PATH.to_string(),
-            ),
-        };
-        ui.colored_label(Color32::DARK_GRAY, status)
-            .on_hover_text(format!("File: {where_hover}"));
-    });
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.prose.is_some(),
+        state,
+        |i| &mut i.prose,
+        DEFAULT_PROSE_PATH,
+        [
+            "💾  Save prose",
+            "Write the prose for this project to disk.",
+            "Couldn't save prose",
+        ],
+        |ui, path| {
+            let (status, where_hover) = match path {
+                Some(p) => ("Saves to the project prose file.", p),
+                None => (
+                    "Not saved yet — will create a new prose file.",
+                    DEFAULT_PROSE_PATH.to_string(),
+                ),
+            };
+            ui.colored_label(Color32::DARK_GRAY, status)
+                .on_hover_text(format!("File: {where_hover}"));
+        },
+    );
 }
 
 // ── shared helpers ────────────────────────────────────────────────────────

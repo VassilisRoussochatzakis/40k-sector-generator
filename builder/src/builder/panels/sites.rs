@@ -948,31 +948,24 @@ fn blank_manual_site(seq: usize) -> WorldSite {
 // ── save row ──────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.sites.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save sites"))
-            .on_hover_text("Write all site settings and hand-added sites back to sites.toml")
-            .clicked()
-        {
-            if state.config.inputs.sites.is_none() {
-                state.config.inputs.sites = Some(DEFAULT_SITES_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save sites.toml failed: {e}"
-                )));
-            }
-        }
-        let path_label = state
-            .config
-            .inputs
-            .sites
-            .clone()
-            .map(|p| format!("file: {p}"))
-            .unwrap_or_else(|| format!("file: {DEFAULT_SITES_PATH} (will be created on save)"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
-    });
+    super::catalog_save_row(
+        ui,
+        state.data_catalogs.sites.is_some(),
+        state,
+        |i| &mut i.sites,
+        DEFAULT_SITES_PATH,
+        [
+            "💾  Save sites",
+            "Write all site settings and hand-added sites back to sites.toml",
+            "Save sites.toml failed",
+        ],
+        |ui, path| {
+            let label = path
+                .map(|p| format!("file: {p}"))
+                .unwrap_or_else(|| format!("file: {DEFAULT_SITES_PATH} (will be created on save)"));
+            ui.colored_label(Color32::DARK_GRAY, label);
+        },
+    );
 }
 
 // ── shared helpers ─────────────────────────────────────────────────────────

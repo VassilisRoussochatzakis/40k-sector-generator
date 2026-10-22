@@ -70,6 +70,36 @@ pub(crate) fn optional_faction_combo(
     );
 }
 
+/// The save row shared by the catalog panels: a `💾` button, enabled once the
+/// catalog exists, that points `[inputs].<catalog>` at `default_path` when unset
+/// and saves the project (a failure opens a `"{failed}: {e}"` message), then the
+/// panel's own status label, drawn by `status` from the (possibly just set) path.
+pub(crate) fn catalog_save_row(
+    ui: &mut egui::Ui,
+    has_catalog: bool,
+    state: &mut crate::builder::BuilderState,
+    input: fn(&mut sectorforge::config::InputConfig) -> &mut Option<String>,
+    default_path: &str,
+    [button, hover, failed]: [&str; 3],
+    status: impl FnOnce(&mut egui::Ui, Option<String>),
+) {
+    ui.horizontal_wrapped(|ui| {
+        if ui
+            .add_enabled(has_catalog, egui::Button::new(button))
+            .on_hover_text(hover)
+            .clicked()
+        {
+            input(&mut state.config.inputs).get_or_insert_with(|| default_path.into());
+            if let Err(e) = crate::builder::project_io::save_project(state) {
+                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                    "{failed}: {e}"
+                )));
+            }
+        }
+        status(ui, input(&mut state.config.inputs).clone());
+    });
+}
+
 pub mod conflict_resolver;
 pub mod invariants;
 pub mod new_project;

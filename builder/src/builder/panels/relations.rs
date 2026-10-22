@@ -107,7 +107,25 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_disposition_rules(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                ui.label(RichText::new("Save").strong());
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.relations.is_some(),
+                    state,
+                    |i| &mut i.relations,
+                    DEFAULT_RELATIONS_PATH,
+                    [
+                        "💾  Save relations.toml",
+                        "Write all rules, pins, and overrides back to relations.toml",
+                        "Save relations.toml failed",
+                    ],
+                    |ui, path| {
+                        let label = path.unwrap_or_else(|| {
+                            format!("(unset; will write to {DEFAULT_RELATIONS_PATH})")
+                        });
+                        ui.colored_label(Color32::DARK_GRAY, label);
+                    },
+                );
             });
     });
 }
@@ -1064,29 +1082,6 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
             action: ConfirmAction::DeleteRelationDispositionRule(idx),
         });
     }
-}
-
-// ── save row ────────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("Save").strong());
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.relations.is_some(),
-        state,
-        |i| &mut i.relations,
-        DEFAULT_RELATIONS_PATH,
-        [
-            "💾  Save relations.toml",
-            "Write all rules, pins, and overrides back to relations.toml",
-            "Save relations.toml failed",
-        ],
-        |ui, path| {
-            let label =
-                path.unwrap_or_else(|| format!("(unset; will write to {DEFAULT_RELATIONS_PATH})"));
-            ui.colored_label(Color32::DARK_GRAY, label);
-        },
-    );
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────

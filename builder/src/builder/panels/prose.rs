@@ -76,7 +76,29 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                     left.separator();
                     show_system_selector(left, state);
                     left.separator();
-                    show_save_row(left, state);
+                    super::catalog_save_row(
+                        left,
+                        state.data_catalogs.prose.is_some(),
+                        state,
+                        |i| &mut i.prose,
+                        DEFAULT_PROSE_PATH,
+                        [
+                            "💾  Save prose",
+                            "Write the prose for this project to disk.",
+                            "Couldn't save prose",
+                        ],
+                        |ui, path| {
+                            let (status, where_hover) = match path {
+                                Some(p) => ("Saves to the project prose file.", p),
+                                None => (
+                                    "Not saved yet — will create a new prose file.",
+                                    DEFAULT_PROSE_PATH.to_string(),
+                                ),
+                            };
+                            ui.colored_label(Color32::DARK_GRAY, status)
+                                .on_hover_text(format!("File: {where_hover}"));
+                        },
+                    );
                 }
                 {
                     // Right — or the same single column when collapsed to one:
@@ -452,34 +474,6 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
     if changed {
         on_catalog_edited(state);
     }
-}
-
-// ── save row ──────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.prose.is_some(),
-        state,
-        |i| &mut i.prose,
-        DEFAULT_PROSE_PATH,
-        [
-            "💾  Save prose",
-            "Write the prose for this project to disk.",
-            "Couldn't save prose",
-        ],
-        |ui, path| {
-            let (status, where_hover) = match path {
-                Some(p) => ("Saves to the project prose file.", p),
-                None => (
-                    "Not saved yet — will create a new prose file.",
-                    DEFAULT_PROSE_PATH.to_string(),
-                ),
-            };
-            ui.colored_label(Color32::DARK_GRAY, status)
-                .on_hover_text(format!("File: {where_hover}"));
-        },
-    );
 }
 
 // ── shared helpers ────────────────────────────────────────────────────────

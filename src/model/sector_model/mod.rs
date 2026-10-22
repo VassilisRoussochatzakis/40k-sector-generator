@@ -844,7 +844,7 @@ impl FactionKind {
     }
 
     /// Kinds whose hostility is masked behind a `Suspicious` public attitude
-    /// (REVIEW P9 — folds `relations::tables::is_hidden_kind`). Mirror of the old
+    /// (REVIEW P9 — replaced the since-deleted `is_hidden_kind`). Mirror of the old
     /// GSC ∪ criminal ∪ drukhari ∪ aeldari ∪ {cult, harlequin} string check.
     #[must_use]
     pub fn is_hidden(&self) -> bool {
@@ -859,8 +859,8 @@ impl FactionKind {
         )
     }
 
-    /// Mercantile kinds that lift economic-dependency scoring (REVIEW P9 — folds
-    /// `relations::tables::is_merchant_kind`: `merchant` ∪ `rogue_trader`).
+    /// Mercantile kinds that lift economic-dependency scoring (REVIEW P9 —
+    /// replaced the since-deleted `is_merchant_kind`: `merchant` ∪ `rogue_trader`).
     #[must_use]
     pub fn is_merchant(&self) -> bool {
         matches!(self, FactionKind::Merchant | FactionKind::RogueTrader)

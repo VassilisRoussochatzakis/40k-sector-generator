@@ -118,7 +118,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_kind_pools_section(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.personae.is_some(),
+                    state,
+                    |i| &mut i.personae,
+                    DEFAULT_PERSONAE_PATH,
+                    [
+                        "💾  Save personae",
+                        "Write the personae file to disk",
+                        "Could not save the personae file",
+                    ],
+                    |ui, path| {
+                        let label = path.unwrap_or_else(|| {
+                            format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})")
+                        });
+                        ui.colored_label(Color32::DARK_GRAY, label);
+                    },
+                );
             });
     });
 }
@@ -766,29 +783,6 @@ fn csv_row(ui: &mut Ui, label: &str, help: &str, values: &mut Vec<String>) -> bo
     }
     ui.end_row();
     changed
-}
-
-// ── save row ────────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.personae.is_some(),
-        state,
-        |i| &mut i.personae,
-        DEFAULT_PERSONAE_PATH,
-        [
-            "💾  Save personae",
-            "Write the personae file to disk",
-            "Could not save the personae file",
-        ],
-        |ui, path| {
-            let label = path.unwrap_or_else(|| {
-                format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})")
-            });
-            ui.colored_label(Color32::DARK_GRAY, label);
-        },
-    );
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────

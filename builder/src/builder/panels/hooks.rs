@@ -103,7 +103,27 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_manual_editor(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.hooks.is_some(),
+                    state,
+                    |i| &mut i.hooks,
+                    DEFAULT_HOOKS_PATH,
+                    [
+                        "💾  Save hooks",
+                        "Write all hooks back to the project's hooks file.",
+                        "Could not save hooks",
+                    ],
+                    |ui, path| match path {
+                        Some(path) => {
+                            ui.colored_label(Color32::DARK_GRAY, format!("file: {path}"));
+                        }
+                        None => {
+                            ui.colored_label(Color32::DARK_GRAY, "not saved yet")
+                                .on_hover_text(format!("Will be written to {DEFAULT_HOOKS_PATH}."));
+                        }
+                    },
+                );
             });
     });
 }
@@ -822,32 +842,6 @@ fn kind_label(k: HookKind) -> &'static str {
         HookKind::LifelineLane => "Lifeline lane",
         _ => "Unknown",
     }
-}
-
-// ── save row ──────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.hooks.is_some(),
-        state,
-        |i| &mut i.hooks,
-        DEFAULT_HOOKS_PATH,
-        [
-            "💾  Save hooks",
-            "Write all hooks back to the project's hooks file.",
-            "Could not save hooks",
-        ],
-        |ui, path| match path {
-            Some(path) => {
-                ui.colored_label(Color32::DARK_GRAY, format!("file: {path}"));
-            }
-            None => {
-                ui.colored_label(Color32::DARK_GRAY, "not saved yet")
-                    .on_hover_text(format!("Will be written to {DEFAULT_HOOKS_PATH}."));
-            }
-        },
-    );
 }
 
 // ── shared helpers ─────────────────────────────────────────────────────────

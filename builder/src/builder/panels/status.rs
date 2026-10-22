@@ -46,7 +46,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.command_cursor,
             state.command_log.len()
         )));
-        // §39 LD3: live-derivation freshness — fresh count + stale/deriving tags.
+        // §39 LD3: live-derivation freshness — fresh count + stale tag.
         render_derivations(ui, state);
         // §CTX1 Phase 7 — right-click menu telemetry tail. Shows the most
         // recent menu activation as `ctx_menu: <schema> :: <item>` so the
@@ -91,8 +91,7 @@ fn render_counts(ui: &mut egui::Ui, state: &BuilderState) {
 
 /// §39 LD3 — live-derivation freshness readout. Shows how many tracked
 /// overlays hold a cached value (`deriv N`), and tags any that a recent
-/// mutation left stale (`stale M`) or that a background recompute is refreshing
-/// (`deriving K`). Hovering lists the kinds involved.
+/// mutation left stale (`stale M`). Hovering lists the kinds involved.
 fn render_derivations(ui: &mut egui::Ui, state: &BuilderState) {
     let led = &state.derivations;
     let derived = led.fingerprints.len();
@@ -104,10 +103,6 @@ fn render_derivations(ui: &mut egui::Ui, state: &BuilderState) {
         let names: Vec<&str> = led.stale.iter().map(|k| k.key()).collect();
         ui.label(mono(format!("stale {stale}")).color(palette::warning()))
             .on_hover_text(format!("Out of date until viewed: {}", names.join(", ")));
-    }
-    let deriving = led.deriving.len();
-    if deriving > 0 {
-        ui.label(mono(format!("deriving {deriving}")).color(palette::info()));
     }
 }
 

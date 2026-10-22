@@ -5,9 +5,8 @@
 //!        already groups by world id. The panel exposes the full 21-kind
 //!        [`SiteKind`] picker (governor's palace … naval anchorage),
 //!        controller, public/actual status, and one-line hook on every row.
-//!        Selecting a row populates `BuilderState::selection.site_id` and
-//!        `BuilderState::sites_panel.edit_target` so cross-tab links land here
-//!        first-class.
+//!        Selecting a row populates `BuilderState::selection.site_id`, which
+//!        the detail card reads.
 //! §ST2  "Regenerate sites" calls [`BuilderState::recompute_sites`] which
 //!        runs `sites::derive_with(&sector, &cfg)`. Manual entries survive
 //!        because [`sectorforge::sites::derive_with`] appends `cfg.manual`
@@ -117,7 +116,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_manual_editor(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.sites.is_some(),
+                    state,
+                    |i| &mut i.sites,
+                    DEFAULT_SITES_PATH,
+                    [
+                        "💾  Save sites",
+                        "Write all site settings and hand-added sites back to sites.toml",
+                        "Save sites.toml failed",
+                    ],
+                    |ui, path| {
+                        let label = path.map(|p| format!("file: {p}")).unwrap_or_else(|| {
+                            format!("file: {DEFAULT_SITES_PATH} (will be created on save)")
+                        });
+                        ui.colored_label(Color32::DARK_GRAY, label);
+                    },
+                );
             });
     });
 }
@@ -370,7 +386,6 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                             .clicked()
                         {
                             state.selection.site_id = Some(s.id.clone());
-                            state.sites_panel.edit_target = Some(s.id.clone());
                             state.focus_entity(EntityRef::World {
                                 system: s.system_id.clone(),
                                 world: s.world_id.clone(),
@@ -411,12 +426,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Selected site").strong());
-    let target = state
-        .sites_panel
-        .edit_target
-        .clone()
-        .or_else(|| state.selection.site_id.clone());
-    let Some(target_id) = target else {
+    let Some(target_id) = state.selection.site_id.clone() else {
         ui_kit::placeholder(
             ui,
             "Select a site in the table above to see its full details.",
@@ -943,29 +953,6 @@ fn blank_manual_site(seq: usize) -> WorldSite {
         tags: Vec::new(),
         hook: String::new(),
     }
-}
-
-// ── save row ──────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.sites.is_some(),
-        state,
-        |i| &mut i.sites,
-        DEFAULT_SITES_PATH,
-        [
-            "💾  Save sites",
-            "Write all site settings and hand-added sites back to sites.toml",
-            "Save sites.toml failed",
-        ],
-        |ui, path| {
-            let label = path
-                .map(|p| format!("file: {p}"))
-                .unwrap_or_else(|| format!("file: {DEFAULT_SITES_PATH} (will be created on save)"));
-            ui.colored_label(Color32::DARK_GRAY, label);
-        },
-    );
 }
 
 // ── shared helpers ─────────────────────────────────────────────────────────

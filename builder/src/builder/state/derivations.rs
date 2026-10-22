@@ -50,7 +50,8 @@ impl BuilderState {
     /// Mark the session dirty and flag the catalog file that backs it (§E13):
     /// the configured input path, or `default` when the project has not pinned
     /// one. Replaces the `if let Some(rel) = … { … } else { … default … }`
-    /// boilerplate each catalog panel's `on_catalog_edited` hand-rolled.
+    /// boilerplate the catalog panels' post-edit hooks hand-rolled (now
+    /// `on_catalog_edited` in prose / history, `after_catalog_commit` elsewhere).
     pub(crate) fn mark_catalog_dirty(&mut self, configured: Option<String>, default: &str) {
         self.dirty = true;
         self.dirty_files

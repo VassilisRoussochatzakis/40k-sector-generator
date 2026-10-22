@@ -262,7 +262,6 @@ pub(crate) struct SitesPanelState {
     pub(crate) auto_recompute: bool,
     pub(crate) player_edition: bool,
     pub(crate) filter_kind: Option<sectorforge::sites::SiteKind>,
-    pub(crate) edit_target: Option<String>,
 }
 
 impl Default for SitesPanelState {
@@ -271,7 +270,6 @@ impl Default for SitesPanelState {
             auto_recompute: true,
             player_edition: false,
             filter_kind: None,
-            edit_target: None,
         }
     }
 }

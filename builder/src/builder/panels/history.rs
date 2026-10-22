@@ -108,7 +108,25 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                     right.separator();
                     show_timeline(right, state);
                     right.separator();
-                    show_save_row(right, state);
+                    right.label(RichText::new("Save history settings").strong());
+                    super::catalog_save_row(
+                        right,
+                        state.data_catalogs.history.is_some(),
+                        state,
+                        |i| &mut i.history,
+                        DEFAULT_HISTORY_PATH,
+                        [
+                            "💾  Save",
+                            "Write the chronicle settings, eras, and rules to disk",
+                            "Save history.toml failed",
+                        ],
+                        |ui, path| {
+                            let label = path.unwrap_or_else(|| {
+                                format!("will be saved to {DEFAULT_HISTORY_PATH}")
+                            });
+                            ui.colored_label(Color32::DARK_GRAY, label);
+                        },
+                    );
                 }
             });
         });
@@ -1410,28 +1428,6 @@ fn short_narrative(s: &str) -> String {
         out.push('…');
         out
     }
-}
-
-// ── save row ────────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("Save history settings").strong());
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.history.is_some(),
-        state,
-        |i| &mut i.history,
-        DEFAULT_HISTORY_PATH,
-        [
-            "💾  Save",
-            "Write the chronicle settings, eras, and rules to disk",
-            "Save history.toml failed",
-        ],
-        |ui, path| {
-            let label = path.unwrap_or_else(|| format!("will be saved to {DEFAULT_HISTORY_PATH}"));
-            ui.colored_label(Color32::DARK_GRAY, label);
-        },
-    );
 }
 
 // ── focus / highlight ───────────────────────────────────────────────────────

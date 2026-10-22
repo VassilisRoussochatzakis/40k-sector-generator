@@ -111,7 +111,26 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_manual_editor(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.missions.is_some(),
+                    state,
+                    |i| &mut i.missions,
+                    DEFAULT_MISSIONS_PATH,
+                    [
+                        "💾  Save missions",
+                        "Write the mission settings and hand-written missions to disk.",
+                        "Saving missions failed",
+                    ],
+                    |ui, path| {
+                        if path.is_none() {
+                            ui.colored_label(Color32::DARK_GRAY, "not saved yet")
+                                .on_hover_text(format!(
+                                    "Will be written to {DEFAULT_MISSIONS_PATH}."
+                                ));
+                        }
+                    },
+                );
             });
     });
 }
@@ -914,29 +933,6 @@ fn faction_field(
         }
     });
     changed
-}
-
-// ── save row ──────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    super::catalog_save_row(
-        ui,
-        state.data_catalogs.missions.is_some(),
-        state,
-        |i| &mut i.missions,
-        DEFAULT_MISSIONS_PATH,
-        [
-            "💾  Save missions",
-            "Write the mission settings and hand-written missions to disk.",
-            "Saving missions failed",
-        ],
-        |ui, path| {
-            if path.is_none() {
-                ui.colored_label(Color32::DARK_GRAY, "not saved yet")
-                    .on_hover_text(format!("Will be written to {DEFAULT_MISSIONS_PATH}."));
-            }
-        },
-    );
 }
 
 // ── shared helpers ─────────────────────────────────────────────────────────

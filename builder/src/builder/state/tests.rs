@@ -2213,6 +2213,48 @@ mod off_bus_seam {
         );
     }
 
+    /// D2 follow-up — `save_project_as` re-establishes the in-sector derived
+    /// state before writing, so `sector.json` never carries the relations or
+    /// chronicle an un-viewed edit left stale.
+    #[test]
+    fn save_project_as_writes_fresh_relations_and_chronicle() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let mut s = seeded();
+        // Fixture: a warzone puts "alpha" in the chronicle.
+        s.sector.systems[0].control.state = Some(sectorforge::sector_model::SystemState::Warzone);
+        s.recompute_relations(); // prime both (no factions yet ⇒ empty matrix)
+        s.recompute_chronicle();
+        // Fixture: two factions arrive off-bus; the rename is the staling edit.
+        s.sector.factions.extend([
+            gen_faction("a", "imperial", "lawful"),
+            gen_faction("b", "chaos", "hostile"),
+        ]);
+        s.run(BuilderCommand::RenameSystem {
+            id: s.sector.systems[0].id.clone(),
+            from: String::new(),
+            to: "alpha-1".into(),
+        })
+        .unwrap();
+
+        crate::builder::project_io::save_project_as(&mut s, &root).unwrap();
+
+        let saved = read_saved(&root.join("out/sector.json"));
+        assert_eq!(
+            saved.relations.pairs.len(),
+            1,
+            "fresh matrix pairs the two factions"
+        );
+        assert!(
+            saved
+                .chronicle
+                .events
+                .iter()
+                .any(|e| e.narrative.contains("alpha-1")),
+            "fresh chronicle names the renamed system"
+        );
+    }
+
     /// #46 — a region-only command (`dep_classes == [Regions]`) must NOT rebuild
     /// the structural index. We corrupt the index with a sentinel beforehand; if
     /// the gate works the sentinel survives (no rebuild), and a subsequent

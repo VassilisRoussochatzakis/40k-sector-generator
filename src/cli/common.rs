@@ -158,8 +158,11 @@ pub fn parse_heatmap(
         "supply" | "supply_vulnerability" | "supply-vulnerability" => {
             Ok(HeatmapMode::SupplyVulnerability)
         }
+        "conflict" | "conflict_intensity" | "conflict-intensity" => {
+            Ok(HeatmapMode::ConflictIntensity)
+        }
         other => Err(sectorforge::SectorError::InvalidConfig(format!(
-            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel|tension|trade_volume|food|tithe|supply)"
+            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel|tension|trade_volume|food|tithe|supply|conflict)"
         ))),
     }
 }
@@ -241,29 +244,13 @@ fn parse_format_tokens(
     Ok(out)
 }
 
-pub fn load_or_regenerate(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-) -> Result<sectorforge::GeneratedSector, sectorforge::SectorError> {
-    match (project, sector) {
-        (Some(project), None) => {
-            let input = sectorforge::load_project(&project)?;
-            sectorforge::generate_sector(input)
-        }
-        (None, Some(sector)) => sectorforge::load_sector_json(&sector),
-        (Some(_), Some(_)) | (None, None) => Err(sectorforge::SectorError::InvalidConfig(
-            "pass exactly one of --project <dir> or --sector <path>".into(),
-        )),
-    }
-}
-
 /// Resolve a derived-report runner's sector plus its per-runner config `C` from
 /// exactly one of `--project` / `--sector` (C2 / C-S1). On `--project`,
 /// `extract` pulls the runner's config out of the loaded `ProjectInput`
 /// **before** `generate_sector` consumes it; on `--sector` there is no project
 /// config, so `C::default()` is used. Centralises the "pass exactly one of …"
-/// error that was inlined across six runners. (`load_or_regenerate` above is the
-/// no-config variant for runners that need only the sector.)
+/// error that was inlined across six runners. Runners that need only the
+/// sector pass `|_| ()`.
 pub fn resolve_sector_with_cfg<C: Default>(
     project: Option<&Utf8PathBuf>,
     sector: Option<&Utf8PathBuf>,
@@ -754,6 +741,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_heatmap_accepts_every_mode_slug() {
+        // Bug 5: `ConflictIntensity` was in `ALL` but unreachable from the CLI.
+        for &mode in HeatmapMode::ALL {
+            assert_eq!(parse_heatmap(mode.as_slug()).unwrap(), mode);
+        }
+    }
+
+    #[test]
     fn parse_heatmap_unknown_token_errors() {
         let err = parse_heatmap("nonsense").unwrap_err();
         assert!(
@@ -763,29 +758,12 @@ mod tests {
         );
     }
 
-    // ── load_or_regenerate + resolve_sector_with_cfg (Gap 8) ───────────────
+    // ── resolve_sector_with_cfg (Gap 8) ────────────────────────────────────
 
     /// Marker config: its `Default` is `MarkerCfg(0)`. Used to prove the
     /// `--sector` arm substitutes `C::default()` and never runs `extract`.
     #[derive(Debug, Default, PartialEq)]
     struct MarkerCfg(u32);
-
-    /// Both fns share the "exactly one of --project / --sector" guard; the
-    /// `(None, None)` and `(Some, Some)` arms short-circuit before any I/O.
-    #[test]
-    fn load_or_regenerate_requires_exactly_one_source() {
-        let err = load_or_regenerate(None, None).unwrap_err();
-        assert!(
-            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
-            "expected exactly-one error for (None, None)"
-        );
-
-        let err = load_or_regenerate(Some("a".into()), Some("b".into())).unwrap_err();
-        assert!(
-            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
-            "expected exactly-one error for (Some, Some)"
-        );
-    }
 
     #[test]
     fn resolve_sector_with_cfg_requires_exactly_one_source() {

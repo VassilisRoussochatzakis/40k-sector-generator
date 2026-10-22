@@ -560,7 +560,6 @@ where
                     total_routes,
                     route_id,
                 }),
-                crate::regions::RegionRouteEffectsProgress::Completed { .. } => {}
             },
         );
         emit!(SectorProgress::RegionEffectsApplied {

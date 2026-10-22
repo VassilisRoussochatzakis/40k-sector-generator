@@ -109,12 +109,6 @@ pub struct WeightedFeatureEntry {
 }
 
 impl WorldsConfig {
-    /// Read a `worlds.toml` from disk.
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self, WorldsTomlError> {
-        let text = fs::read_to_string(path.as_ref())?;
-        Self::from_str(&text)
-    }
-
     /// Parse from a TOML string.
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(text: &str) -> Result<Self, WorldsTomlError> {
@@ -187,7 +181,9 @@ pub struct WorldsLoad {
 pub fn load_worlds_data(data_dir: impl AsRef<Path>) -> Result<WorldsLoad, WorldError> {
     let dir = data_dir.as_ref();
     let toml_path = dir.join(crate::worlds_toml::DEFAULT_FILENAME);
-    let cfg = crate::worlds_toml::WorldsConfig::from_path(&toml_path)
+    let cfg = fs::read_to_string(&toml_path)
+        .map_err(WorldsTomlError::Io)
+        .and_then(|text| WorldsConfig::from_str(&text))
         .map_err(|e| WorldError::Invalid(format!("worlds.toml: {e}")))?;
     let rows = cfg.generation.clone();
     let features = cfg

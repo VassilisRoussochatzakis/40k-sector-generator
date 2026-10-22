@@ -26,7 +26,8 @@ pub(super) struct GenerateArgs {
     pub allow_warnings: bool,
     /// PNG heatmap mode (§10). One of: off, control, military, trade,
     /// industrial, covert, faith, threat, intel, tension, trade_volume,
-    /// food, tithe, supply. Overrides the project's `outputs.bitmap.heatmap`.
+    /// food, tithe, supply, conflict. Overrides the project's
+    /// `outputs.bitmap.heatmap`.
     #[arg(long)]
     pub heatmap: Option<String>,
     /// Disable per-system faction tint in the PNG export (§8).

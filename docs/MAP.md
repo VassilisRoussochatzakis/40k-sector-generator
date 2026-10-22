@@ -147,20 +147,21 @@ exist and both backends import them.
 | [src/export/html_export.rs](../src/export/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
 | [src/export/subsectors/mod.rs](../src/export/subsectors/mod.rs) | Subsector clustering + public API |
 | [src/export/subsectors/summary.rs](../src/export/subsectors/summary.rs) | Ownership, faction control, capital selection |
-| [src/export/render_core/mod.rs](../src/export/render_core/mod.rs) | Backend-shared render layer: `RenderOptions`, colour helpers, `Canvas` trait, shared `grid`/`routes` draws, label predicates, legend metadata, heat tints; `#[cfg(test)] test_fixtures::sample_sector` shared by both backends' unit tests. Pixel geometry/rounding stays per backend |
+| [src/export/render_core/mod.rs](../src/export/render_core/mod.rs) | Backend-shared render layer: `RenderOptions`, colour helpers, `Canvas` trait, shared `grid`/`routes` draws, label predicates, legend metadata, heat tints, hex layout; `#[cfg(test)] test_fixtures::sample_sector` shared by both backends' unit tests. Pixel rounding stays per backend |
 | [src/export/render_core/colors.rs](../src/export/render_core/colors.rs) | `star_color`, `stability_color`, `tint_against`, `darken`, `dim`, `short`, `rgba`, `route_thickness_f32` — single source of truth, both backends import from here |
 | [src/export/render_core/options.rs](../src/export/render_core/options.rs) | Cross-backend `RenderOptions` (formerly in bitmap; re-exported there + at lib.rs for compat) |
 | [src/export/render_core/canvas.rs](../src/export/render_core/canvas.rs) | Backend-neutral `Canvas` drawing surface shared by `bitmap` and `svg_export` |
+| [src/export/render_core/geom.rs](../src/export/render_core/geom.rs) | `f32` pointy-top odd-r hex layout (`map_size`, `hex_center`) for both backends; bitmap rounds centres and truncates bounds |
 | [src/export/render_core/grid.rs](../src/export/render_core/grid.rs) | Shared hex-grid fill + subsector-border drawing (both backends); per-hex region colours (`compute_region_colours`) and heatmap tints (`compute_heat_tints`) |
 | [src/export/render_core/routes.rs](../src/export/render_core/routes.rs) | Shared route-line drawing for both PNG and SVG backends |
 | [src/export/render_core/labels.rs](../src/export/render_core/labels.rs) | Backend-neutral label predicates (C4): visibility decisions shared by PNG and SVG renderers |
-| [src/export/render_core/legend.rs](../src/export/render_core/legend.rs) | Legend content shared by PNG and SVG (layout stays per backend): `STABILITY_ROWS` / `COMPACT_STABILITY_ROWS` / `CONTROL_ROWS` tables, `legend_lines` row count, `faction_row` extraction |
+| [src/export/render_core/legend.rs](../src/export/render_core/legend.rs) | Legend content shared by PNG and SVG (layout stays per backend): `STABILITY_ROWS` / `COMPACT_STABILITY_ROWS` / `CONTROL_ROWS` tables, `legend_lines` row count, `faction_row` extraction, `legend_width` |
 | [src/export/bitmap/mod.rs](../src/export/bitmap/mod.rs) | Sector PNG facade: `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, top-level `render()` orchestrator. `RenderOptions` is now a re-export of `super::render_core::RenderOptions`. |
 | [src/export/bitmap/primitives.rs](../src/export/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
-| [src/export/bitmap/geom.rs](../src/export/bitmap/geom.rs) | `Geom`, `MapBounds`, hex centre/vertices, `Rect` collision type |
+| [src/export/bitmap/geom.rs](../src/export/bitmap/geom.rs) | `Geom`, `MapBounds`, integer wrappers over `render_core::geom`, `Rect` collision type |
 | [src/export/bitmap/colors.rs](../src/export/bitmap/colors.rs) | `i32`-quantised `route_thickness` wrapper; re-exports the shared helpers from `render_core::colors` |
 | [src/export/bitmap/canvas.rs](../src/export/bitmap/canvas.rs) | `Canvas` impl for the PNG backend: quantises `f32` world coords to pixels |
-| [src/export/bitmap/grid.rs](../src/export/bitmap/grid.rs) | Backend grid geometry: `compute_heatmap`, `draw_hex_grid` / `draw_subsector_borders` wrappers over `render_core::grid`; re-exports `compute_heat_tints` from there |
+| [src/export/bitmap/grid.rs](../src/export/bitmap/grid.rs) | Backend grid geometry: `draw_hex_grid` / `draw_subsector_borders` wrappers over `render_core::grid`; re-exports `compute_heat_tints` from there |
 | [src/export/bitmap/routes.rs](../src/export/bitmap/routes.rs) | Route line drawing: stride/jagged/zigzag/disc/chevron/etc. patterns + route control glyphs |
 | [src/export/bitmap/regions.rs](../src/export/bitmap/regions.rs) | §5 warp region label overlay |
 | [src/export/bitmap/systems.rs](../src/export/bitmap/systems.rs) | Star disks, pip text, capital markers |
@@ -196,7 +197,7 @@ Each runner file also owns its subcommand's `#[derive(clap::Args)]`
 | File | Purpose |
 |---|---|
 | [src/cli/mod.rs](../src/cli/mod.rs) | Clap `Cli` + `Command` enum (tuple variants wrapping each runner's `*Args`) + one-line-per-variant `run` dispatcher |
-| [src/cli/common.rs](../src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `load_or_regenerate`, `log_*progress` |
+| [src/cli/common.rs](../src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `resolve_sector_with_cfg`, `log_*progress` |
 | [src/cli/exit_code.rs](../src/cli/exit_code.rs) | Maps `SectorError` variants to stable `ExitCode` values |
 | [src/cli/generate.rs](../src/cli/generate.rs) | `generate` + `generate-system` runners (with §15 NEW2 constraint search wiring) |
 | [src/cli/generate_all.rs](../src/cli/generate_all.rs) | `generate-all` runner — batch regenerate all projects in a directory |

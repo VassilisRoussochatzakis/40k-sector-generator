@@ -337,10 +337,7 @@ fn build_faction_control(
         }
     }
 
-    // `config.control_denominator` (an always-`InhabitedSystems` knob) was
-    // removed as dead — the `AllSystems` variant was never constructed.
-    let use_inhabited = true;
-    let eligible_system_count: u32 = if use_inhabited && inhabited_system_count > 0 {
+    let eligible_system_count: u32 = if inhabited_system_count > 0 {
         inhabited_system_count
     } else {
         cell.system_ids.len() as u32
@@ -349,7 +346,7 @@ fn build_faction_control(
     let mut rows: Vec<FactionControlSummary> = tallies
         .into_iter()
         .map(|(id, t)| {
-            let primary_share_num = if use_inhabited && inhabited_system_count > 0 {
+            let primary_share_num = if inhabited_system_count > 0 {
                 t.owned_inhabited_systems
             } else {
                 t.owned_systems
@@ -378,9 +375,8 @@ fn build_faction_control(
         b.control_score
             .cmp(&a.control_score)
             .then_with(|| {
-                let pa = primary_share(a, use_inhabited);
-                let pb = primary_share(b, use_inhabited);
-                pb.cmp(&pa)
+                b.inhabited_system_share_basis_points
+                    .cmp(&a.inhabited_system_share_basis_points)
             })
             .then_with(|| b.owned_system_count.cmp(&a.owned_system_count))
             .then_with(|| a.faction_id.cmp(&b.faction_id))
@@ -389,11 +385,11 @@ fn build_faction_control(
     // Tier assignment using primary denominator.
     let leader_primary = rows
         .first()
-        .map(|r| primary_share(r, use_inhabited))
+        .map(|r| r.inhabited_system_share_basis_points)
         .unwrap_or(0);
     let runner_primary = rows
         .get(1)
-        .map(|r| primary_share(r, use_inhabited))
+        .map(|r| r.inhabited_system_share_basis_points)
         .unwrap_or(0);
     if let Some(first) = rows.first_mut() {
         first.control_tier = control_tier(leader_primary, runner_primary)
@@ -402,8 +398,7 @@ fn build_faction_control(
     }
     for r in rows.iter_mut().skip(1) {
         r.control_tier = "presence".to_string().into();
-        let p = primary_share(r, use_inhabited);
-        if p == 0 {
+        if r.inhabited_system_share_basis_points == 0 {
             r.control_tier = "trace".to_string().into();
         }
     }
@@ -420,14 +415,6 @@ fn build_faction_control(
         .map(|r| r.faction_id.clone());
 
     (rows, controlling)
-}
-
-fn primary_share(r: &FactionControlSummary, use_inhabited: bool) -> u32 {
-    if use_inhabited {
-        r.inhabited_system_share_basis_points
-    } else {
-        r.system_share_basis_points
-    }
 }
 
 fn control_tier(leader_bp: u32, runner_bp: u32) -> &'static str {

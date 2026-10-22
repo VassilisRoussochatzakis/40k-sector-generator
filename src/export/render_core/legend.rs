@@ -7,6 +7,15 @@ use crate::importance::DisplayBucket;
 use crate::map_theme::LegendStyle;
 use crate::sector_model::{GeneratedSector, RouteKind, RouteStability, RouteType, RouteViewMode};
 
+/// Legend panel width at scale 1.
+pub(crate) fn legend_width(style: LegendStyle) -> f32 {
+    match style {
+        LegendStyle::Hidden => 0.0,
+        LegendStyle::Compact => 220.0,
+        LegendStyle::Full => 280.0,
+    }
+}
+
 pub(crate) const STABILITY_ROWS: [(RouteStability, &str); 4] = [
     (RouteStability::Stable, "STABLE"),
     (RouteStability::Unstable, "UNSTABLE"),

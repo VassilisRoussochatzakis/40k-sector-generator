@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::load_or_regenerate;
+use super::common::resolve_sector_with_cfg;
 
 #[derive(Debug, clap::Args)]
 pub(super) struct BriefingArgs {
@@ -38,7 +38,7 @@ pub(crate) fn run_briefing(args: BriefingArgs) -> Result<ExitCode, sectorforge::
     let sector = sector.as_ref();
     let out = &out;
 
-    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
+    let (sec, ()) = resolve_sector_with_cfg(project, sector, |_| ())?;
     let audience = sectorforge::briefing::parse_preset(&preset).ok_or_else(|| {
         sectorforge::SectorError::InvalidConfig(format!(
             "unknown briefing preset '{preset}' (expected gm|navy|inquisition|trader|governor|public)"

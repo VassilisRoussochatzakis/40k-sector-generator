@@ -46,7 +46,7 @@ pub(crate) fn draw_hex_grid<C: Canvas>(
                 None => base,
             };
             let pts = hex_vertices(cx, cy, hex_size);
-            canvas.polygon(&pts, fill, Some(theme.hex_outline), 1.0);
+            canvas.polygon(&pts, fill, Some(theme.hex_outline));
         }
     }
 }

@@ -40,6 +40,7 @@ use crate::sector_model::{GeneratedRoute, GeneratedSector};
 use super::canvas::SvgCanvas;
 use super::colors::{darken, rgba_from_tuple};
 use super::geom::hex_center;
+use super::primitives::rect;
 use super::HEX_SIZE;
 
 pub(super) fn draw_routes(s: &mut String, sector: &GeneratedSector, opts: &RenderOptions) {
@@ -120,8 +121,8 @@ fn draw_route_control_glyph(
             canvas.circle(mx, my, size * 0.5, color, Some(dark), 1.0);
         }
         ControlKind::Toll => {
-            let half = size * 0.5;
-            canvas.rect(mx - half, my - half, size, size, color, Some(dark));
+            let (x, y) = (mx - size * 0.5, my - size * 0.5);
+            rect(canvas.out, x, y, size, size, color, Some(dark));
         }
         ControlKind::Piracy => {
             let half = size * 0.5;

@@ -369,31 +369,9 @@ impl std::str::FromStr for StarColour {
     }
 }
 
-impl std::str::FromStr for WorldType {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
-    }
-}
-
 impl std::fmt::Display for WorldType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
-    }
-}
-
-impl std::str::FromStr for Atmosphere {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
     }
 }
 
@@ -403,31 +381,9 @@ impl std::fmt::Display for Atmosphere {
     }
 }
 
-impl std::str::FromStr for Temperature {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
-    }
-}
-
 impl std::fmt::Display for Temperature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
-    }
-}
-
-impl std::str::FromStr for Biosphere {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
     }
 }
 
@@ -437,48 +393,15 @@ impl std::fmt::Display for Biosphere {
     }
 }
 
-impl std::str::FromStr for Population {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
-    }
-}
-
 impl std::fmt::Display for Population {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }
 }
 
-impl std::str::FromStr for TechLevel {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
-    }
-}
-
 impl std::fmt::Display for TechLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
-    }
-}
-
-impl std::str::FromStr for Government {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::VARIANTS
-            .iter()
-            .find(|v| v.display_name() == s)
-            .cloned()
-            .ok_or(())
     }
 }
 

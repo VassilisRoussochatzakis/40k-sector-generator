@@ -20,6 +20,7 @@
 
 pub(crate) mod canvas;
 pub(crate) mod colors;
+pub(crate) mod geom;
 pub(crate) mod grid;
 pub(crate) mod labels;
 pub(crate) mod legend;

@@ -1244,7 +1244,7 @@ heatmap             = "off"      # §10: per-system heatmap tint applied to the 
                                  #         supply_vulnerability (§4) — supply vulnerability (disrupted/collapsing)
                                  #         conflict_intensity       — per-system conflict intensity (0..=100)
                                  # (The TOML field needs these full slugs; the CLI `--heatmap`
-                                 #  flag additionally accepts the short food/tithe/supply aliases.)
+                                 #  flag additionally accepts the short food/tithe/supply/conflict aliases.)
 # theme_file        = "data/map_themes/navis.toml" # optional; project-relative, digested into manifest.input_digests
 
 [outputs.bitmap.theme]
@@ -3988,7 +3988,7 @@ across runs, so a regression check is a diff away.
 | [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
 | [src/main.rs](src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps `SectorError` → a stable exit code via `cli::exit_code::from_error` (sysexits-style: 1/65/70/74/78, 130 for cancel) |
 | [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli`/`Command` definitions (each variant wraps the subcommand's `<Name>Args` struct, declared beside its runner) + one-line-per-variant `run` dispatcher |
-| [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `load_or_regenerate`, all `log_*progress` hooks |
+| [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `resolve_sector_with_cfg`, all `log_*progress` hooks |
 | [src/cli/generate.rs](src/cli/generate.rs) | `generate` + `generate-system` runners (incl. §15 NEW2 constraint search wiring) |
 | [src/cli/generate_all.rs](src/cli/generate_all.rs) | `generate-all` runner: batch `run_generate` over every `sectorforge.toml`-bearing subdir of `--dir` (default `examples`), sorted order, continue-on-failure |
 | [src/cli/validate.rs](src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
@@ -4027,9 +4027,9 @@ across runs, so a regression check is a diff away.
 | [src/export/map_theme.rs](src/export/map_theme.rs) | §13 NEW2.md bitmap map themes: built-in palettes, custom TOML theme parsing, color validation, label/legend/route/symbol style knobs |
 | [src/export/bitmap/mod.rs](src/export/bitmap/mod.rs) | Sector PNG facade: public `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, `RenderOptions`, plus the top-level `render()` orchestrator that wires the submodules together |
 | [src/export/bitmap/primitives.rs](src/export/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
-| [src/export/bitmap/geom.rs](src/export/bitmap/geom.rs) | `Geom` (scale-derived sizes), `MapBounds`, hex centre/vertex math, axis-aligned `Rect` for label collision |
+| [src/export/bitmap/geom.rs](src/export/bitmap/geom.rs) | `Geom` (scale-derived sizes), `MapBounds`, integer wrappers over the shared `render_core::geom` hex layout, axis-aligned `Rect` for label collision |
 | [src/export/bitmap/colors.rs](src/export/bitmap/colors.rs) | Spectral star colour, stability colour, route thickness, `tint_against` / `darken` / `dim_rgba` / `stroke_px`, `short()` label truncation |
-| [src/export/bitmap/grid.rs](src/export/bitmap/grid.rs) | Hex grid fill, subsector borders, `compute_heatmap`; re-exports the shared tint computation `render_core::grid::compute_heat_tints` (§5 region overlay sits under §8 faction tint / §10 heatmap) |
+| [src/export/bitmap/grid.rs](src/export/bitmap/grid.rs) | Hex grid fill, subsector borders; re-exports the shared tint computation `render_core::grid::compute_heat_tints` (§5 region overlay sits under §8 faction tint / §10 heatmap) |
 | [src/export/bitmap/routes.rs](src/export/bitmap/routes.rs) | Route lines: solid/dashed/dotted/burst/zigzag/disc-trail/chevron/tripod motifs + midpoint route-control glyph; exports `RouteLineParams` |
 | [src/export/bitmap/regions.rs](src/export/bitmap/regions.rs) | §5 warp region label overlay (centroid anchor + truncated uppercase) |
 | [src/export/bitmap/systems.rs](src/export/bitmap/systems.rs) | Star disks (spectral colour), world-count pip text, subsector capital marker (diamond / cross / tactical) |
@@ -4335,10 +4335,12 @@ as re-exports where no adaptation is needed. Validation retains every rule and
 diagnostic string; shared codes are string constants.
 
 PNG and SVG share label predicates, legend metadata (`render_core/legend.rs`: row
-tables, `legend_lines`, `faction_row`), heat tint calculation
-(`grid::compute_heat_tints`), and test fixtures (`test_fixtures::sample_sector`) in
+tables, `legend_lines`, `faction_row`, `legend_width`), heat tint calculation
+(`grid::compute_heat_tints`), the `f32` hex layout (`render_core/geom.rs`), and test
+fixtures (`test_fixtures::sample_sector`) in
 [src/export/render_core/](src/export/render_core/). Each backend keeps its original
-pixel geometry and rounding. The viewer's feature pages share a frame helper
+rounding: bitmap rounds hex centres and truncates map bounds. The viewer's feature
+pages share a frame helper
 (`page`), and the sector map and route planner share cursor-anchored zoom (hex size
 clamped to 5–250) and drag handling (`update_map_navigation`) in
 [viewer/src/app/mod.rs](viewer/src/app/mod.rs).

@@ -7,9 +7,7 @@
 
 use image::{Rgba, RgbaImage};
 
-use super::primitives::{
-    draw_line_thick, draw_rect_outline, draw_ring, fill_circle, fill_polygon, fill_rect,
-};
+use super::primitives::{draw_line_thick, draw_ring, fill_circle, fill_polygon};
 use crate::export::render_core::canvas::Canvas;
 
 pub(crate) struct BitmapCanvas<'a> {
@@ -66,26 +64,7 @@ impl Canvas for BitmapCanvas<'_> {
         }
     }
 
-    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba<u8>, stroke: Option<Rgba<u8>>) {
-        let xi = r(x);
-        let yi = r(y);
-        let wi = r(w);
-        let hi = r(h);
-        if fill.0[3] > 0 {
-            fill_rect(self.img, xi, yi, wi, hi, fill);
-        }
-        if let Some(sc) = stroke {
-            draw_rect_outline(self.img, xi, yi, wi, hi, sc);
-        }
-    }
-
-    fn polygon(
-        &mut self,
-        pts: &[(f32, f32)],
-        fill: Rgba<u8>,
-        stroke: Option<Rgba<u8>>,
-        _stroke_w: f32,
-    ) {
+    fn polygon(&mut self, pts: &[(f32, f32)], fill: Rgba<u8>, stroke: Option<Rgba<u8>>) {
         if pts.is_empty() {
             return;
         }

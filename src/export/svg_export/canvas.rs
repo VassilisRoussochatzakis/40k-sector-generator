@@ -3,7 +3,7 @@
 
 use image::Rgba;
 
-use super::primitives::{circle, line, polygon, rect};
+use super::primitives::{circle, line, polygon};
 use crate::export::render_core::canvas::Canvas;
 
 pub(crate) struct SvgCanvas<'a> {
@@ -33,17 +33,7 @@ impl Canvas for SvgCanvas<'_> {
         circle(self.out, cx, cy, radius, fill, stroke, stroke_w);
     }
 
-    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba<u8>, stroke: Option<Rgba<u8>>) {
-        rect(self.out, x, y, w, h, fill, stroke);
-    }
-
-    fn polygon(
-        &mut self,
-        pts: &[(f32, f32)],
-        fill: Rgba<u8>,
-        stroke: Option<Rgba<u8>>,
-        stroke_w: f32,
-    ) {
-        polygon(self.out, pts, fill, stroke, stroke_w);
+    fn polygon(&mut self, pts: &[(f32, f32)], fill: Rgba<u8>, stroke: Option<Rgba<u8>>) {
+        polygon(self.out, pts, fill, stroke, 1.0);
     }
 }

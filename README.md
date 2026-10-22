@@ -218,7 +218,7 @@ Generate a full sector (all configured exports) from a project directory.
 | `--seed <SEED>` | Override the seed from `sectorforge.toml`. |
 | `--out <DIR>` | Override the output directory. |
 | `--allow-warnings` | Continue if validation produced warnings (not errors). |
-| `--heatmap <MODE>` | PNG heatmap mode: `off`, `control`, `military`, `trade`, `industrial`, `covert`, `faith`, `threat`, `intel`, `tension`, `trade_volume`, `food`, `tithe`, `supply`. |
+| `--heatmap <MODE>` | PNG heatmap mode: `off`, `control`, `military`, `trade`, `industrial`, `covert`, `faith`, `threat`, `intel`, `tension`, `trade_volume`, `food`, `tithe`, `supply`, `conflict`. |
 | `--no-faction-fill` | Disable the per-system planet-map faction tint (the sector hex grid itself is never faction-tinted). |
 | `--theme <THEME>` | PNG map theme: `gm_dark`, `print_mono`, `imperial_archive`, `navis_tactical`, `inquisition_redacted`, `subsector_political`. |
 | `--constraints <PATH>` | Constraint file the generated sector must satisfy. |

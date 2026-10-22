@@ -511,9 +511,6 @@ pub enum RegionRouteEffectsProgress {
         total_routes: usize,
         route_id: String,
     },
-    Completed {
-        summary: RegionRouteEffectsSummary,
-    },
 }
 
 /// §5: pick the strongest route-affecting region condition along the
@@ -563,7 +560,6 @@ pub fn apply_route_effects_with_progress(
     });
     if regions.is_empty() {
         count_route_stabilities(routes, &mut summary);
-        progress(RegionRouteEffectsProgress::Completed { summary });
         return summary;
     }
     let by_id: BTreeMap<&str, HexCoord> =
@@ -640,7 +636,6 @@ pub fn apply_route_effects_with_progress(
         }
     }
     count_route_stabilities(routes, &mut summary);
-    progress(RegionRouteEffectsProgress::Completed { summary });
     summary
 }
 

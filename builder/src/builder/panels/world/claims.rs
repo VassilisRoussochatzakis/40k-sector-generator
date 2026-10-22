@@ -2,6 +2,7 @@
 
 use egui::{RichText, Ui};
 
+use crate::builder::panels::presence_widgets::CLAIM_TYPES;
 use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
 use sectorforge::sector_model::{ClaimType, FactionClaim};
@@ -157,17 +158,3 @@ pub(super) fn show_add_claim_row(
     });
     ui.data_mut(|d| d.insert_temp(row_id, buf));
 }
-
-const CLAIM_TYPES: &[ClaimType] = &[
-    ClaimType::LegalSovereignty,
-    ClaimType::ImperialMandate,
-    ClaimType::TreatyRight,
-    ClaimType::ReligiousMandate,
-    ClaimType::DynasticRight,
-    ClaimType::CommercialCharter,
-    ClaimType::MilitaryOccupation,
-    ClaimType::AncientDomain,
-    ClaimType::HuntingGround,
-    ClaimType::CovertWrit,
-    ClaimType::Rebellion,
-];

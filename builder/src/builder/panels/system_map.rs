@@ -329,7 +329,7 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
 /// the resulting world's orbit through [`BuilderCommand::SetWorldOrbit`]. §R4:
 /// the orbit pin now rides the bus too (was a direct `w.orbit` write), so the
 /// add and the orbit land as two undoable entries.
-fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
+pub(super) fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
     let (next_index, sys_name) = state
         .sector
         .systems

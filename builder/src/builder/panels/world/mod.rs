@@ -10,11 +10,12 @@
 
 use egui::{Color32, RichText, Ui};
 
+use sectorforge::sector_model::WorldDto;
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
-use crate::builder::state::EntityRef;
+use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 mod claims;
@@ -133,49 +134,32 @@ fn show_world_inspector(ui: &mut Ui, state: &mut BuilderState) {
         .show(ui, |ui| {
             ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
                 let n = cols.len();
-                let mut next = 0usize;
-                macro_rules! col {
-                    () => {{
-                        let c = &mut cols[next % n];
-                        next += 1;
-                        c
-                    }};
+                for (i, section) in SECTIONS.iter().enumerate() {
+                    section(&mut cols[i % n], state, sys_idx, w_idx);
                 }
-                show_identity_section(col!(), state, sys_idx, w_idx);
-                show_classification_section(col!(), state, sys_idx, w_idx);
-                show_environment_section(col!(), state, sys_idx, w_idx);
-                show_society_section(col!(), state, sys_idx, w_idx);
-                show_features_section(col!(), state, sys_idx, w_idx);
-                show_coupling_warnings(col!(), state, sys_idx, w_idx);
-                show_tags_notes_section(col!(), state, sys_idx, w_idx);
-                show_factions_section(col!(), state, sys_idx, w_idx);
-                show_claims_section(col!(), state, sys_idx, w_idx);
-                show_control_section(col!(), state, sys_idx, w_idx);
-                show_overlays_section(col!(), state, sys_idx, w_idx);
-                crate::builder::panels::conflict::show_world_conflict_section(
-                    col!(),
-                    state,
-                    sys_idx,
-                    w_idx,
-                );
-                crate::builder::panels::surface_regions::show_surface_regions_section(
-                    col!(),
-                    state,
-                    sys_idx,
-                    w_idx,
-                );
-                crate::builder::panels::intel::show_world_intel_section(
-                    col!(),
-                    state,
-                    sys_idx,
-                    w_idx,
-                );
-                show_chronicle_section(col!(), state, sys_idx, w_idx);
-                show_regen_section(col!(), state, sys_idx, w_idx);
-                let _ = next; // final col!() bump is intentionally unread
             });
         });
 }
+
+/// Inspector sections, dealt round-robin across the responsive columns.
+const SECTIONS: &[fn(&mut Ui, &mut BuilderState, usize, usize)] = &[
+    show_identity_section,
+    show_classification_section,
+    show_environment_section,
+    show_society_section,
+    show_features_section,
+    show_coupling_warnings,
+    show_tags_notes_section,
+    show_factions_section,
+    show_claims_section,
+    show_control_section,
+    show_overlays_section,
+    crate::builder::panels::conflict::show_world_conflict_section,
+    crate::builder::panels::surface_regions::show_surface_regions_section,
+    crate::builder::panels::intel::show_world_intel_section,
+    show_chronicle_section,
+    show_regen_section,
+];
 
 fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
     let w = &state.sector.systems[sys_idx].worlds[w_idx];
@@ -203,24 +187,47 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
 
 // ── combo helper ───────────────────────────────────────────────────────────
 
-/// Generic required-enum dropdown: binds `target` against `variants`, using
-/// `display` for both the closed-box label and each item's text. Callers pass
-/// `E::VARIANTS` + `E::display_name` directly — the same argument shape
-/// `sectorforge_gui_core::widgets::enum_combo` takes for the `Option<T>` case.
+/// Generic required-enum dropdown in a [`labeled`] row: binds `target` against
+/// `variants`, using `display` for both the closed-box label and each item's
+/// text. Callers pass `E::VARIANTS` + `E::display_name` directly — the same
+/// argument shape `sectorforge_gui_core::widgets::enum_combo` takes for the
+/// `Option<T>` case. Returns whether the pick changed.
 fn combo_enum<E: Clone + PartialEq>(
     ui: &mut Ui,
+    label: &str,
+    help: &str,
     salt: &str,
     target: &mut E,
     variants: &[E],
     display: impl Fn(&E) -> &'static str,
 ) -> bool {
     let prev = target.clone();
-    ui_kit::combo(salt, display(target)).show_ui(ui, |ui| {
-        for v in variants {
-            ui.selectable_value(target, v.clone(), display(v));
-        }
+    labeled(ui, label, help, |ui| {
+        ui_kit::combo(salt, display(target)).show_ui(ui, |ui| {
+            for v in variants {
+                ui.selectable_value(target, v.clone(), display(v));
+            }
+        });
     });
     *target != prev
+}
+
+/// §R4: `rows` edit a clone of the world's DTO and report whether anything
+/// changed; if so, one `EditWorld` is dispatched for the whole group.
+fn edit_world_rows(
+    ui: &mut Ui,
+    state: &mut BuilderState,
+    sys_idx: usize,
+    w_idx: usize,
+    rows: impl FnOnce(&mut Ui, &mut WorldDto) -> bool,
+) {
+    let mut draft = state.sector.systems[sys_idx].worlds[w_idx].world.clone();
+    if rows(ui, &mut draft) {
+        let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+        if let Err(e) = state.edit_world(wid, |w| w.world = draft) {
+            state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+        }
+    }
 }
 
 #[cfg(test)]

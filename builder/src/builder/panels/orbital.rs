@@ -16,13 +16,12 @@ use sectorforge::orbital_assets::{
 };
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
-use sectorforge_gui_core::widgets;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
 
-use super::faction_name;
+use super::{faction_name, optional_faction_combo};
 
 /// The four orbital-asset kinds, in the order the picker shows them. Kept as a
 /// fixed slice (rather than a `match` over the `#[non_exhaustive]` enum) so a new
@@ -364,22 +363,4 @@ fn faction_combo(
             }
         }
     });
-}
-
-fn optional_faction_combo(
-    ui: &mut Ui,
-    id_salt: &str,
-    current: &mut Option<FactionId>,
-    factions: &[(FactionId, String)],
-) {
-    let variants: Vec<FactionId> = factions.iter().map(|(fid, _)| fid.clone()).collect();
-    widgets::enum_combo(
-        ui,
-        id_salt,
-        current,
-        &variants,
-        |fid| faction_name(factions, fid),
-        |fid| Some(format!("id: {fid}")),
-        None,
-    );
 }

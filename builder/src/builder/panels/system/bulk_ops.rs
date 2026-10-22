@@ -114,16 +114,12 @@ pub(super) fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
         ui.separator();
         ui.label("Set control status for all selected");
         ui.horizontal_wrapped(|ui| {
-            for s in [
-                None,
-                Some(SystemState::Pacified),
-                Some(SystemState::Fragmented),
-                Some(SystemState::Blockaded),
-                Some(SystemState::Warzone),
-                Some(SystemState::Infiltrated),
-                Some(SystemState::Quarantined),
-                Some(SystemState::Uncharted),
-            ] {
+            for s in [None].into_iter().chain(
+                crate::builder::panels::SYSTEM_STATES
+                    .iter()
+                    .copied()
+                    .map(Some),
+            ) {
                 let (label, hover) = match s {
                     None => ("(none)", "schema: control.state = unset".to_string()),
                     Some(v) => (system_state_label(v), format!("schema: {}", v.as_slug())),

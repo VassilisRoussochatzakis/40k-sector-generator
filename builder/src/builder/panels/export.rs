@@ -261,7 +261,7 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
 /// Presentational Title-Case of a lowercase enum slug for friendly dropdown
 /// display. The raw slug stays reachable in a hover so the schema mapping is
 /// never lost. Purely cosmetic — the stored value is unchanged.
-fn title_case_slug(slug: &str) -> String {
+pub(super) fn title_case_slug(slug: &str) -> String {
     let mut out = String::with_capacity(slug.len());
     for (i, word) in slug.split(['_', '-']).enumerate() {
         if i > 0 {

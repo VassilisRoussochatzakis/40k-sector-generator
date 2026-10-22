@@ -49,6 +49,27 @@ pub(crate) fn faction_name(
         .unwrap_or_else(|| id.to_string())
 }
 
+/// Optional-faction dropdown (`—` = unset) labelled via [`faction_name`], with
+/// an `id: …` hover per row. Shared by the surface-region and orbital-blockade
+/// editors (previously a byte-identical copy in each).
+pub(crate) fn optional_faction_combo(
+    ui: &mut egui::Ui,
+    id_salt: &str,
+    current: &mut Option<sectorforge::ids::FactionId>,
+    factions: &[(sectorforge::ids::FactionId, String)],
+) {
+    let variants: Vec<_> = factions.iter().map(|(fid, _)| fid.clone()).collect();
+    sectorforge_gui_core::widgets::enum_combo(
+        ui,
+        id_salt,
+        current,
+        &variants,
+        |fid| faction_name(factions, fid),
+        |fid| Some(format!("id: {fid}")),
+        None,
+    );
+}
+
 pub mod conflict_resolver;
 pub mod invariants;
 pub mod new_project;

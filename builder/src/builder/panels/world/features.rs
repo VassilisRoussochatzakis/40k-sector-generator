@@ -34,20 +34,19 @@ pub(super) fn show_features_section(
             // frame), then apply it to a clone and dispatch one EditWorld below.
             let mut remove: Option<usize> = None;
             let mut add: Option<NotableFeature> = None;
-            let cur: Vec<String> = state.sector.systems[sys_idx].worlds[w_idx]
+            let cur = state.sector.systems[sys_idx].worlds[w_idx]
                 .world
                 .notable_features
-                .iter()
-                .map(|s| s.as_ref().to_string())
-                .collect();
+                .clone();
             if cur.is_empty() {
                 ui_kit::placeholder(ui, "None yet — pick from the list below.");
             }
-            for (i, name) in cur.iter().enumerate() {
+            for (i, feature) in cur.iter().enumerate() {
+                let name = feature.as_ref();
                 ui.horizontal(|ui| {
-                    let display = feature_display_name(name);
-                    ui.label(display).on_hover_text(format!("id: {name}"));
-                    if let Some(w) = weights.get(name.as_str()) {
+                    ui.label(feature.display_name())
+                        .on_hover_text(format!("id: {name}"));
+                    if let Some(w) = weights.get(name) {
                         ui.colored_label(Color32::DARK_GRAY, format!("(weight {w:.2})"));
                     }
                     if ui
@@ -240,22 +239,11 @@ pub(super) fn feature_weights_for_world(
     arc
 }
 
-/// Human-readable name for a stored notable-feature key (the debug-form variant
-/// name persisted on the world). Falls back to the raw key when it doesn't match
-/// a known variant, so unknown/legacy values still render.
-pub(super) fn feature_display_name(key: &str) -> String {
-    NotableFeature::VARIANTS
-        .iter()
-        .find(|v| v.as_ref() == key)
-        .map(|v| v.display_name().to_string())
-        .unwrap_or_else(|| key.to_string())
-}
-
 // ── coupling warnings (W6) ─────────────────────────────────────────────────
 
 pub(super) fn show_coupling_warnings(
     ui: &mut Ui,
-    state: &BuilderState,
+    state: &mut BuilderState,
     sys_idx: usize,
     w_idx: usize,
 ) {

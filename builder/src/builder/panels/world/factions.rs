@@ -2,6 +2,7 @@
 
 use egui::{Color32, Ui};
 
+use crate::builder::panels::presence_widgets::{DOMINANCE_STATES, INFLUENCE_TIERS};
 use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
 use sectorforge::ids::FactionId;
@@ -61,22 +62,6 @@ pub(super) fn show_factions_section(
         show_add_presence_row(ui, state, sys_idx, w_idx);
     });
 }
-
-const INFLUENCE_TIERS: &[FactionInfluence] = &[
-    FactionInfluence::Dominant,
-    FactionInfluence::Significant,
-    FactionInfluence::Minor,
-    FactionInfluence::Hidden,
-];
-
-const DOMINANCE_STATES: &[DominanceState] = &[
-    DominanceState::Rumored,
-    DominanceState::Presence,
-    DominanceState::Influence,
-    DominanceState::Contested,
-    DominanceState::Controlled,
-    DominanceState::Stronghold,
-];
 
 pub(super) fn show_add_presence_row(
     ui: &mut Ui,

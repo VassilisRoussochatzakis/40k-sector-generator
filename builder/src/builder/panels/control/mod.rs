@@ -36,37 +36,9 @@ use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, ControlOverlay, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
+use super::presence_widgets::{CLAIM_TYPES, DOMINANCE_STATES, INFLUENCE_TIERS};
+
 mod claims;
-
-const CLAIM_TYPES: &[ClaimType] = &[
-    ClaimType::LegalSovereignty,
-    ClaimType::ImperialMandate,
-    ClaimType::TreatyRight,
-    ClaimType::ReligiousMandate,
-    ClaimType::DynasticRight,
-    ClaimType::CommercialCharter,
-    ClaimType::MilitaryOccupation,
-    ClaimType::AncientDomain,
-    ClaimType::HuntingGround,
-    ClaimType::CovertWrit,
-    ClaimType::Rebellion,
-];
-
-const INFLUENCE_TIERS: &[FactionInfluence] = &[
-    FactionInfluence::Dominant,
-    FactionInfluence::Significant,
-    FactionInfluence::Minor,
-    FactionInfluence::Hidden,
-];
-
-const DOMINANCE_STATES: &[DominanceState] = &[
-    DominanceState::Rumored,
-    DominanceState::Presence,
-    DominanceState::Influence,
-    DominanceState::Contested,
-    DominanceState::Controlled,
-    DominanceState::Stronghold,
-];
 
 /// §C6 power-projection table headers: the compact column heading kept for the
 /// dense grid, paired with a plain-language hover note so the abbreviations are

@@ -2,10 +2,9 @@
 //!
 //! REFACTOR_PLAN.md Task 3 Pass C/D: the [`Canvas`] trait captures the
 //! minimum primitive set that the shared high-level drawing functions
-//! (`render_core::routes`, `render_core::grid`, `render_core::systems`,
-//! `render_core::regions`) need from each backend. Every primitive takes
-//! `f32` world coordinates — bitmap quantises to `i32` inside its impl,
-//! SVG emits the floats directly.
+//! (`render_core::routes`, `render_core::grid`) need from each backend. Every
+//! primitive takes `f32` world coordinates — bitmap quantises to `i32` inside
+//! its impl, SVG emits the floats directly.
 //!
 //! The `quantize` hook lets shared code pre-round values that bitmap
 //! traditionally rounds *before* deriving other geometry from them

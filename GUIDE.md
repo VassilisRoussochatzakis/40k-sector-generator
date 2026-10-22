@@ -1678,8 +1678,8 @@ public items in [src/gen/generation/reroll.rs](src/gen/generation/reroll.rs) and
   `generate_prefix(project, Stage::LAST, &RerollNonces::default(), progress,
   should_cancel)`.
 
-**The determinism guarantee (§2.2 — the linchpin).** Every stage seeds a *fresh*
-keyed RNG from `blake3("sectorforge:{seed}:{stage}:{disc}")` (§4 above); stages
+**The determinism guarantee (§2.2 — the linchpin).** Every RNG-consuming stage
+seeds a *fresh* keyed RNG (`Routes` consumes none, so its nonce has no effect) from `blake3("sectorforge:{seed}:{stage}:{disc}")` (§4 above); stages
 share no stream, so the entropy a stage draws is a pure function of `(seed,
 stage, discriminator)` and is independent of which other stages ran before it.
 Therefore, for the same `(config, seed, nonces)`, the stages `<= through` of a
@@ -2310,11 +2310,12 @@ responsive columns of D1/D2/D5/D6/D9/D10/D11 were already delivered by §UO/§BE
   preset's `dark` flag, not per-preset, because they encode *meaning*, not brand — a
   red error reads red under every dark preset, and theme-independence guarantees the
   warning hue never coincides with a preset's accent (the D7 failure). The
-  "clean"/muted state is deliberately `chrome_text_dim()` (already theme-aware), so
-  `palette::validation_color(errs, warns)` returns muted at 0/0, warning amber for
-  warnings only, danger red once any error fires — a `0 err / 0 warn` line is never
-  amber. The theme test now asserts the set flips with dark/light and that
-  `warning() != accent`.
+  builder status line ([builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs))
+  maps `health_level()` Green / Yellow / Red to `success()` / `warning()` /
+  `danger()`, so a clean `0 err / 0 warn` line reads green, never amber. (An
+  earlier `palette::validation_color` helper returned muted `chrome_text_dim()` at
+  0/0, but it had no callers and was removed.) The theme test now
+  asserts the set flips with dark/light and that `warning() != accent`.
 - *Role buttons* ([gui-core/src/widgets.rs](gui-core/src/widgets.rs), `§SPRUCE D3`) —
   two quieter siblings to the brass `primary_button`: `widgets::danger_button(ui,
   label)` (danger-colored label + hairline border over a transparent rest fill,
@@ -2764,7 +2765,7 @@ mismatched versions explicitly rather than partially decoding.
 | R3 deterministic index | `BuilderIndex` keys every map with `BTreeMap<TypedId, _>`; JSON exports stay byte-stable. |
 | R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform snapshot/undo stack, auto-save trigger, and derivation-cache invalidation (generic flush + §39 ledger precise invalidation off `dep_classes`). The structural invariant re-check (`check_sector`) is **not** synchronous on the hot path — `run` only arms the debounce and the re-check rides the §V3 `revalidate_now` pump a frame later (export still forces it via the §V6 gate), keeping a single apply well under 1 ms (PERF1 / §42). |
 | R5 BLAKE3 cache | [src/model/rng.rs](src/model/rng.rs) `digest_bytes` + [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
-| R6 BuilderError variants | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
+| R6 BuilderError variants | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) — `IoFailed`, `ParseFailed`, transparent `Mutation`, and `Serde`. (The spec's `ValidationFailed` / `InvariantViolated` / `EntityNotFound` / `StaleSnapshot` were never constructed and have been removed.) |
 | R7 off-thread runner | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, lock-free `Arc<AtomicU32>` progress (f32 fraction stored via `to_bits`/`from_bits`), `Arc<Mutex<Option<String>>>` status line, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. Builder previews cancel superseded work and discard stale revisions before applying results. |
 | R8 determinism test | [builder/src/builder/command.rs](builder/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
 | R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
@@ -4035,7 +4036,7 @@ across runs, so a regression check is a diff away.
 |---|---|
 | [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
 | [src/main.rs](src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps `SectorError` → a stable exit code via `cli::exit_code::from_error` (sysexits-style: 1/65/70/74/78, 130 for cancel) |
-| [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli`/`Command` definitions + per-variant `run` dispatcher |
+| [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli`/`Command` definitions (each variant wraps the subcommand's `<Name>Args` struct, declared beside its runner) + one-line-per-variant `run` dispatcher |
 | [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `load_or_regenerate`, all `log_*progress` hooks |
 | [src/cli/generate.rs](src/cli/generate.rs) | `generate` + `generate-system` runners (incl. §15 NEW2 constraint search wiring) |
 | [src/cli/generate_all.rs](src/cli/generate_all.rs) | `generate-all` runner: batch `run_generate` over every `sectorforge.toml`-bearing subdir of `--dir` (default `examples`), sorted order, continue-on-failure |
@@ -4077,7 +4078,7 @@ across runs, so a regression check is a diff away.
 | [src/export/bitmap/primitives.rs](src/export/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
 | [src/export/bitmap/geom.rs](src/export/bitmap/geom.rs) | `Geom` (scale-derived sizes), `MapBounds`, hex centre/vertex math, axis-aligned `Rect` for label collision |
 | [src/export/bitmap/colors.rs](src/export/bitmap/colors.rs) | Spectral star colour, stability colour, route thickness, `tint_against` / `darken` / `dim_rgba` / `stroke_px`, `short()` label truncation |
-| [src/export/bitmap/grid.rs](src/export/bitmap/grid.rs) | Hex grid fill + per-system / region tint computation (§5 region overlay sits under §8 faction tint / §10 heatmap) |
+| [src/export/bitmap/grid.rs](src/export/bitmap/grid.rs) | Hex grid fill, subsector borders, `compute_heatmap`; re-exports the shared tint computation `render_core::grid::compute_heat_tints` (§5 region overlay sits under §8 faction tint / §10 heatmap) |
 | [src/export/bitmap/routes.rs](src/export/bitmap/routes.rs) | Route lines: solid/dashed/dotted/burst/zigzag/disc-trail/chevron/tripod motifs + midpoint route-control glyph; exports `RouteLineParams` |
 | [src/export/bitmap/regions.rs](src/export/bitmap/regions.rs) | §5 warp region label overlay (centroid anchor + truncated uppercase) |
 | [src/export/bitmap/systems.rs](src/export/bitmap/systems.rs) | Star disks (spectral colour), world-count pip text, subsector capital marker (diamond / cross / tactical) |
@@ -4088,7 +4089,7 @@ across runs, so a regression check is a diff away.
 | [src/export/svg_export/primitives.rs](src/export/svg_export/primitives.rs) | `<rect>` / `<circle>` / `<polygon>` / `<line>` / `<text>` emitters + XML escaping |
 | [src/export/svg_export/colors.rs](src/export/svg_export/colors.rs) | Star spectral colours, route stability/thickness, RGBA mix/tint/darken/dim, string-truncation helper |
 | [src/export/svg_export/geom.rs](src/export/svg_export/geom.rs) | `MapBounds`, `map_bounds`, `hex_center`, `hex_vertices` |
-| [src/export/svg_export/grid.rs](src/export/svg_export/grid.rs) | Hex grid fill + subsector polka-dot borders + per-system/region tint computation |
+| [src/export/svg_export/grid.rs](src/export/svg_export/grid.rs) | Hex grid fill + subsector polka-dot borders; re-exports the shared tint computation `render_core::grid::compute_heat_tints` |
 | [src/export/svg_export/routes.rs](src/export/svg_export/routes.rs) | Route line drawing — solid/strided/jagged/zigzag/disc-trail/chevron/tripod/burst patterns + midpoint route-control glyph; exports `draw_route_pattern` for the legend |
 | [src/export/svg_export/regions.rs](src/export/svg_export/regions.rs) | §5 warp-region label overlay (centroid anchor, truncated uppercase) |
 | [src/export/svg_export/systems.rs](src/export/svg_export/systems.rs) | Star disks, capital markers (diamond / cross / tactical / redacted), world-count pip text |
@@ -4380,16 +4381,21 @@ defaults, and help text beside each handler. Public facade names remain availabl
 as re-exports where no adaptation is needed. Validation retains every rule and
 diagnostic string; shared codes are string constants.
 
-PNG and SVG share legend metadata, heat tint calculation, and test fixtures in
+PNG and SVG share label predicates, legend metadata (`render_core/legend.rs`: row
+tables, `legend_lines`, `faction_row`), heat tint calculation
+(`grid::compute_heat_tints`), and test fixtures (`test_fixtures::sample_sector`) in
 [src/export/render_core/](src/export/render_core/). Each backend keeps its original
-pixel geometry and rounding. The viewer's feature pages share a frame helper, and
-the sector map and route planner share cursor-anchored zoom and drag handling in
+pixel geometry and rounding. The viewer's feature pages share a frame helper
+(`page`), and the sector map and route planner share cursor-anchored zoom (hex size
+clamped to 5–250) and drag handling (`update_map_navigation`) in
 [viewer/src/app/mod.rs](viewer/src/app/mod.rs).
 
 Archetype rules update each system directly without staging maps. Regional route
 effects share the stability update while preserving distance floors, bridge
-protection, tags, and progress events. Public route generation consumes no RNG.
-Builder undo shares world lookup while retaining its no-op for missing worlds.
+protection, tags (`region:<condition slug>`, plus `region:perilous_applied` /
+`region:connectivity_preserved`), and progress events. Public route
+generation consumes no RNG. Builder undo shares world lookup (`world_mut`) while
+retaining its no-op for missing worlds.
 
 ### Determinism regression tests
 

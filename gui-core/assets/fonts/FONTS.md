@@ -33,4 +33,5 @@ cargo run -p sectorforge-builder --no-default-features
 cargo run -p sectorforge-viewer  --no-default-features
 ```
 
-Keep the OFL license text alongside the files (commit each face's `OFL.txt`).
+Keep the OFL license text alongside the files (commit each face's license as
+`<face>OFL.txt`, e.g. `displayOFL.txt`).

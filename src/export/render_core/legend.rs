@@ -85,10 +85,8 @@ pub(crate) fn faction_row(bucket: &DisplayBucket) -> (String, usize, usize, (u8,
     }
 }
 
-/// Number of legend lines the FACTIONS block occupies in both legend
-/// backends: a header line plus one row per importance-display bucket. Pure
-/// sector-model logic with no pixel geometry, so sharing it is byte-safe
-/// (was a verbatim copy in each backend's `legend.rs`).
+/// Number of legend lines the FACTIONS block occupies: a header line plus one
+/// row per importance-display bucket. Private helper of [`legend_lines`].
 fn factions_visible(sector: &GeneratedSector) -> usize {
     if sector.factions.is_empty() {
         return 0;

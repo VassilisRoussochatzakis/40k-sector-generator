@@ -38,7 +38,7 @@ pub enum Stage {
     Systems,
     /// 5 — assign factions to worlds (RNG `("factions","sector")`).
     Factions,
-    /// 6 — public route selection (RNG key reserved/unused today).
+    /// 6 — public route selection (no RNG).
     Routes,
     /// 7 — apply region effects to routes (no RNG).
     RegionRouteEffects,

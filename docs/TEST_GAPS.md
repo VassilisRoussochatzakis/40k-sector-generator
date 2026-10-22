@@ -236,7 +236,7 @@ Harness for all: load `examples/m42_project`, mutate via `Arc::make_mut` on the 
 | `info_panel/history.rs event_mentions_world/system` | unit | World-anchor match; Route-anchor matches **both** endpoints; World-anchor→system surfacing; entities-list fallback w/ kind check | **H** |
 | `lib.rs human_bytes` | unit | 1023→"1023 B"; 1024→"1.0 KiB"; 1048575→"1024.0 KiB"; integer-`B` vs `{:.1}` split | M |
 | `map_theme.rs from_map_theme` `..base` preservation | unit | carried: bg from data; **preserved-from-default**: selection, path_highlight, region_*, star_radius_mul == base | M |
-| `palette.rs validation_color` | unit | (0,0)→dim; (0,3)→warning; (2,0)→danger; (2,5)→danger (errors mask warnings) | M |
+| `palette.rs validation_color` (removed) | unit | n/a: the function had no production callers and was deleted along with its 3 unit tests and the `theme.rs` assertion in 61d1cfd (2026-10-22, PONYTAIL G4) | — |
 | `sector_view/render.rs blend_heat` | unit | t=0→`from` exactly; t=1→eff 0.85→channel 85; t=0.001→floor lifts to 20; monotone | M |
 | `pick_hex`/`hit_system` | unit | center→correct coord; beyond radius `hex_size*0.95`→None; nearest-wins; off-grid→None | M |
 | label truncation (`short`/`short_upper`/`region_label_text`) | unit | len==max unchanged; len>max→take(max-1)+`.`; multibyte `héllo`→6 chars no panic; upper variants uppercase | M |

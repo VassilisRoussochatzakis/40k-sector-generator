@@ -1,4 +1,5 @@
-//! Shared hex-grid fill + subsector-border drawing.
+//! Shared hex-grid fill, subsector-border drawing, and per-hex region/heatmap
+//! tint computation (`compute_region_colours`, `compute_heat_tints`).
 
 use std::collections::HashMap;
 

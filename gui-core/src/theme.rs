@@ -415,8 +415,8 @@ mod tests {
                 theme.label()
             );
 
-            // §SPRUCE D7: the semantic status set flips with dark/light, and a
-            // clean validation line is never the warning amber.
+            // §SPRUCE D7: the semantic status set flips with dark/light, and the
+            // warning hue never matches the preset's accent.
             let want = if theme == Theme::Light {
                 palette::StatusColors::LIGHT
             } else {

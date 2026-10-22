@@ -1,4 +1,6 @@
-//! Backend-specific grid geometry; tint and grid drawing logic lives in render_core.
+//! Bitmap grid wrappers: heat-cell lookup (`compute_heatmap`) and
+//! `BitmapCanvas` adapters for the shared grid/border drawing; heat tints are
+//! re-exported from `render_core::grid`.
 
 use std::collections::HashMap;
 

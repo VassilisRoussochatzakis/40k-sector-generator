@@ -31,7 +31,7 @@ pub(crate) fn run_economy(args: EconomyArgs) -> Result<ExitCode, sectorforge::Se
 
     let (sec, mut cfg) =
         resolve_sector_with_cfg(project, sector, |input| input.catalogs.economy.clone())?;
-    // Both arms force the economy derivation on, matching the prior inline code.
+    // Both the --project and --sector paths force the economy derivation on.
     cfg.enabled = true;
     let report = sectorforge::derive_economy_with(&sec, &cfg);
     emit_report(

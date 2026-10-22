@@ -41,10 +41,10 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 
 | File | Purpose |
 |---|---|
-| [src/worlds.rs](../src/worlds.rs) | Canonical world enums (incl. `VARIANTS`/`display_name`); re-exports the worlds-data loader from `worlds_toml` |
+| [src/worlds.rs](../src/worlds.rs) | Canonical world enums, declared via the module-private `world_enum!` macro (one `Variant => "Label"` line drives the enum, `VARIANTS` order and `display_name`; `StarColour` stays hand-written); re-exports the worlds-data loader from `worlds_toml` |
 | [src/worlds_toml.rs](../src/worlds_toml.rs) | §45 native typed `worlds.toml` config (sole world-data format) + its loader (`WorldError`/`WorldsLoad`/`load_worlds_data`, C6) |
-| [src/lib.rs](../src/lib.rs) | Public API surface (doc-tests + `# Errors`); re-aliases moved modules back to root |
-| [src/macros.rs](../src/macros.rs) | Crate-internal `macro_rules!` (`#[macro_use]`): `enum_slug!` — `as_slug` for a fieldless enum from verbatim variant→slug pairs (B-S3) |
+| [src/lib.rs](../src/lib.rs) | Public API surface (doc-tests + `# Errors`); re-aliases moved modules back to root; pure-forwarding facades (`generate_sector`, `validate_sector`, `analyze_sector`, `derive_*_with`, …) are `pub use module::fn as name;` re-exports, adapting ones stay `pub fn` |
+| [src/macros.rs](../src/macros.rs) | Crate-internal `macro_rules!` (`#[macro_use]`): `enum_slug!` — `as_slug` for a fieldless enum from verbatim variant→slug pairs (B-S3); `const` form for const-fn slugs, and a trailing `, display` option that emits `Display` = `as_slug()` |
 | [src/main.rs](../src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps errors to exit 2 |
 | [src/bin/dhat_profile.rs](../src/bin/dhat_profile.rs) | docs/OPTIMIZE.txt §G4 heap-profiling harness binary (dhat) |
 
@@ -148,37 +148,38 @@ exist and both backends import them.
 | [src/export/html_export.rs](../src/export/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
 | [src/export/subsectors/mod.rs](../src/export/subsectors/mod.rs) | Subsector clustering + public API |
 | [src/export/subsectors/summary.rs](../src/export/subsectors/summary.rs) | Ownership, faction control, capital selection |
-| [src/export/render_core/mod.rs](../src/export/render_core/mod.rs) | Backend-shared render layer: `RenderOptions`, colour helpers, `Canvas` trait, shared `grid`/`routes` draws |
+| [src/export/render_core/mod.rs](../src/export/render_core/mod.rs) | Backend-shared render layer: `RenderOptions`, colour helpers, `Canvas` trait, shared `grid`/`routes` draws, label predicates, legend metadata, heat tints; `#[cfg(test)] test_fixtures::sample_sector` shared by both backends' unit tests. Pixel geometry/rounding stays per backend |
 | [src/export/render_core/colors.rs](../src/export/render_core/colors.rs) | `star_color`, `stability_color`, `tint_against`, `darken`, `dim`, `short`, `rgba`, `route_thickness_f32` — single source of truth, both backends import from here |
 | [src/export/render_core/options.rs](../src/export/render_core/options.rs) | Cross-backend `RenderOptions` (formerly in bitmap; re-exported there + at lib.rs for compat) |
 | [src/export/render_core/canvas.rs](../src/export/render_core/canvas.rs) | Backend-neutral `Canvas` drawing surface shared by `bitmap` and `svg_export` |
-| [src/export/render_core/grid.rs](../src/export/render_core/grid.rs) | Shared hex-grid fill + subsector-border drawing (both backends) |
+| [src/export/render_core/grid.rs](../src/export/render_core/grid.rs) | Shared hex-grid fill + subsector-border drawing (both backends); per-hex region colours (`compute_region_colours`) and heatmap tints (`compute_heat_tints`) |
 | [src/export/render_core/routes.rs](../src/export/render_core/routes.rs) | Shared route-line drawing for both PNG and SVG backends |
 | [src/export/render_core/labels.rs](../src/export/render_core/labels.rs) | Backend-neutral label predicates (C4): visibility decisions shared by PNG and SVG renderers |
+| [src/export/render_core/legend.rs](../src/export/render_core/legend.rs) | Legend content shared by PNG and SVG (layout stays per backend): `STABILITY_ROWS` / `COMPACT_STABILITY_ROWS` / `CONTROL_ROWS` tables, `legend_lines` row count, `faction_row` extraction |
 | [src/export/bitmap/mod.rs](../src/export/bitmap/mod.rs) | Sector PNG facade: `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, top-level `render()` orchestrator. `RenderOptions` is now a re-export of `super::render_core::RenderOptions`. |
 | [src/export/bitmap/primitives.rs](../src/export/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
 | [src/export/bitmap/geom.rs](../src/export/bitmap/geom.rs) | `Geom`, `MapBounds`, hex centre/vertices, `Rect` collision type |
-| [src/export/bitmap/colors.rs](../src/export/bitmap/colors.rs) | `i32`-quantised wrappers (`route_thickness`, `stroke_px`); re-exports the shared helpers from `render_core::colors` |
+| [src/export/bitmap/colors.rs](../src/export/bitmap/colors.rs) | `i32`-quantised `route_thickness` wrapper; re-exports the shared helpers from `render_core::colors` |
 | [src/export/bitmap/canvas.rs](../src/export/bitmap/canvas.rs) | `Canvas` impl for the PNG backend: quantises `f32` world coords to pixels |
-| [src/export/bitmap/grid.rs](../src/export/bitmap/grid.rs) | Hex grid fill + per-system/region tint computation |
+| [src/export/bitmap/grid.rs](../src/export/bitmap/grid.rs) | Backend grid geometry: `compute_heatmap`, `draw_hex_grid` / `draw_subsector_borders` wrappers over `render_core::grid`; re-exports `compute_heat_tints` from there |
 | [src/export/bitmap/routes.rs](../src/export/bitmap/routes.rs) | Route line drawing: stride/jagged/zigzag/disc/chevron/etc. patterns + route control glyphs |
 | [src/export/bitmap/regions.rs](../src/export/bitmap/regions.rs) | §5 warp region label overlay |
 | [src/export/bitmap/systems.rs](../src/export/bitmap/systems.rs) | Star disks, pip text, capital markers |
 | [src/export/bitmap/labels.rs](../src/export/bitmap/labels.rs) | System labels, subsector borders, subsector label placement |
-| [src/export/bitmap/legend.rs](../src/export/bitmap/legend.rs) | Right-hand legend (title, route key, factions, heatmap chip) |
-| [src/export/bitmap/tests.rs](../src/export/bitmap/tests.rs) | Unit tests for the bitmap facade |
+| [src/export/bitmap/legend.rs](../src/export/bitmap/legend.rs) | Right-hand legend (title, route key, factions, heatmap chip): pixel layout + glyphs; row content from `render_core::legend` |
+| [src/export/bitmap/tests.rs](../src/export/bitmap/tests.rs) | Unit tests for the bitmap facade (fixture from `render_core::test_fixtures`) |
 | [src/export/svg_export/mod.rs](../src/export/svg_export/mod.rs) | SVG export facade: `render_sector_svg`, `write_sector_svg_to*`, top-level orchestrator + shared `HEX_SIZE` / `star_radius_ratio` |
 | [src/export/svg_export/primitives.rs](../src/export/svg_export/primitives.rs) | Low-level SVG emitters: `<rect>`/`<circle>`/`<polygon>`/`<line>`/`<text>` + XML escape |
-| [src/export/svg_export/colors.rs](../src/export/svg_export/colors.rs) | `f32`-native wrappers (`route_thickness`, `stroke_px`); re-exports the shared helpers from `render_core::colors` |
+| [src/export/svg_export/colors.rs](../src/export/svg_export/colors.rs) | `f32`-native `route_thickness` wrapper; re-exports the shared helpers from `render_core::colors` |
 | [src/export/svg_export/canvas.rs](../src/export/svg_export/canvas.rs) | `Canvas` impl for the SVG backend: emits XML primitives |
 | [src/export/svg_export/geom.rs](../src/export/svg_export/geom.rs) | `MapBounds`, `map_bounds`, `hex_center`, `hex_vertices` |
-| [src/export/svg_export/grid.rs](../src/export/svg_export/grid.rs) | Hex grid fill + subsector borders + per-system/region tints |
+| [src/export/svg_export/grid.rs](../src/export/svg_export/grid.rs) | Backend grid geometry: `draw_hex_grid` / `draw_subsector_borders` wrappers over `render_core::grid`; re-exports `compute_heat_tints` from there |
 | [src/export/svg_export/routes.rs](../src/export/svg_export/routes.rs) | Route line patterns + route-control glyphs (exports `draw_route_pattern`, `ControlKind` for legend) |
 | [src/export/svg_export/regions.rs](../src/export/svg_export/regions.rs) | §5 warp-region label overlay |
 | [src/export/svg_export/systems.rs](../src/export/svg_export/systems.rs) | Star disks, capital markers, world-count pips |
 | [src/export/svg_export/labels.rs](../src/export/svg_export/labels.rs) | System name labels + collision-aware subsector titles |
-| [src/export/svg_export/legend.rs](../src/export/svg_export/legend.rs) | Right-hand legend (title, route key, factions, heatmap chip), full + compact variants |
-| [src/export/svg_export/tests.rs](../src/export/svg_export/tests.rs) | Unit tests for the SVG backend |
+| [src/export/svg_export/legend.rs](../src/export/svg_export/legend.rs) | Right-hand legend (title, route key, factions, heatmap chip), full + compact variants: pixel layout + glyphs; row content from `render_core::legend` |
+| [src/export/svg_export/tests.rs](../src/export/svg_export/tests.rs) | Unit tests for the SVG backend (fixture from `render_core::test_fixtures`) |
 
 ### validate/
 
@@ -190,9 +191,12 @@ exist and both backends import them.
 
 ### cli/
 
+Each runner file also owns its subcommand's `#[derive(clap::Args)]`
+`<Name>Args` struct (flags, defaults, per-flag help); runners take it by value.
+
 | File | Purpose |
 |---|---|
-| [src/cli/mod.rs](../src/cli/mod.rs) | Clap `Cli` + `Command` enum + per-variant `run` dispatcher |
+| [src/cli/mod.rs](../src/cli/mod.rs) | Clap `Cli` + `Command` enum (tuple variants wrapping each runner's `*Args`) + one-line-per-variant `run` dispatcher |
 | [src/cli/common.rs](../src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `load_or_regenerate`, `log_*progress` |
 | [src/cli/exit_code.rs](../src/cli/exit_code.rs) | Maps `SectorError` variants to stable `ExitCode` values |
 | [src/cli/generate.rs](../src/cli/generate.rs) | `generate` + `generate-system` runners (with §15 NEW2 constraint search wiring) |
@@ -261,7 +265,7 @@ per-view modules; `viewer/src/editor/` is the in-place sector/world editor.
 
 | File | Purpose |
 |---|---|
-| [viewer/src/app/mod.rs](../viewer/src/app/mod.rs) | Top-level viewer/editor eframe app + navigation |
+| [viewer/src/app/mod.rs](../viewer/src/app/mod.rs) | Top-level viewer/editor eframe app + navigation; shared `page` frame helper for feature pages and `update_map_navigation` (cursor-anchored zoom, 5–250 hex-size clamp, drag pan) used by the sector and planner maps |
 | [viewer/src/app/export_ui.rs](../viewer/src/app/export_ui.rs) | PNG/SVG/HTML/JSON export UI |
 | [viewer/src/app/lifecycle.rs](../viewer/src/app/lifecycle.rs) | App lifecycle: init / load / save wiring |
 | [viewer/src/app/layout.rs](../viewer/src/app/layout.rs) | App panel layout scaffolding |

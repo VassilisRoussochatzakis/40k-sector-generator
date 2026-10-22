@@ -99,7 +99,7 @@ Built-in `Explore` (read-only, Haiku, skips this file) is the right choice for f
 
 **Add a CLI subcommand.**
 1. `rust-explorer`: read 2–3 similar runners (e.g. `src/cli/analyze.rs`) in one pass.
-2. `cli-implementer`: create `src/cli/<name>.rs`; add `Command::<Name>` in `src/cli/mod.rs`; wire dispatch.
+2. `cli-implementer`: create `src/cli/<name>.rs` with a `clap::Args` struct `<Name>Args` and `run_<name>(args)`; add `Command::<Name>(<name>::<Name>Args)` in `src/cli/mod.rs`; add its one-line arm in `run()`.
 3. `test-runner`: `cargo test --test it -- cli`.
 
 **Bulk find/replace across the workspace.**

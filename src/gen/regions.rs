@@ -1209,7 +1209,8 @@ mod route_effect_tests {
     fn calm_corridor_leaves_perilous_unchanged() {
         let systems = vec![sys("sys-0000", (0, 0)), sys("sys-0001", (1, 0))];
         let calm = region("calm", RegionConditionKind::CalmCorridor, &[(0, 0), (1, 0)]);
-        // Perilous routes are explicitly skipped by the CalmCorridor branch.
+        // Perilous routes are explicitly skipped by the shared
+        // CalmCorridor | BeaconChain arm.
         let mut routes = vec![route("sys-0000", "sys-0001", 1, RouteStability::Perilous)];
         apply_route_effects(&[calm], &systems, &mut routes, 8);
         assert_eq!(routes[0].stability, RouteStability::Perilous);

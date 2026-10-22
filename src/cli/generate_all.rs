@@ -6,12 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::generate::run_generate;
 
-/// Generate every sector project found directly under `dir` (default
-/// `examples/`), writing each one's output into its own configured `out/`
-/// folder and overwriting it. A "project" is any immediate subdirectory that
-/// contains a `sectorforge.toml`. Subdirectories are processed in sorted order
-/// (filesystem listing order is not relied upon); one project's failure is
-/// reported but does not abort the rest. Exits non-zero if any project failed.
+/// Flags for `generate-all`.
 #[derive(Debug, clap::Args)]
 pub(super) struct GenerateAllArgs {
     /// Directory whose immediate subdirectories are sector projects.
@@ -22,6 +17,12 @@ pub(super) struct GenerateAllArgs {
     pub allow_warnings: bool,
 }
 
+/// Generate every sector project found directly under `dir` (default
+/// `examples/`), writing each one's output into its own configured `out/`
+/// folder and overwriting it. A "project" is any immediate subdirectory that
+/// contains a `sectorforge.toml`. Subdirectories are processed in sorted order
+/// (filesystem listing order is not relied upon); one project's failure is
+/// reported but does not abort the rest. Exits non-zero if any project failed.
 pub(crate) fn run_generate_all(
     args: GenerateAllArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {

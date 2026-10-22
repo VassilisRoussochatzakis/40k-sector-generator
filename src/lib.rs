@@ -77,9 +77,12 @@ pub mod validate;
 // intentional — it makes the parent layout the single source of truth.
 //
 // These re-export whole modules, including pipeline internals. New code should
-// prefer the curated crate-root facade below (`generate_sector*`, `build_pool`,
+// prefer the curated crate-root names below (`generate_sector*`, `build_pool`,
 // `regenerate_world_payload`, etc.) over reaching through `sectorforge::generation::*`
-// / `sectorforge::world_pool::*` so internal refactors stay caught by the facade.
+// / `sectorforge::world_pool::*`. Many of those names are `pub use` re-exports
+// (several renamed with `as`, e.g. `generation::generate as generate_sector`):
+// they fix the public name but not the signature, so changing the internal fn's
+// signature is a public API change.
 
 pub use model::errors;
 pub use model::ids;

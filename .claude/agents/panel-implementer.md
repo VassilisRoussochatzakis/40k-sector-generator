@@ -22,7 +22,7 @@ You implement and modify builder panels under `builder/src/builder/panels/`.
 
 4. **Cross-tab navigation.** Use `state.focus_entity(EntityRef::...)` from `builder/src/builder/state/selection.rs`, not direct field writes.
 
-5. **Context menus.** The right-click pattern (§CTX1, §CTX2) is established in `panels/map.rs` and `panels/system_map.rs`. New context menus should mirror that structure: `resolve_*_context` → `*_menu_action` enum → `apply_*_menu_action` → `render_*_menu` per schema. Don't invent a different pattern.
+5. **Context menus.** The right-click pattern (§CTX1, §CTX2) is established in `panels/map/` (see `map/context_menu/`) and `panels/system_map.rs`. New context menus should mirror that structure: `resolve_*_context` → `*_menu_action` enum → `apply_*_menu_action` → `render_*_menu` per schema. Don't invent a different pattern.
 
 ## Workflow
 
@@ -32,7 +32,7 @@ Before writing code:
    - List + detail card: `panels/missions.rs`
    - Form with derived report: `panels/interestingness.rs`
    - Map overlay with brushes: `panels/regions.rs`
-   - Embedded gui-core widget: `panels/system.rs` (embeds `SystemView`)
+   - Embedded gui-core widget: `panels/system/` (`preview.rs` embeds `SystemView`)
 2. Read `builder/src/builder/command.rs` to confirm what `BuilderCommand` variants already exist for the entities involved. Reuse before adding new ones.
 3. If new commands are needed, add them with `Debug, Clone, Serialize, Deserialize` and document the §-tag they implement.
 

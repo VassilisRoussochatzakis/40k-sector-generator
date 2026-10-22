@@ -1,15 +1,15 @@
 # sectorforge-fuzz
 
 TF-T-10 cargo-fuzz scaffold. Targets the public parser surfaces that take
-attacker-controlled bytes (config TOML, worlds TOML, preset metadata, map
-theme TOML).
+attacker-controlled bytes (config TOML, worlds TOML, factions TOML, preset
+metadata, map theme TOML, sector JSON).
 
 ## Why this crate is outside the workspace
 
 `libfuzzer-sys` requires nightly. Including it in the root `[workspace]`
 would break stable `cargo build --workspace`. The root `Cargo.toml` lists
 only `viewer`, `gui-core`, `builder` as workspace members, so this crate is
-opt-in.
+opt-in. CI does not build or run these targets; run them manually.
 
 ## Usage
 
@@ -20,6 +20,8 @@ cargo +nightly fuzz run config_parse
 cargo +nightly fuzz run worlds_toml_parse
 cargo +nightly fuzz run presets_load
 cargo +nightly fuzz run map_theme_parse_color
+cargo +nightly fuzz run sector_json_parse
+cargo +nightly fuzz run factions_toml_parse
 ```
 
 Corpus, artifacts, and coverage outputs live under `fuzz/corpus/`,

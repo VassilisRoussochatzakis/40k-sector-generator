@@ -8,17 +8,18 @@ You implement and modify CLI subcommands under `src/cli/`.
 
 ## The pattern
 
-1. **One file per subcommand.** `src/cli/<name>.rs` contains a `pub fn run(...)` entry point. Arguments are taken as a struct (often defined in the same file) or borrowed from a shared `Args` type.
+1. **One file per subcommand.** `src/cli/<name>.rs` owns both the flags and the runner: a `#[derive(Debug, clap::Args)] pub(super) struct <Name>Args` with `pub` fields (`#[arg(long)]`, defaults, and per-flag `///` help text live here), and `pub(crate) fn run_<name>(args: <Name>Args) -> Result<ExitCode, sectorforge::SectorError>` which destructures it first (`let <Name>Args { .. } = args;`). See `src/cli/history.rs`. One file may serve several subcommands (`validate.rs` holds four `*Args` structs). To call another runner, build its `*Args` struct literal (see `generate_all.rs` calling `run_generate`).
 
-2. **Clap dispatch.** The `Cli` struct and `Command` enum live in `src/cli/mod.rs`. Add the new variant there, with `#[command(about = "...")]`, then add a match arm to the dispatcher.
+2. **Clap dispatch.** The `Cli` struct and `Command` enum live in `src/cli/mod.rs`. Add a tuple variant `<Name>(<name>::<Name>Args)` whose `///` doc comment is the subcommand help text (aliases go on the variant as `#[command(alias = "...")]`), then add the one-line arm `Command::<Name>(args) => <name>::run_<name>(args)` in `run()`.
 
 3. **Reuse shared helpers from `src/cli/common.rs`** — don't reimplement:
-   - `load_or_regenerate(...)`: load a cached sector or regenerate from a project
+   - `load_or_regenerate(...)`: load a cached sector or regenerate from a project; `resolve_sector_with_cfg(...)` for the `--project`/`--sector` pair plus a catalog config
+   - `emit_report(...)`: the `--out` / `--json` / Markdown-to-stdout sink for derived reports
    - `print_json(...)`, `print_validation_report(...)`, `print_invariant_report(...)`
-   - `log_progress(...)`, `log_subprogress(...)` for SectorProgress streams
-   - `parse_heatmap(...)` for heatmap CLI args
+   - `log_progress(...)`, `log_sector_progress(...)`, `log_export_progress(...)`, `log_segmentum_progress(...)` for progress streams
+   - `parse_heatmap(...)` for heatmap CLI args, `resolve_formats(...)` for `--formats`/`--light`/`--exclude`
 
-4. **Error handling.** Return `Result<(), SectorError>` (or the per-runner error if it has one). `src/main.rs` maps `Err` to exit code 2. Don't `panic!` or `process::exit` from a runner.
+4. **Error handling.** Return `Result<ExitCode, sectorforge::SectorError>`. `src/main.rs` maps `Err` to a stable exit code via `cli::exit_code::from_error`. Don't `panic!` or `process::exit` from a runner.
 
 5. **`src/main.rs` does no logic.** It parses `Cli`, dispatches to `cli::run`, maps errors. Keep it that way.
 
@@ -31,7 +32,7 @@ Before writing code:
    - Generation + writing outputs: `src/cli/generate.rs`
    - Multi-mode dispatch: `src/cli/validate.rs`
 2. Read `src/cli/common.rs` end-to-end. Most of what you need is already there.
-3. Read `src/cli/mod.rs` to see the existing variants and naming conventions.
+3. Read `src/cli/mod.rs` to see the existing variants and naming conventions (flags themselves are on each file's `*Args` struct).
 
 After writing code:
 
@@ -42,6 +43,6 @@ After writing code:
 
 ## Constraints
 
-- New CLI variants must compose with `--seed`, `--project`, and the standard `--output` conventions where applicable. Match the established naming — don't introduce `--out-file` if existing commands use `--output`.
+- New CLI variants must compose with `--seed`, `--project`, and the standard `--out` conventions where applicable. Match the established naming — don't introduce `--out-file` or `--output` when existing commands use `--out`.
 - Don't add new top-level dependencies for a single subcommand without surfacing the trade-off to the main agent.
 - Determinism rules apply: any output written must be byte-stable. If sorting a `HashMap`, sort the keys before emission.

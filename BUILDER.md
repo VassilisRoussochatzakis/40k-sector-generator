@@ -120,8 +120,9 @@ A native desktop window with three obvious regions:
 - A **status footer** that surfaces validation, invariants, and the health pip
   (a small coloured dot — green = clean, yellow = warnings, red = error). The whole
   footer is set in **monospace** so its counters line up into a scannable strip, and
-  each segment is coloured by state from the active theme (a clean sector reads calm,
-  not alarmist — a `0 err / 0 warn` line is muted, never amber).
+  each segment is coloured by state from the active theme (a clean sector reads a
+  calm green, not alarmist — a `0 err / 0 warn` line turns amber only while a
+  report is still missing).
 
 The active tab is highlighted in the strip; click any other tab to switch.
 
@@ -1147,10 +1148,11 @@ readout, and a job spinner when async work is running.
 Every segment is rendered in **monospace** so the counts and cursors align into a
 tabular strip, and each is coloured by state from the active theme rather than a
 fixed hue: `clean` reads green and `● dirty` / `project: (unsaved)` amber; the
-validation summary is **muted when there is nothing to report**, turning warning
-amber only for warnings and danger red only once an error or invariant violation
-fires. (The warning amber is a distinct orange from the brass brand accent, so a
-clean status line can never be mistaken for a warning.)
+validation summary takes the **health pip's colour** (with a `✓` / `!` / `✗`
+glyph): green when there is nothing to report, warning amber for warnings (or no
+report yet), and danger red once an error or invariant violation fires (or any
+warning under strict mode). (The warning amber is a distinct orange from the
+brass brand accent, so a clean status line can never be mistaken for a warning.)
 
 - **Live-derivation freshness (§39).** `deriv N` counts the overlays
   (economy, relations, history, personae, hooks, sites, missions, prose,

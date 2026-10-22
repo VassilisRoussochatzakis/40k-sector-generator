@@ -406,7 +406,8 @@ fn system_mut<'a>(
 }
 
 /// D-S1/D3 dedup: world counterpart to [`system_mut`] — flattens the
-/// system→worlds walk that several `apply` arms repeat.
+/// system→worlds walk shared by `apply` arms and the undo arms (undo
+/// ignores `Err` so a missing world stays a no-op).
 fn world_mut<'a>(
     sector: &'a mut GeneratedSector,
     id: &WorldId,

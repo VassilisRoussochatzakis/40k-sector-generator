@@ -647,11 +647,12 @@ impl std::fmt::Display for NotableFeature {
     }
 }
 
-// ── Enum-authoritative variants + canonical display names ────────────────────
+// ── StarColour variants + canonical display name ─────────────────────────────
 //
-// `VARIANTS` exposes the compile-time-complete variant set for every enum.
-// `display_name` returns the canonical string form (matches `FromStr` keys,
-// suitable for GUI dropdown labels).
+// `world_enum!` (top of file) generates `VARIANTS` + `display_name` for the
+// other key-tab enums; `StarColour` keeps this hand-written pair because its
+// `display_name` is the spectral `code()`. `display_name` matches `FromStr`
+// keys and is used for GUI dropdown labels.
 
 impl StarColour {
     pub const VARIANTS: &'static [Self] = &[

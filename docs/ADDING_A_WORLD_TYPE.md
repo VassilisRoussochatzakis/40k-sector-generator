@@ -1,18 +1,14 @@
 # Adding a new world type
 
-`WorldType` is a closed Rust enum ([src/worlds.rs:54](../src/worlds.rs#L54)). Most downstream code keys off the variant's **string name** (e.g. `"HiveWorld"`) rather than matching the enum, so adding a variant is mostly mechanical edits in one file plus a few keyed lookups.
+`WorldType` is a closed Rust enum, declared through the module-private `world_enum!` macro ([src/worlds.rs:68](../src/worlds.rs#L68)). Most downstream code keys off the variant's **string name** (e.g. `"HiveWorld"`) rather than matching the enum, so adding a variant is mostly a one-line edit plus a few keyed lookups.
 
 This checklist covers the full surface. Skip steps explicitly marked *optional* if your variant inherits sensible defaults.
 
 ## 1. Rust enum + string round-trip — [src/worlds.rs](../src/worlds.rs)
 
-All three sites are in `src/worlds.rs` and must stay in sync:
+Add one `Variant => "Display Label"` line to the `world_enum! { … WorldType { … } }` declaration (line ~68), keeping the (roughly alphabetical) order. The macro ([src/worlds.rs:13](../src/worlds.rs#L13)) generates the `pub enum`, `WorldType::VARIANTS` (in declaration order) and `display_name()` from that single line, so the three can't drift apart. Declaration order therefore drives UI dropdowns and golden tests.
 
-1. **Enum variant** (line ~54): add to `pub enum WorldType { … }`, keeping the same (roughly alphabetical) order as `VARIANTS`.
-2. **`VARIANTS` array** (line ~668): add the variant. Order here drives UI dropdowns and golden tests.
-3. **`display_name`** (line ~694): add the variant → human string arm. Must be **unique** — `FromStr` (line ~403) resolves by linear search over `VARIANTS` comparing `display_name()`, so a duplicate string makes one variant unparseable.
-
-`FromStr` needs no manual arm: it derives from `VARIANTS` + `display_name()`.
+The label must be **unique** — `FromStr` (line ~407) resolves by linear search over `VARIANTS` comparing `display_name()`, so a duplicate string makes one variant unparseable. `FromStr` needs no manual arm.
 
 The `Debug`/`Display` impls use the Rust identifier (`Self::HiveWorld` prints `HiveWorld`), so the variant name is what TOML files reference. Pick a `CamelCase` name that won't need quoting in TOML.
 
@@ -78,13 +74,13 @@ grep -rn "HiveWorld" src/ builder/ viewer/ gui-core/ --include="*.rs"
 
 Most hits are test fixtures (including `src/gen/world_pool.rs:384`, which is inside `#[cfg(test)] mod tests`). The production code that genuinely branches per world type, outside `src/worlds.rs` and the economy tables of step 3, is:
 
-- `src/gen/surface_region.rs:94` — surface-region mix per world type.
-- `src/gen/sites.rs:285` — candidate site kinds per world type.
+- `src/gen/surface_region.rs:88` — surface-region mix per world type.
+- `src/gen/sites.rs:273` — candidate site kinds per world type.
 
 Both end in a `_ =>` fallback, so a new variant compiles and generates without an arm; add one only if the default mix is wrong for it. Anything else the grep turns up outside those files needs equivalent handling.
 
 ## What this checklist deliberately omits
 
-- **Renaming** an existing variant. That breaks savefiles and every TOML overlay. Use serde aliases (see `RouteType` in [src/model/sector_model/mod.rs:557](../src/model/sector_model/mod.rs#L557)) rather than a rename.
+- **Renaming** an existing variant. That breaks savefiles and every TOML overlay. Use serde aliases (see `RouteType` in [src/model/sector_model/mod.rs:551](../src/model/sector_model/mod.rs#L551)) rather than a rename.
 - **Adding new economy axes** (a new resource). Out of scope; touches the `ResourceVector` struct itself.
 - **Adding a new world property axis** (e.g. a sibling of `Temperature`). Separate effort — needs a new key-tab enum and weight table.

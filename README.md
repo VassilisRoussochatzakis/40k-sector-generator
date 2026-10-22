@@ -630,7 +630,7 @@ The loader also recognises optional builder-only inputs `hooks` (`hooks.toml`), 
 
 ## The generation pipeline
 
-`generate` runs a fixed, ordered sequence of stages. Each stage seeds a fresh `ChaCha8Rng` from its own stage key, so stages share no RNG stream and the ordering of entropy is independent of where a run stops. The stages, in order:
+`generate` runs a fixed, ordered sequence of stages. Each stage that draws randomness seeds a fresh `ChaCha8Rng` from its own stage key, so stages share no RNG stream and the ordering of entropy is independent of where a run stops. The stages, in order:
 
 1. **World pool** — filter the loaded world-data rows into the in-memory candidate pool; apply authored-feature overrides. *(no RNG)*
 2. **Placement** — Fisher–Yates hex placement of systems on the square grid plus a minimum-distance relaxation, producing the ordered list of hex coordinates.
@@ -638,7 +638,7 @@ The loader also recognises optional builder-only inputs `hooks` (`hooks.toml`), 
 4. **Systems (incl. worlds + naming)** — per placement, build each system and its worlds (planet types, populations, …), apply anomaly bias on anomaly hexes, and assign unique system/world names from the name catalog. Worlds and naming happen here — they are not separate top-level stages.
 5. **Factions** — assign factions to worlds across all systems, then aggregate per-system presence into the sector-level faction list.
 6. **Routes (public)** — select the public warp-lane network between systems (when routes are enabled), with initial stability/hazard classification. *(no RNG)*
-7. **Region route effects** — apply warp-region effects to public routes (storm → Perilous, turbulence → one tier worse, calm corridor → one tier better up to the Perilous ceiling), preserving bridges. Idempotent. *(no RNG)*
+7. **Region route effects** — apply warp-region effects to public routes (storm → Perilous, turbulence / empyric bleed → one tier worse, calm corridor / beacon chain → one tier better but never better than the route's distance baseline, Perilous routes unchanged), preserving bridges. Idempotent. *(no RNG)*
 8. **Hidden routes** — append hidden route layers (webway / black-ship / smuggling) onto the route list before control derivation. *(no RNG)*
 9. **Stability rebalance** — when stability targets are configured, re-bucket public route stabilities to hit the target mix, guaranteeing a `Stable` backbone. *(no RNG)*
 10. **Route controls** — derive per-route, per-faction control records from final route geometry and faction endpoint presence. *(no RNG)*

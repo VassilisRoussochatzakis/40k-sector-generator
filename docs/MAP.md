@@ -75,7 +75,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/gen/generation/mod.rs](../src/gen/generation/mod.rs) | Sector generation facade: `SectorProgress`, `generate*` orchestrator, manifest build |
 | [src/gen/random_sector.rs](../src/gen/random_sector.rs) | Size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector_from[_with_progress]`, `RandomReport` |
 | [src/gen/generation/placement.rs](../src/gen/generation/placement.rs) | Hex grid placement with min-distance relaxation |
-| [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming, spectral fallback |
+| [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming |
 | [src/gen/generation/world_placement.rs](../src/gen/generation/world_placement.rs) | Per-world build: candidate pick, features, naming, tags, `regenerate_world_payload` |
 | [src/gen/generation/factions.rs](../src/gen/generation/factions.rs) | Faction assignment + `aggregate_factions` + `assign_factions_for_systems` |
 | [src/gen/generation/routes.rs](../src/gen/generation/routes.rs) | Public route graph + `classify_route` + union-find connector |

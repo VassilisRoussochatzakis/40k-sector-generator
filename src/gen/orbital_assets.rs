@@ -124,39 +124,39 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
 
     let mut assets: Vec<OrbitalAsset> = Vec::new();
     for (id, d) in &sums {
+        use OrbitalAssetKind::{BlockadeFleet, DefensePlatform, Shipyard, Station};
+        let mut push = |kind: OrbitalAssetKind, ship_inventory| {
+            // Explicit id slugs: "defense"/"blockade" ≠ the kinds' `as_slug()`.
+            let (slug, raw) = match kind {
+                Station => ("station", d.orbital.mul_add(0.5, d.admin * 0.5)),
+                Shipyard => ("shipyard", d.industrial.mul_add(0.6, d.orbital * 0.4)),
+                DefensePlatform => ("defense", d.military.mul_add(0.6, d.orbital * 0.4)),
+                BlockadeFleet => ("blockade", d.military.mul_add(0.5, d.orbital * 0.5)),
+            };
+            assets.push(OrbitalAsset {
+                id: format!("{}-{slug}-{id}", sys.id),
+                kind,
+                faction_id: crate::ids::FactionId::new(*id),
+                strength: scale_strength(raw),
+                ship_inventory,
+            });
+        };
         // Station: any meaningful admin + orbital presence.
         if d.orbital >= 25.0 && d.admin >= 15.0 {
-            assets.push(OrbitalAsset {
-                id: format!("{}-station-{}", sys.id, id),
-                kind: OrbitalAssetKind::Station,
-                faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.orbital.mul_add(0.5, d.admin * 0.5)),
-                ship_inventory: Vec::new(),
-            });
+            push(Station, Vec::new());
         }
         // Shipyard: explicit MajorSpaceyard feature OR high industrial+orbital.
         if (has_spaceyard && d.industrial >= 30.0) || d.industrial >= 60.0 && d.orbital >= 30.0 {
-            assets.push(OrbitalAsset {
-                id: format!("{}-shipyard-{}", sys.id, id),
-                kind: OrbitalAssetKind::Shipyard,
-                faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.industrial.mul_add(0.6, d.orbital * 0.4)),
-                ship_inventory: Vec::new(),
-            });
+            push(Shipyard, Vec::new());
         }
         // Defense platform: high military+orbital, or any military if the
         // system is a war_zone.
         if d.military >= 40.0 && d.orbital >= 25.0 || war_zone && d.military >= 30.0 {
-            assets.push(OrbitalAsset {
-                id: format!("{}-defense-{}", sys.id, id),
-                kind: OrbitalAssetKind::DefensePlatform,
-                faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.military.mul_add(0.6, d.orbital * 0.4)),
-                ship_inventory: vec![ShipStock {
-                    hull_class: "monitor".into(),
-                    count: 2,
-                }],
-            });
+            let monitors = vec![ShipStock {
+                hull_class: "monitor".into(),
+                count: 2,
+            }];
+            push(DefensePlatform, monitors);
         }
         // Blockade fleet: orbital dominance under quarantine OR
         // dominant ≠ orbital_controller in the system summary.
@@ -172,22 +172,17 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
         if (quarantined && d.orbital >= 25.0 && orbital_dominant)
             || (mismatch && d.military >= 30.0)
         {
-            assets.push(OrbitalAsset {
-                id: format!("{}-blockade-{}", sys.id, id),
-                kind: OrbitalAssetKind::BlockadeFleet,
-                faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.military.mul_add(0.5, d.orbital * 0.5)),
-                ship_inventory: vec![
-                    ShipStock {
-                        hull_class: "cruiser".into(),
-                        count: 1,
-                    },
-                    ShipStock {
-                        hull_class: "escort".into(),
-                        count: 3,
-                    },
-                ],
-            });
+            let fleet = vec![
+                ShipStock {
+                    hull_class: "cruiser".into(),
+                    count: 1,
+                },
+                ShipStock {
+                    hull_class: "escort".into(),
+                    count: 3,
+                },
+            ];
+            push(BlockadeFleet, fleet);
         }
     }
     assets.sort_by(|a, b| a.id.cmp(&b.id));

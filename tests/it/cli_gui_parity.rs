@@ -15,32 +15,23 @@
 //! the GUI / library does not exercise (or vice-versa), which is a correctness
 //! regression per §1 of the optimisation spec.
 
-use std::process::Command;
-
-use camino::Utf8PathBuf;
-
-use crate::shared::{bin, fixture_dir};
+use crate::shared::{fixture_dir, run_cli_ok, tempdir_utf8};
 
 #[test]
 fn cli_and_library_produce_identical_sector_json() {
     let project = fixture_dir();
 
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let out_dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).expect("utf8 tmp");
+    let (_tmp, out_dir) = tempdir_utf8();
 
     // 1. CLI path
-    let status = Command::new(bin())
-        .args([
-            "generate",
-            "--project",
-            project.as_str(),
-            "--out",
-            out_dir.as_str(),
-            "--allow-warnings",
-        ])
-        .status()
-        .expect("spawn sectorforge CLI");
-    assert!(status.success(), "CLI generate exited non-zero: {status:?}");
+    run_cli_ok(&[
+        "generate",
+        "--project",
+        project.as_str(),
+        "--out",
+        out_dir.as_str(),
+        "--allow-warnings",
+    ]);
 
     let cli_sector =
         sectorforge::load_sector_json(out_dir.join("sector.json")).expect("load CLI sector.json");
@@ -67,18 +58,9 @@ fn cli_and_library_produce_identical_sector_json() {
 fn cli_and_library_validate_produce_identical_report() {
     let project = fixture_dir();
 
-    let cli_out = Command::new(bin())
-        .args(["validate", "--project", project.as_str(), "--json"])
-        .output()
-        .expect("spawn sectorforge CLI validate");
-    assert!(
-        cli_out.status.success(),
-        "CLI validate exited non-zero: {:?}\nstderr: {}",
-        cli_out.status,
-        String::from_utf8_lossy(&cli_out.stderr)
-    );
+    let cli_out = run_cli_ok(&["validate", "--project", project.as_str(), "--json"]);
     let cli_value: serde_json::Value =
-        serde_json::from_slice(&cli_out.stdout).expect("parse CLI validation JSON");
+        serde_json::from_str(&cli_out).expect("parse CLI validation JSON");
 
     let project_input = sectorforge::load_project(&project).expect("load_project");
     let lib_report = sectorforge::validate_project(&project_input).expect("validate_project");
@@ -97,18 +79,9 @@ fn cli_and_library_validate_produce_identical_report() {
 fn cli_and_library_analyze_produce_identical_json() {
     let project = fixture_dir();
 
-    let cli_out = Command::new(bin())
-        .args(["analyze", "--project", project.as_str(), "--json"])
-        .output()
-        .expect("spawn sectorforge CLI analyze");
-    assert!(
-        cli_out.status.success(),
-        "CLI analyze exited non-zero: {:?}\nstderr: {}",
-        cli_out.status,
-        String::from_utf8_lossy(&cli_out.stderr)
-    );
+    let cli_out = run_cli_ok(&["analyze", "--project", project.as_str(), "--json"]);
     let cli_analysis: sectorforge::analytics::SectorAnalysis =
-        serde_json::from_slice(&cli_out.stdout).expect("parse CLI analyze JSON");
+        serde_json::from_str(&cli_out).expect("parse CLI analyze JSON");
 
     let project_input = sectorforge::load_project(&project).expect("load_project");
     let lib_sector = sectorforge::generate_sector(project_input).expect("generate_sector");

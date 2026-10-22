@@ -12,7 +12,8 @@ use proptest::prelude::*;
 use sectorforge::hooks::{self, HookAnchor, HooksConfig};
 
 use crate::shared::{
-    assert_derive_deterministic, derivation_proptest_config, fixture_sector, gen_sector, world_keys,
+    assert_derive_deterministic, derivation_proptest_config, fixture_sector,
+    prop_seed_deterministic, world_keys,
 };
 
 #[test]
@@ -138,14 +139,7 @@ proptest! {
     /// same seed yield byte-identical report JSON, with weights non-increasing.
     #[test]
     fn hooks_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
-        let s1 = gen_sector(&seed);
-        let s2 = gen_sector(&seed);
-        let a = hooks::derive(&s1);
-        let b = hooks::derive(&s2);
-        prop_assert_eq!(
-            serde_json::to_string(&a).unwrap(),
-            serde_json::to_string(&b).unwrap()
-        );
+        let a = prop_seed_deterministic(&seed, hooks::derive)?;
         let mut last: Option<u32> = None;
         for h in &a.hooks {
             if let Some(prev) = last {

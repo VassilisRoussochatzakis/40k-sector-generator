@@ -9,7 +9,7 @@
 
 use sectorforge::config::HtmlConfig;
 
-use crate::shared::fixture_sector;
+use crate::shared::{fixture_sector, tempdir_utf8};
 
 // GAP 145: `write_html` returns `output_dir/"sector.html"` and writes exactly the
 // `render_html` bytes; `write_html_to` is deterministic across paths.
@@ -18,8 +18,7 @@ fn write_html_matches_render_html_and_is_path_stable() {
     let sector = fixture_sector();
     let cfg = HtmlConfig::default();
 
-    let dir = tempfile::tempdir().unwrap();
-    let out_dir = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+    let (_tmp, out_dir) = tempdir_utf8();
 
     // write_html returns the path it wrote.
     let p = sectorforge::html_export::write_html(sector, &out_dir, &cfg).unwrap();
@@ -66,8 +65,8 @@ fn in_memory_png_equals_on_disk_png() {
     let mem_png = sectorforge::bitmap::encode_png_bytes(&img).unwrap();
 
     // On-disk: write_sector_png_to_with, same scale + default RenderOptions.
-    let dir = tempfile::tempdir().unwrap();
-    let path = camino::Utf8PathBuf::from_path_buf(dir.path().join("s.png")).unwrap();
+    let (_tmp, dir) = tempdir_utf8();
+    let path = dir.join("s.png");
     sectorforge::bitmap::write_sector_png_to_with(
         sector,
         &path,

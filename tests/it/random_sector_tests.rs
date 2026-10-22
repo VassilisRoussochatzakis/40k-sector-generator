@@ -4,15 +4,13 @@
 //! post-generation derivations populated), determinism (same seed ⇒
 //! byte-identical), the CLI `random` subcommand, and the `_full` preset.
 
-use std::process::Command;
-
 use camino::Utf8PathBuf;
 use sectorforge::random_sector::{
     build_random_config, generate_random_sector_from, mint_seed, RandomReport, SectorSize,
     FULL_PRESET_ID,
 };
 
-use crate::shared::presets_dir;
+use crate::shared::{presets_dir, run_cli_ok};
 
 /// The four themed gallery presets, all usable as `random --baseline` sources.
 const THEMED_BASELINES: [&str; 4] = [
@@ -287,27 +285,19 @@ fn random_cli_writes_bundle_and_reports() {
     let presets = presets_dir();
     let tmp = tempfile::TempDir::new().unwrap();
     let proj = tmp.path().join("proj"); // must not exist yet
-    let output = Command::new(env!("CARGO_BIN_EXE_sectorforge"))
-        .args([
-            "random",
-            "--size",
-            "small",
-            "--seed",
-            "cli-it",
-            "--out",
-            proj.to_str().unwrap(),
-            "--presets-dir",
-            presets.as_str(),
-            "--formats",
-            "json,markdown",
-        ])
-        .output()
-        .expect("spawn sectorforge random");
-    assert!(
-        output.status.success(),
-        "`sectorforge random` failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    run_cli_ok(&[
+        "random",
+        "--size",
+        "small",
+        "--seed",
+        "cli-it",
+        "--out",
+        proj.to_str().unwrap(),
+        "--presets-dir",
+        presets.as_str(),
+        "--formats",
+        "json,markdown",
+    ]);
 
     let out_dir = proj.join("out");
     for f in [

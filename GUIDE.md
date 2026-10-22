@@ -1514,9 +1514,10 @@ is enforced by:
 
 The integration test
 [tests/it/golden_generation.rs](tests/it/golden_generation.rs)
-asserts byte equality across two runs with identical seed. The suite caches the
-default m42 fixture sector once per test process, validates post-generation
-invariants on that cached sector, and reloads exported JSON/manifest files so
+asserts byte equality across two runs with identical seed. The suite reuses the
+default m42 fixture sector cached once per test process in
+[tests/it/shared.rs](tests/it/shared.rs) (`invariants_tests.rs` validates its
+post-generation invariants), and reloads exported JSON/manifest files so
 determinism checks stay accurate without repeatedly paying the full generation
 cost. It also pins **content goldens** — the full exported `sector.json` and
 `sector.md` for the m42 fixture live under
@@ -4188,7 +4189,7 @@ These hold across the crate and are enforced by review, not lints:
 - **`unwrap_or_else(|| ...)` when the fallback is not a trivial copy.** `unwrap_or(expr)` evaluates `expr` eagerly even on the happy path. For `&str` borrows of fields owned by surrounding scope, `unwrap_or_else` avoids the spurious borrow.
 - **`x.to_string()` over `format!("{}", x)`** for single-argument display — skips the format machinery and a temporary `Arguments` struct.
 - **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/gen/generation/mod.rs:419](src/gen/generation/mod.rs#L419) where the systems vector is pre-sized from the placement count.
-- **Keep golden tests cached and format-scoped.** Reuse the cached fixture in [tests/it/golden_generation.rs](tests/it/golden_generation.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
+- **Keep golden tests cached and format-scoped.** Reuse the cached `fixture_sector()` in [tests/it/shared.rs](tests/it/shared.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
 
 ### Math-accuracy lints (intentionally NOT applied)
 

@@ -1,15 +1,13 @@
 //! Validation behavior in adverse cases.
 
-use camino::Utf8PathBuf;
 use sectorforge::economy::StrategicOutputRule;
 
-use crate::shared::fixture_dir;
+use crate::shared::{fixture_dir, tempdir_utf8};
 
 #[test]
 fn missing_world_data_fails_validation() {
     // Build a temp project that points at a nonexistent world-data dir.
-    let tmp = tempfile::tempdir().unwrap();
-    let root = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, root) = tempdir_utf8();
     std::fs::write(
         root.join("sectorforge.toml"),
         r#"

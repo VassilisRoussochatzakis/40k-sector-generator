@@ -15,7 +15,7 @@ use sectorforge::economy::{
 
 use crate::shared::{
     assert_derive_deterministic, derivation_proptest_config, fixture_dir, fixture_sector,
-    gen_sector, world_keys,
+    prop_seed_deterministic, world_keys,
 };
 
 fn enabled_cfg() -> EconomyConfig {
@@ -236,14 +236,7 @@ proptest! {
     /// same seed yield byte-identical report JSON, and friction stays clamped.
     #[test]
     fn economy_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
-        let s1 = gen_sector(&seed);
-        let s2 = gen_sector(&seed);
-        let a = economy::derive_with(&s1, &enabled_cfg());
-        let b = economy::derive_with(&s2, &enabled_cfg());
-        prop_assert_eq!(
-            serde_json::to_string(&a).unwrap(),
-            serde_json::to_string(&b).unwrap()
-        );
+        let a = prop_seed_deterministic(&seed, |s| economy::derive_with(s, &enabled_cfg()))?;
         for r in &a.routes {
             prop_assert!(r.friction.is_finite() && (0.0..=1.5).contains(&r.friction));
         }

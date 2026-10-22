@@ -1,10 +1,9 @@
 //! §2 NEW.md + §10 NEW.md — seed search and sector diff integration tests.
 
-use camino::Utf8PathBuf;
 use sectorforge::diff::DiffConfig;
 use sectorforge::search::{Constraint, SearchConfig, WishesFile};
 
-use crate::shared::{fixture_dir as fixture_project, fixture_sector};
+use crate::shared::{fixture_dir as fixture_project, fixture_sector, tempdir_utf8};
 
 /// Build a `WishesFile` from the repeated `search: SearchConfig { .. }` skeleton.
 /// Each test supplies its own distinct `base_seed`, `budget`, `report_top`, and
@@ -179,8 +178,7 @@ fn search_writes_markdown_and_json() {
     let input = sectorforge::load_project(project).unwrap();
     let wishes = wishes("emit", 2, 2, Vec::new());
     let outcome = sectorforge::run_seed_search(&input, &wishes).unwrap();
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, dir) = tempdir_utf8();
     sectorforge::write_search_outcome(&dir, &outcome).unwrap();
     assert!(dir.join("search.md").exists());
     assert!(dir.join("search.json").exists());
@@ -291,8 +289,7 @@ fn diff_after_ticks_reports_changes_when_conflict_state_evolves() {
 fn diff_writers_emit_both_files() {
     let sector = fixture_sector();
     let d = sectorforge::diff_sectors(sector, sector);
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, dir) = tempdir_utf8();
     sectorforge::write_diff(&dir, &d, &DiffConfig::default()).unwrap();
     assert!(dir.join("diff.md").exists());
     assert!(dir.join("diff.json").exists());

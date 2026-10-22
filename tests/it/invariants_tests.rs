@@ -1,10 +1,8 @@
 //! Post-generation invariant checks (spec §11.11) and standalone APIs.
 
-use camino::Utf8PathBuf;
-
 use sectorforge::sector_model::{HexCoord, RouteStability, RouteType};
 
-use crate::shared::{fixture_dir as fixture_project, fixture_sector};
+use crate::shared::{fixture_dir as fixture_project, fixture_sector, tempdir_utf8};
 
 #[test]
 fn generated_sector_passes_invariants() {
@@ -158,8 +156,7 @@ fn generate_system_standalone_different_index_differs() {
 #[test]
 fn render_markdown_round_trips_from_loaded_sector() {
     let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, tmp_path) = tempdir_utf8();
     let json_path = tmp_path.join("sector.json");
     sectorforge::write_sector_json(&json_path, sector).unwrap();
 

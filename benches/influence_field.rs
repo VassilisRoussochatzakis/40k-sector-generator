@@ -10,29 +10,13 @@
 //!
 //! Run with: `cargo bench --bench influence_field`
 
+mod common;
+
 use std::hint::black_box;
 
-use camino::Utf8PathBuf;
+use common::{fixture, SCALES};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use sectorforge::influence_field;
-use sectorforge::{generate_sector, load_project, GeneratedSector};
-
-fn project_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
-// Square sectors (width == height); each entry is (side, system_count). The
-// dense accumulator scales with cells (side²) × faction_count, so sweeping the
-// side length is exactly what the storage decision needs.
-const SCALES: &[(u32, usize)] = &[(10, 24), (20, 96), (30, 200)];
-
-fn fixture(side: u32, count: usize) -> GeneratedSector {
-    let mut input = load_project(project_dir()).expect("load m42_project");
-    input.config.generation.sector_width = side;
-    input.config.generation.sector_height = side;
-    input.config.generation.system_count = count;
-    generate_sector(input).expect("generate fixture")
-}
 
 fn bench_build(c: &mut Criterion) {
     let mut group = c.benchmark_group("influence_field_build");

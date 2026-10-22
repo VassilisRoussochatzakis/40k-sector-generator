@@ -15,11 +15,10 @@
 //! library, so they are not reachable from `tests/it`'s library link.
 
 use std::path::Path;
-use std::process::Command;
 
 use camino::Utf8PathBuf;
 
-use crate::shared::{bin, copy_dir_all, fixture_dir};
+use crate::shared::{copy_dir_all, fixture_dir, run_cli};
 
 /// Copy `examples/m42_project` — a valid project that validates with 0
 /// warnings and generates cleanly, the cheapest valid fixture — into
@@ -46,19 +45,6 @@ fn edit_toml(project: &Utf8PathBuf, from: &str, to: &str) {
     std::fs::write(&path, edited).expect("write sectorforge.toml");
 }
 
-/// Run the binary with `args`, returning `(exit_code, stdout, stderr)`.
-fn run(args: &[&str]) -> (Option<i32>, String, String) {
-    let out = Command::new(bin())
-        .args(args)
-        .output()
-        .unwrap_or_else(|e| panic!("failed to spawn `sectorforge {args:?}`: {e}"));
-    (
-        out.status.code(),
-        String::from_utf8_lossy(&out.stdout).into_owned(),
-        String::from_utf8_lossy(&out.stderr).into_owned(),
-    )
-}
-
 // ── Gap 4: generate-all ────────────────────────────────────────────────────
 
 #[test]
@@ -67,7 +53,7 @@ fn generate_all_empty_dir_succeeds_with_notice() {
     let empty = tmp.path().join("empty");
     std::fs::create_dir_all(&empty).expect("mk empty dir");
 
-    let (code, _stdout, stderr) = run(&["generate-all", "--dir", empty.to_str().unwrap()]);
+    let (code, _stdout, stderr) = run_cli(&["generate-all", "--dir", empty.to_str().unwrap()]);
 
     assert_eq!(code, Some(0), "empty dir should succeed; stderr: {stderr}");
     assert!(
@@ -82,7 +68,7 @@ fn generate_all_two_valid_projects_report_two_of_two() {
     let proj_a = copy_m42(tmp.path(), "projA");
     let proj_b = copy_m42(tmp.path(), "projB");
 
-    let (code, stdout, stderr) = run(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
+    let (code, stdout, stderr) = run_cli(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
 
     assert_eq!(code, Some(0), "both should generate; stderr: {stderr}");
     assert!(
@@ -116,7 +102,7 @@ fn generate_all_partial_failure_reports_one_of_two_and_fails() {
         "world_data_dir = \"data/DOES_NOT_EXIST\"",
     );
 
-    let (code, stdout, stderr) = run(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
+    let (code, stdout, stderr) = run_cli(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
 
     // One project survived, one failed → ExitCode::FAILURE (1 on Unix).
     assert_eq!(
@@ -152,7 +138,7 @@ fn generate_all_nonexistent_dir_is_io_error() {
     let missing = tmp.path().join("does_not_exist");
     // Intentionally not created.
 
-    let (code, _stdout, stderr) = run(&["generate-all", "--dir", missing.to_str().unwrap()]);
+    let (code, _stdout, stderr) = run_cli(&["generate-all", "--dir", missing.to_str().unwrap()]);
 
     // read_dir on a missing dir -> SectorError::io -> from_error -> 74.
     assert_eq!(
@@ -178,7 +164,7 @@ fn generate_all_counts_only_direct_children() {
     std::fs::write(nested.join("sectorforge.toml").as_std_path(), b"# decoy\n")
         .expect("write nested toml");
 
-    let (code, stdout, stderr) = run(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
+    let (code, stdout, stderr) = run_cli(&["generate-all", "--dir", tmp.path().to_str().unwrap()]);
 
     assert_eq!(
         code,
@@ -203,7 +189,7 @@ fn generate_bad_format_flags_are_rejected_and_write_nothing() {
         let proj = copy_m42(tmp.path(), "proj");
         let genout = tmp.path().join("genout");
 
-        let (code, _stdout, stderr) = run(&[
+        let (code, _stdout, stderr) = run_cli(&[
             "generate",
             "--project",
             proj.as_str(),
@@ -246,7 +232,7 @@ fn validate_strict_fails_only_with_warnings() {
     );
 
     // Non-strict: a warning alone is not blocking → success.
-    let (code, stdout, stderr) = run(&["validate", "--project", proj.as_str()]);
+    let (code, stdout, stderr) = run_cli(&["validate", "--project", proj.as_str()]);
     assert_eq!(
         code,
         Some(0),
@@ -258,7 +244,7 @@ fn validate_strict_fails_only_with_warnings() {
     );
 
     // Strict: the same warning is now blocking → exit 1.
-    let (code, _stdout, stderr) = run(&["validate", "--project", proj.as_str(), "--strict"]);
+    let (code, _stdout, stderr) = run_cli(&["validate", "--project", proj.as_str(), "--strict"]);
     assert_eq!(
         code,
         Some(1),
@@ -276,7 +262,7 @@ fn validate_failing_report_exits_one() {
     edit_toml(&proj, "sector_width = 10", "sector_width = 2000");
     edit_toml(&proj, "sector_height = 10", "sector_height = 2000");
 
-    let (code, _stdout, stderr) = run(&["validate", "--project", proj.as_str()]);
+    let (code, _stdout, stderr) = run_cli(&["validate", "--project", proj.as_str()]);
     assert_eq!(
         code,
         Some(1),
@@ -291,7 +277,7 @@ fn validate_sector_invalid_json_exits_one() {
     let vsout = tmp.path().join("vsout");
 
     // 1. Generate a valid sector.json.
-    let (code, _stdout, stderr) = run(&[
+    let (code, _stdout, stderr) = run_cli(&[
         "generate",
         "--project",
         proj.as_str(),
@@ -305,7 +291,8 @@ fn validate_sector_invalid_json_exits_one() {
     assert!(json_path.exists(), "generation did not write sector.json");
 
     // Control: the valid sector passes invariants → exit 0, "OK".
-    let (code, stdout, stderr) = run(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
+    let (code, stdout, stderr) =
+        run_cli(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
     assert_eq!(code, Some(0), "valid sector should pass; stderr: {stderr}");
     assert!(
         stdout.contains("Sector invariants: OK"),
@@ -325,7 +312,8 @@ fn validate_sector_invalid_json_exits_one() {
 
     // run_validate_sector returns Ok(ExitCode::from(1)) directly (bypassing
     // from_error) when the report is not ok.
-    let (code, stdout, stderr) = run(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
+    let (code, stdout, stderr) =
+        run_cli(&["validate-sector", "--sector", json_path.to_str().unwrap()]);
     assert_eq!(
         code,
         Some(1),

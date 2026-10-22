@@ -5,7 +5,7 @@ use sectorforge::segmentum::{
     ChildEntry, FactionMode, SegmentumConfig, SegmentumFile, StitchConfig,
 };
 
-use crate::shared::fixture_dir;
+use crate::shared::{fixture_dir, tempdir_utf8};
 
 pub(crate) fn base_file(id: &str, title: &str, stitch_seed: &str) -> SegmentumFile {
     SegmentumFile {
@@ -46,8 +46,7 @@ pub(crate) fn base_file(id: &str, title: &str, stitch_seed: &str) -> SegmentumFi
 #[test]
 #[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn compose_produces_children_and_links() {
-    let tmp = tempfile::tempdir().unwrap();
-    let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, out) = tempdir_utf8();
     let file = base_file("seg-test", "Test Segmentum", "stitch-test");
     let base = Utf8PathBuf::from(".");
     let seg = sectorforge::compose_segmentum(&file, &base, &out).expect("compose");
@@ -64,10 +63,8 @@ fn compose_produces_children_and_links() {
 #[test]
 #[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn compose_is_byte_deterministic() {
-    let tmp_a = tempfile::tempdir().unwrap();
-    let tmp_b = tempfile::tempdir().unwrap();
-    let out_a = Utf8PathBuf::from_path_buf(tmp_a.path().to_path_buf()).unwrap();
-    let out_b = Utf8PathBuf::from_path_buf(tmp_b.path().to_path_buf()).unwrap();
+    let (_tmp_a, out_a) = tempdir_utf8();
+    let (_tmp_b, out_b) = tempdir_utf8();
     let file = base_file("seg-test", "Test Segmentum", "stitch-test");
     let base = Utf8PathBuf::from(".");
     let a = sectorforge::compose_segmentum(&file, &base, &out_a).unwrap();
@@ -82,10 +79,8 @@ fn compose_is_byte_deterministic() {
 #[test]
 #[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn different_stitch_seed_can_change_links() {
-    let tmp_a = tempfile::tempdir().unwrap();
-    let tmp_b = tempfile::tempdir().unwrap();
-    let out_a = Utf8PathBuf::from_path_buf(tmp_a.path().to_path_buf()).unwrap();
-    let out_b = Utf8PathBuf::from_path_buf(tmp_b.path().to_path_buf()).unwrap();
+    let (_tmp_a, out_a) = tempdir_utf8();
+    let (_tmp_b, out_b) = tempdir_utf8();
     let mut file_a = base_file("seg-test", "Test Segmentum", "stitch-test");
     let mut file_b = base_file("seg-test", "Test Segmentum", "stitch-test");
     file_a.segmentum.stitch_seed = "stitch-A".into();
@@ -142,8 +137,7 @@ fn segmentum_example_parses_and_children_fit_grid() {
 fn duplicate_child_slot_is_rejected() {
     let mut file = base_file("seg-test", "Test Segmentum", "stitch-test");
     file.children[1].column = 0; // collide with alpha
-    let tmp = tempfile::tempdir().unwrap();
-    let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, out) = tempdir_utf8();
     let err = sectorforge::compose_segmentum(&file, &Utf8PathBuf::from("."), &out)
         .expect_err("expected error");
     let msg = format!("{err}");
@@ -153,8 +147,7 @@ fn duplicate_child_slot_is_rejected() {
 #[test]
 #[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn writers_emit_expected_artifacts() {
-    let tmp = tempfile::tempdir().unwrap();
-    let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, out) = tempdir_utf8();
     let file = base_file("seg-test", "Test Segmentum", "stitch-test");
     let base = Utf8PathBuf::from(".");
     let seg = sectorforge::compose_segmentum(&file, &base, &out).unwrap();

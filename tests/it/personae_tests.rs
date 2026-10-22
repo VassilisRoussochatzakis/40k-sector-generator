@@ -12,7 +12,8 @@ use proptest::prelude::*;
 use sectorforge::personae::{self, PersonaAnchor, PersonaeConfig};
 
 use crate::shared::{
-    assert_derive_deterministic, derivation_proptest_config, fixture_sector, gen_sector, world_keys,
+    assert_derive_deterministic, derivation_proptest_config, fixture_sector,
+    prop_seed_deterministic, world_keys,
 };
 
 #[test]
@@ -157,14 +158,9 @@ proptest! {
     /// the same seed yield byte-identical report JSON, with unique persona names.
     #[test]
     fn personae_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
-        let s1 = gen_sector(&seed);
-        let s2 = gen_sector(&seed);
-        let a = personae::derive_with(&s1, &PersonaeConfig::default());
-        let b = personae::derive_with(&s2, &PersonaeConfig::default());
-        prop_assert_eq!(
-            serde_json::to_string(&a).unwrap(),
-            serde_json::to_string(&b).unwrap()
-        );
+        let a = prop_seed_deterministic(&seed, |s| {
+            personae::derive_with(s, &PersonaeConfig::default())
+        })?;
         let mut seen = std::collections::BTreeSet::new();
         for p in &a.personae {
             prop_assert!(seen.insert(p.name.clone()), "duplicate persona name: {}", p.name);

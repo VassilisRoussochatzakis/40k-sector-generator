@@ -1,8 +1,6 @@
 //! Smoke test for the SVG exporter against the bundled m42 fixture.
 
-use camino::Utf8PathBuf;
-
-use crate::shared::{assert_blake3_golden, fixture_sector};
+use crate::shared::{assert_blake3_golden, fixture_sector, tempdir_utf8};
 
 #[test]
 fn renders_m42_sector_as_well_formed_svg() {
@@ -28,8 +26,8 @@ fn renders_m42_sector_as_well_formed_svg() {
 #[test]
 fn writes_svg_file_to_disk() {
     let sector = fixture_sector();
-    let dir = tempfile::tempdir().unwrap();
-    let path = Utf8PathBuf::from_path_buf(dir.path().join("sector.svg")).unwrap();
+    let (_tmp, dir) = tempdir_utf8();
+    let path = dir.join("sector.svg");
     sectorforge::svg_export::write_sector_svg_to(sector, &path, None).unwrap();
     let body = std::fs::read_to_string(&path).unwrap();
     assert!(body.len() > 4096, "expected non-trivial SVG output");

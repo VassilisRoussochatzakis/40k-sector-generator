@@ -6,14 +6,16 @@ use camino::Utf8PathBuf;
 use sectorforge::{
     config::{OutputConfig, OutputFormat},
     sector_model::GenerationManifest,
-    GeneratedSector, GeneratedSystem, ProjectInput,
+    GeneratedSector, GeneratedSystem,
 };
 
-use crate::shared::{fixture_dir, goldens_dir};
+use crate::shared::{
+    assert_content_golden, fixture_dir, fixture_input, fixture_sector, tempdir_utf8,
+};
 
 #[test]
 fn generate_fixture_project_succeeds() {
-    let report = sectorforge::validate_project(fixture_input()).expect("validate");
+    let report = sectorforge::validate_project(&fixture_input()).expect("validate");
     assert!(report.ok, "validation failed: {:?}", report.errors);
 
     let sector = fixture_sector();
@@ -24,7 +26,7 @@ fn generate_fixture_project_succeeds() {
 
 #[test]
 fn generate_same_seed_same_output() {
-    let repeat = sectorforge::generate_sector(fixture_input().clone()).unwrap();
+    let repeat = sectorforge::generate_sector(fixture_input()).unwrap();
     let repeat_json = serde_json::to_string(&repeat).unwrap();
     assert_eq!(
         fixture_sector_json(),
@@ -35,7 +37,7 @@ fn generate_same_seed_same_output() {
 
 #[test]
 fn generate_different_seed_different_output() {
-    let mut input = fixture_input().clone();
+    let mut input = fixture_input();
     input.config.generation.seed = "seed-B".to_string();
     let alternate = sectorforge::generate_sector(input).unwrap();
     let alternate_json = serde_json::to_string(&alternate).unwrap();
@@ -48,7 +50,7 @@ fn generate_different_seed_different_output() {
 
 #[test]
 fn validate_fixture_project_succeeds() {
-    let report = sectorforge::validate_project(fixture_input()).unwrap();
+    let report = sectorforge::validate_project(&fixture_input()).unwrap();
     assert!(report.ok);
     assert!(report.world_workbook.usable_candidate_count > 0);
 }
@@ -66,8 +68,7 @@ fn inspect_worlds_reports_candidate_count() {
 fn export_writes_all_expected_files() {
     let output_cfg = text_export_config();
     let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, tmp_path) = tempdir_utf8();
     sectorforge::export_sector(sector, &output_cfg, &tmp_path).unwrap();
     assert!(tmp_path.join("sector.json").exists());
     assert!(tmp_path.join("sector.md").exists());
@@ -81,8 +82,7 @@ fn export_writes_all_expected_files() {
 fn export_can_opt_in_to_per_system_json() {
     let output_cfg = json_export_config(true);
     let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, tmp_path) = tempdir_utf8();
 
     sectorforge::export_sector(sector, &output_cfg, &tmp_path).unwrap();
 
@@ -96,8 +96,7 @@ fn export_can_opt_in_to_per_system_json() {
 fn export_removes_stale_per_system_json_when_disabled() {
     let output_cfg = json_export_config(false);
     let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, tmp_path) = tempdir_utf8();
     let systems_dir = tmp_path.join("systems");
     fs::create_dir_all(&systems_dir).unwrap();
     let stale_json = systems_dir.join(format!("{}.json", sector.systems[0].id));
@@ -149,7 +148,7 @@ fn route_ids_sort_with_lower_system_first() {
 // override only min/max so the shared memoized fixture stays untouched.
 #[test]
 fn worlds_per_system_min_equals_max_is_exact() {
-    let mut input = fixture_input().clone();
+    let mut input = fixture_input();
     input.config.generation.min_worlds_per_system = 3;
     input.config.generation.max_worlds_per_system = 3;
     let sector = sectorforge::generate_sector(input).expect("generate");
@@ -166,25 +165,6 @@ fn worlds_per_system_min_equals_max_is_exact() {
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────────
-
-fn fixture_input() -> &'static ProjectInput {
-    static INPUT: OnceLock<ProjectInput> = OnceLock::new();
-    INPUT.get_or_init(|| sectorforge::load_project(fixture_dir()).expect("load_project"))
-}
-
-fn fixture_sector() -> &'static GeneratedSector {
-    static SECTOR: OnceLock<GeneratedSector> = OnceLock::new();
-    SECTOR.get_or_init(|| {
-        let sector = sectorforge::generate_sector(fixture_input().clone()).expect("generate");
-        let report = sectorforge::validate_sector(&sector);
-        assert!(
-            report.ok,
-            "generated fixture violates invariants: {:?}",
-            report.violations
-        );
-        sector
-    })
-}
 
 fn fixture_sector_json() -> &'static str {
     static JSON: OnceLock<String> = OnceLock::new();
@@ -226,8 +206,7 @@ fn export_writes_bitmap_png_and_interactive_html() {
         (OutputFormat::Html, "sector.html"),
     ] {
         let cfg = single_format_config(format);
-        let tmp = tempfile::tempdir().unwrap();
-        let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+        let (_tmp, tmp_path) = tempdir_utf8();
         sectorforge::export_sector(fixture_sector(), &cfg, &tmp_path).unwrap();
         let path = tmp_path.join(file);
         assert!(path.exists(), "{file} not written");
@@ -281,59 +260,11 @@ fn fixture_world_data_dir() -> Utf8PathBuf {
 /// `(sector.json, sector.md)` bytes-as-text exactly as written to disk.
 fn export_fixture_text() -> (String, String) {
     let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, tmp_path) = tempdir_utf8();
     sectorforge::export_sector(sector, &text_export_config(), &tmp_path).unwrap();
     let json = fs::read_to_string(tmp_path.join("sector.json")).unwrap();
     let md = fs::read_to_string(tmp_path.join("sector.md")).unwrap();
     (json, md)
-}
-
-/// Compare `actual` against the committed golden `file_name`. With the `env`
-/// gate set, (re)writes the golden and returns. On drift, reports the first
-/// differing line rather than dumping the whole multi-KB file.
-fn assert_content_golden(file_name: &str, env: &str, actual: &str) {
-    let path = goldens_dir().join(file_name);
-    if std::env::var_os(env).is_some() {
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(&path, actual).unwrap();
-        return;
-    }
-    let expected = fs::read_to_string(&path).unwrap_or_else(|_| {
-        panic!("missing golden {file_name}; bless with `{env}=1 cargo test --test it -- golden`")
-    });
-    if expected != actual {
-        let (line, exp_l, act_l) = first_line_diff(&expected, actual);
-        panic!(
-            "{file_name} drifted from the committed golden at line {line}:\n  \
-             golden: {exp_l:?}\n  actual: {act_l:?}\n(golden {} bytes, actual {} \
-             bytes). If intentional, rerun with `{env}=1 cargo test --test it -- \
-             golden` and review `git diff tests/goldens/`.",
-            expected.len(),
-            actual.len(),
-        );
-    }
-}
-
-/// First line (1-based) at which two texts diverge, with both lines. Only
-/// called once a byte-level difference is known to exist.
-fn first_line_diff(expected: &str, actual: &str) -> (usize, String, String) {
-    let mut e = expected.lines();
-    let mut a = actual.lines();
-    let mut n = 0;
-    loop {
-        n += 1;
-        match (e.next(), a.next()) {
-            (Some(el), Some(al)) if el == al => continue,
-            (el, al) => {
-                return (
-                    n,
-                    el.unwrap_or("<end of file>").to_string(),
-                    al.unwrap_or("<end of file>").to_string(),
-                );
-            }
-        }
-    }
 }
 
 #[test]

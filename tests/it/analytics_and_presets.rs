@@ -1,8 +1,6 @@
 //! §8 NEW.md + §9 NEW.md — analytics and presets integration tests.
 
-use camino::Utf8PathBuf;
-
-use crate::shared::{fixture_sector, presets_dir};
+use crate::shared::{fixture_sector, presets_dir, tempdir_utf8};
 
 #[test]
 fn analyze_real_sector_produces_complete_report() {
@@ -28,8 +26,7 @@ fn analyze_real_sector_produces_complete_report() {
 fn analyze_writers_emit_both_files() {
     let sector = fixture_sector();
     let analysis = sectorforge::analyze_sector(sector);
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, dir) = tempdir_utf8();
     sectorforge::write_analysis(&dir, &analysis).unwrap();
     assert!(dir.join("analysis.md").exists());
     assert!(dir.join("analysis.json").exists());
@@ -69,8 +66,8 @@ fn list_presets_returns_starter_bundles() {
 #[test]
 fn scaffold_starter_preset_produces_loadable_project() {
     let dir = presets_dir();
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dest = Utf8PathBuf::from_path_buf(tmp.path().join("scaffolded")).unwrap();
+    let (_tmp, tmp_dir) = tempdir_utf8();
+    let dest = tmp_dir.join("scaffolded");
     sectorforge::presets::scaffold(&dir, "embattled-frontier", &dest, Some("test-seed")).unwrap();
     // Loadable as a project.
     let input = sectorforge::load_project(&dest).unwrap();

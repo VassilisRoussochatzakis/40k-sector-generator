@@ -12,11 +12,7 @@ use std::sync::Arc;
 use sectorforge::regions::RegionsConfig;
 use sectorforge::{generate_prefix, GeneratedSector, ProjectInput, RerollNonces, Stage};
 
-use super::shared::{fixture_dir, fixture_sector};
-
-fn fixture_input() -> sectorforge::ProjectInput {
-    sectorforge::load_project(fixture_dir()).expect("load fixture project")
-}
+use super::shared::{fixture_input, fixture_sector};
 
 /// `generate_prefix` with no progress callback and no cancellation.
 #[track_caller]

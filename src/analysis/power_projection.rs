@@ -57,7 +57,7 @@ pub fn project_sector(sector: &GeneratedSector) -> PowerProjectionMap {
         let doctrine = doctrine_multiplier(f.kind.as_slug());
         let mut per_system: BTreeMap<crate::ids::SystemId, f32> = BTreeMap::new();
         for src in source_systems {
-            let dists = bfs_distances(&adj, src, f.kind.as_slug(), f.id.as_str());
+            let dists = bfs_distances(&adj, src, f.kind.as_slug());
             for (target, hops) in dists {
                 let proj = source_power * doctrine / ((1 + hops * hops) as f32);
                 let entry = per_system.entry(target).or_insert(0.0);
@@ -70,7 +70,7 @@ pub fn project_sector(sector: &GeneratedSector) -> PowerProjectionMap {
 }
 
 /// Per-kind multipliers (§7).
-pub fn doctrine_multiplier(kind: &str) -> f32 {
+fn doctrine_multiplier(kind: &str) -> f32 {
     match kind {
         "tau" => 1.4,
         "necron" => 1.2,
@@ -109,7 +109,6 @@ fn bfs_distances(
     adj: &FxMap<crate::ids::SystemId, Vec<Edge>>,
     start: &crate::ids::SystemId,
     kind: &str,
-    _id: &str,
 ) -> Vec<(crate::ids::SystemId, u32)> {
     const MAX_HOPS: u32 = 6;
     let mut visited: FxSet<crate::ids::SystemId> = FxSet::default();
@@ -195,7 +194,7 @@ pub fn system_top_reach(
     let mut best: Option<(crate::ids::FactionId, f32)> = None;
     for (fid, per_system) in &map.by_faction {
         if let Some(v) = per_system.get(system_id) {
-            if best.as_ref().map(|(_, s)| *v > *s).unwrap_or(true) {
+            if best.as_ref().is_none_or(|(_, s)| *v > *s) {
                 best = Some((fid.clone(), *v));
             }
         }

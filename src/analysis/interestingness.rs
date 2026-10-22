@@ -74,7 +74,6 @@ pub struct MetricTarget {
     pub high: f32,
     #[serde(default = "default_floor")]
     pub floor: f32,
-    #[serde(default = "default_ceil")]
     pub ceil: f32,
     #[serde(default = "default_weight")]
     pub weight: f32,
@@ -82,9 +81,6 @@ pub struct MetricTarget {
 
 fn default_floor() -> f32 {
     0.0
-}
-fn default_ceil() -> f32 {
-    f32::INFINITY
 }
 fn default_weight() -> f32 {
     1.0

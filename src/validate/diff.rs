@@ -319,20 +319,33 @@ fn diff_relations(before: &GeneratedSector, after: &GeneratedSector) -> Vec<Stan
     out
 }
 
+/// Pair `before`/`after` items by id over the union of both id sets, in
+/// sorted-id order (the last item wins on a duplicate id). Never yields
+/// `(None, None)`.
+fn merge_by_id<'a, T>(
+    before: &'a [T],
+    after: &'a [T],
+    id: impl Fn(&'a T) -> &'a str,
+) -> BTreeMap<&'a str, (Option<&'a T>, Option<&'a T>)> {
+    let mut out: BTreeMap<&str, (Option<&T>, Option<&T>)> = BTreeMap::new();
+    for x in before {
+        out.entry(id(x)).or_default().0 = Some(x);
+    }
+    for x in after {
+        out.entry(id(x)).or_default().1 = Some(x);
+    }
+    out
+}
+
 fn diff_regions(
     before: &GeneratedSector,
     after: &GeneratedSector,
 ) -> (Vec<RegionRef>, Vec<RegionRef>, Vec<RegionDelta>) {
-    let b_idx: BTreeMap<&str, &crate::regions::WarpRegion> =
-        before.regions.iter().map(|r| (r.id.as_str(), r)).collect();
-    let a_idx: BTreeMap<&str, &crate::regions::WarpRegion> =
-        after.regions.iter().map(|r| (r.id.as_str(), r)).collect();
     let mut added: Vec<RegionRef> = Vec::new();
     let mut removed: Vec<RegionRef> = Vec::new();
     let mut changed: Vec<RegionDelta> = Vec::new();
-    let all: BTreeSet<&str> = b_idx.keys().copied().chain(a_idx.keys().copied()).collect();
-    for id in all {
-        match (b_idx.get(id), a_idx.get(id)) {
+    for pair in merge_by_id(&before.regions, &after.regions, |r| r.id.as_str()).into_values() {
+        match pair {
             (None, Some(r)) => added.push(RegionRef {
                 id: r.id.clone(),
                 kind: r.kind,
@@ -418,22 +431,12 @@ fn diff_systems(
     cfg: &DiffConfig,
     out: &mut SectorDiff,
 ) {
-    let before_idx: BTreeMap<&str, &GeneratedSystem> =
-        before.systems.iter().map(|s| (s.id.as_str(), s)).collect();
-    let after_idx: BTreeMap<&str, &GeneratedSystem> =
-        after.systems.iter().map(|s| (s.id.as_str(), s)).collect();
-
     let mut added: Vec<SystemRef> = Vec::new();
     let mut removed: Vec<SystemRef> = Vec::new();
     let mut changed: Vec<SystemDiff> = Vec::new();
 
-    let all_ids: BTreeSet<&str> = before_idx
-        .keys()
-        .copied()
-        .chain(after_idx.keys().copied())
-        .collect();
-    for id in all_ids {
-        match (before_idx.get(id), after_idx.get(id)) {
+    for pair in merge_by_id(&before.systems, &after.systems, |s| s.id.as_str()).into_values() {
+        match pair {
             (None, Some(b)) => added.push(SystemRef {
                 id: b.id.clone(),
                 name: b.name.to_string(),
@@ -514,21 +517,11 @@ fn diff_worlds(
     before: &[GeneratedWorld],
     after: &[GeneratedWorld],
 ) -> (Vec<WorldRef>, Vec<WorldRef>, Vec<WorldDiff>) {
-    let before_idx: BTreeMap<&str, &GeneratedWorld> =
-        before.iter().map(|w| (w.id.as_str(), w)).collect();
-    let after_idx: BTreeMap<&str, &GeneratedWorld> =
-        after.iter().map(|w| (w.id.as_str(), w)).collect();
-
     let mut added: Vec<WorldRef> = Vec::new();
     let mut removed: Vec<WorldRef> = Vec::new();
     let mut changed: Vec<WorldDiff> = Vec::new();
-    let all_ids: BTreeSet<&str> = before_idx
-        .keys()
-        .copied()
-        .chain(after_idx.keys().copied())
-        .collect();
-    for id in all_ids {
-        match (before_idx.get(id), after_idx.get(id)) {
+    for pair in merge_by_id(before, after, |w| w.id.as_str()).into_values() {
+        match pair {
             (None, Some(w)) => added.push(WorldRef {
                 id: w.id.clone(),
                 name: w.name.to_string(),
@@ -664,17 +657,8 @@ fn diff_presences(
 // ── Route diff ─────────────────────────────────────────────────────────────────
 
 fn diff_routes(before: &GeneratedSector, after: &GeneratedSector, out: &mut SectorDiff) {
-    let before_idx: BTreeMap<&str, &crate::sector_model::GeneratedRoute> =
-        before.routes.iter().map(|r| (r.id.as_str(), r)).collect();
-    let after_idx: BTreeMap<&str, &crate::sector_model::GeneratedRoute> =
-        after.routes.iter().map(|r| (r.id.as_str(), r)).collect();
-    let all_ids: BTreeSet<&str> = before_idx
-        .keys()
-        .copied()
-        .chain(after_idx.keys().copied())
-        .collect();
-    for id in all_ids {
-        match (before_idx.get(id), after_idx.get(id)) {
+    for pair in merge_by_id(&before.routes, &after.routes, |r| r.id.as_str()).into_values() {
+        match pair {
             (None, Some(r)) => out.routes_added.push(RouteRef {
                 id: r.id.clone(),
                 from_system_id: r.from_system_id.clone(),
@@ -710,50 +694,22 @@ fn compute_faction_deltas(
     after: &GeneratedSector,
     cfg: &DiffConfig,
 ) -> Vec<FactionDelta> {
-    let before_idx: BTreeMap<&str, &crate::sector_model::GeneratedFaction> =
-        before.factions.iter().map(|f| (f.id.as_str(), f)).collect();
-    let after_idx: BTreeMap<&str, &crate::sector_model::GeneratedFaction> =
-        after.factions.iter().map(|f| (f.id.as_str(), f)).collect();
-    let all: BTreeSet<&str> = before_idx
-        .keys()
-        .copied()
-        .chain(after_idx.keys().copied())
-        .collect();
     let mut deltas: Vec<FactionDelta> = Vec::new();
-    for id in all {
-        let p_before = before_idx
-            .get(id)
-            .map(|f| f.power.total_projection())
-            .unwrap_or(0.0);
-        let p_after = after_idx
-            .get(id)
-            .map(|f| f.power.total_projection())
-            .unwrap_or(0.0);
+    for (id, (fb, fa)) in merge_by_id(&before.factions, &after.factions, |f| f.id.as_str()) {
+        let p_before = fb.map(|f| f.power.total_projection()).unwrap_or(0.0);
+        let p_after = fa.map(|f| f.power.total_projection()).unwrap_or(0.0);
         let delta = p_after - p_before;
         if delta.abs() < cfg.min_faction_delta {
             continue;
         }
-        let name = after_idx
-            .get(id)
-            .or_else(|| before_idx.get(id))
+        let name = fa
+            .or(fb)
             .map(|f| f.name.to_string())
             .unwrap_or_else(|| id.to_string());
-        let w_before = before_idx
-            .get(id)
-            .map(|f| f.world_presence.len())
-            .unwrap_or(0) as i32;
-        let w_after = after_idx
-            .get(id)
-            .map(|f| f.world_presence.len())
-            .unwrap_or(0) as i32;
-        let s_before = before_idx
-            .get(id)
-            .map(|f| f.system_presence.len())
-            .unwrap_or(0) as i32;
-        let s_after = after_idx
-            .get(id)
-            .map(|f| f.system_presence.len())
-            .unwrap_or(0) as i32;
+        let w_before = fb.map(|f| f.world_presence.len()).unwrap_or(0) as i32;
+        let w_after = fa.map(|f| f.world_presence.len()).unwrap_or(0) as i32;
+        let s_before = fb.map(|f| f.system_presence.len()).unwrap_or(0) as i32;
+        let s_after = fa.map(|f| f.system_presence.len()).unwrap_or(0) as i32;
         deltas.push(FactionDelta {
             faction_id: FactionId::new(id),
             name,

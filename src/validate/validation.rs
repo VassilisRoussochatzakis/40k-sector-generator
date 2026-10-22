@@ -245,49 +245,49 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     let mut faction_ids: BTreeSet<crate::ids::FactionId> = BTreeSet::new();
     for (idx, f) in input.catalogs.factions.iter().enumerate() {
         if !faction_ids.insert(f.id.clone()) {
-            errors.push(ValidationIssue {
-                code: FACTION_DUPLICATE_ID.to_string(),
-                message: format!("duplicate faction id '{}'", f.id),
-                path: Some(format!("factions[{idx}]")),
-                severity: Severity::Error,
-            });
+            errors.push(issue_at(
+                FACTION_DUPLICATE_ID,
+                &format!("duplicate faction id '{}'", f.id),
+                format!("factions[{idx}]"),
+                Severity::Error,
+            ));
         }
         if !(f.weight.is_finite() && f.weight > 0.0) {
-            errors.push(ValidationIssue {
-                code: FACTION_BAD_WEIGHT.to_string(),
-                message: format!("faction '{}' has non-positive or non-finite weight", f.id),
-                path: Some(format!("factions[{idx}]")),
-                severity: Severity::Error,
-            });
+            errors.push(issue_at(
+                FACTION_BAD_WEIGHT,
+                &format!("faction '{}' has non-positive or non-finite weight", f.id),
+                format!("factions[{idx}]"),
+                Severity::Error,
+            ));
         }
         for s in &f.preferred_world_types {
             if taxonomy::parse_world_type_variant(s).is_none() {
-                warnings.push(ValidationIssue {
-                    code: FACTION_UNKNOWN_WORLD_TYPE.to_string(),
-                    message: format!("faction '{}' references unknown world type '{}'", f.id, s),
-                    path: Some(format!("factions[{idx}].preferred_world_types")),
-                    severity: Severity::Warning,
-                });
+                warnings.push(issue_at(
+                    FACTION_UNKNOWN_WORLD_TYPE,
+                    &format!("faction '{}' references unknown world type '{}'", f.id, s),
+                    format!("factions[{idx}].preferred_world_types"),
+                    Severity::Warning,
+                ));
             }
         }
         for s in &f.preferred_governments {
             if taxonomy::parse_government_variant(s).is_none() {
-                warnings.push(ValidationIssue {
-                    code: FACTION_UNKNOWN_GOVERNMENT.to_string(),
-                    message: format!("faction '{}' references unknown government '{}'", f.id, s),
-                    path: Some(format!("factions[{idx}].preferred_governments")),
-                    severity: Severity::Warning,
-                });
+                warnings.push(issue_at(
+                    FACTION_UNKNOWN_GOVERNMENT,
+                    &format!("faction '{}' references unknown government '{}'", f.id, s),
+                    format!("factions[{idx}].preferred_governments"),
+                    Severity::Warning,
+                ));
             }
         }
         for s in &f.preferred_notable_features {
             if taxonomy::parse_notable_feature_variant(s).is_none() {
-                warnings.push(ValidationIssue {
-                    code: FACTION_UNKNOWN_FEATURE.to_string(),
-                    message: format!("faction '{}' references unknown feature '{}'", f.id, s),
-                    path: Some(format!("factions[{idx}].preferred_notable_features")),
-                    severity: Severity::Warning,
-                });
+                warnings.push(issue_at(
+                    FACTION_UNKNOWN_FEATURE,
+                    &format!("faction '{}' references unknown feature '{}'", f.id, s),
+                    format!("factions[{idx}].preferred_notable_features"),
+                    Severity::Warning,
+                ));
             }
         }
     }
@@ -311,12 +311,12 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         }
         for (i, m) in r.modifiers.iter().enumerate() {
             if !(m.multiplier.is_finite() && m.multiplier > 0.0) {
-                errors.push(ValidationIssue {
-                    code: ROUTE_BAD_MULTIPLIER.to_string(),
-                    message: "route modifier multiplier must be positive and finite".to_string(),
-                    path: Some(format!("routes.modifiers[{i}]")),
-                    severity: Severity::Error,
-                });
+                errors.push(issue_at(
+                    ROUTE_BAD_MULTIPLIER,
+                    "route modifier multiplier must be positive and finite",
+                    format!("routes.modifiers[{i}]"),
+                    Severity::Error,
+                ));
             }
             // The `when` condition fields (notable_feature / world_type /
             // government / route_type) are typed enums (P10), so an unknown
@@ -376,12 +376,12 @@ fn validate_relations(
     if factions.is_empty() {
         for (i, r) in cfg.kind_rules.iter().enumerate() {
             if r.a.is_empty() || r.b.is_empty() {
-                warnings.push(ValidationIssue {
-                    code: RELATIONS_KIND_RULE_EMPTY.to_string(),
-                    message: format!("relations.kind_rules[{i}] has empty kind id"),
-                    path: Some(format!("relations.kind_rules[{i}]")),
-                    severity: Severity::Warning,
-                });
+                warnings.push(issue_at(
+                    RELATIONS_KIND_RULE_EMPTY,
+                    &format!("relations.kind_rules[{i}] has empty kind id"),
+                    format!("relations.kind_rules[{i}]"),
+                    Severity::Warning,
+                ));
             }
         }
         return;
@@ -400,39 +400,37 @@ fn validate_relations(
     for (i, ov) in cfg.pair_overrides.iter().enumerate() {
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
-                errors.push(ValidationIssue {
-                    code: RELATIONS_PAIR_UNKNOWN_FACTION.to_string(),
-                    message: format!(
+                errors.push(issue_at(
+                    RELATIONS_PAIR_UNKNOWN_FACTION,
+                    &format!(
                         "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
-                    path: Some(format!("relations.pair_overrides[{i}].{slot}")),
-                    severity: Severity::Error,
-                });
+                    format!("relations.pair_overrides[{i}].{slot}"),
+                    Severity::Error,
+                ));
             }
         }
     }
     for (i, ov) in cfg.overrides.iter().enumerate() {
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
-                errors.push(ValidationIssue {
-                    code: RELATIONS_OVERRIDE_UNKNOWN_FACTION.to_string(),
-                    message: format!(
-                        "relations.overrides[{i}].{slot} = '{id}' is not a known faction id"
-                    ),
-                    path: Some(format!("relations.overrides[{i}].{slot}")),
-                    severity: Severity::Error,
-                });
+                errors.push(issue_at(
+                    RELATIONS_OVERRIDE_UNKNOWN_FACTION,
+                    &format!("relations.overrides[{i}].{slot} = '{id}' is not a known faction id"),
+                    format!("relations.overrides[{i}].{slot}"),
+                    Severity::Error,
+                ));
             }
         }
     }
     for (i, r) in cfg.kind_rules.iter().enumerate() {
         if r.a.is_empty() || r.b.is_empty() {
-            warnings.push(ValidationIssue {
-                code: RELATIONS_KIND_RULE_EMPTY.to_string(),
-                message: format!("relations.kind_rules[{i}] has empty kind id"),
-                path: Some(format!("relations.kind_rules[{i}]")),
-                severity: Severity::Warning,
-            });
+            warnings.push(issue_at(
+                RELATIONS_KIND_RULE_EMPTY,
+                &format!("relations.kind_rules[{i}] has empty kind id"),
+                format!("relations.kind_rules[{i}]"),
+                Severity::Warning,
+            ));
         }
     }
 }
@@ -475,15 +473,15 @@ fn validate_regions(
     }
     for (i, c) in cfg.conditions.iter().enumerate() {
         if !c.weight.is_finite() || c.weight < 0.0 {
-            errors.push(ValidationIssue {
-                code: REGIONS_CONDITION_BAD_WEIGHT.to_string(),
-                message: format!(
+            errors.push(issue_at(
+                REGIONS_CONDITION_BAD_WEIGHT,
+                &format!(
                     "regions.conditions[{i}].weight {} is not a finite non-negative number",
                     c.weight
                 ),
-                path: Some(format!("regions.conditions[{i}].weight")),
-                severity: Severity::Error,
-            });
+                format!("regions.conditions[{i}].weight"),
+                Severity::Error,
+            ));
         }
     }
 }
@@ -499,26 +497,22 @@ fn validate_economy(
     }
     for (k, v) in &cfg.by_tech_level {
         if !v.is_finite() || *v < 0.0 {
-            errors.push(ValidationIssue {
-                code: ECONOMY_TECH_MULTIPLIER_BAD.to_string(),
-                message: format!(
-                    "economy.by_tech_level[{k}] = {v} is not a finite non-negative number"
-                ),
-                path: Some(format!("economy.by_tech_level.{k}")),
-                severity: Severity::Error,
-            });
+            errors.push(issue_at(
+                ECONOMY_TECH_MULTIPLIER_BAD,
+                &format!("economy.by_tech_level[{k}] = {v} is not a finite non-negative number"),
+                format!("economy.by_tech_level.{k}"),
+                Severity::Error,
+            ));
         }
     }
     for (k, v) in &cfg.by_population {
         if !v.is_finite() || *v < 0.0 {
-            errors.push(ValidationIssue {
-                code: ECONOMY_POP_MULTIPLIER_BAD.to_string(),
-                message: format!(
-                    "economy.by_population[{k}] = {v} is not a finite non-negative number"
-                ),
-                path: Some(format!("economy.by_population.{k}")),
-                severity: Severity::Error,
-            });
+            errors.push(issue_at(
+                ECONOMY_POP_MULTIPLIER_BAD,
+                &format!("economy.by_population[{k}] = {v} is not a finite non-negative number"),
+                format!("economy.by_population.{k}"),
+                Severity::Error,
+            ));
         }
     }
     for (scope, rules) in [
@@ -541,12 +535,12 @@ fn validate_resource_rule(
     let mut check_score = |field: &str, value: Option<f32>| {
         if let Some(v) = value {
             if !v.is_finite() || !(0.0..=100.0).contains(&v) {
-                errors.push(ValidationIssue {
-                    code: RESOURCE_SCORE_BAD.to_string(),
-                    message: format!("resources.{scope}.{name}.{field} = {v} is not 0..=100"),
-                    path: Some(path(field)),
-                    severity: Severity::Error,
-                });
+                errors.push(issue_at(
+                    RESOURCE_SCORE_BAD,
+                    &format!("resources.{scope}.{name}.{field} = {v} is not 0..=100"),
+                    path(field),
+                    Severity::Error,
+                ));
             }
         }
     };
@@ -562,26 +556,24 @@ fn validate_resource_rule(
     check_score("xenos_value", rule.xenos_value);
     if let Some(v) = rule.trade_multiplier {
         if !v.is_finite() || v < 0.0 {
-            errors.push(ValidationIssue {
-                code: RESOURCE_TRADE_MULTIPLIER_BAD.to_string(),
-                message: format!(
+            errors.push(issue_at(
+                RESOURCE_TRADE_MULTIPLIER_BAD,
+                &format!(
                     "resources.{scope}.{name}.trade_multiplier = {v} is not finite non-negative"
                 ),
-                path: Some(path("trade_multiplier")),
-                severity: Severity::Error,
-            });
+                path("trade_multiplier"),
+                Severity::Error,
+            ));
         }
     }
     if let Some(v) = rule.supply_resilience {
         if !v.is_finite() || !(-100.0..=100.0).contains(&v) {
-            errors.push(ValidationIssue {
-                code: RESOURCE_SUPPLY_RESILIENCE_BAD.to_string(),
-                message: format!(
-                    "resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"
-                ),
-                path: Some(path("supply_resilience")),
-                severity: Severity::Error,
-            });
+            errors.push(issue_at(
+                RESOURCE_SUPPLY_RESILIENCE_BAD,
+                &format!("resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"),
+                path("supply_resilience"),
+                Severity::Error,
+            ));
         }
     }
 }
@@ -592,6 +584,13 @@ fn issue(code: &str, message: &str, severity: Severity) -> ValidationIssue {
         message: message.to_string(),
         path: None,
         severity,
+    }
+}
+
+fn issue_at(code: &str, message: &str, path: String, severity: Severity) -> ValidationIssue {
+    ValidationIssue {
+        path: Some(path),
+        ..issue(code, message, severity)
     }
 }
 

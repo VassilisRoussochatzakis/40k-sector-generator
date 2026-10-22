@@ -29467,7 +29467,7 @@
     "input_digests": {
       "data/factions/factions.toml": "blake3:ad2fc1cc8b27b4c8261ba719712e4d42775bf2381f719e7b88d301d04b4af63b",
       "data/factions/relations.toml": "blake3:f10c5eda2cba363f000cd3879b2974f5345df56facc91216577af6c78ea01c61",
-      "data/history.toml": "blake3:2b3d46e2e6d8c9159d19fae33ae564056ceb1d16bdf0fc4ba775cc22901f49c7",
+      "data/history.toml": "blake3:5c93fbf5973332a7e8862f22592208a9f71f832f656d979c11d1d412ed39d3df",
       "data/names/system_names.toml": "blake3:23e34e9e1a58c9ad8bb1b3d6e5b5b98fdd5ae92febc4bd11c7381bb392d551d9",
       "data/names/world_names.toml": "blake3:2eed86668fbd7dd3acbc51651871a0852d01d835d31a4f75e8501c82ea48b363",
       "data/personae.toml": "blake3:a4081a2a4a54015f149da9e83ffd0f13845e46cfba19b6ec654335ec9ea3bdb7",
@@ -40265,7 +40265,6 @@
         "label": "Age of Foundation",
         "relative_start": -1200,
         "relative_end": -700,
-        "weight": 1.0,
         "allowed_events": [
           "foundation",
           "discovery"
@@ -40276,7 +40275,6 @@
         "label": "Echoes of the Great Crusade",
         "relative_start": -699,
         "relative_end": -500,
-        "weight": 0.8,
         "allowed_events": [
           "imperial_mandate_granted",
           "consecration",
@@ -40288,7 +40286,6 @@
         "label": "Age of Compliance",
         "relative_start": -499,
         "relative_end": -300,
-        "weight": 1.0,
         "allowed_events": [
           "imperial_mandate_granted",
           "commercial_charter",
@@ -40302,7 +40299,6 @@
         "label": "Age of Fracture",
         "relative_start": -299,
         "relative_end": -80,
-        "weight": 1.0,
         "allowed_events": [
           "secession",
           "uprising",
@@ -40316,7 +40312,6 @@
         "label": "Age of Wounds",
         "relative_start": -79,
         "relative_end": -10,
-        "weight": 1.0,
         "allowed_events": [
           "necron_awakening",
           "tyranid_contact",
@@ -40332,7 +40327,6 @@
         "label": "Indomitus Dawn",
         "relative_start": -9,
         "relative_end": -1,
-        "weight": 1.1,
         "allowed_events": [
           "reconquest",
           "purge",
@@ -40344,7 +40338,6 @@
         "label": "Present Crisis",
         "relative_start": 0,
         "relative_end": 0,
-        "weight": 1.5,
         "allowed_events": [
           "reconquest",
           "purge",

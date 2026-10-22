@@ -3,8 +3,7 @@
 
 use crate::sector_model::GeneratedSystem;
 
-use super::build::build_event;
-use super::context::EmitContext;
+use super::build::{build_event, EmitContext};
 use super::model::{
     EventKind, HistoryAnchor, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind,
     HistoryEntityRef, HistoryEvent,

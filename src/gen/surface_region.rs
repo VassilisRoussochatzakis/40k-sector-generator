@@ -144,21 +144,19 @@ fn pick_region_dominant(
     w: &GeneratedWorld,
     kind: RegionKind,
 ) -> (Option<crate::ids::FactionId>, u8, u8) {
-    if w.factions.is_empty() {
-        return (None, 0, 0);
-    }
-    let mut best: Option<(&str, f32, f32)> = None;
-    for p in &w.factions {
-        let bias = region_bias(kind, &p.faction_id, &p.dimensions);
-        if bias <= 0.0 {
-            continue;
-        }
-        let score = p.dimensions.local_control_score() * bias;
-        match best {
-            Some((_, bs, _)) if bs >= score => {}
-            _ => best = Some((p.faction_id.as_str(), score, p.dimensions.visibility)),
-        }
-    }
+    // Plain `>=` (not `total_cmp`): first wins ties, incl. ±0.0, and NaN as before.
+    let best = w
+        .factions
+        .iter()
+        .filter_map(|p| {
+            let bias = region_bias(kind, &p.faction_id, &p.dimensions);
+            if bias <= 0.0 {
+                return None;
+            }
+            let score = p.dimensions.local_control_score() * bias;
+            Some((p.faction_id.as_str(), score, p.dimensions.visibility))
+        })
+        .reduce(|best, cur| if best.1 >= cur.1 { best } else { cur });
     match best {
         Some((id, s, v)) => (
             Some(crate::ids::FactionId::new(id)),
@@ -173,68 +171,37 @@ fn region_bias(kind: RegionKind, fid: &str, d: &crate::sector_model::PresenceDim
     // Use only the presence dimension shape — kind hints are encoded by
     // weighting different dimensions per region kind. Faction-id substrings
     // bias narrative ownership where the dimensions alone would tie.
-    let id_has = |needle: &str| fid.contains(needle);
-    match kind {
+    let id_has = |needles: &[&str]| needles.iter().any(|&n| fid.contains(n));
+    let base = match kind {
         RegionKind::Capital => d.legitimacy.mul_add(0.004, d.admin.mul_add(0.005, 0.6)),
         RegionKind::Hive => d.admin.mul_add(
             0.002,
             d.industrial.mul_add(0.004, d.economic.mul_add(0.004, 0.6)),
         ),
-        RegionKind::Underhive => {
-            let mut b = (100.0 - d.visibility).mul_add(0.003, d.covert.mul_add(0.01, 0.4));
-            if id_has("genestealer") || id_has("cult") || id_has("criminal") {
-                b += 0.4;
-            }
-            b
-        }
-        RegionKind::ForgeComplex => {
-            let mut b = d.industrial.mul_add(0.008, 0.4);
-            if id_has("mechanicus") {
-                b += 0.4;
-            }
-            b
-        }
-        RegionKind::ShrineContinent => {
-            let mut b = d.ideological.mul_add(0.008, 0.4);
-            if id_has("ecclesiarch") || id_has("sororitas") || id_has("shrine") {
-                b += 0.4;
-            }
-            b
-        }
+        RegionKind::Underhive => (100.0 - d.visibility).mul_add(0.003, d.covert.mul_add(0.01, 0.4)),
+        RegionKind::ForgeComplex => d.industrial.mul_add(0.008, 0.4),
+        RegionKind::ShrineContinent => d.ideological.mul_add(0.008, 0.4),
         RegionKind::AgriBelt => d.legitimacy.mul_add(0.002, d.economic.mul_add(0.005, 0.5)),
-        RegionKind::CardinalSpire => {
-            let mut b = d
-                .legitimacy
-                .mul_add(0.003, d.ideological.mul_add(0.006, 0.4));
-            if id_has("ecclesiarch") {
-                b += 0.5;
-            }
-            b
-        }
-        RegionKind::KnightHousehold => {
-            let mut b = d.military.mul_add(0.003, 0.3);
-            if id_has("knight") {
-                b += 0.6;
-            }
-            b
-        }
-        RegionKind::Wilderness => {
-            let mut b = d.military.mul_add(0.002, 0.3);
-            if id_has("tyranid") || id_has("ork") || id_has("daemon") {
-                b += 0.4;
-            }
-            b
-        }
-        RegionKind::TombComplex => {
-            let mut b = 0.1;
-            if id_has("necron") || id_has("tomb") {
-                b += 0.9;
-            }
-            b
-        }
+        RegionKind::CardinalSpire => d
+            .legitimacy
+            .mul_add(0.003, d.ideological.mul_add(0.006, 0.4)),
+        RegionKind::KnightHousehold => d.military.mul_add(0.003, 0.3),
+        RegionKind::Wilderness => d.military.mul_add(0.002, 0.3),
+        RegionKind::TombComplex => 0.1,
         RegionKind::Hideout => d.covert.mul_add(0.01, 0.3),
         RegionKind::Other => d.admin.mul_add(0.003, 0.5),
-    }
+    };
+    let bonus = match kind {
+        RegionKind::Underhive if id_has(&["genestealer", "cult", "criminal"]) => 0.4,
+        RegionKind::ForgeComplex if id_has(&["mechanicus"]) => 0.4,
+        RegionKind::ShrineContinent if id_has(&["ecclesiarch", "sororitas", "shrine"]) => 0.4,
+        RegionKind::CardinalSpire if id_has(&["ecclesiarch"]) => 0.5,
+        RegionKind::KnightHousehold if id_has(&["knight"]) => 0.6,
+        RegionKind::Wilderness if id_has(&["tyranid", "ork", "daemon"]) => 0.4,
+        RegionKind::TombComplex if id_has(&["necron", "tomb"]) => 0.9,
+        _ => return base,
+    };
+    base + bonus
 }
 
 #[cfg(test)]

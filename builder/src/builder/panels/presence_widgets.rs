@@ -17,7 +17,39 @@ use std::collections::BTreeSet;
 
 use egui::Color32;
 use sectorforge::ids::FactionId;
-use sectorforge::sector_model::{ClaimType, GeneratedWorld};
+use sectorforge::sector_model::{ClaimType, DominanceState, FactionInfluence, GeneratedWorld};
+
+// Picker orders shared by the CONTROL and WORLD panels (previously a
+// byte-identical copy in each).
+pub(crate) const CLAIM_TYPES: &[ClaimType] = &[
+    ClaimType::LegalSovereignty,
+    ClaimType::ImperialMandate,
+    ClaimType::TreatyRight,
+    ClaimType::ReligiousMandate,
+    ClaimType::DynasticRight,
+    ClaimType::CommercialCharter,
+    ClaimType::MilitaryOccupation,
+    ClaimType::AncientDomain,
+    ClaimType::HuntingGround,
+    ClaimType::CovertWrit,
+    ClaimType::Rebellion,
+];
+
+pub(crate) const INFLUENCE_TIERS: &[FactionInfluence] = &[
+    FactionInfluence::Dominant,
+    FactionInfluence::Significant,
+    FactionInfluence::Minor,
+    FactionInfluence::Hidden,
+];
+
+pub(crate) const DOMINANCE_STATES: &[DominanceState] = &[
+    DominanceState::Rumored,
+    DominanceState::Presence,
+    DominanceState::Influence,
+    DominanceState::Contested,
+    DominanceState::Controlled,
+    DominanceState::Stronghold,
+];
 
 /// Faction-picker candidates for an "add presence" row: the sector factions that
 /// are not already present on `world`. Shared by the CONTROL and WORLD presence

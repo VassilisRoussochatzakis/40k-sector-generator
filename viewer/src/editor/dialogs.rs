@@ -85,7 +85,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 });
             if let Some(name) = load {
                 match super::file_ops::load_project_sector(&name) {
-                    Ok((sec, input, path)) => state.set_sector(sec, input, Some(path)),
+                    Ok((sec, path)) => state.set_sector(sec, Some(path)),
                     Err(e) => state.dialog = Dialog::Message(e.to_string()),
                 }
                 keep = false;
@@ -165,7 +165,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     width,
                     height,
                 );
-                state.set_sector(sector, None, None);
+                state.set_sector(sector, None);
                 state.mark_dirty();
             } else if !cancel {
                 state.dialog = Dialog::NewSector {

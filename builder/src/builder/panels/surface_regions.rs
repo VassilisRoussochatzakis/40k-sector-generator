@@ -11,7 +11,6 @@ use egui::Ui;
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
-use sectorforge_gui_core::widgets;
 
 use sectorforge::ids::FactionId;
 use sectorforge::surface_region::{derive_regions, RegionKind, SurfaceRegion};
@@ -20,7 +19,8 @@ use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
 
-use super::faction_name;
+use super::export::title_case_slug;
+use super::{faction_name, optional_faction_combo};
 
 const REGION_KINDS: [RegionKind; 12] = [
     RegionKind::Capital,
@@ -36,24 +36,6 @@ const REGION_KINDS: [RegionKind; 12] = [
     RegionKind::Hideout,
     RegionKind::Other,
 ];
-
-/// Human-readable name for a region kind. The domain enum only exposes a
-/// snake_case slug (`as_slug`), so we title-case it locally for display and
-/// keep the raw slug in a hover. Editing `src/` to add a `display_name()` is
-/// out of scope for the friendly pass.
-fn region_kind_label(kind: RegionKind) -> String {
-    kind.as_slug()
-        .split('_')
-        .map(|word| {
-            let mut chars = word.chars();
-            match chars.next() {
-                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
-}
 
 pub(crate) fn show_surface_regions_section(
     ui: &mut Ui,
@@ -133,7 +115,7 @@ fn show_regions_editor(
         let header_label = format!(
             "{n}. {kind} — {name}  · {fid}",
             n = i + 1,
-            kind = region_kind_label(region.kind),
+            kind = title_case_slug(region.kind.as_slug()),
             name = region.name,
             fid = dominant_label,
         );
@@ -157,13 +139,20 @@ fn show_regions_editor(
                     "What kind of place this is (schema: kind). Sets the flavour and the \
                      default control bias when auto-seeding.",
                     |ui| {
-                        ui_kit::combo(format!("sr_kind_{i}"), region_kind_label(region.kind))
-                            .show_ui(ui, |ui| {
-                                for k in REGION_KINDS {
-                                    ui.selectable_value(&mut region.kind, k, region_kind_label(k))
-                                        .on_hover_text(format!("key: {}", k.as_slug()));
-                                }
-                            });
+                        ui_kit::combo(
+                            format!("sr_kind_{i}"),
+                            title_case_slug(region.kind.as_slug()),
+                        )
+                        .show_ui(ui, |ui| {
+                            for k in REGION_KINDS {
+                                ui.selectable_value(
+                                    &mut region.kind,
+                                    k,
+                                    title_case_slug(k.as_slug()),
+                                )
+                                .on_hover_text(format!("key: {}", k.as_slug()));
+                            }
+                        });
                     },
                 );
                 labeled(
@@ -260,22 +249,4 @@ fn show_regions_editor(
             notes: String::new(),
         });
     }
-}
-
-fn optional_faction_combo(
-    ui: &mut Ui,
-    id_salt: &str,
-    current: &mut Option<FactionId>,
-    factions: &[(FactionId, String)],
-) {
-    let variants: Vec<FactionId> = factions.iter().map(|(fid, _)| fid.clone()).collect();
-    widgets::enum_combo(
-        ui,
-        id_salt,
-        current,
-        &variants,
-        |fid| faction_name(factions, fid),
-        |fid| Some(format!("id: {fid}")),
-        None,
-    );
 }

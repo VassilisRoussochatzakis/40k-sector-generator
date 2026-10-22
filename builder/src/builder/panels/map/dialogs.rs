@@ -9,30 +9,40 @@ use crate::builder::command::BuilderCommand;
 use crate::builder::state::{PendingBulkRename, PendingPlace, PendingRegionRename, PendingRename};
 use crate::builder::{BuilderState, ModalKind};
 
+/// Centred fixed window with an `ok` / Cancel button row, shared by these
+/// dialogs and `system_map`'s world rename. `body` draws the prompt and returns
+/// whether `ok` is enabled. Returns `(commit, close)`.
+pub(in crate::builder::panels) fn prompt_window(
+    ctx: &egui::Context,
+    title: &str,
+    ok: &str,
+    body: impl FnOnce(&mut egui::Ui) -> bool,
+) -> (bool, bool) {
+    let (mut commit, mut close) = (false, false);
+    egui::Window::new(title)
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .show(ctx, |ui| {
+            let ok_enabled = body(ui);
+            ui.horizontal(|ui| {
+                commit = ui.add_enabled(ok_enabled, egui::Button::new(ok)).clicked();
+                close = ui.button("Cancel").clicked() || commit;
+            });
+        });
+    (commit, close)
+}
+
 pub(super) fn show_place_dialog(ctx: &egui::Context, state: &mut BuilderState) {
     let Some(pending) = state.drag.pending_place.clone() else {
         return;
     };
     let mut name = pending.name.clone();
-    let mut close = false;
-    let mut commit = false;
-    egui::Window::new("Place system")
-        .collapsible(false)
-        .resizable(false)
-        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
-        .show(ctx, |ui| {
-            ui.label(format!("hex ({}, {})", pending.coord.q, pending.coord.r));
-            ui.text_edit_singleline(&mut name);
-            ui.horizontal(|ui| {
-                if ui.button("Place").clicked() {
-                    commit = true;
-                    close = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    close = true;
-                }
-            });
-        });
+    let (commit, close) = prompt_window(ctx, "Place system", "Place", |ui| {
+        ui.label(format!("hex ({}, {})", pending.coord.q, pending.coord.r));
+        ui.text_edit_singleline(&mut name);
+        true
+    });
     if commit {
         let cmd = BuilderCommand::AddSystem {
             coord: pending.coord,
@@ -58,25 +68,11 @@ pub(super) fn show_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) 
         return;
     };
     let mut text = pending.text.clone();
-    let mut close = false;
-    let mut commit = false;
-    egui::Window::new("Rename system")
-        .collapsible(false)
-        .resizable(false)
-        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
-        .show(ctx, |ui| {
-            ui.label(pending.id.to_string());
-            ui.text_edit_singleline(&mut text);
-            ui.horizontal(|ui| {
-                if ui.button("Rename").clicked() {
-                    commit = true;
-                    close = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    close = true;
-                }
-            });
-        });
+    let (commit, close) = prompt_window(ctx, "Rename system", "Rename", |ui| {
+        ui.label(pending.id.to_string());
+        ui.text_edit_singleline(&mut text);
+        true
+    });
     if commit {
         let from = state
             .sector
@@ -114,26 +110,12 @@ pub(super) fn show_bulk_rename_dialog(ctx: &egui::Context, state: &mut BuilderSt
     };
     let n = state.selection.systems.len();
     let mut pattern = pending.pattern.clone();
-    let mut commit = false;
-    let mut close = false;
-    egui::Window::new("Bulk rename selection")
-        .collapsible(false)
-        .resizable(false)
-        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
-        .show(ctx, |ui| {
-            ui.label(format!("{n} system(s) selected"));
-            ui.label("Pattern — `{n}` = sequence, `{id}` = system id, `{name}` = current name");
-            ui.text_edit_singleline(&mut pattern);
-            ui.horizontal(|ui| {
-                if ui.button("Rename").clicked() {
-                    commit = true;
-                    close = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    close = true;
-                }
-            });
-        });
+    let (commit, close) = prompt_window(ctx, "Bulk rename selection", "Rename", |ui| {
+        ui.label(format!("{n} system(s) selected"));
+        ui.label("Pattern — `{n}` = sequence, `{id}` = system id, `{name}` = current name");
+        ui.text_edit_singleline(&mut pattern);
+        true
+    });
     if commit {
         crate::builder::panels::system::apply_bulk_rename(state, &pattern);
     }
@@ -158,29 +140,11 @@ pub(super) fn show_region_rename_dialog(ctx: &egui::Context, state: &mut Builder
         .map(|r| r.name.clone())
         .unwrap_or_default();
     let mut text = pending.text.clone();
-    let mut commit = false;
-    let mut close = false;
-    egui::Window::new("Rename region")
-        .collapsible(false)
-        .resizable(false)
-        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
-        .show(ctx, |ui| {
-            ui.label(format!("region: {} — current: {}", pending.region, before));
-            ui.text_edit_singleline(&mut text);
-            ui.horizontal(|ui| {
-                let enabled = !text.trim().is_empty() && text != before;
-                if ui
-                    .add_enabled(enabled, egui::Button::new("Rename"))
-                    .clicked()
-                {
-                    commit = true;
-                    close = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    close = true;
-                }
-            });
-        });
+    let (commit, close) = prompt_window(ctx, "Rename region", "Rename", |ui| {
+        ui.label(format!("region: {} — current: {}", pending.region, before));
+        ui.text_edit_singleline(&mut text);
+        !text.trim().is_empty() && text != before
+    });
     if commit {
         let cmd = BuilderCommand::RenameRegion {
             region: pending.region.clone(),
@@ -205,27 +169,13 @@ pub(super) fn show_collision_dialog(ctx: &egui::Context, state: &mut BuilderStat
     let Some(pending) = state.drag.pending_collision.clone() else {
         return;
     };
-    let mut close = false;
-    let mut swap = false;
-    egui::Window::new("Hex occupied")
-        .collapsible(false)
-        .resizable(false)
-        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
-        .show(ctx, |ui| {
-            ui.label(format!(
-                "Hex ({},{}) is held by {}.",
-                pending.target.q, pending.target.r, pending.occupant
-            ));
-            ui.horizontal(|ui| {
-                if ui.button("Swap").clicked() {
-                    swap = true;
-                    close = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    close = true;
-                }
-            });
-        });
+    let (swap, close) = prompt_window(ctx, "Hex occupied", "Swap", |ui| {
+        ui.label(format!(
+            "Hex ({},{}) is held by {}.",
+            pending.target.q, pending.target.r, pending.occupant
+        ));
+        true
+    });
     if swap {
         let cmd = BuilderCommand::SwapSystems {
             a: pending.dragging.clone(),

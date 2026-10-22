@@ -16,43 +16,6 @@ use crate::sector_model::{
 /// Spec §10.9: at most this many primary factions per system.
 const PRIMARY_FACTION_LIMIT: usize = 3;
 
-pub(super) fn assign_factions(
-    systems: &mut [GeneratedSystem],
-    factions: &[FactionDef],
-    rng: &mut ChaCha8Rng,
-) {
-    if factions.is_empty() {
-        return;
-    }
-    assign_factions_inner(systems, factions, rng);
-    // Post-pass: derive per-world claims + multi-winner snapshots, then roll up
-    // to system-level state classification. Pure, deterministic.
-    // Build a temporary top-faction catalog for stability derivation.
-    let stability_factions: Vec<crate::sector_model::GeneratedFaction> =
-        build_faction_groups(factions)
-            .iter()
-            .map(|g| crate::sector_model::GeneratedFaction {
-                id: g.id.clone(),
-                name: g.name.clone().into(),
-                kind: g.kind.clone().into(),
-                disposition: g.disposition.clone().into(),
-                subfactions: Vec::new(),
-                system_presence: vec![],
-                world_presence: vec![],
-                power: crate::sector_model::PowerProfile::default(),
-            })
-            .collect();
-    for sys in systems.iter_mut() {
-        for world in &mut sys.worlds {
-            world.claims = control::derive_world_claims(world);
-            world.control = control::derive_world_control(world);
-            world.stability = crate::stability::derive_world_stability(world, &stability_factions);
-        }
-        sys.control = control::derive_system_control(sys);
-        sys.stability = crate::stability::derive_system_stability(sys);
-    }
-}
-
 /// Apply faction assignment to one or more systems. Public so the standalone
 /// system generator can reuse the same logic the sector generator does.
 pub fn assign_factions_for_systems(
@@ -61,14 +24,11 @@ pub fn assign_factions_for_systems(
     seed: &str,
     discriminator: &str,
 ) {
-    if factions.is_empty() {
-        return;
-    }
     let mut rng = rng::stage_rng(seed, "factions", discriminator);
     assign_factions(systems, factions, &mut rng);
 }
 
-fn assign_factions_inner(
+pub(super) fn assign_factions(
     systems: &mut [GeneratedSystem],
     factions: &[FactionDef],
     rng: &mut ChaCha8Rng,
@@ -222,6 +182,32 @@ fn assign_factions_inner(
         });
         entries.truncate(PRIMARY_FACTION_LIMIT);
         sys.primary_factions = entries.into_iter().map(|(id, _, _)| id).collect();
+    }
+    // Post-pass: derive per-world claims + multi-winner snapshots, then roll up
+    // to system-level state classification. Pure, deterministic.
+    // Build a temporary top-faction catalog for stability derivation.
+    let stability_factions: Vec<crate::sector_model::GeneratedFaction> =
+        build_faction_groups(factions)
+            .iter()
+            .map(|g| crate::sector_model::GeneratedFaction {
+                id: g.id.clone(),
+                name: g.name.clone().into(),
+                kind: g.kind.clone().into(),
+                disposition: g.disposition.clone().into(),
+                subfactions: Vec::new(),
+                system_presence: vec![],
+                world_presence: vec![],
+                power: crate::sector_model::PowerProfile::default(),
+            })
+            .collect();
+    for sys in systems.iter_mut() {
+        for world in &mut sys.worlds {
+            world.claims = control::derive_world_claims(world);
+            world.control = control::derive_world_control(world);
+            world.stability = crate::stability::derive_world_stability(world, &stability_factions);
+        }
+        sys.control = control::derive_system_control(sys);
+        sys.stability = crate::stability::derive_system_stability(sys);
     }
 }
 
@@ -437,24 +423,19 @@ pub(super) fn aggregate_factions(
         for world in &sys.worlds {
             for p in &world.factions {
                 if let Some(gf) = by_id.get_mut(&p.faction_id) {
+                    // Duplicates are fine: every list is sort()+dedup()ed below.
                     gf.world_presence.push(world.id.clone());
-                    if !gf.system_presence.contains(&sys.id) {
-                        gf.system_presence.push(sys.id.clone());
-                    }
+                    gf.system_presence.push(sys.id.clone());
                     if let Some(sub_id) = &p.subfaction_id {
                         if let Some(sf) = gf.subfactions.iter_mut().find(|sf| sf.id == *sub_id) {
                             sf.world_presence.push(world.id.clone());
-                            if !sf.system_presence.contains(&sys.id) {
-                                sf.system_presence.push(sys.id.clone());
-                            }
+                            sf.system_presence.push(sys.id.clone());
                             if let Some(force_id) = &p.force_id {
                                 if let Some(force) =
                                     sf.forces.iter_mut().find(|force| force.id == *force_id)
                                 {
                                     force.world_presence.push(world.id.clone());
-                                    if !force.system_presence.contains(&sys.id) {
-                                        force.system_presence.push(sys.id.clone());
-                                    }
+                                    force.system_presence.push(sys.id.clone());
                                 }
                             }
                         }

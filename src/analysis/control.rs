@@ -7,6 +7,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::export::subsectors::summary::{population_rank, tech_rank};
 use crate::factions::FactionDef;
 use crate::ids::FactionId;
 use crate::sector_model::{
@@ -508,16 +509,16 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     });
     top.truncate(5);
 
-    let state = classify_system_state(SystemStateParams {
+    let state = classify_system_state(
         sys,
         populated_worlds,
         contested_worlds,
         warzone_signal,
         quarantined,
-        dominant: &dominant,
-        orbital_controller: &orbital_controller,
-        hidden_master: &hidden_master,
-    });
+        &dominant,
+        &orbital_controller,
+        &hidden_master,
+    );
 
     SystemControlSummary {
         state: Some(state),
@@ -530,28 +531,17 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     }
 }
 
-struct SystemStateParams<'a> {
-    sys: &'a GeneratedSystem,
+#[allow(clippy::too_many_arguments)]
+fn classify_system_state(
+    sys: &GeneratedSystem,
     populated_worlds: u32,
     contested_worlds: u32,
     warzone_signal: u32,
     quarantined: bool,
-    dominant: &'a Option<FactionId>,
-    orbital_controller: &'a Option<FactionId>,
-    hidden_master: &'a Option<FactionId>,
-}
-
-fn classify_system_state(params: SystemStateParams) -> SystemState {
-    let SystemStateParams {
-        sys,
-        populated_worlds,
-        contested_worlds,
-        warzone_signal,
-        quarantined,
-        dominant,
-        orbital_controller,
-        hidden_master,
-    } = params;
+    dominant: &Option<FactionId>,
+    orbital_controller: &Option<FactionId>,
+    hidden_master: &Option<FactionId>,
+) -> SystemState {
     if quarantined {
         return SystemState::Quarantined;
     }
@@ -636,21 +626,8 @@ pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<FactionI
 }
 
 fn strategic_value(w: &GeneratedWorld) -> f32 {
-    let pop: f32 = match w.world.population {
-        crate::worlds::Population::Uninhabited => 0.0,
-        crate::worlds::Population::Minimal => 1.0,
-        crate::worlds::Population::SoleSettlement => 2.0,
-        crate::worlds::Population::LightlyPopulated => 3.0,
-        crate::worlds::Population::DenselyPopulated => 4.0,
-        crate::worlds::Population::ExtremelyDense => 5.0,
-    };
-    let tech: f32 = match w.world.tech_level {
-        crate::worlds::TechLevel::Primitive => 0.0,
-        crate::worlds::TechLevel::Low => 1.0,
-        crate::worlds::TechLevel::Standard => 2.0,
-        crate::worlds::TechLevel::High => 3.0,
-        crate::worlds::TechLevel::Archaeotech | crate::worlds::TechLevel::XenoHybrid => 4.0,
-    };
+    let pop = population_rank(&w.world.population) as f32;
+    let tech = tech_rank(&w.world.tech_level) as f32;
     (1.0_f32 + pop + tech).max(0.5)
 }
 
@@ -1181,16 +1158,7 @@ mod tests {
         let dominant: Option<FactionId> = Some("a".into());
         let orbital: Option<FactionId> = Some("b".into());
         let none: Option<FactionId> = None;
-        let state = classify_system_state(SystemStateParams {
-            sys: &sys,
-            populated_worlds: 1,
-            contested_worlds: 0,
-            warzone_signal: 0,
-            quarantined: false,
-            dominant: &dominant,
-            orbital_controller: &orbital,
-            hidden_master: &none,
-        });
+        let state = classify_system_state(&sys, 1, 0, 0, false, &dominant, &orbital, &none);
         assert_eq!(state, SystemState::Blockaded);
     }
 
@@ -1216,16 +1184,7 @@ mod tests {
             ],
         );
         let none: Option<FactionId> = None;
-        let state = classify_system_state(SystemStateParams {
-            sys: &sys,
-            populated_worlds: 2,
-            contested_worlds: 0,
-            warzone_signal: 0,
-            quarantined: false,
-            dominant: &none,
-            orbital_controller: &none,
-            hidden_master: &none,
-        });
+        let state = classify_system_state(&sys, 2, 0, 0, false, &none, &none, &none);
         assert_eq!(state, SystemState::Fragmented);
     }
 }

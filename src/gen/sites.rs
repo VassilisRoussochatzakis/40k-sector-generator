@@ -227,11 +227,10 @@ fn emit_world_sites(
         let controlling = region
             .and_then(|r| r.dominant.clone())
             .or_else(|| w.control.dominant.clone());
-        let hidden = HiddenPresence::from_flag(
-            w.factions
-                .iter()
-                .any(|p| matches!(p.influence, FactionInfluence::Hidden)),
-        );
+        let hidden = w
+            .factions
+            .iter()
+            .any(|p| matches!(p.influence, FactionInfluence::Hidden));
         let actual_status = status_from_world(kind, w, hidden, &mut rng);
         let public_status = mask_status(actual_status, kind, hidden);
         let name = site_name(kind, w, &mut rng);
@@ -360,32 +359,10 @@ fn preferred_region(kind: SiteKind) -> Option<RegionKind> {
 
 // ── Status / mask ──────────────────────────────────────────────────────────────
 
-/// Whether a Hidden-tier faction presence sits on a world. Replaces positional
-/// `bool` arguments so call sites read self-documenting.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum HiddenPresence {
-    Absent,
-    Present,
-}
-
-impl HiddenPresence {
-    fn from_flag(present: bool) -> Self {
-        if present {
-            Self::Present
-        } else {
-            Self::Absent
-        }
-    }
-
-    fn is_present(self) -> bool {
-        matches!(self, Self::Present)
-    }
-}
-
 fn status_from_world(
     kind: SiteKind,
     w: &GeneratedWorld,
-    hidden: HiddenPresence,
+    hidden: bool,
     rng: &mut impl Rng,
 ) -> SiteStatus {
     use SiteKind::*;
@@ -405,7 +382,7 @@ fn status_from_world(
     if w.control.contested {
         return SiteStatus::Contested;
     }
-    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden.is_present() {
+    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden {
         return SiteStatus::Active;
     }
     if matches!(kind, QuarantineZone) {
@@ -421,9 +398,9 @@ fn status_from_world(
 }
 
 /// Player-side "public_status" — covers up hidden activity.
-fn mask_status(actual: SiteStatus, kind: SiteKind, hidden: HiddenPresence) -> SiteStatus {
+fn mask_status(actual: SiteStatus, kind: SiteKind, hidden: bool) -> SiteStatus {
     use SiteKind::*;
-    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden.is_present() {
+    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden {
         return SiteStatus::Abandoned;
     }
     if matches!(kind, TombComplex) {

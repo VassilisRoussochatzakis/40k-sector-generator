@@ -1,7 +1,6 @@
 //! Per-region emission: warp phenomena → chronicle entries.
 
-use super::build::build_event;
-use super::context::EmitContext;
+use super::build::{build_event, EmitContext};
 use super::model::{
     EventKind, HistoryAnchor, HistoryConsequence, HistoryConsequenceKind, HistoryEvent,
 };

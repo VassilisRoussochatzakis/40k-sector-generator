@@ -20,10 +20,11 @@
 //! * `confidence` — `avg(visibility)` for the faction across the
 //!   endpoints; what observers actually know about the faction's traffic.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+use super::stability::{clamp, kind_map, world_has_tag};
 use crate::sector_model::{GeneratedFaction, GeneratedRoute, GeneratedSystem};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -35,10 +36,6 @@ pub struct RouteControl {
     pub piracy: f32,
     pub secrecy: f32,
     pub confidence: f32,
-}
-
-fn clamp(v: f32) -> f32 {
-    v.clamp(0.0, 100.0)
 }
 
 #[derive(Default, Clone, Copy)]
@@ -74,41 +71,22 @@ fn endpoint_aggregates(sys: &GeneratedSystem) -> BTreeMap<&str, Aggregate> {
     m
 }
 
+/// Mean of the endpoints the faction is present on. A missing endpoint is
+/// `Aggregate::default()` (all zero, `count == 0`), so summing it adds nothing.
 fn merge_endpoints(a: Aggregate, b: Aggregate) -> Aggregate {
-    let mut out = Aggregate::default();
-    let mut n = 0.0;
-    if a.count > 0.0 {
-        out.military += a.military;
-        out.economic += a.economic;
-        out.covert += a.covert;
-        out.visibility += a.visibility;
-        n += 1.0;
+    let n = f32::from(u8::from(a.count > 0.0) + u8::from(b.count > 0.0));
+    let mean = |x: f32, y: f32| (x + y) / n.max(1.0);
+    Aggregate {
+        military: mean(a.military, b.military),
+        economic: mean(a.economic, b.economic),
+        covert: mean(a.covert, b.covert),
+        visibility: mean(a.visibility, b.visibility),
+        count: n,
     }
-    if b.count > 0.0 {
-        out.military += b.military;
-        out.economic += b.economic;
-        out.covert += b.covert;
-        out.visibility += b.visibility;
-        n += 1.0;
-    }
-    if n > 0.0 {
-        out.military /= n;
-        out.economic /= n;
-        out.covert /= n;
-        out.visibility /= n;
-    }
-    out.count = n;
-    out
 }
 
 fn endpoint_has_tag(sys: &GeneratedSystem, needle: &str) -> bool {
-    sys.worlds.iter().any(|w| {
-        w.tags.iter().any(|t| t.contains(needle))
-            || w.world
-                .notable_features
-                .iter()
-                .any(|f| f.as_ref().contains(needle))
-    })
+    sys.worlds.iter().any(|w| world_has_tag(w, needle))
 }
 
 fn derive_one(
@@ -228,21 +206,12 @@ pub fn derive_route_controls(
     let quarantined = endpoint_has_tag(a, "quarantined") || endpoint_has_tag(b, "quarantined");
     let war_zone = endpoint_has_tag(a, "war_zone") || endpoint_has_tag(b, "war_zone");
 
-    let kind_of: BTreeMap<&str, &str> = factions
-        .iter()
-        .map(|f| (f.id.as_ref(), f.kind.as_slug()))
-        .collect();
+    let kind_of = kind_map(factions);
 
-    let mut ids: BTreeMap<&str, ()> = BTreeMap::new();
-    for k in agg_a.keys() {
-        ids.insert(k, ());
-    }
-    for k in agg_b.keys() {
-        ids.insert(k, ());
-    }
+    let ids: BTreeSet<&str> = agg_a.keys().chain(agg_b.keys()).copied().collect();
 
     let mut out: Vec<RouteControl> = Vec::with_capacity(ids.len());
-    for (id, _) in ids {
+    for id in ids {
         let ea = agg_a.get(id).copied().unwrap_or_default();
         let eb = agg_b.get(id).copied().unwrap_or_default();
         let merged = merge_endpoints(ea, eb);

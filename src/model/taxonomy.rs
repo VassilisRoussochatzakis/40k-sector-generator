@@ -20,44 +20,25 @@ pub fn to_snake_case(name: &str) -> String {
     out
 }
 
-pub fn star_colour_variant_name(sc: StarColour) -> &'static str {
-    match sc {
-        StarColour::BlueHypergiant => "BlueHypergiant",
-        StarColour::BlueWhite => "BlueWhite",
-        StarColour::White => "White",
-        StarColour::YellowWhite => "YellowWhite",
-        StarColour::Yellow => "Yellow",
-        StarColour::OrangeDwarf => "OrangeDwarf",
-        StarColour::RedDwarf => "RedDwarf",
-    }
+/// The variant whose derived-`Debug` spelling (the Rust identifier) is `s`.
+fn parse_variant<T: Clone + std::fmt::Debug>(variants: &[T], s: &str) -> Option<T> {
+    variants.iter().find(|v| format!("{v:?}") == s).cloned()
 }
 
 pub fn parse_star_colour_variant(s: &str) -> Option<StarColour> {
-    StarColour::VARIANTS
-        .iter()
-        .copied()
-        .find(|v| star_colour_variant_name(*v) == s)
+    parse_variant(StarColour::VARIANTS, s)
 }
 
 pub fn parse_world_type_variant(s: &str) -> Option<WorldType> {
-    WorldType::VARIANTS
-        .iter()
-        .find(|v| format!("{v:?}") == s)
-        .cloned()
+    parse_variant(WorldType::VARIANTS, s)
 }
 
 pub fn parse_government_variant(s: &str) -> Option<Government> {
-    Government::VARIANTS
-        .iter()
-        .find(|v| format!("{v:?}") == s)
-        .cloned()
+    parse_variant(Government::VARIANTS, s)
 }
 
 pub fn parse_notable_feature_variant(s: &str) -> Option<NotableFeature> {
-    NotableFeature::VARIANTS
-        .iter()
-        .find(|v| AsRef::<str>::as_ref(*v) == s)
-        .cloned()
+    parse_variant(NotableFeature::VARIANTS, s)
 }
 
 #[cfg(test)]
@@ -84,12 +65,12 @@ mod tests {
     /// matching arm here would otherwise silently parse to `None` with no
     /// compile error. `WorldType`/`Government`/`NotableFeature` `Display` is the
     /// `{:?}` variant name (the parse keys); `StarColour::Display` is the short
-    /// code, so its round-trip pairs `star_colour_variant_name` with the parser.
+    /// code, so its round-trip keys on `{:?}` directly.
     #[test]
     fn parse_tables_cover_all_variants() {
         for v in StarColour::VARIANTS {
             assert_eq!(
-                parse_star_colour_variant(star_colour_variant_name(*v)),
+                parse_star_colour_variant(&format!("{v:?}")),
                 Some(*v),
                 "StarColour::{v:?} missing from parse_star_colour_variant"
             );

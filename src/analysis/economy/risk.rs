@@ -111,10 +111,10 @@ pub(super) fn world_tithe_status(w: &GeneratedWorld, we: &WorldEconomy) -> Tithe
 
 pub(super) fn system_tithe_status(
     sy: &SystemEconomy,
-    world_count: usize,
     sys_ref: Option<&crate::sector_model::GeneratedSystem>,
 ) -> TitheStatus {
-    let avg_score = sy.strategic_output.weighted_priority_score() / world_count.max(1) as f32;
+    let world_count = sys_ref.map_or(0, |s| s.worlds.len()).max(1);
+    let avg_score = sy.strategic_output.weighted_priority_score() / world_count as f32;
     let stress = sys_ref
         .map(|s| {
             (s.conflict.intensity as f32).mul_add(

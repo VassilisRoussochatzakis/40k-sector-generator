@@ -10,27 +10,17 @@
 //!
 //! Run with: `cargo bench --bench briefing`
 
+mod common;
+
 use std::hint::black_box;
 
-use camino::Utf8PathBuf;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use sectorforge::briefing::{self, AudiencePreset};
-use sectorforge::{generate_sector, load_project, GeneratedSector};
-
-fn project_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
-/// One fixed, deterministic sector for every briefing measurement so the
-/// generation cost stays out of the numbers. Fixed seed comes from the
-/// checked-in `examples/m42_project` config.
-fn fixture() -> GeneratedSector {
-    generate_sector(load_project(project_dir()).expect("load m42_project"))
-        .expect("generate fixture")
-}
+use sectorforge::generate_sector;
 
 fn bench_apply(c: &mut Criterion) {
-    let sector = fixture();
+    // One fixed m42 sector, generated outside the timed loop.
+    let sector = generate_sector(common::load()).expect("generate fixture");
     let mut group = c.benchmark_group("briefing_apply");
     // GmFullTruth: no preset overrides, so this measures the whole-sector
     // clone plus the unavoidable per-system intel clears — the floor cost

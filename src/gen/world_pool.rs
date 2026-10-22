@@ -4,10 +4,9 @@ use std::collections::BTreeMap;
 
 use crate::config::WorldSelectionConfig;
 use crate::errors::SectorError;
-use crate::taxonomy;
 use crate::worlds::{
-    Atmosphere, Biosphere, GenerationRow, Government, KeyTables, NotableFeature, Population,
-    StarColour, TechLevel, Temperature, World, WorldType,
+    Atmosphere, Biosphere, GenerationRow, Government, NotableFeature, Population, StarColour,
+    TechLevel, Temperature, World, WorldType,
 };
 
 #[derive(Debug, Clone)]
@@ -22,7 +21,6 @@ pub struct WorldCandidate {
     pub tech_level: TechLevel,
     pub government: Government,
     pub primary_feature: Option<NotableFeature>,
-    pub counter: Option<usize>,
     pub weight: f64,
 }
 
@@ -95,11 +93,7 @@ pub struct WeightedFeature {
 /// Only fully resolved rows with positive finite weights become candidates;
 /// any row missing a required field or carrying a non-positive/non-finite
 /// weight is reported via `excluded_rows`.
-pub fn build_pool(
-    rows: &[GenerationRow],
-    tables: &KeyTables,
-    _cfg: &WorldSelectionConfig,
-) -> WorldCandidatePool {
+pub fn build_pool(rows: &[GenerationRow], _cfg: &WorldSelectionConfig) -> WorldCandidatePool {
     let mut pool = WorldCandidatePool::default();
 
     for (row_index, row) in rows.iter().enumerate() {
@@ -173,7 +167,6 @@ pub fn build_pool(
                 .clone()
                 .expect("invariant: government checked by first_missing_field"),
             primary_feature: row.notable_feature.clone(),
-            counter: row.counter,
             weight,
         };
 
@@ -198,15 +191,9 @@ pub fn build_pool(
         pool.candidates.push(cand);
     }
 
-    // Populate key_table_features from the Key sheet so partial pools can still
-    // pull from a full notable-feature vocabulary.
-    for name in &tables.notable_features {
-        if let Some(f) = taxonomy::parse_notable_feature_variant(name)
-            .or_else(|| name.parse::<NotableFeature>().ok())
-        {
-            pool.feature_pool.key_table_features.push(f);
-        }
-    }
+    // Full notable-feature vocabulary so partial pools can still draw from it;
+    // `VARIANTS` order is the `pick_features` draw order.
+    pool.feature_pool.key_table_features = NotableFeature::VARIANTS.to_vec();
 
     pool.star_colour_weights = star_colour_weights(&pool.candidates);
 
@@ -311,21 +298,21 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
             source,
         }
     })?;
-    let (tables, rows) = (load.tables, load.rows);
+    let rows = load.rows;
 
     let cfg = WorldSelectionConfig::default();
-    let pool = build_pool(&rows, &tables, &cfg);
+    let pool = build_pool(&rows, &cfg);
 
     let key_counts: BTreeMap<String, usize> = [
-        ("star_colours", tables.star_colours.len()),
-        ("world_types", tables.world_types.len()),
-        ("atmospheres", tables.atmospheres.len()),
-        ("temperatures", tables.temperatures.len()),
-        ("biospheres", tables.biospheres.len()),
-        ("populations", tables.populations.len()),
-        ("tech_levels", tables.tech_levels.len()),
-        ("governments", tables.governments.len()),
-        ("notable_features", tables.notable_features.len()),
+        ("star_colours", StarColour::VARIANTS.len()),
+        ("world_types", WorldType::VARIANTS.len()),
+        ("atmospheres", Atmosphere::VARIANTS.len()),
+        ("temperatures", Temperature::VARIANTS.len()),
+        ("biospheres", Biosphere::VARIANTS.len()),
+        ("populations", Population::VARIANTS.len()),
+        ("tech_levels", TechLevel::VARIANTS.len()),
+        ("governments", Government::VARIANTS.len()),
+        ("notable_features", NotableFeature::VARIANTS.len()),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v))
@@ -336,7 +323,7 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     let mut feat_counts: BTreeMap<String, usize> = BTreeMap::new();
 
     for c in &pool.candidates {
-        let sc_name = taxonomy::star_colour_variant_name(c.star_colour).to_string();
+        let sc_name = format!("{:?}", c.star_colour);
         *star_totals.entry(sc_name).or_insert(0.0) += c.weight;
         *wt_totals.entry(c.world_type.to_string()).or_insert(0.0) += c.weight;
         if let Some(f) = &c.primary_feature {
@@ -389,7 +376,6 @@ mod tests {
             tech: Some(TechLevel::Standard),
             government: Some(Government::MilitaryGovernor),
             notable_feature: Some(NotableFeature::TradeHub),
-            counter: Some(1),
             weight,
         }
     }
@@ -403,8 +389,7 @@ mod tests {
     #[test]
     fn world_pool_excludes_rows_missing_weight() {
         let rows = vec![row(None), row(Some(1.0))];
-        let tables = KeyTables::default();
-        let pool = build_pool(&rows, &tables, &WorldSelectionConfig::default());
+        let pool = build_pool(&rows, &WorldSelectionConfig::default());
         assert_eq!(pool.candidates.len(), 1);
         assert_eq!(pool.excluded_rows.len(), 1);
         assert_eq!(pool.excluded_rows[0].reason, ExclusionReason::MissingWeight);
@@ -413,11 +398,7 @@ mod tests {
     #[test]
     fn world_pool_excludes_rows_with_zero_or_negative_weight() {
         let rows = vec![row(Some(0.0)), row(Some(-1.5)), row(Some(2.0))];
-        let pool = build_pool(
-            &rows,
-            &KeyTables::default(),
-            &WorldSelectionConfig::default(),
-        );
+        let pool = build_pool(&rows, &WorldSelectionConfig::default());
         assert_eq!(pool.candidates.len(), 1);
         assert_eq!(pool.excluded_rows.len(), 2);
     }
@@ -425,11 +406,7 @@ mod tests {
     #[test]
     fn world_pool_requires_complete_rows_when_strict() {
         let rows = vec![missing_pop_row(), row(Some(1.0))];
-        let pool = build_pool(
-            &rows,
-            &KeyTables::default(),
-            &WorldSelectionConfig::default(),
-        );
+        let pool = build_pool(&rows, &WorldSelectionConfig::default());
         assert_eq!(pool.candidates.len(), 1);
         assert_eq!(pool.excluded_rows.len(), 1);
     }
@@ -437,11 +414,7 @@ mod tests {
     #[test]
     fn world_candidate_to_world_preserves_fields() {
         let rows = vec![row(Some(1.0))];
-        let pool = build_pool(
-            &rows,
-            &KeyTables::default(),
-            &WorldSelectionConfig::default(),
-        );
+        let pool = build_pool(&rows, &WorldSelectionConfig::default());
         let cand = &pool.candidates[0];
         let features = vec![NotableFeature::TradeHub, NotableFeature::PoliceState];
         let w = cand.to_world(features.clone());
@@ -455,11 +428,7 @@ mod tests {
         let mut blue = row(Some(2.5));
         blue.star_colour = Some(StarColour::BlueWhite);
         let rows = vec![row(Some(1.0)), blue, row(Some(3.0))];
-        let pool = build_pool(
-            &rows,
-            &KeyTables::default(),
-            &WorldSelectionConfig::default(),
-        );
+        let pool = build_pool(&rows, &WorldSelectionConfig::default());
         assert_eq!(
             pool.star_colour_weights,
             vec![(StarColour::BlueWhite, 2.5), (StarColour::RedDwarf, 4.0)]

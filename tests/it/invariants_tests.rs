@@ -1,10 +1,8 @@
 //! Post-generation invariant checks (spec §11.11) and standalone APIs.
 
-use camino::Utf8PathBuf;
-
 use sectorforge::sector_model::{HexCoord, RouteStability, RouteType};
 
-use crate::shared::{fixture_dir as fixture_project, fixture_sector};
+use crate::shared::{fixture_dir as fixture_project, fixture_sector, tempdir_utf8};
 
 #[test]
 fn generated_sector_passes_invariants() {
@@ -18,22 +16,10 @@ fn generated_sector_passes_invariants() {
 }
 
 #[test]
-fn sector_round_trips_through_json() {
-    let sector = fixture_sector();
-    let text = serde_json::to_string(sector).unwrap();
-    let parsed: sectorforge::GeneratedSector = serde_json::from_str(&text).unwrap();
-    assert_eq!(parsed.id, sector.id);
-    assert_eq!(parsed.systems.len(), sector.systems.len());
-    assert_eq!(parsed.routes.len(), sector.routes.len());
-    assert_eq!(parsed.manifest.world_count, sector.manifest.world_count);
-}
-
-#[test]
 fn sector_serde_is_idempotent() {
-    // Stronger than `sector_round_trips_through_json`: re-serialising a parse of
-    // the first serialisation must byte-equal the first. This catches a field
-    // silently dropped on load (e.g. a missing `#[serde(default)]`) that the
-    // shallow round-trip would not notice.
+    // Re-serialising a parse of the first serialisation must byte-equal the
+    // first. This catches a field silently dropped on load (e.g. a missing
+    // `#[serde(default)]`) that a shallow round-trip would not notice.
     let sector = fixture_sector();
     let once = serde_json::to_string(sector).unwrap();
     let parsed: sectorforge::GeneratedSector = serde_json::from_str(&once).unwrap();
@@ -109,11 +95,15 @@ fn invariants_detect_unknown_faction_in_world() {
         .any(|v| v.code == "WORLD_FACTION_MISSING_SUMMARY"));
 }
 
+/// `generate_system_standalone` on a fresh load of the m42 fixture.
+fn standalone(index: usize, coord: HexCoord) -> sectorforge::GeneratedSystem {
+    let input = sectorforge::load_project(fixture_project()).unwrap();
+    sectorforge::generate_system_standalone(input, index, coord).unwrap()
+}
+
 #[test]
 fn generate_system_standalone_succeeds() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sys = sectorforge::generate_system_standalone(input, 1, HexCoord { q: 0, r: 0 }).unwrap();
+    let sys = standalone(1, HexCoord { q: 0, r: 0 });
     assert_eq!(sys.id, "sys-0001");
     assert_eq!(sys.index, 1);
     assert!(!sys.worlds.is_empty());
@@ -142,19 +132,8 @@ fn generate_system_standalone_succeeds() {
 
 #[test]
 fn generate_system_standalone_is_deterministic() {
-    let project = fixture_project();
-    let a = sectorforge::generate_system_standalone(
-        sectorforge::load_project(&project).unwrap(),
-        2,
-        HexCoord { q: 1, r: 1 },
-    )
-    .unwrap();
-    let b = sectorforge::generate_system_standalone(
-        sectorforge::load_project(&project).unwrap(),
-        2,
-        HexCoord { q: 1, r: 1 },
-    )
-    .unwrap();
+    let a = standalone(2, HexCoord { q: 1, r: 1 });
+    let b = standalone(2, HexCoord { q: 1, r: 1 });
     let a_text = serde_json::to_string(&a).unwrap();
     let b_text = serde_json::to_string(&b).unwrap();
     assert_eq!(a_text, b_text);
@@ -162,19 +141,8 @@ fn generate_system_standalone_is_deterministic() {
 
 #[test]
 fn generate_system_standalone_different_index_differs() {
-    let project = fixture_project();
-    let a = sectorforge::generate_system_standalone(
-        sectorforge::load_project(&project).unwrap(),
-        1,
-        HexCoord { q: 0, r: 0 },
-    )
-    .unwrap();
-    let b = sectorforge::generate_system_standalone(
-        sectorforge::load_project(&project).unwrap(),
-        7,
-        HexCoord { q: 0, r: 0 },
-    )
-    .unwrap();
+    let a = standalone(1, HexCoord { q: 0, r: 0 });
+    let b = standalone(7, HexCoord { q: 0, r: 0 });
     // IDs derived from index.
     assert_eq!(a.id, "sys-0001");
     assert_eq!(b.id, "sys-0007");
@@ -188,8 +156,7 @@ fn generate_system_standalone_different_index_differs() {
 #[test]
 fn render_markdown_round_trips_from_loaded_sector() {
     let sector = fixture_sector();
-    let tmp = tempfile::tempdir().unwrap();
-    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, tmp_path) = tempdir_utf8();
     let json_path = tmp_path.join("sector.json");
     sectorforge::write_sector_json(&json_path, sector).unwrap();
 

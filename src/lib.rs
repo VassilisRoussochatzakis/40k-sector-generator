@@ -77,9 +77,9 @@ pub mod validate;
 // intentional — it makes the parent layout the single source of truth.
 //
 // These re-export whole modules, including pipeline internals. New code should
-// prefer the curated crate-root names below (`generate_sector*`, `build_pool`,
-// `regenerate_world_payload`, etc.) over reaching through `sectorforge::generation::*`
-// / `sectorforge::world_pool::*`. Many of those names are `pub use` re-exports
+// prefer the curated crate-root names below (`generate_sector*` etc.) over
+// reaching through `sectorforge::generation::*` / `sectorforge::world_pool::*`.
+// Many of those names are `pub use` re-exports
 // (several renamed with `as`, e.g. `generation::generate as generate_sector`):
 // they fix the public name but not the signature, so changing the internal fn's
 // signature is a public API change.
@@ -138,7 +138,7 @@ pub use export::subsectors;
 pub use export::svg_export;
 pub use export::system_map;
 // `crate::export` already resolves to the parent module of the same name; its
-// `pub use writers::*` hoist preserves `crate::export::export_all` etc.
+// `pub use writers::*` hoist preserves `crate::export::export_all_with_progress` etc.
 
 pub use validate::diff;
 pub use validate::invariants;
@@ -148,31 +148,12 @@ pub use validate::validation;
 
 pub use config::AppConfig;
 pub use conflict::{advance_sector, ConflictState, HYSTERESIS_TICKS};
-pub use economy::{
-    load_economy_file, DependencyEdge, EconomyConfig, EconomyFile, EconomyReport,
-    ResourceModelConfig, ResourceVector, RouteEconomy, StrategicOutput, StrategicOutputRule,
-    StrategicPriority, SupplyRisk, SystemEconomy, TitheStatus, WorldEconomy,
-};
 pub use errors::SectorError;
 pub use export::ExportProgress;
 pub use generation::SectorProgress;
 pub use generation::{generate_prefix, RerollNonces, Stage};
-pub use history::{
-    HistoryConfig, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind, HistoryEntityRef,
-    HistoryEra, HistoryEvent, HistoryEventRule, HistoryFile, HistoryReport, SectorChronicle,
-};
 pub use input::{ProjectCatalogs, ProjectInput};
 pub use invariants::{InvariantReport, InvariantViolation};
-pub use map_theme::{
-    resolve_map_theme, LabelDensity, LegendStyle, MapTheme, MapThemeConfig, RouteLineMode,
-    SymbolSet, BUILTIN_THEME_NAMES,
-};
-pub use regions::{RegionConditionKind, RegionsConfig, RegionsFile, WarpRegion};
-pub use relations::{
-    load_relations_file, DirectionalRelation, FactionRelation, RelationAttitude, RelationMetrics,
-    RelationOverride, RelationsConfig, RelationsFile, RelationsMatrix, RelationsReport, Stance,
-    TreatyStatus,
-};
 pub use sector_model::mutation::MutationError;
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord, SystemGlyph};
 pub use segmentum::{
@@ -345,7 +326,6 @@ pub fn generate_system_standalone(
     }
     let mut pool = world_pool::build_pool(
         &project.catalogs.world_rows,
-        &project.catalogs.world_tables,
         &project.config.generation.world_selection,
     );
     if let Some(features) = &project.catalogs.authored_features {
@@ -373,41 +353,6 @@ pub fn generate_system_standalone(
     sys = single[0].clone();
     Ok(sys)
 }
-
-// ── Engine generation API: world-pool building + single-world reroll ─────────
-// Sanctioned crate-root surface for the GUIs' in-place editing paths. The
-// builder/viewer rebuild a candidate pool (`build_pool` + `apply_authored_features`,
-// always used as a pair) to drive feature-weight previews, and reroll a single
-// world's payload (`regenerate_world_payload`) on a user click. Routed through
-// the crate root here so a refactor of `gen::world_pool` / `gen::generation`
-// internals is caught by `cargo check` against these names instead of silently
-// breaking two downstream crates. The argument/return types resolve through the
-// existing module aliases above (e.g. `world_pool::WorldCandidatePool`); these
-// re-exports add no new type surface and change no behaviour.
-
-/// §W: build a [`world_pool::WorldCandidatePool`] from raw generation rows.
-///
-/// Only fully resolved rows with positive finite weights become candidates;
-/// the rest land in `excluded_rows`. Almost always paired with
-/// [`apply_authored_features`].
-pub use world_pool::build_pool;
-
-/// §W: fold a project's authored feature pool into a [`world_pool::WorldCandidatePool`]
-/// in place. The companion to [`build_pool`] — call it immediately after when
-/// `ProjectCatalogs::authored_features` is present.
-pub use world_pool::apply_authored_features;
-
-/// §W4: re-roll one world's payload (`WorldDto`, source-row index, tags) against
-/// a candidate pool. Pure: a function of the seed plus inputs. The GUIs bump
-/// `seed_discriminator` per click so repeated rerolls of the same world yield
-/// distinct outcomes without disturbing the rest of the sector.
-///
-/// # Errors
-///
-/// Propagates [`SectorError::WeightedSelectionFailed`] when the weighted
-/// candidate draw cannot complete (e.g. the pool is empty for the given star
-/// colour).
-pub use generation::regenerate_world_payload;
 
 /// Spec §12: deterministic Markdown overview for a generated sector.
 pub use render::render_sector_markdown;
@@ -506,7 +451,7 @@ pub fn export_sector(
     output_config: &config::OutputConfig,
     output_dir: impl AsRef<Utf8Path>,
 ) -> Result<(), SectorError> {
-    export::export_all(sector, output_config, output_dir.as_ref())
+    export::export_all_with_progress(sector, output_config, output_dir.as_ref(), &mut |_| {})
 }
 
 /// Like [`export_sector`], but reports progress through `on_progress` — chiefly
@@ -688,10 +633,6 @@ pub fn write_relations(
     relations::write_report(output_dir.as_ref(), report)
 }
 
-/// §5 NEW.md: build the regional warp-phenomena overlay for a sector grid.
-/// `cfg.enabled = false` returns an empty list (the default).
-pub use regions::build_regions;
-
 /// §5 NEW.md: write `regions.md` + `regions.json` into a directory.
 ///
 /// # Errors
@@ -738,9 +679,6 @@ pub fn write_segmentum(
 ) -> Result<(), SectorError> {
     segmentum::write_report(output_dir.as_ref(), seg)
 }
-
-/// §18 NEW2.md: derive an interestingness scorecard for a sector.
-pub use interestingness::derive as derive_interestingness;
 
 /// §18 NEW2.md: derive with explicit config.
 pub use interestingness::derive_with as derive_interestingness_with;

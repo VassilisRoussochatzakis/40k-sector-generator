@@ -134,11 +134,11 @@ fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
                             *p,
                             profile_label(*p),
                         )
-                        .on_hover_text(profile_key(*p));
+                        .on_hover_text(p.as_slug());
                     }
                 })
                 .response
-                .on_hover_text(profile_key(state.interestingness_panel.profile));
+                .on_hover_text(state.interestingness_panel.profile.as_slug());
             if state.interestingness_panel.profile != prev {
                 state.interestingness_panel.report = None;
                 state.interestingness_panel.custom_pick.clear();
@@ -210,7 +210,7 @@ fn build_config(state: &BuilderState) -> InterestingnessConfig {
     if let Some(overrides) = state
         .interestingness_panel
         .custom_overrides
-        .get(profile_key(state.interestingness_panel.profile))
+        .get(state.interestingness_panel.profile.as_slug())
     {
         cfg.custom = overrides.clone();
     }
@@ -306,7 +306,7 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     show_add_override_row(ui, state);
 
-    let key = profile_key(state.interestingness_panel.profile).to_string();
+    let key = state.interestingness_panel.profile.as_slug().to_string();
     let entries: Vec<(String, MetricTarget)> = state
         .interestingness_panel
         .custom_overrides
@@ -412,7 +412,7 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
 fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
         ui.label("Tweak a metric:");
-        let key = profile_key(state.interestingness_panel.profile).to_string();
+        let key = state.interestingness_panel.profile.as_slug().to_string();
         let already: Vec<&'static str> = METRIC_CATALOG
             .iter()
             .copied()
@@ -552,17 +552,6 @@ fn profile_blurb(p: ProfileId) -> &'static str {
     }
 }
 
-fn profile_key(p: ProfileId) -> &'static str {
-    match p {
-        ProfileId::PoliticalSandbox => "political_sandbox",
-        ProfileId::GrimCollapse => "grim_collapse",
-        ProfileId::Mercantile => "mercantile",
-        ProfileId::Villainous => "villainous",
-        ProfileId::Frontier => "frontier",
-        _ => "unknown",
-    }
-}
-
 fn overall_color(overall: u8) -> Color32 {
     if overall >= 75 {
         palette::success()
@@ -615,7 +604,7 @@ mod tests {
     #[test]
     fn build_config_layers_per_profile_overrides() {
         let mut state = seeded_state();
-        let key = profile_key(state.interestingness_panel.profile).to_string();
+        let key = state.interestingness_panel.profile.as_slug().to_string();
         let mut over = BTreeMap::new();
         over.insert(
             "faction_gini".to_string(),
@@ -645,7 +634,7 @@ mod tests {
         rescore(&mut state);
         assert!(state.interestingness_panel.report.is_some());
 
-        let key = profile_key(state.interestingness_panel.profile).to_string();
+        let key = state.interestingness_panel.profile.as_slug().to_string();
         state
             .interestingness_panel
             .custom_overrides

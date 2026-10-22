@@ -4,15 +4,13 @@
 //! post-generation derivations populated), determinism (same seed ⇒
 //! byte-identical), the CLI `random` subcommand, and the `_full` preset.
 
-use std::process::Command;
-
 use camino::Utf8PathBuf;
 use sectorforge::random_sector::{
-    build_random_config, generate_random_sector, generate_random_sector_from, mint_seed,
-    RandomReport, SectorSize,
+    build_random_config, generate_random_sector_from, mint_seed, RandomReport, SectorSize,
+    FULL_PRESET_ID,
 };
 
-use crate::shared::presets_dir;
+use crate::shared::{presets_dir, run_cli_ok};
 
 /// The four themed gallery presets, all usable as `random --baseline` sources.
 const THEMED_BASELINES: [&str; 4] = [
@@ -51,6 +49,9 @@ fn assert_complete(report: &RandomReport, size: SectorSize) {
     let tag = size.as_slug();
     let s = &report.sector;
 
+    // The requested side length, on both axes (pins the square invariant).
+    let (dim, _) = size.dims();
+    assert_eq!((s.width, s.height), (dim, dim), "{tag}: wrong dims");
     assert!(!s.systems.is_empty(), "{tag}: no systems");
     assert!(!s.factions.is_empty(), "{tag}: no factions");
     assert!(!s.routes.is_empty(), "{tag}: no routes");
@@ -118,86 +119,55 @@ fn mint_seed_is_16_hex_and_varies() {
 }
 
 #[test]
-fn random_small_and_medium_are_complete() {
+fn random_small_medium_and_custom_are_complete() {
     let dir = presets_dir();
-    if !dir.exists() {
-        eprintln!("presets/ missing — skipping");
-        return;
-    }
     for (size, seed, name) in [
         (SectorSize::Small, "it-small", "s"),
         (SectorSize::Medium, "it-medium", "m"),
+        (SectorSize::Custom { dim: 9 }, "it-custom", "custom"),
     ] {
         let tmp = tempfile::TempDir::new().unwrap();
         let dest = fresh_dest(&tmp, name);
-        let report = generate_random_sector(size, Some(seed.to_string()), &dir, &dest).unwrap();
+        let report =
+            generate_random_sector_from(size, Some(seed.to_string()), FULL_PRESET_ID, &dir, &dest)
+                .unwrap();
         assert_complete(&report, size);
     }
-}
-
-#[test]
-fn random_custom_size_respects_dims() {
-    let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dest = fresh_dest(&tmp, "custom");
-    let size = SectorSize::Custom { dim: 9 };
-    let report = generate_random_sector(size, Some("it-custom".to_string()), &dir, &dest).unwrap();
-    assert_eq!(report.sector.width, 9);
-    assert_eq!(report.sector.height, 9);
-    assert_complete(&report, size);
 }
 
 #[test]
 #[ignore = "perf: Huge generation is slow; run explicitly like the segmentum test"]
 fn random_huge_is_complete() {
     let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = fresh_dest(&tmp, "huge");
-    let report =
-        generate_random_sector(SectorSize::Huge, Some("it-huge".to_string()), &dir, &dest).unwrap();
+    let report = generate_random_sector_from(
+        SectorSize::Huge,
+        Some("it-huge".to_string()),
+        FULL_PRESET_ID,
+        &dir,
+        &dest,
+    )
+    .unwrap();
     assert_complete(&report, SectorSize::Huge);
-}
-
-#[test]
-#[ignore = "perf: 80x80 = 6400 cells; the max supported grid, run explicitly"]
-fn random_max_80x80_completes() {
-    let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dest = fresh_dest(&tmp, "max80");
-    let size = SectorSize::Custom { dim: 80 };
-    let report = generate_random_sector(size, Some("it-80x80".to_string()), &dir, &dest).unwrap();
-    assert_eq!(report.sector.width, 80);
-    assert_eq!(report.sector.height, 80);
-    // The big grid still satisfies every completeness guarantee.
-    assert_complete(&report, size);
 }
 
 #[test]
 fn random_is_byte_deterministic() {
     let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
     let tmp = tempfile::TempDir::new().unwrap();
-    let a = generate_random_sector(
+    let a = generate_random_sector_from(
         SectorSize::Small,
         Some("repro".to_string()),
+        FULL_PRESET_ID,
         &dir,
         &fresh_dest(&tmp, "a"),
     )
     .unwrap();
-    let b = generate_random_sector(
+    let b = generate_random_sector_from(
         SectorSize::Small,
         Some("repro".to_string()),
+        FULL_PRESET_ID,
         &dir,
         &fresh_dest(&tmp, "b"),
     )
@@ -218,44 +188,6 @@ fn random_is_byte_deterministic() {
     );
 }
 
-#[test]
-fn full_preset_loads_validates_and_enables_overlays() {
-    let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
-    let tmp = tempfile::TempDir::new().unwrap();
-    let dest = fresh_dest(&tmp, "full");
-    sectorforge::presets::scaffold(&dir, "_full", &dest, Some("preset-test")).unwrap();
-
-    let input = sectorforge::load_project(&dest).unwrap();
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(
-        report.errors.is_empty(),
-        "_full has validation errors: {:?}",
-        report.errors
-    );
-
-    // Overlays must be enabled in the loaded catalogs (not silently off).
-    assert!(
-        input.catalogs.regions.enabled,
-        "_full regions must be enabled"
-    );
-    assert!(
-        input.catalogs.economy.enabled,
-        "_full economy must be enabled"
-    );
-    assert!(
-        input.catalogs.history.enabled,
-        "_full history must be enabled"
-    );
-
-    // Every [inputs] file resolves on disk.
-    for rel in FULL_INPUT_FILES {
-        assert!(dest.join(rel).exists(), "_full is missing {rel}");
-    }
-}
-
 /// P10 serde-compat guard: every on-disk `route_rules.toml` under `presets/`
 /// and `examples/` must still deserialize now that `RouteCondition`'s fields are
 /// typed enums. A misspelled condition value would make `RouteRulesFile`
@@ -268,9 +200,6 @@ fn all_preset_route_rules_deserialize_under_typed_conditions() {
     let mut checked = 0_usize;
     for base in ["presets", "examples"] {
         let dir = root.join(base);
-        if !dir.exists() {
-            continue;
-        }
         for entry in walkdir(dir.as_std_path()) {
             if entry.file_name().and_then(|n| n.to_str()) != Some("route_rules.toml") {
                 continue;
@@ -302,9 +231,6 @@ fn full_preset_route_rules_map_to_typed_variants() {
 
     let path = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("presets/_full/data/routes/route_rules.toml");
-    if !path.exists() {
-        return;
-    }
     let text = std::fs::read_to_string(&path).unwrap();
     let file: RouteRulesFile = toml::from_str(&text).unwrap();
     let conds: Vec<_> = file.routes.modifiers.iter().map(|m| &m.when).collect();
@@ -345,9 +271,6 @@ fn walkdir(root: &std::path::Path) -> Vec<std::path::PathBuf> {
 #[test]
 fn internal_presets_hidden_from_gallery() {
     let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
     let ids: Vec<String> = sectorforge::presets::list(&dir)
         .unwrap()
         .into_iter()
@@ -360,32 +283,21 @@ fn internal_presets_hidden_from_gallery() {
 #[test]
 fn random_cli_writes_bundle_and_reports() {
     let presets = presets_dir();
-    if !presets.exists() {
-        return;
-    }
     let tmp = tempfile::TempDir::new().unwrap();
     let proj = tmp.path().join("proj"); // must not exist yet
-    let output = Command::new(env!("CARGO_BIN_EXE_sectorforge"))
-        .args([
-            "random",
-            "--size",
-            "small",
-            "--seed",
-            "cli-it",
-            "--out",
-            proj.to_str().unwrap(),
-            "--presets-dir",
-            presets.as_str(),
-            "--formats",
-            "json,markdown",
-        ])
-        .output()
-        .expect("spawn sectorforge random");
-    assert!(
-        output.status.success(),
-        "`sectorforge random` failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    run_cli_ok(&[
+        "random",
+        "--size",
+        "small",
+        "--seed",
+        "cli-it",
+        "--out",
+        proj.to_str().unwrap(),
+        "--presets-dir",
+        presets.as_str(),
+        "--formats",
+        "json,markdown",
+    ]);
 
     let out_dir = proj.join("out");
     for f in [
@@ -406,18 +318,15 @@ fn random_cli_writes_bundle_and_reports() {
     assert!(proj.join("sectorforge.toml").exists());
 }
 
-/// Every themed baseline scaffolds, loads, and validates cleanly, and carries
-/// the full overlay set at the nested `_full`-layout paths the random scaffolder
-/// references — so each one works as a `random --baseline` source. The flat
-/// `_base` copies of relations/regions/economy are *not* enough; the preset must
-/// overlay the nested versions (this test guards that requirement).
+/// `_full` and every themed baseline scaffold, load, and validate cleanly, and
+/// carry the full overlay set at the nested `_full`-layout paths the random
+/// scaffolder references — so each one works as a `random --baseline` source.
+/// The flat `_base` copies of relations/regions/economy are *not* enough; the
+/// preset must overlay the nested versions (this test guards that requirement).
 #[test]
 fn themed_baselines_scaffold_load_validate_and_enable_overlays() {
     let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
-    for preset in THEMED_BASELINES {
+    for preset in std::iter::once(FULL_PRESET_ID).chain(THEMED_BASELINES) {
         let tmp = tempfile::TempDir::new().unwrap();
         let dest = fresh_dest(&tmp, preset);
         sectorforge::presets::scaffold(&dir, preset, &dest, Some("baseline-test")).unwrap();
@@ -457,9 +366,6 @@ fn themed_baselines_scaffold_load_validate_and_enable_overlays() {
 #[test]
 fn random_from_each_themed_baseline_is_complete() {
     let dir = presets_dir();
-    if !dir.exists() {
-        return;
-    }
     for preset in THEMED_BASELINES {
         let tmp = tempfile::TempDir::new().unwrap();
         let dest = fresh_dest(&tmp, preset);

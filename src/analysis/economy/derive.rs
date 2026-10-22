@@ -4,7 +4,6 @@
 //! `economy.toml` loader and the optional famine-stress stability nudge.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 
 use camino::Utf8Path;
 
@@ -36,27 +35,10 @@ use super::tables::{
 /// Returns [`SectorError::ConfigParse`] on malformed TOML and
 /// [`SectorError::Io`] on read failure.
 pub fn load_economy_file(path: &Utf8Path) -> Result<EconomyConfig, SectorError> {
-    if !path.exists() {
-        return Ok(EconomyConfig::default());
-    }
-    let text = fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
-    let parsed: EconomyFile = toml::from_str(&text)
-        .map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))?;
-    Ok(parsed.into_config())
+    crate::analysis::load_toml_or_default(path).map(EconomyFile::into_config)
 }
 
 // ── Derivation ────────────────────────────────────────────────────────────────
-
-#[must_use]
-pub fn derive(sector: &GeneratedSector) -> EconomyReport {
-    derive_with(
-        sector,
-        &EconomyConfig {
-            enabled: true,
-            ..Default::default()
-        },
-    )
-}
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyReport {
@@ -93,16 +75,11 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 .copied()
                 .unwrap_or_else(|| default_population_multiplier(&pop_tag));
             let vector = base.scale(tech * pop);
-            sys_vec = add(&sys_vec, &vector);
-            let (strategic_output, supply_resilience) =
-                derive_world_strategic_output(w, cfg, &pop_tag);
+            sys_vec.add_assign(&vector);
+            let (strategic_output, supply_resilience) = derive_world_strategic_output(w, cfg);
             sys_strategic.add_assign(&strategic_output);
 
-            let shortages: Vec<String> = RESOURCE_KEYS
-                .iter()
-                .filter(|k| vector.get(k) <= -20.0)
-                .map(|k| (*k).to_string())
-                .collect();
+            let shortages = resource_keys_where(&vector, |v| v <= -20.0);
 
             worlds.push(WorldEconomy {
                 system_id: sys.id.clone(),
@@ -117,16 +94,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 shortages,
             });
         }
-        let surplus_resources: Vec<String> = RESOURCE_KEYS
-            .iter()
-            .filter(|k| sys_vec.get(k) >= 20.0)
-            .map(|k| (*k).to_string())
-            .collect();
-        let shortage_resources: Vec<String> = RESOURCE_KEYS
-            .iter()
-            .filter(|k| sys_vec.get(k) <= -20.0)
-            .map(|k| (*k).to_string())
-            .collect();
+        let surplus_resources = resource_keys_where(&sys_vec, |v| v >= 20.0);
+        let shortage_resources = resource_keys_where(&sys_vec, |v| v <= -20.0);
         systems.push(SystemEconomy {
             system_id: sys.id.clone(),
             vector: sys_vec,
@@ -164,14 +133,20 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 .push(r);
         }
     }
-    let dependency_edges =
-        derive_dependency_edges(sector, &systems, &routes, &by_sys, &valid_routes_by_sys);
+    let system_refs: BTreeMap<&str, &crate::sector_model::GeneratedSystem> =
+        sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
+    let dependency_edges = derive_dependency_edges(
+        &system_refs,
+        &systems,
+        &routes,
+        &by_sys,
+        &valid_routes_by_sys,
+    );
 
     // Stranded check: a world is stranded if it has any deficit ≥ 20 and the
     // system also nets a deficit there *and* no inbound route from a surplus
     // system on that resource exists.
-    let mut stranded_world_idx: Vec<usize> = Vec::with_capacity(worlds.len());
-    for (idx, we) in worlds.iter().enumerate() {
+    for we in worlds.iter_mut() {
         let Some(sys) = by_sys.get(we.system_id.as_str()).copied() else {
             continue;
         };
@@ -203,12 +178,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 }
             }
         }
-        if !fix {
-            stranded_world_idx.push(idx);
-        }
-    }
-    for i in stranded_world_idx {
-        worlds[i].stranded = true;
+        we.stranded = !fix;
     }
 
     let world_refs: BTreeMap<&str, &GeneratedWorld> = sector
@@ -216,13 +186,6 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
         .iter()
         .flat_map(|s| s.worlds.iter().map(|w| (w.id.as_str(), w)))
         .collect();
-    let world_counts: BTreeMap<&str, usize> = sector
-        .systems
-        .iter()
-        .map(|s| (s.id.as_str(), s.worlds.len().max(1)))
-        .collect();
-    let system_refs: BTreeMap<&str, &crate::sector_model::GeneratedSystem> =
-        sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
 
     // B1: pre-bucket dependency edges by (target system, resource) once, so the
     // per-system supply-risk classifier does an O(1) map lookup instead of
@@ -235,11 +198,10 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
             .push(e);
     }
     for sy in systems.iter_mut() {
-        let count = *world_counts.get(sy.system_id.as_str()).unwrap_or(&1);
         let sys_ref = system_refs.get(sy.system_id.as_str()).copied();
         sy.supply_risk = system_supply_risk(sy, sys_ref, &incoming_by_target);
         sy.strategic_priority = priority_for(&sy.strategic_output);
-        sy.tithe_status = system_tithe_status(sy, count, sys_ref);
+        sy.tithe_status = system_tithe_status(sy, sys_ref);
     }
     let sys_risk: BTreeMap<&str, SupplyRisk> = systems
         .iter()
@@ -261,7 +223,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
     let mut sector_balance = ResourceVector::default();
     let mut strategic_output = StrategicOutput::default();
     for sy in &systems {
-        sector_balance = add(&sector_balance, &sy.vector);
+        sector_balance.add_assign(&sy.vector);
         strategic_output.add_assign(&sy.strategic_output);
     }
 
@@ -279,7 +241,6 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
 fn derive_world_strategic_output(
     w: &GeneratedWorld,
     cfg: &EconomyConfig,
-    pop_tag: &str,
 ) -> (StrategicOutput, f32) {
     let mut out = default_strategic_world_type(&w.world.world_type.to_string());
     if let Some(rule) = cfg
@@ -305,8 +266,8 @@ fn derive_world_strategic_output(
         }
     }
 
-    let tech = strategic_tech_multiplier(&w.world.tech_level.to_string());
-    let pop = strategic_population_multiplier(pop_tag, &w.world.population.to_string());
+    let tech = strategic_tech_multiplier(&w.world.tech_level);
+    let pop = strategic_population_multiplier(&w.world.population);
     let instability = w
         .stability
         .famine_or_resource_stress
@@ -337,6 +298,15 @@ fn base_resilience(world_type: &str) -> f32 {
     }
 }
 
+/// `RESOURCE_KEYS` (in slice order) whose value in `v` satisfies `pred`.
+fn resource_keys_where(v: &ResourceVector, pred: impl Fn(f32) -> bool) -> Vec<String> {
+    RESOURCE_KEYS
+        .iter()
+        .filter(|k| pred(v.get(k)))
+        .map(|k| (*k).to_string())
+        .collect()
+}
+
 fn priority_for(output: &StrategicOutput) -> StrategicPriority {
     match output.weighted_priority_score() {
         s if s < 35.0 => StrategicPriority::Low,
@@ -361,7 +331,7 @@ pub(super) fn strategic_needs_for_world(world_type: &str) -> &'static [&'static 
 }
 
 fn derive_dependency_edges<'a>(
-    sector: &'a GeneratedSector,
+    system_refs: &BTreeMap<&'a str, &'a crate::sector_model::GeneratedSystem>,
     systems: &'a [SystemEconomy],
     routes: &'a [RouteEconomy],
     by_sys: &BTreeMap<&'a str, &'a SystemEconomy>,
@@ -369,9 +339,6 @@ fn derive_dependency_edges<'a>(
 ) -> Vec<DependencyEdge> {
     let by_route: BTreeMap<&str, &RouteEconomy> =
         routes.iter().map(|r| (r.route_id.as_str(), r)).collect();
-
-    let system_refs: BTreeMap<&str, &crate::sector_model::GeneratedSystem> =
-        sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
 
     let mut out = Vec::with_capacity(systems.len() * 4);
 
@@ -489,15 +456,6 @@ fn friction_for(r: &GeneratedRoute) -> f32 {
         - (max_interdiction / ROUTE_INTERDICTION_DIVISOR).clamp(0.0, ROUTE_INTERDICTION_MAX_MALUS);
     f *= 1.0 + (max_patrol / ROUTE_PATROL_DIVISOR).clamp(0.0, ROUTE_PATROL_MAX_BONUS);
     f.clamp(0.0, 1.5)
-}
-
-fn add(a: &ResourceVector, b: &ResourceVector) -> ResourceVector {
-    let mut out = a.clone();
-    let bs = b.fields();
-    for (o, bf) in out.fields_mut().into_iter().zip(bs) {
-        *o += bf;
-    }
-    out
 }
 
 /// §12 stability nudge: increase `famine_or_resource_stress` on every world

@@ -22,7 +22,6 @@ id = "first_charters"
 label = "The First Charters"
 relative_start = -1300
 relative_end = -900
-weight = 1.0
 allowed_events = ["discovery", "foundation", "commercial_charter"]
 
 [[history.eras]]
@@ -30,7 +29,6 @@ id = "eager_compliance"
 label = "Eager Compliance"
 relative_start = -899
 relative_end = -560
-weight = 1.1
 allowed_events = ["imperial_mandate_granted", "annexation", "commercial_charter", "consecration"]
 
 [[history.eras]]
@@ -38,7 +36,6 @@ id = "the_great_boom"
 label = "The Great Boom"
 relative_start = -559
 relative_end = -220
-weight = 1.4
 allowed_events = ["commercial_charter", "consecration", "discovery", "annexation"]
 
 [[history.eras]]
@@ -46,7 +43,6 @@ id = "corsair_years"
 label = "The Corsair Years"
 relative_start = -219
 relative_end = -60
-weight = 1.0
 allowed_events = ["blockade", "uprising", "reconquest", "commercial_charter"]
 
 [[history.eras]]
@@ -54,7 +50,6 @@ id = "policed_lanes"
 label = "The Policed Lanes"
 relative_start = -59
 relative_end = -1
-weight = 1.1
 allowed_events = ["reconquest", "consecration", "commercial_charter", "blockade"]
 
 [[history.eras]]
@@ -62,7 +57,6 @@ id = "present_traffic"
 label = "Present Traffic"
 relative_start = 0
 relative_end = 0
-weight = 1.2
 allowed_events = ["commercial_charter", "consecration", "reconquest"]
 
 # ── Event rules ───────────────────────────────────────────────────────────────

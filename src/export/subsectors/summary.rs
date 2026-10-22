@@ -12,7 +12,7 @@ use crate::sector_model::{
 };
 use crate::worlds::{Population, TechLevel};
 
-use super::{FactionControlSummary, ScoredId, Subsector, SubsectorConfig, SubsectorSummary};
+use super::{FactionControlSummary, ScoredId, Subsector, SubsectorSummary};
 
 // ── Ownership resolution (spec §10.4.1) ────────────────────────────────────────
 
@@ -171,7 +171,6 @@ pub(super) struct SummaryParams<'a> {
     pub route_degree: &'a BTreeMap<&'a str, u32>,
     pub stable_route_degree: &'a BTreeMap<&'a str, u32>,
     pub owners: &'a BTreeMap<crate::ids::SystemId, SystemOwnership>,
-    pub config: &'a SubsectorConfig,
 }
 
 pub(super) fn populate_summary(params: SummaryParams) {
@@ -182,7 +181,6 @@ pub(super) fn populate_summary(params: SummaryParams) {
         route_degree,
         stable_route_degree,
         owners,
-        config,
     } = params;
     let mut summary = SubsectorSummary {
         system_count: cell.system_ids.len() as u32,
@@ -199,15 +197,6 @@ pub(super) fn populate_summary(params: SummaryParams) {
             continue;
         };
         total_worlds += sys.worlds.len() as u32;
-        if let Some(star) = &sys.star {
-            *summary
-                .star_colour_counts
-                .entry(star.colour_name.clone())
-                .or_default() += 1;
-        }
-        for tag in &sys.tags {
-            *summary.tag_counts.entry(tag.clone()).or_default() += 1;
-        }
         for pf in &sys.primary_factions {
             *dominant_scores.entry(pf.clone()).or_default() += 2;
         }
@@ -234,9 +223,6 @@ pub(super) fn populate_summary(params: SummaryParams) {
                     .entry(feat.to_string().into())
                     .or_default() += 1;
             }
-            for tag in &w.tags {
-                *summary.tag_counts.entry(tag.clone()).or_default() += 1;
-            }
             for p in &w.factions {
                 *dominant_scores.entry(p.faction_id.clone()).or_default() +=
                     dominant_influence_weight(p.influence);
@@ -258,16 +244,11 @@ pub(super) fn populate_summary(params: SummaryParams) {
         let Some(&r) = route_by_id.get(rid.as_str()) else {
             continue;
         };
-        let rt_key = format!("{}", r.route_type);
         let rs_key = format!("{}", r.stability);
-        *summary.route_type_counts.entry(rt_key.into()).or_default() += 1;
         *summary
             .route_stability_counts
             .entry(rs_key.into())
             .or_default() += 1;
-        for t in &r.tags {
-            *summary.tag_counts.entry(t.clone()).or_default() += 1;
-        }
     }
 
     // Dominant factions (top N, default 3).
@@ -280,7 +261,7 @@ pub(super) fn populate_summary(params: SummaryParams) {
     summary.dominant_factions = dominant;
 
     // Faction control. Build per-faction ownership tallies from member systems.
-    let (faction_control, controlling) = build_faction_control(cell, sys_by_id, owners, config);
+    let (faction_control, controlling) = build_faction_control(cell, sys_by_id, owners);
     summary.faction_control = faction_control;
     summary.controlling_faction_id = controlling;
 
@@ -313,7 +294,6 @@ fn build_faction_control(
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
-    config: &SubsectorConfig,
 ) -> (Vec<FactionControlSummary>, Option<crate::ids::FactionId>) {
     // Tallies per faction inside this subsector.
     #[derive(Default)]
@@ -321,18 +301,15 @@ fn build_faction_control(
         owned_systems: u32,
         owned_inhabited_systems: u32,
         owned_worlds: u32,
-        contested_systems: u32,
     }
     let mut tallies: BTreeMap<crate::ids::FactionId, Tally> = BTreeMap::new();
 
     let mut inhabited_system_count: u32 = 0;
-    let mut world_count: u32 = 0;
 
     for sid in &cell.system_ids {
-        let Some(&sys) = sys_by_id.get(sid.as_str()) else {
+        if !sys_by_id.contains_key(sid.as_str()) {
             continue;
-        };
-        world_count += sys.worlds.len() as u32;
+        }
         let Some(o) = owners.get(sid) else { continue };
         if o.inhabited {
             inhabited_system_count += 1;
@@ -350,17 +327,14 @@ fn build_faction_control(
                 .unwrap_or(0);
             t.owned_worlds += owned;
         } else {
+            // Contested factions still get a (zero-ownership) row.
             for c in &o.contested_with {
-                let t = tallies.entry(c.clone()).or_default();
-                t.contested_systems += 1;
+                tallies.entry(c.clone()).or_default();
             }
         }
     }
 
-    // `config.control_denominator` (an always-`InhabitedSystems` knob) was
-    // removed as dead — the `AllSystems` variant was never constructed.
-    let use_inhabited = true;
-    let eligible_system_count: u32 = if use_inhabited && inhabited_system_count > 0 {
+    let eligible_system_count: u32 = if inhabited_system_count > 0 {
         inhabited_system_count
     } else {
         cell.system_ids.len() as u32
@@ -369,14 +343,13 @@ fn build_faction_control(
     let mut rows: Vec<FactionControlSummary> = tallies
         .into_iter()
         .map(|(id, t)| {
-            let primary_share_num = if use_inhabited && inhabited_system_count > 0 {
+            let primary_share_num = if inhabited_system_count > 0 {
                 t.owned_inhabited_systems
             } else {
                 t.owned_systems
             };
             let sys_share = basis_points(t.owned_systems, eligible_system_count);
             let inh_share = basis_points(t.owned_inhabited_systems, inhabited_system_count);
-            let w_share = basis_points(t.owned_worlds, world_count);
             let primary_share = basis_points(primary_share_num, eligible_system_count);
             let control_score = (t.owned_systems as i32) * 100
                 + (t.owned_inhabited_systems as i32) * 50
@@ -389,10 +362,8 @@ fn build_faction_control(
                 owned_world_count: t.owned_worlds,
                 system_share_basis_points: sys_share,
                 inhabited_system_share_basis_points: inh_share,
-                world_share_basis_points: w_share,
                 control_score,
                 control_tier: String::new().into(),
-                contested_system_count: t.contested_systems,
             }
         })
         .collect();
@@ -401,9 +372,8 @@ fn build_faction_control(
         b.control_score
             .cmp(&a.control_score)
             .then_with(|| {
-                let pa = primary_share(a, use_inhabited);
-                let pb = primary_share(b, use_inhabited);
-                pb.cmp(&pa)
+                b.inhabited_system_share_basis_points
+                    .cmp(&a.inhabited_system_share_basis_points)
             })
             .then_with(|| b.owned_system_count.cmp(&a.owned_system_count))
             .then_with(|| a.faction_id.cmp(&b.faction_id))
@@ -412,11 +382,11 @@ fn build_faction_control(
     // Tier assignment using primary denominator.
     let leader_primary = rows
         .first()
-        .map(|r| primary_share(r, use_inhabited))
+        .map(|r| r.inhabited_system_share_basis_points)
         .unwrap_or(0);
     let runner_primary = rows
         .get(1)
-        .map(|r| primary_share(r, use_inhabited))
+        .map(|r| r.inhabited_system_share_basis_points)
         .unwrap_or(0);
     if let Some(first) = rows.first_mut() {
         first.control_tier = control_tier(leader_primary, runner_primary)
@@ -425,17 +395,14 @@ fn build_faction_control(
     }
     for r in rows.iter_mut().skip(1) {
         r.control_tier = "presence".to_string().into();
-        let p = primary_share(r, use_inhabited);
-        if p == 0 {
+        if r.inhabited_system_share_basis_points == 0 {
             r.control_tier = "trace".to_string().into();
         }
     }
 
-    // Truncate to top N. `rows` is already fully ordered (sorted above) and
+    // Truncate to the top 5. `rows` is already fully ordered (sorted above) and
     // `truncate` preserves order, so no re-sort is needed afterward.
-    if config.faction_control_top_n < rows.len() {
-        rows.truncate(config.faction_control_top_n);
-    }
+    rows.truncate(5);
 
     let controlling = rows
         .first()
@@ -443,14 +410,6 @@ fn build_faction_control(
         .map(|r| r.faction_id.clone());
 
     (rows, controlling)
-}
-
-fn primary_share(r: &FactionControlSummary, use_inhabited: bool) -> u32 {
-    if use_inhabited {
-        r.inhabited_system_share_basis_points
-    } else {
-        r.system_share_basis_points
-    }
 }
 
 fn control_tier(leader_bp: u32, runner_bp: u32) -> &'static str {
@@ -784,7 +743,7 @@ fn any_capital_like<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> bool {
     iter.into_iter().any(is_capital_like_tag)
 }
 
-pub(super) fn population_rank(value: &Population) -> i32 {
+pub(crate) fn population_rank(value: &Population) -> i32 {
     match value {
         Population::Uninhabited => 0,
         Population::Minimal => 1,
@@ -795,7 +754,7 @@ pub(super) fn population_rank(value: &Population) -> i32 {
     }
 }
 
-pub(super) fn tech_rank(value: &TechLevel) -> i32 {
+pub(crate) fn tech_rank(value: &TechLevel) -> i32 {
     match value {
         TechLevel::Primitive => 0,
         TechLevel::Low => 1,

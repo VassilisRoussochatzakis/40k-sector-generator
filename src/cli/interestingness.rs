@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::{emit_report, load_or_regenerate};
+use super::common::{emit_report, resolve_sector_with_cfg};
 
 #[derive(Debug, clap::Args)]
 pub(super) struct InterestingnessArgs {
@@ -37,7 +37,7 @@ pub(crate) fn run_interestingness(
     let sector = sector.as_ref();
     let out = out.as_ref();
 
-    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
+    let (sec, ()) = resolve_sector_with_cfg(project, sector, |_| ())?;
     let mut cfg = sectorforge::interestingness::InterestingnessConfig::default();
     if let Some(p) = profile.as_deref() {
         cfg.profile = parse_interestingness_profile(p)?;

@@ -40,3 +40,29 @@ where
         false
     }
 }
+
+/// Single-line comma-separated editor for an id / tag list: shows `values`
+/// joined by `sep`; an edit re-splits on `,`, trimming and dropping blanks.
+/// Returns `true` when the text changed.
+pub(crate) fn csv_field<T>(ui: &mut egui::Ui, values: &mut Vec<T>, sep: &str, hint: &str) -> bool
+where
+    T: Display + for<'a> From<&'a str>,
+{
+    let mut csv = values
+        .iter()
+        .map(T::to_string)
+        .collect::<Vec<_>>()
+        .join(sep);
+    let changed = ui
+        .add(egui::TextEdit::singleline(&mut csv).hint_text(hint))
+        .changed();
+    if changed {
+        *values = csv
+            .split(',')
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+            .map(T::from)
+            .collect();
+    }
+    changed
+}

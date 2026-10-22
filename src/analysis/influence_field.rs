@@ -20,6 +20,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::generation::SectorProgress;
 use crate::ids::FactionId;
 use crate::sector_model::{hex_distance, GeneratedSector, HexCoord};
 
@@ -53,35 +54,6 @@ pub struct TerritoryBand {
 
 const MAX_INFLUENCE_RADIUS: u32 = 6;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum InfluenceFieldProgress {
-    Started {
-        systems: usize,
-        anchors: usize,
-        cells: usize,
-        radius: u32,
-    },
-    AnchorsProjected {
-        current: usize,
-        total: usize,
-        touched_cells: usize,
-    },
-    CellsResolved {
-        current: usize,
-        total: usize,
-        claimed_cells: usize,
-    },
-    BandsBuilt {
-        bands: usize,
-        claimed_cells: usize,
-    },
-    Complete {
-        cells: usize,
-        bands: usize,
-    },
-}
-
 /// Build a continuous influence field for the given sector. Uses each
 /// system's per-faction control sums as anchors; influence at distance
 /// `d` from the anchor decays as `1 / (1 + d²)`.
@@ -92,7 +64,7 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
 
 pub fn build_with_progress<F>(sector: &GeneratedSector, mut progress: F) -> InfluenceField
 where
-    F: FnMut(InfluenceFieldProgress),
+    F: FnMut(SectorProgress),
 {
     let w = sector.width;
     let h = sector.height;
@@ -147,7 +119,7 @@ where
             (coord, indexed)
         })
         .collect();
-    progress(InfluenceFieldProgress::Started {
+    progress(SectorProgress::InfluenceFieldStarted {
         systems: sector.systems.len(),
         anchors: anchors.len(),
         cells: total,
@@ -196,7 +168,7 @@ where
             }
             let current = anchor_index + 1;
             if should_report_influence_progress(current, anchors.len()) {
-                progress(InfluenceFieldProgress::AnchorsProjected {
+                progress(SectorProgress::InfluenceFieldAnchorsProjected {
                     current,
                     total: anchors.len(),
                     touched_cells,
@@ -207,51 +179,33 @@ where
 
     let mut claimed_cells = 0usize;
     for (i, cell) in cells.iter_mut().enumerate() {
-        if !cell_touched[i] {
-            let current = i + 1;
-            if should_report_influence_progress(current, total) {
-                progress(InfluenceFieldProgress::CellsResolved {
-                    current,
-                    total,
-                    claimed_cells,
-                });
+        if cell_touched[i] {
+            let score_base = i * faction_count;
+            let mut top: Vec<(usize, f32)> = cell_scores[score_base..score_base + faction_count]
+                .iter()
+                .copied()
+                .enumerate()
+                .filter(|(_, score)| *score > 0.0)
+                .collect();
+            if !top.is_empty() {
+                top.sort_by(|a, b| crate::analysis::cmp_f32_desc(a.1, b.1).then(a.0.cmp(&b.0)));
+                let max = top[0].1;
+                // Normalise the top score against an arbitrary ceiling of 100
+                // (single Dominant-level presence + distance 0). Higher values
+                // clamp so the renderer doesn't blow out.
+                claimed_cells += 1;
+                cell.dominant = Some(faction_ids[top[0].0].clone());
+                cell.score = max.min(100.0).round() as u8;
+                cell.top = top
+                    .into_iter()
+                    .take(3)
+                    .map(|(id, s)| (faction_ids[id].clone(), s.min(100.0).round() as u8))
+                    .collect();
             }
-            continue;
         }
-        let score_base = i * faction_count;
-        let mut top: Vec<(usize, f32)> = cell_scores[score_base..score_base + faction_count]
-            .iter()
-            .copied()
-            .enumerate()
-            .filter(|(_, score)| *score > 0.0)
-            .collect();
-        if top.is_empty() {
-            let current = i + 1;
-            if should_report_influence_progress(current, total) {
-                progress(InfluenceFieldProgress::CellsResolved {
-                    current,
-                    total,
-                    claimed_cells,
-                });
-            }
-            continue;
-        }
-        top.sort_by(|a, b| crate::analysis::cmp_f32_desc(a.1, b.1).then(a.0.cmp(&b.0)));
-        let max = top[0].1;
-        // Normalise the top score against an arbitrary ceiling of 100
-        // (single Dominant-level presence + distance 0). Higher values
-        // clamp so the renderer doesn't blow out.
-        claimed_cells += 1;
-        cell.dominant = Some(faction_ids[top[0].0].clone());
-        cell.score = max.min(100.0).round() as u8;
-        cell.top = top
-            .into_iter()
-            .take(3)
-            .map(|(id, s)| (faction_ids[id].clone(), s.min(100.0).round() as u8))
-            .collect();
         let current = i + 1;
         if should_report_influence_progress(current, total) {
-            progress(InfluenceFieldProgress::CellsResolved {
+            progress(SectorProgress::InfluenceFieldCellsResolved {
                 current,
                 total,
                 claimed_cells,
@@ -270,11 +224,11 @@ where
         .into_iter()
         .map(|(faction_id, cells)| TerritoryBand { faction_id, cells })
         .collect();
-    progress(InfluenceFieldProgress::BandsBuilt {
+    progress(SectorProgress::InfluenceFieldBandsBuilt {
         bands: bands.len(),
         claimed_cells,
     });
-    progress(InfluenceFieldProgress::Complete {
+    progress(SectorProgress::InfluenceFieldComplete {
         cells: cells.len(),
         bands: bands.len(),
     });

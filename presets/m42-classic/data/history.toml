@@ -21,7 +21,6 @@ id = "first_settlement"
 label = "First Settlement"
 relative_start = -1600
 relative_end = -1100
-weight = 1.0
 allowed_events = ["foundation", "discovery"]
 
 [[history.eras]]
@@ -29,7 +28,6 @@ id = "compliance"
 label = "Imperial Compliance"
 relative_start = -1099
 relative_end = -700
-weight = 1.1
 allowed_events = [
     "imperial_mandate_granted",
     "annexation",
@@ -42,7 +40,6 @@ id = "high_consolidation"
 label = "High Consolidation"
 relative_start = -699
 relative_end = -300
-weight = 1.0
 allowed_events = ["consecration", "commercial_charter", "discovery", "annexation"]
 
 [[history.eras]]
@@ -50,7 +47,6 @@ id = "age_of_unrest"
 label = "Age of Unrest"
 relative_start = -299
 relative_end = -80
-weight = 1.2
 allowed_events = ["uprising", "secession", "warp_storm_surge", "reconquest", "purge"]
 
 [[history.eras]]
@@ -58,7 +54,6 @@ id = "indomitus_era"
 label = "The Indomitus Era"
 relative_start = -79
 relative_end = -1
-weight = 1.1
 allowed_events = ["reconquest", "consecration", "warp_storm_surge", "blockade"]
 
 [[history.eras]]
@@ -66,7 +61,6 @@ id = "present_day"
 label = "Present Day"
 relative_start = 0
 relative_end = 0
-weight = 1.2
 allowed_events = ["reconquest", "consecration", "uprising"]
 
 # ── Event rules ───────────────────────────────────────────────────────────────

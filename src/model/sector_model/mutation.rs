@@ -9,11 +9,10 @@
 use std::collections::BTreeMap;
 use thiserror::Error;
 
-use crate::ids::{route_id, system_id, world_id, FactionId, RouteId, SystemId, WorldId};
+use crate::ids::{route_id, system_id, world_id, RouteId, SystemId, WorldId};
 use crate::regions::{RegionConditionKind, WarpRegion};
 use crate::sector_model::{
-    GeneratedFaction, GeneratedRoute, GeneratedStar, GeneratedWorld, HexCoord, RouteStability,
-    RouteType, SystemKind,
+    GeneratedRoute, GeneratedStar, GeneratedWorld, HexCoord, RouteStability, RouteType, SystemKind,
 };
 
 use super::GeneratedSector;
@@ -37,8 +36,6 @@ pub enum MutationError {
     CoordOccupied(HexCoord),
     #[error("duplicate route between {0} and {1}")]
     DuplicateRoute(String, String),
-    #[error("duplicate faction: {0}")]
-    DuplicateFaction(String),
     #[error("route endpoints must differ ({0})")]
     SelfRoute(String),
     #[error("history event index out of range: {0}")]
@@ -69,17 +66,7 @@ impl GeneratedSector {
         kind: SystemKind,
         star: Option<GeneratedStar>,
     ) -> Result<SystemId, MutationError> {
-        if coord.q < 0
-            || coord.r < 0
-            || (coord.q as u32) >= self.width
-            || (coord.r as u32) >= self.height
-        {
-            return Err(MutationError::CoordOutOfBounds(
-                coord,
-                self.width,
-                self.height,
-            ));
-        }
+        self.check_in_bounds(coord)?;
         if self.systems.iter().any(|s| s.coord == coord) {
             return Err(MutationError::CoordOccupied(coord));
         }
@@ -120,8 +107,8 @@ impl GeneratedSector {
         Ok(())
     }
 
-    /// Move a system to a new hex coord. Fails on out-of-bounds or collision.
-    pub fn move_system(&mut self, id: &SystemId, coord: HexCoord) -> Result<(), MutationError> {
+    /// `CoordOutOfBounds` unless `coord` lies on the sector grid.
+    fn check_in_bounds(&self, coord: HexCoord) -> Result<(), MutationError> {
         if coord.q < 0
             || coord.r < 0
             || (coord.q as u32) >= self.width
@@ -133,6 +120,12 @@ impl GeneratedSector {
                 self.height,
             ));
         }
+        Ok(())
+    }
+
+    /// Move a system to a new hex coord. Fails on out-of-bounds or collision.
+    pub fn move_system(&mut self, id: &SystemId, coord: HexCoord) -> Result<(), MutationError> {
+        self.check_in_bounds(coord)?;
         if self.systems.iter().any(|s| s.id != *id && s.coord == coord) {
             return Err(MutationError::CoordOccupied(coord));
         }
@@ -144,21 +137,7 @@ impl GeneratedSector {
         sys.coord = coord;
 
         // Refresh route distances anchored on this system.
-        let updated: Vec<(RouteId, u32)> = self
-            .routes
-            .iter()
-            .filter(|r| r.from_system_id == *id || r.to_system_id == *id)
-            .filter_map(|r| {
-                let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
-                let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
-                Some((r.id.clone(), super::hex_distance(from.coord, to.coord)))
-            })
-            .collect();
-        for (rid, dist) in updated {
-            if let Some(r) = self.routes.iter_mut().find(|r| r.id == rid) {
-                r.distance = dist;
-            }
-        }
+        self.refresh_route_distances(|r| r.from_system_id == *id || r.to_system_id == *id);
         Ok(())
     }
 
@@ -167,12 +146,19 @@ impl GeneratedSector {
     /// Idempotent: routes whose endpoints didn't move are rewritten to the same
     /// value. The viewer's map-edit paths call this after a system move, route
     /// add, or endpoint repoint instead of each hand-rolling the `hex_distance`
-    /// lookup (F7); `move_system` / `swap_*` keep their own narrower per-route
-    /// refresh for the targeted-distance unit tests.
+    /// lookup (F7); `move_system` / `swap_systems` refresh only the routes
+    /// anchored on the moved systems, so a hand-set distance elsewhere survives.
     pub fn recompute_route_distances(&mut self) {
+        self.refresh_route_distances(|_| true);
+    }
+
+    /// The [`recompute_route_distances`](Self::recompute_route_distances) body,
+    /// limited to the routes `touches` selects.
+    fn refresh_route_distances(&mut self, touches: impl Fn(&GeneratedRoute) -> bool) {
         let updated: Vec<(RouteId, u32)> = self
             .routes
             .iter()
+            .filter(|&r| touches(r))
             .filter_map(|r| {
                 let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
                 let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
@@ -225,26 +211,12 @@ impl GeneratedSector {
                 sys.coord = coord_a;
             }
         }
-        let touched: Vec<(RouteId, u32)> = self
-            .routes
-            .iter()
-            .filter(|r| {
-                r.from_system_id == *a
-                    || r.to_system_id == *a
-                    || r.from_system_id == *b
-                    || r.to_system_id == *b
-            })
-            .filter_map(|r| {
-                let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
-                let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
-                Some((r.id.clone(), super::hex_distance(from.coord, to.coord)))
-            })
-            .collect();
-        for (rid, dist) in touched {
-            if let Some(r) = self.routes.iter_mut().find(|r| r.id == rid) {
-                r.distance = dist;
-            }
-        }
+        self.refresh_route_distances(|r| {
+            r.from_system_id == *a
+                || r.to_system_id == *a
+                || r.from_system_id == *b
+                || r.to_system_id == *b
+        });
         Ok(())
     }
 
@@ -340,34 +312,6 @@ impl GeneratedSector {
         self.routes.remove(pos);
         self.manifest.route_count = self.routes.len();
         Ok(())
-    }
-
-    // ── Faction mutations ───────────────────────────────────────────────────
-
-    /// Insert a new faction with the given `id`, `name`, and `kind`. Returns the
-    /// assigned id on success, or [`MutationError::DuplicateFaction`] if a
-    /// faction with that id already exists (so the duplicate case is observable
-    /// rather than a silent no-op).
-    pub fn add_faction(
-        &mut self,
-        id: FactionId,
-        name: &str,
-        kind: &str,
-    ) -> Result<FactionId, MutationError> {
-        if self.factions.iter().any(|f| f.id == id) {
-            return Err(MutationError::DuplicateFaction(id.to_string()));
-        }
-        self.factions.push(GeneratedFaction {
-            id: id.clone(),
-            name: name.into(),
-            kind: kind.into(),
-            disposition: "neutral".into(),
-            subfactions: Vec::new(),
-            system_presence: Vec::new(),
-            world_presence: Vec::new(),
-            power: Default::default(),
-        });
-        Ok(id)
     }
 
     // ── Region mutations ────────────────────────────────────────────────────
@@ -562,7 +506,8 @@ impl GeneratedSector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sector_model::HexCoord;
+    use crate::ids::FactionId;
+    use crate::sector_model::{GeneratedFaction, HexCoord};
 
     fn empty() -> GeneratedSector {
         GeneratedSector::empty("t", "Title", "seed", 8, 8)
@@ -645,15 +590,17 @@ mod tests {
             .unwrap();
 
         // a faction present on the removed system + its world, plus on a survivor
-        let f = s
-            .add_faction(FactionId::new("imperium"), "Imperium", "imperial")
-            .unwrap();
-        {
-            let fac = s.factions.iter_mut().find(|x| x.id == f).unwrap();
-            fac.system_presence.push(a.clone());
-            fac.system_presence.push(b.clone());
-            fac.world_presence.push(wa.clone());
-        }
+        let f = FactionId::new("imperium");
+        s.factions.push(GeneratedFaction {
+            id: f.clone(),
+            name: "Imperium".into(),
+            kind: "imperial".into(),
+            disposition: "neutral".into(),
+            subfactions: Vec::new(),
+            system_presence: vec![a.clone(), b.clone()],
+            world_presence: vec![wa.clone()],
+            power: Default::default(),
+        });
 
         s.remove_system(&a).unwrap();
 

@@ -6,8 +6,8 @@
 //! `apply_sector_menu_action` path is testable without an egui context.
 //!
 //! Submodules:
-//! - [`resolve`] — right-click hit-test + the pure dismiss/staleness predicates
-//!   + the floating-menu anchor pivot.
+//! - [`resolve`] — right-click hit-test + the pure staleness predicate + the
+//!   floating-menu anchor pivot.
 //! - [`action`] — the `SectorMenuAction` model and `apply_sector_menu_action`
 //!   dispatch (the netted core).
 //! - [`render`] — the five interactive schema builders (un-netted).
@@ -43,9 +43,7 @@ use render::{
 pub(super) use action::{
     apply_sector_menu_action, sector_menu_action_label, OpenInTarget, SectorMenuAction,
 };
-pub(super) use resolve::{
-    resolve_sector_context, sector_menu_target_is_stale, should_dismiss_sector_context_menu,
-};
+pub(super) use resolve::{resolve_sector_context, sector_menu_target_is_stale};
 // `menu_anchor_pivot` is also consumed by `panels::system_map` (via the
 // `map/mod.rs` re-export), so its surface stays at panels-wide visibility.
 pub(in crate::builder::panels) use resolve::menu_anchor_pivot;
@@ -88,11 +86,6 @@ pub(super) fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderS
                     SectorMenuTarget::RegionHex { region, coord } => {
                         close |= render_region_hex_menu(ui, state, region, *coord);
                     }
-                    SectorMenuTarget::SubsectorBorder { .. } => {
-                        if ui.selectable_label(false, "CLOSE").clicked() {
-                            close = true;
-                        }
-                    }
                 }
             });
         });
@@ -107,7 +100,7 @@ pub(super) fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderS
                 .is_some_and(|p| !area_rect.contains(p))
     });
 
-    if close || should_dismiss_sector_context_menu(esc, focused, primary_click_outside) {
+    if close || esc || !focused || primary_click_outside {
         state.map_view.sector_context_menu = None;
     }
 }

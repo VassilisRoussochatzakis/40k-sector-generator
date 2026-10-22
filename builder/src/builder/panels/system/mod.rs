@@ -17,7 +17,6 @@ use sectorforge_gui_core::{
     ui_kit::{self, labeled},
 };
 
-use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
@@ -281,7 +280,7 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
 
 fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     ui_kit::collapsing_section(ui, "sys_worlds", "Worlds", false, |ui| {
-        let (sys_id, sys_name, world_ids, world_count, next_orbit, next_index) = {
+        let (sys_id, world_ids, world_count, next_orbit) = {
             let sys = &state.sector.systems[sys_idx];
             let ids: Vec<_> = sys
                 .worlds
@@ -289,14 +288,11 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 .map(|w| (w.id.clone(), w.name.to_string()))
                 .collect();
             let max_orbit = sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0);
-            let max_index = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0);
             (
                 sys.id.clone(),
-                sys.name.to_string(),
                 ids,
                 sys.worlds.len(),
                 max_orbit.saturating_add(1),
-                max_index + 1,
             )
         };
         ui.horizontal(|ui| {
@@ -306,47 +302,11 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 .on_hover_text("Append a blank world to this system")
                 .clicked()
             {
-                let name = format!(
-                    "{sys_name} {}",
-                    sectorforge::names::roman_numeral(next_orbit as usize)
+                crate::builder::panels::system_map::add_world_at_orbit(
+                    state,
+                    sys_id.clone(),
+                    next_orbit,
                 );
-                let cmd = BuilderCommand::AddWorld {
-                    system: sys_id.clone(),
-                    name,
-                    result_id: None,
-                };
-                match state.run(cmd) {
-                    Err(e) => {
-                        state.feedback.modal =
-                            Some(ModalKind::Message(format!("Add world failed: {e}")));
-                    }
-                    Ok(()) => {
-                        // §R4: pin the new world's orbit through SetWorldOrbit
-                        // (was a direct `w.orbit` write). The freshly added
-                        // world is the one carrying `next_index`. `before: 0`
-                        // per the command convention — SetWorldOrbit::apply
-                        // re-captures the world's real prior orbit, so revert
-                        // is exact regardless of the placeholder.
-                        let new_world = state
-                            .sector
-                            .systems
-                            .iter()
-                            .find(|s| s.id == sys_id)
-                            .and_then(|s| s.worlds.iter().find(|w| w.index == next_index))
-                            .map(|w| w.id.clone());
-                        if let Some(world) = new_world {
-                            let cmd = BuilderCommand::SetWorldOrbit {
-                                world,
-                                before: 0,
-                                after: next_orbit,
-                            };
-                            if let Err(e) = state.run(cmd) {
-                                state.feedback.modal =
-                                    Some(ModalKind::Message(format!("Set orbit failed: {e}")));
-                            }
-                        }
-                    }
-                }
             }
         });
         if world_count == 0 {
@@ -443,15 +403,7 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 )
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut current, None, "(none)");
-                    for s in [
-                        SystemState::Pacified,
-                        SystemState::Fragmented,
-                        SystemState::Blockaded,
-                        SystemState::Warzone,
-                        SystemState::Infiltrated,
-                        SystemState::Quarantined,
-                        SystemState::Uncharted,
-                    ] {
+                    for &s in crate::builder::panels::SYSTEM_STATES {
                         ui.selectable_value(&mut current, Some(s), system_state_label(s))
                             .on_hover_text(format!("schema: {}", s.as_slug()));
                     }
@@ -475,51 +427,40 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 .small()
                 .color(palette::chrome_text_dim()),
         );
-        let role = |id: &Option<sectorforge::ids::FactionId>| {
-            id.as_ref()
-                .map(|f| f.to_string())
-                .unwrap_or_else(|| "(none)".to_string())
-        };
-        labeled(
-            ui,
-            "Dominant",
-            "Faction with the strongest overall presence (schema: control.dominant).",
-            |ui| {
-                ui.monospace(role(&summary.dominant));
-            },
-        );
-        labeled(
-            ui,
-            "Sovereign",
-            "Recognised ruling authority (schema: control.sovereign).",
-            |ui| {
-                ui.monospace(role(&summary.sovereign));
-            },
-        );
-        labeled(
-            ui,
-            "Orbital controller",
-            "Faction holding the orbital space (schema: control.orbital_controller).",
-            |ui| {
-                ui.monospace(role(&summary.orbital_controller));
-            },
-        );
-        labeled(
-            ui,
-            "Economic hegemon",
-            "Faction dominating trade and industry (schema: control.economic_hegemon).",
-            |ui| {
-                ui.monospace(role(&summary.economic_hegemon));
-            },
-        );
-        labeled(
-            ui,
-            "Hidden master",
-            "Concealed power behind the scenes (schema: control.hidden_master).",
-            |ui| {
-                ui.monospace(role(&summary.hidden_master));
-            },
-        );
+        for (label, help, role) in [
+            (
+                "Dominant",
+                "Faction with the strongest overall presence (schema: control.dominant).",
+                &summary.dominant,
+            ),
+            (
+                "Sovereign",
+                "Recognised ruling authority (schema: control.sovereign).",
+                &summary.sovereign,
+            ),
+            (
+                "Orbital controller",
+                "Faction holding the orbital space (schema: control.orbital_controller).",
+                &summary.orbital_controller,
+            ),
+            (
+                "Economic hegemon",
+                "Faction dominating trade and industry (schema: control.economic_hegemon).",
+                &summary.economic_hegemon,
+            ),
+            (
+                "Hidden master",
+                "Concealed power behind the scenes (schema: control.hidden_master).",
+                &summary.hidden_master,
+            ),
+        ] {
+            labeled(ui, label, help, |ui| {
+                ui.monospace(
+                    role.as_ref()
+                        .map_or_else(|| "(none)".to_string(), |f| f.to_string()),
+                );
+            });
+        }
     });
 }
 

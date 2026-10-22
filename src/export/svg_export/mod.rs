@@ -7,15 +7,14 @@
 //! renderer with `scale=1` — SVG resolves the physical size via its
 //! `width`/`height` attributes, so there is no separate resolution knob.
 
-use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use camino::Utf8Path;
 
 use crate::errors::SectorError;
-use crate::export::render_core::RenderOptions;
-use crate::heatmap::{self, HeatmapMode};
-use crate::map_theme::{LabelDensity, LegendStyle, MapTheme};
+use crate::export::render_core::{legend::legend_width, RenderOptions};
+use crate::heatmap;
+use crate::map_theme::{LabelDensity, LegendStyle};
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
@@ -45,14 +44,6 @@ pub(crate) const HEX_SIZE: f32 = 26.0;
 
 pub(crate) use crate::export::render_core::routes::star_radius_ratio;
 
-fn legend_width(theme: &MapTheme) -> f32 {
-    match theme.legend {
-        LegendStyle::Hidden => 0.0,
-        LegendStyle::Compact => 220.0,
-        LegendStyle::Full => 280.0,
-    }
-}
-
 /// Render an SVG document for `sector`. Pure — does no I/O.
 #[must_use]
 pub fn render_sector_svg(
@@ -61,7 +52,7 @@ pub fn render_sector_svg(
     opts: &RenderOptions,
 ) -> String {
     let bounds = map_bounds(sector);
-    let total_w = bounds.w + legend_width(&opts.theme);
+    let total_w = bounds.w + legend_width(opts.theme.legend);
     let legend_h = legend_height(sector, opts);
     let total_h = bounds.h.max(legend_h);
 
@@ -80,11 +71,7 @@ pub fn render_sector_svg(
     let subs = subsectors.unwrap_or(&[]);
     let draw_subsectors = !subs.is_empty() && opts.theme.show_subsector_borders;
 
-    let heat = if matches!(opts.heatmap, HeatmapMode::Off) {
-        HashMap::new()
-    } else {
-        heatmap::compute_rgb(sector, opts.heatmap)
-    };
+    let heat = heatmap::compute_rgb(sector, opts.heatmap);
     let heat_tints = compute_heat_tints(sector, opts, &heat);
 
     draw_hex_grid(&mut s, sector, &heat_tints, &opts.theme);
@@ -104,7 +91,7 @@ pub fn render_sector_svg(
             &mut s,
             bounds.w,
             0.0,
-            legend_width(&opts.theme),
+            legend_width(opts.theme.legend),
             total_h,
             opts.theme.panel_bg,
             None,

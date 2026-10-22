@@ -1,11 +1,11 @@
-//! `.sgforge` session file (D6).
+//! Session envelope (D6).
 //!
 //! The session is a JSON envelope. The sector + command log + side-tables
-//! live as native serialised values.
+//! live as native serialised values. Nothing writes it to or reads it from
+//! disk (no `.sgforge` file); it survives as the in-memory
+//! `from_state`/`into_state` round trip.
 
 use std::collections::BTreeSet;
-use std::fs;
-use std::path::Path;
 
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,6 @@ use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::sector_model::GeneratedSector;
 
 use super::command::BuilderCommand;
-use super::errors::BuilderError;
 use super::snapshot::Snapshot;
 use super::state::BuilderState;
 
@@ -66,12 +65,6 @@ impl SessionFile {
         state.pinned_worlds = self.pinned_worlds;
         state
     }
-}
-
-pub fn save_session(path: &Path, state: &BuilderState) -> Result<(), BuilderError> {
-    let file = SessionFile::from_state(state);
-    let text = serde_json::to_string_pretty(&file)?;
-    fs::write(path, text).map_err(BuilderError::from)
 }
 
 #[cfg(test)]

@@ -1,14 +1,13 @@
 //! Validation behavior in adverse cases.
 
-use camino::Utf8PathBuf;
+use sectorforge::economy::StrategicOutputRule;
 
-use crate::shared::fixture_dir;
+use crate::shared::{fixture_dir, tempdir_utf8};
 
 #[test]
 fn missing_world_data_fails_validation() {
     // Build a temp project that points at a nonexistent world-data dir.
-    let tmp = tempfile::tempdir().unwrap();
-    let root = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, root) = tempdir_utf8();
     std::fs::write(
         root.join("sectorforge.toml"),
         r#"
@@ -58,20 +57,7 @@ fn majority_excluded_rows_is_severe_error() {
     // Regression guard: a column-truncated workbook (most rows missing fields)
     // must fail loudly, not silently generate from the surviving fraction.
     // See WB_EXCLUDED_ROWS_SEVERE in src/validate/validation.rs.
-    let mut input = m42();
-
-    let cat = std::sync::Arc::make_mut(&mut input.catalogs);
-    let valid = cat.world_rows[0].clone();
-    cat.world_rows.clear();
-    cat.world_rows.push(valid.clone()); // 1 usable row
-    for _ in 0..4 {
-        // Drop the first required field so the row is excluded by the pool
-        // builder's `first_missing_field` check.
-        let mut stub = valid.clone();
-        stub.star_colour = None;
-        cat.world_rows.push(stub);
-    }
-
+    let input = m42_rows(1, 4);
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(!report.ok, "4 excluded vs 1 usable must fail validation");
     assert!(
@@ -112,6 +98,19 @@ fn m42() -> sectorforge::ProjectInput {
     sectorforge::load_project(fixture_dir()).unwrap()
 }
 
+/// m42 with its workbook replaced by `usable` copies of row 0 followed by
+/// `excluded` copies missing the first required field (`star_colour`), which
+/// the pool builder's `first_missing_field` check excludes.
+fn m42_rows(usable: usize, excluded: usize) -> sectorforge::ProjectInput {
+    let mut input = m42();
+    let rows = &mut std::sync::Arc::make_mut(&mut input.catalogs).world_rows;
+    let mut stub = rows[0].clone();
+    stub.star_colour = None;
+    *rows = vec![rows[0].clone(); usable];
+    rows.extend(vec![stub; excluded]);
+    input
+}
+
 fn has_err(r: &sectorforge::ValidationReport, code: &str) -> bool {
     r.errors.iter().any(|e| e.code == code)
 }
@@ -131,6 +130,26 @@ fn find<'a>(
         .find(|e| e.code == code)
 }
 
+/// Validate m42 with `rule` at `resources.world_type.hive_world`.
+fn validate_hive_world_rule(rule: StrategicOutputRule) -> sectorforge::ValidationReport {
+    let mut input = m42();
+    let res = &mut std::sync::Arc::make_mut(&mut input.catalogs)
+        .economy
+        .resources;
+    res.world_type.insert("hive_world".to_string(), rule);
+    sectorforge::validate_project(&input).unwrap()
+}
+
+/// Validate m42 with `rule` at `resources.notable_feature.warp_beacon`.
+fn validate_warp_beacon_rule(rule: StrategicOutputRule) -> sectorforge::ValidationReport {
+    let mut input = m42();
+    let res = &mut std::sync::Arc::make_mut(&mut input.catalogs)
+        .economy
+        .resources;
+    res.notable_feature.insert("warp_beacon".to_string(), rule);
+    sectorforge::validate_project(&input).unwrap()
+}
+
 // ── G1: GEN_SECTOR_NOT_SQUARE ───────────────────────────────────────────────
 
 #[test]
@@ -142,6 +161,7 @@ fn non_square_sector_is_error() {
     input.config.generation.sector_height = 6;
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(!report.ok);
+    assert!(!report.errors.is_empty()); // G31: ok == errors.is_empty()
     assert!(has_err(&report, "GEN_SECTOR_NOT_SQUARE"));
     let issue = find(&report, "GEN_SECTOR_NOT_SQUARE").unwrap();
     assert_eq!(issue.severity, sectorforge::validation::Severity::Error);
@@ -214,31 +234,6 @@ fn system_count_equal_to_cells_is_not_overflow() {
     assert!(!has_err(&report, "GEN_SYSTEM_COUNT_OVERFLOW"));
 }
 
-// ── G3: KEY_TABLE_EMPTY ─────────────────────────────────────────────────────
-
-#[test]
-fn empty_key_table_is_error() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.world_tables.world_types.clear();
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(has_err(&report, "KEY_TABLE_EMPTY"));
-    let issue = find(&report, "KEY_TABLE_EMPTY").unwrap();
-    assert!(
-        issue.message.contains("world_types"),
-        "msg: {}",
-        issue.message
-    );
-    assert_eq!(issue.message, "Key table 'world_types' has no entries");
-}
-
-#[test]
-fn intact_key_tables_have_no_empty_error() {
-    let input = m42();
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_err(&report, "KEY_TABLE_EMPTY"));
-}
-
 // ── G4: WB_NO_ROWS ──────────────────────────────────────────────────────────
 
 #[test]
@@ -259,15 +254,7 @@ fn no_workbook_rows_fires_no_rows_and_no_usable() {
 
 #[test]
 fn all_rows_excluded_fires_no_usable_and_severe() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    let valid = c.world_rows[0].clone();
-    c.world_rows.clear();
-    for _ in 0..3 {
-        let mut s = valid.clone();
-        s.star_colour = None;
-        c.world_rows.push(s);
-    }
+    let input = m42_rows(0, 3);
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(!report.ok);
     assert!(has_err(&report, "WB_NO_USABLE_ROWS"));
@@ -289,18 +276,7 @@ fn all_rows_excluded_fires_no_usable_and_severe() {
 #[test]
 fn minority_excluded_rows_is_warning() {
     // 3 valid + 2 invalid: excluded (2) <= usable (3) → warning, ok stays true.
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    let valid = c.world_rows[0].clone();
-    c.world_rows.clear();
-    for _ in 0..3 {
-        c.world_rows.push(valid.clone());
-    }
-    for _ in 0..2 {
-        let mut s = valid.clone();
-        s.star_colour = None;
-        c.world_rows.push(s);
-    }
+    let input = m42_rows(3, 2);
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(report.ok);
     assert!(has_warn(&report, "WB_EXCLUDED_ROWS"));
@@ -310,18 +286,7 @@ fn minority_excluded_rows_is_warning() {
 #[test]
 fn equal_excluded_and_usable_is_warning_not_severe() {
     // Boundary: 2 valid + 2 invalid. n (2) > usable (2) is false → warning.
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    let valid = c.world_rows[0].clone();
-    c.world_rows.clear();
-    for _ in 0..2 {
-        c.world_rows.push(valid.clone());
-    }
-    for _ in 0..2 {
-        let mut s = valid.clone();
-        s.star_colour = None;
-        c.world_rows.push(s);
-    }
+    let input = m42_rows(2, 2);
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(report.ok);
     assert!(has_warn(&report, "WB_EXCLUDED_ROWS"));
@@ -445,39 +410,27 @@ fn relations_pair_accepts_faction_kind_id() {
 // ── G10: ROUTE_BAD_DEFAULT_WEIGHT ───────────────────────────────────────────
 
 #[test]
-fn route_bad_default_weight_is_error() {
-    for w in [0.0_f64, -1.0, f64::NAN] {
+fn route_bad_default_weight_is_error_unless_routes_disabled() {
+    // (default_weight, routes enabled, flagged)
+    for (w, enabled, flagged) in [
+        (0.0_f64, true, true),
+        (-1.0, true, true),
+        (f64::NAN, true, true),
+        (0.0, false, false),
+        (1.0, true, false),
+    ] {
         let mut input = m42();
         std::sync::Arc::make_mut(&mut input.catalogs)
             .route_rules
             .default_weight = w;
+        input.config.generation.routes.enabled = enabled;
         let report = sectorforge::validate_project(&input).unwrap();
-        assert!(
+        assert_eq!(
             has_err(&report, "ROUTE_BAD_DEFAULT_WEIGHT"),
-            "default_weight {w} should be flagged"
+            flagged,
+            "default_weight {w} (routes enabled: {enabled})"
         );
     }
-}
-
-#[test]
-fn route_bad_default_weight_suppressed_when_routes_disabled() {
-    let mut input = m42();
-    std::sync::Arc::make_mut(&mut input.catalogs)
-        .route_rules
-        .default_weight = 0.0;
-    input.config.generation.routes.enabled = false;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_err(&report, "ROUTE_BAD_DEFAULT_WEIGHT"));
-}
-
-#[test]
-fn route_valid_default_weight_has_no_error() {
-    let mut input = m42();
-    std::sync::Arc::make_mut(&mut input.catalogs)
-        .route_rules
-        .default_weight = 1.0;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_err(&report, "ROUTE_BAD_DEFAULT_WEIGHT"));
 }
 
 // ── G11: ROUTE_BAD_MULTIPLIER ───────────────────────────────────────────────
@@ -507,44 +460,35 @@ fn route_bad_multiplier_is_error() {
 // ── G12: REGIONS_COUNT_OVERFLOW ─────────────────────────────────────────────
 
 #[test]
-fn regions_count_overflow_is_error() {
-    let mut input = m42();
-    input.config.generation.sector_width = 8;
-    input.config.generation.sector_height = 8; // 64 cells → half = 32
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.regions.enabled = true;
-    c.regions.count = 33;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(has_err(&report, "REGIONS_COUNT_OVERFLOW"));
-    let issue = find(&report, "REGIONS_COUNT_OVERFLOW").unwrap();
-    assert_eq!(
-        issue.message,
-        "regions.count 33 exceeds half the grid (32); shrink count or grow the sector"
-    );
-}
-
-#[test]
-fn regions_count_equal_to_half_is_not_overflow() {
-    let mut input = m42();
-    input.config.generation.sector_width = 8;
-    input.config.generation.sector_height = 8;
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.regions.enabled = true;
-    c.regions.count = 32; // == cells/2, not `>`
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_err(&report, "REGIONS_COUNT_OVERFLOW"));
-}
-
-#[test]
-fn regions_count_overflow_suppressed_when_disabled() {
-    let mut input = m42();
-    input.config.generation.sector_width = 8;
-    input.config.generation.sector_height = 8;
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.regions.enabled = false;
-    c.regions.count = 33;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_err(&report, "REGIONS_COUNT_OVERFLOW"));
+fn regions_count_overflow_is_error_unless_disabled() {
+    // (count, regions enabled, expected error message). 8×8 = 64 cells → half
+    // = 32; the rule is a strict `>`, so 32 itself is allowed.
+    for (count, enabled, msg) in [
+        (
+            33,
+            true,
+            Some("regions.count 33 exceeds half the grid (32); shrink count or grow the sector"),
+        ),
+        (32, true, None),
+        (33, false, None),
+    ] {
+        let mut input = m42();
+        input.config.generation.sector_width = 8;
+        input.config.generation.sector_height = 8;
+        let c = std::sync::Arc::make_mut(&mut input.catalogs);
+        c.regions.enabled = enabled;
+        c.regions.count = count;
+        let report = sectorforge::validate_project(&input).unwrap();
+        let err = report
+            .errors
+            .iter()
+            .find(|e| e.code == "REGIONS_COUNT_OVERFLOW");
+        assert_eq!(
+            err.map(|e| e.message.as_str()),
+            msg,
+            "regions.count {count} (enabled: {enabled})"
+        );
+    }
 }
 
 // ── G13: ECONOMY_{TECH,POP}_MULTIPLIER_BAD ──────────────────────────────────
@@ -609,18 +553,11 @@ fn economy_multiplier_zero_is_allowed() {
 
 #[test]
 fn resource_score_bad_world_type_flags_each_field() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    let rule = sectorforge::economy::StrategicOutputRule {
+    let report = validate_hive_world_rule(StrategicOutputRule {
         food: Some(150.0),
         ore: Some(-1.0),
         ..Default::default()
-    };
-    c.economy
-        .resources
-        .world_type
-        .insert("hive_world".to_string(), rule);
-    let report = sectorforge::validate_project(&input).unwrap();
+    });
     let bad: Vec<_> = report
         .errors
         .iter()
@@ -641,17 +578,10 @@ fn resource_score_bad_world_type_flags_each_field() {
 
 #[test]
 fn resource_score_bad_notable_feature_scope() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    let rule = sectorforge::economy::StrategicOutputRule {
+    let report = validate_warp_beacon_rule(StrategicOutputRule {
         food: Some(-1.0),
         ..Default::default()
-    };
-    c.economy
-        .resources
-        .notable_feature
-        .insert("warp_beacon".to_string(), rule);
-    let report = sectorforge::validate_project(&input).unwrap();
+    });
     assert!(has_err(&report, "RESOURCE_SCORE_BAD"));
     let issue = find(&report, "RESOURCE_SCORE_BAD").unwrap();
     assert_eq!(
@@ -663,18 +593,11 @@ fn resource_score_bad_notable_feature_scope() {
 #[test]
 fn resource_score_bounds_inclusive() {
     // 0.0 and 100.0 are both in range (0.0..=100.0 inclusive) → no error.
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    let rule = sectorforge::economy::StrategicOutputRule {
+    let report = validate_hive_world_rule(StrategicOutputRule {
         food: Some(0.0),
         ore: Some(100.0),
         ..Default::default()
-    };
-    c.economy
-        .resources
-        .world_type
-        .insert("hive_world".to_string(), rule);
-    let report = sectorforge::validate_project(&input).unwrap();
+    });
     assert!(!has_err(&report, "RESOURCE_SCORE_BAD"));
 }
 
@@ -773,6 +696,7 @@ fn min_worlds_zero_is_warning_not_error() {
     input.config.generation.min_worlds_per_system = 0;
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(report.ok, "a warning must not flip ok");
+    assert!(report.errors.is_empty()); // G31: ok == errors.is_empty()
     assert!(has_warn(&report, "GEN_MIN_WORLDS_ZERO"));
     assert!(!has_err(&report, "GEN_MIN_WORLDS_ZERO"));
 }
@@ -842,35 +766,22 @@ fn baseline_factions_have_no_unknown_taxonomy_warnings() {
 // ── G22: ROUTE_MAX_DISTANCE_ZERO ────────────────────────────────────────────
 
 #[test]
-fn route_max_distance_zero_is_warning() {
-    let mut input = m42();
-    std::sync::Arc::make_mut(&mut input.catalogs)
-        .route_rules
-        .max_distance = 0;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(report.ok);
-    assert!(has_warn(&report, "ROUTE_MAX_DISTANCE_ZERO"));
-}
-
-#[test]
-fn route_max_distance_zero_suppressed_when_routes_disabled() {
-    let mut input = m42();
-    std::sync::Arc::make_mut(&mut input.catalogs)
-        .route_rules
-        .max_distance = 0;
-    input.config.generation.routes.enabled = false;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_warn(&report, "ROUTE_MAX_DISTANCE_ZERO"));
-}
-
-#[test]
-fn route_max_distance_nonzero_has_no_warning() {
-    let mut input = m42();
-    std::sync::Arc::make_mut(&mut input.catalogs)
-        .route_rules
-        .max_distance = 5;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_warn(&report, "ROUTE_MAX_DISTANCE_ZERO"));
+fn route_max_distance_zero_is_warning_unless_routes_disabled() {
+    // (max_distance, routes enabled, warned)
+    for (d, enabled, warned) in [(0, true, true), (0, false, false), (5, true, false)] {
+        let mut input = m42();
+        std::sync::Arc::make_mut(&mut input.catalogs)
+            .route_rules
+            .max_distance = d;
+        input.config.generation.routes.enabled = enabled;
+        let report = sectorforge::validate_project(&input).unwrap();
+        assert_eq!(
+            has_warn(&report, "ROUTE_MAX_DISTANCE_ZERO"),
+            warned,
+            "max_distance {d} (routes enabled: {enabled})"
+        );
+        assert!(report.ok, "max_distance {d}: a warning must not flip ok");
+    }
 }
 
 // ── G23: route-condition values are type-safe at load (P10) ──────────────────
@@ -964,33 +875,20 @@ fn relations_kind_rule_empty_no_factions_branch() {
 // ── G26: REGIONS_COUNT_ZERO ─────────────────────────────────────────────────
 
 #[test]
-fn regions_count_zero_is_warning() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.regions.enabled = true;
-    c.regions.count = 0;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(has_warn(&report, "REGIONS_COUNT_ZERO"));
-}
-
-#[test]
-fn regions_count_zero_suppressed_when_disabled() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.regions.enabled = false;
-    c.regions.count = 0;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_warn(&report, "REGIONS_COUNT_ZERO"));
-}
-
-#[test]
-fn regions_count_nonzero_has_no_zero_warning() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.regions.enabled = true;
-    c.regions.count = 3;
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_warn(&report, "REGIONS_COUNT_ZERO"));
+fn regions_count_zero_is_warning_unless_disabled() {
+    // (count, regions enabled, warned)
+    for (count, enabled, warned) in [(0, true, true), (0, false, false), (3, true, false)] {
+        let mut input = m42();
+        let c = std::sync::Arc::make_mut(&mut input.catalogs);
+        c.regions.enabled = enabled;
+        c.regions.count = count;
+        let report = sectorforge::validate_project(&input).unwrap();
+        assert_eq!(
+            has_warn(&report, "REGIONS_COUNT_ZERO"),
+            warned,
+            "regions.count {count} (enabled: {enabled})"
+        );
+    }
 }
 
 // ── G27: REGIONS_MEAN_SIZE_ZERO ─────────────────────────────────────────────
@@ -1078,17 +976,10 @@ fn regions_condition_nan_weight_is_flagged() {
 #[test]
 fn resource_trade_multiplier_bad_is_error() {
     for v in [-1.0_f32, f32::NAN] {
-        let mut input = m42();
-        let c = std::sync::Arc::make_mut(&mut input.catalogs);
-        let rule = sectorforge::economy::StrategicOutputRule {
+        let report = validate_warp_beacon_rule(StrategicOutputRule {
             trade_multiplier: Some(v),
             ..Default::default()
-        };
-        c.economy
-            .resources
-            .notable_feature
-            .insert("warp_beacon".to_string(), rule);
-        let report = sectorforge::validate_project(&input).unwrap();
+        });
         assert!(
             has_err(&report, "RESOURCE_TRADE_MULTIPLIER_BAD"),
             "trade_multiplier {v} should be flagged"
@@ -1105,17 +996,10 @@ fn resource_trade_multiplier_bad_is_error() {
 fn resource_trade_multiplier_zero_and_high_allowed() {
     // No upper cap; zero allowed (rule is `!finite || v < 0.0`).
     for v in [0.0_f32, 3.0] {
-        let mut input = m42();
-        let c = std::sync::Arc::make_mut(&mut input.catalogs);
-        let rule = sectorforge::economy::StrategicOutputRule {
+        let report = validate_warp_beacon_rule(StrategicOutputRule {
             trade_multiplier: Some(v),
             ..Default::default()
-        };
-        c.economy
-            .resources
-            .notable_feature
-            .insert("warp_beacon".to_string(), rule);
-        let report = sectorforge::validate_project(&input).unwrap();
+        });
         assert!(
             !has_err(&report, "RESOURCE_TRADE_MULTIPLIER_BAD"),
             "trade_multiplier {v} should be allowed"
@@ -1128,17 +1012,10 @@ fn resource_trade_multiplier_zero_and_high_allowed() {
 #[test]
 fn resource_supply_resilience_out_of_range_is_error() {
     for v in [-150.0_f32, 150.0, f32::NAN] {
-        let mut input = m42();
-        let c = std::sync::Arc::make_mut(&mut input.catalogs);
-        let rule = sectorforge::economy::StrategicOutputRule {
+        let report = validate_warp_beacon_rule(StrategicOutputRule {
             supply_resilience: Some(v),
             ..Default::default()
-        };
-        c.economy
-            .resources
-            .notable_feature
-            .insert("warp_beacon".to_string(), rule);
-        let report = sectorforge::validate_project(&input).unwrap();
+        });
         assert!(
             has_err(&report, "RESOURCE_SUPPLY_RESILIENCE_BAD"),
             "supply_resilience {v} should be flagged"
@@ -1155,45 +1032,15 @@ fn resource_supply_resilience_out_of_range_is_error() {
 fn resource_supply_resilience_signed_bounds_allowed() {
     // Signed inclusive range -100.0..=100.0; negatives are valid here.
     for v in [-100.0_f32, 0.0, 100.0] {
-        let mut input = m42();
-        let c = std::sync::Arc::make_mut(&mut input.catalogs);
-        let rule = sectorforge::economy::StrategicOutputRule {
+        let report = validate_hive_world_rule(StrategicOutputRule {
             supply_resilience: Some(v),
             ..Default::default()
-        };
-        c.economy
-            .resources
-            .world_type
-            .insert("hive_world".to_string(), rule);
-        let report = sectorforge::validate_project(&input).unwrap();
+        });
         assert!(
             !has_err(&report, "RESOURCE_SUPPLY_RESILIENCE_BAD"),
             "supply_resilience {v} should be allowed"
         );
     }
-}
-
-// ── G31: validate() ok-aggregation ──────────────────────────────────────────
-
-#[test]
-fn warnings_only_keeps_ok_true() {
-    let mut input = m42();
-    input.config.generation.min_worlds_per_system = 0; // warning only
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(report.ok);
-    assert!(report.errors.is_empty());
-    assert_eq!(report.ok, report.errors.is_empty());
-}
-
-#[test]
-fn errors_flip_ok_false() {
-    let mut input = m42();
-    input.config.generation.sector_width = 8;
-    input.config.generation.sector_height = 6; // error
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!report.ok);
-    assert!(!report.errors.is_empty());
-    assert_eq!(report.ok, report.errors.is_empty());
 }
 
 // ── G32: MAX_SECTOR_DIM boundary ────────────────────────────────────────────

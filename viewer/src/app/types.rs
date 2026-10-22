@@ -43,9 +43,3 @@ pub enum View {
     History,
     Segmentum,
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FactionsMode {
-    Overview,
-    Designer,
-}

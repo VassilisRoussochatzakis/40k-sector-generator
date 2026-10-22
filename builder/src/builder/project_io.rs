@@ -395,6 +395,9 @@ pub fn save_project(state: &mut BuilderState) -> Result<(), BuilderError> {
 /// §P3: write the project to a specific root. Updates `state.project_path` and
 /// clears the dirty flag on success.
 pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), BuilderError> {
+    // Refresh the in-sector relations / chronicle first so `sector.json` never
+    // persists a value an un-viewed edit left stale (economy stays as cached).
+    state.refresh_for_save();
     fs::create_dir_all(Path::new(root.as_str()))?;
     let mut digests: BTreeMap<String, String> = BTreeMap::new();
 
@@ -590,7 +593,7 @@ fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {
     use sectorforge::worlds_toml::WorldsConfig;
 
     // Re-read the worlds.toml directly so the catalog mirrors the on-disk
-    // file (the loader otherwise normalises into `KeyTables` + rows).
+    // file (the loader otherwise normalises into rows + a resolved feature pool).
     let worlds_path = input
         .root_dir
         .join(&input.config.inputs.world_data_dir)

@@ -3,7 +3,6 @@
 
 use egui::{Color32, RichText, Ui};
 
-use sectorforge::ids::FactionId;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit::{self, labeled};
 
@@ -29,59 +28,45 @@ pub(super) fn show_control_section(
                 ui,
                 "Derived from faction presence and claims. Edit those above to change it.",
             );
-            let who = |f: &Option<FactionId>| {
-                f.as_ref()
-                    .map(|id| id.to_string())
-                    .unwrap_or_else(|| "(none)".to_string())
-            };
-            labeled(
-                ui,
-                "Dominant",
-                "Faction with the strongest overall hold (schema: control.dominant).",
-                |ui| {
-                    ui.label(who(&c.dominant));
-                },
-            );
-            labeled(
-                ui,
-                "Sovereign",
-                "Recognised legal ruler (schema: control.sovereign).",
-                |ui| {
-                    ui.label(who(&c.sovereign));
-                },
-            );
-            labeled(
-                ui,
-                "Occupier",
-                "Faction holding the world by force (schema: control.occupier).",
-                |ui| {
-                    ui.label(who(&c.occupier));
-                },
-            );
-            labeled(
-                ui,
-                "Economic power",
-                "Faction that dominates trade and industry (schema: control.economic_hegemon).",
-                |ui| {
-                    ui.label(who(&c.economic_hegemon));
-                },
-            );
-            labeled(
-                ui,
-                "Popular authority",
-                "Faction with the people's loyalty (schema: control.popular_authority).",
-                |ui| {
-                    ui.label(who(&c.popular_authority));
-                },
-            );
-            labeled(
-                ui,
-                "Hidden master",
-                "Faction secretly pulling the strings (schema: control.hidden_master).",
-                |ui| {
-                    ui.label(who(&c.hidden_master));
-                },
-            );
+            for (label, help, who) in [
+                (
+                    "Dominant",
+                    "Faction with the strongest overall hold (schema: control.dominant).",
+                    &c.dominant,
+                ),
+                (
+                    "Sovereign",
+                    "Recognised legal ruler (schema: control.sovereign).",
+                    &c.sovereign,
+                ),
+                (
+                    "Occupier",
+                    "Faction holding the world by force (schema: control.occupier).",
+                    &c.occupier,
+                ),
+                (
+                    "Economic power",
+                    "Faction that dominates trade and industry (schema: control.economic_hegemon).",
+                    &c.economic_hegemon,
+                ),
+                (
+                    "Popular authority",
+                    "Faction with the people's loyalty (schema: control.popular_authority).",
+                    &c.popular_authority,
+                ),
+                (
+                    "Hidden master",
+                    "Faction secretly pulling the strings (schema: control.hidden_master).",
+                    &c.hidden_master,
+                ),
+            ] {
+                labeled(ui, label, help, |ui| {
+                    ui.label(
+                        who.as_ref()
+                            .map_or_else(|| "(none)".to_string(), |id| id.to_string()),
+                    );
+                });
+            }
             labeled(
                 ui,
                 "Contested",

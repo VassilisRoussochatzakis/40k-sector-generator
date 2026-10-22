@@ -569,7 +569,6 @@ id = "age_of_compliance"
 label = "Age of Compliance"
 relative_start = -900
 relative_end = -650
-weight = 1.0
 allowed_events = ["Founding", "Compliance", "Treaty"]
 
 [[history.event_rules]]
@@ -594,7 +593,7 @@ under `BuilderTab::History` (`builder/src/builder/panels/history.rs`). It
 covers:
 * §H1 — chronicle config grid for `enabled`, `epoch_start`, `epoch_end`,
   per-anchor caps, and `max_subsector_events`.
-* §H2 — eras editor: id / label / relative_start / relative_end / weight
+* §H2 — eras editor: id / label / relative_start / relative_end
   plus an inline allowed-events toggle strip.
 * §H3 — event-rule editor: `when_system_state` (any | Pacified | … |
   Uncharted) + `prefer_event` + `minimum_events`.
@@ -623,9 +622,9 @@ Internal layout (post-SPLIT-003): `src/analysis/history/` is split by emission
 family. `mod.rs` is the public facade (`derive*`, orchestration, `pub
 use`). `config.rs` holds `HistoryConfig`/`HistoryEra`/`HistoryEventRule`
 + defaults; `model.rs` holds the output DTOs and `EventKind`
-(topo/weight); `progress.rs` holds `HistoryProgress`; `context.rs` holds
-the borrowed `EmitContext`. `build.rs` is the shared event constructor
-(date/era/id/entity/consequence). Emission families are one file each:
+(topo/weight); `progress.rs` holds `HistoryProgress`. `build.rs` is the
+shared event constructor (date/era/id/entity/consequence) and holds the
+borrowed `EmitContext`. Emission families are one file each:
 `worlds.rs`, `systems.rs`, `routes.rs`, `subsectors.rs`, `regions.rs`.
 `rules.rs` enforces `[[event_rules]]`. `labels.rs` is tiny string
 helpers. `markdown.rs` renders the chronicle Markdown + writes
@@ -1234,7 +1233,7 @@ write_diagnostics          = false   # reserved flag; no extra diagnostic files 
 sector_scale        = 5          # integer scale multiplier for the sector map (1..=8)
 system_scale        = 4          # integer scale multiplier for per-system maps (1..=8)
 render_systems      = true       # generate per-system bitmap renders as well
-faction_fill        = true       # §8: tint each sector hex AND halo each per-system planet by dominant faction's FactionStyle.fill
+faction_fill        = true       # §8: halo each per-system planet by dominant faction's FactionStyle.fill
 heatmap             = "off"      # §10: per-system heatmap tint applied to the PNG.
                                  # one of: off | control | military | trade | industrial
                                  #         covert | faith | threat | intel
@@ -1245,7 +1244,7 @@ heatmap             = "off"      # §10: per-system heatmap tint applied to the 
                                  #         supply_vulnerability (§4) — supply vulnerability (disrupted/collapsing)
                                  #         conflict_intensity       — per-system conflict intensity (0..=100)
                                  # (The TOML field needs these full slugs; the CLI `--heatmap`
-                                 #  flag additionally accepts the short food/tithe/supply aliases.)
+                                 #  flag additionally accepts the short food/tithe/supply/conflict aliases.)
 # theme_file        = "data/map_themes/navis.toml" # optional; project-relative, digested into manifest.input_digests
 
 [outputs.bitmap.theme]
@@ -1515,9 +1514,10 @@ is enforced by:
 
 The integration test
 [tests/it/golden_generation.rs](tests/it/golden_generation.rs)
-asserts byte equality across two runs with identical seed. The suite caches the
-default m42 fixture sector once per test process, validates post-generation
-invariants on that cached sector, and reloads exported JSON/manifest files so
+asserts byte equality across two runs with identical seed. The suite reuses the
+default m42 fixture sector cached once per test process in
+[tests/it/shared.rs](tests/it/shared.rs) (`invariants_tests.rs` validates its
+post-generation invariants), and reloads exported JSON/manifest files so
 determinism checks stay accurate without repeatedly paying the full generation
 cost. It also pins **content goldens** — the full exported `sector.json` and
 `sector.md` for the m42 fixture live under
@@ -1549,9 +1549,7 @@ id-canonicalised JSON so tail-reinserting reverts still count as identity; and a
 ([tests/it/search_and_diff.rs](tests/it/search_and_diff.rs)) that pins the whole
 serialized `SearchOutcome` — including the concurrently-built `near_misses` set —
 identical whether the search runs on a forced single-thread rayon pool or the
-default parallel pool. The two new cargo-fuzz targets `sector_json_parse`
-(`serde_json::from_slice::<GeneratedSector>`) and `factions_toml_parse`
-(`FactionsFile`) live under [fuzz/](fuzz/) alongside the existing parse targets.
+default parallel pool.
 
 To get different output, change the seed:
 
@@ -1573,7 +1571,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
 - **Workers are `std::thread` + `mpsc::channel`.** No async runtime in the
   GUI/builder workers. Generation, hashing, PNG export, and HTML export all
   run off the egui event loop
-  ([viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs),
+  ([builder/src/builder/preview.rs](builder/src/builder/preview.rs),
   [viewer/src/app/export_ui.rs](viewer/src/app/export_ui.rs),
   [gui-core/src/jobs.rs](gui-core/src/jobs.rs)). The GUI never blocks for
   more than the cost of dispatch. The library does pull in `rayon` (per
@@ -1585,8 +1583,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   monotonic revision attached to the input snapshot. When the worker returns,
   the GUI compares the result's revision to the current revision and discards
   any stale result. See `apply_result` in
-  [builder/src/builder/preview.rs:90](builder/src/builder/preview.rs#L90)
-  and `preview_revision` in [viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs).
+  [builder/src/builder/preview.rs:90](builder/src/builder/preview.rs#L90).
 - **Cooperative cancellation.** `generate_with_progress_and_cancel` takes a
   `should_cancel` closure that is polled at every major emit (see
   [src/gen/generation/mod.rs](src/gen/generation/mod.rs) — the `check_cancelled!` /
@@ -1606,9 +1603,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   variant (`*JobResult::Failed`) via the `FromJobPanic` trait and delivered over
   the normal channel, instead of dropping the sender and leaving the receiver to
   observe only `Disconnected`. A result type that can't represent a panic
-  returns `None` from `FromJobPanic` (e.g. `DerivationPayload`, since every
-  derivation is total and a panic just leaves the kind stale to re-dispatch)
-  and falls back to the `Disconnected` path. Under the release profile
+  returns `None` from `FromJobPanic` and falls back to the `Disconnected` path. Under the release profile
   (`panic = "abort"`) `catch_unwind` is a no-op,
   so this surfacing only applies to unwinding builds.
 - **Crash-note panic hook.** Both GUI mains install
@@ -1933,14 +1928,14 @@ Each cluster gets:
 - A `name` derived from its chosen capital system (`"Subsector Aurelia"`).
 - The list of every (q, r) hex it covers, including empty ones — drives map borders.
 - Internal vs. border route classification.
-- Neighbor / connected subsector adjacency.
+- Connected subsector adjacency.
 - A summary: world-type counts, faction control basis-points, dominant
   factions, controlling faction (if any), capital system + capital world,
   per-faction `control_tier` (`absolute` / `clear` / `plurality` /
   `contested` / `presence` / `trace`).
   Beyond world-type, the summary also carries per-category count maps
-  (population, tech-level, government, star-colour, notable-feature, route-type,
-  route-stability, tag), and `dominant_factions` is capped at the top 3.
+  (population, tech-level, government, notable-feature, route-stability), and
+  `dominant_factions` is capped at the top 3.
 
 Cluster count derives from `target_systems_per_subsector` (default 12):
 `K = ceil(system_count / target)`. Controllable via `SubsectorConfig`:
@@ -1948,9 +1943,6 @@ Cluster count derives from `target_systems_per_subsector` (default 12):
 ```rust
 let subs = sectorforge::build_subsectors(&sector, sectorforge::SubsectorConfig {
     target_systems_per_subsector: 12,
-    max_iterations: 24,
-    include_empty_subsectors: true,
-    faction_control_top_n: 5,
 })?;
 ```
 
@@ -2153,17 +2145,13 @@ showcase-quality tier on top of §UO; playbook in [docs/BEAUTY.md](docs/BEAUTY.m
   change.
 
 - *Typography* ([gui-core/src/fonts.rs](gui-core/src/fonts.rs), `§BEAUTY §5.5`) — the
-  custom-font registration path, gated by the `bundled-fonts` Cargo feature on
-  `gui-core`. The three OFL faces now live in the repo
+  custom-font registration path. The three OFL faces live in the repo
   ([gui-core/assets/fonts/](gui-core/assets/fonts/) `display.ttf` / `body.ttf` /
-  `mono.ttf`), and **both apps enable the feature in their own `default` feature**
-  (`default = ["sectorforge-gui-core/bundled-fonts"]` in
-  [builder/Cargo.toml](builder/Cargo.toml) / [viewer/Cargo.toml](viewer/Cargo.toml)),
-  so the bundled faces are now the **default** typography — build with
-  `--no-default-features` to fall back to egui's `default_fonts`. `gui-core` itself
-  keeps the feature off by default, so its map-snapshot golden suite
-  ([gui-core/tests/map_snapshots.rs](gui-core/tests/map_snapshots.rs)) still renders on
-  stock egui fonts. `fonts::install(ctx)` — called once from each app's eframe creation
+  `mono.ttf`) and are always embedded — there is no feature flag and no stock-egui
+  fallback build, so the bundled faces are both apps' typography. The map-snapshot
+  golden suite ([gui-core/tests/map_snapshots.rs](gui-core/tests/map_snapshots.rs))
+  never calls `fonts::install`, so it still renders on stock egui fonts.
+  `fonts::install(ctx)` — called once from each app's eframe creation
   closure ([builder](builder/src/main.rs) / [viewer](viewer/src/main.rs) `main.rs`),
   *before* the first `Theme::apply` — embeds the three faces via
   `FontData::from_static(include_bytes!("../assets/fonts/{display,body,mono}.ttf"))`
@@ -2174,7 +2162,7 @@ showcase-quality tier on top of §UO; playbook in [docs/BEAUTY.md](docs/BEAUTY.m
   the body face becomes the front of egui's `Proportional` family, the mono face the
   front of `Monospace`, and the display face its own named family
   (`design::FONT_DISPLAY`) that titles request through `design::display_family()` — so
-  `theme.rs` routing `Heading` through it now resolves to the real display face.
+  `theme.rs` routing `Heading` through it resolves to the real display face.
   [gui-core/assets/fonts/FONTS.md](gui-core/assets/fonts/FONTS.md) documents the
   filenames + suggested faces.
 
@@ -2352,7 +2340,7 @@ responsive columns of D1/D2/D5/D6/D9/D10/D11 were already delivered by §UO/§BE
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,
 built with egui + eframe. **It is not read-only** — it supports *limited*
 in-place editing of a loaded sector (map edits behind **EDIT MAP**, faction
-edits behind **EDIT MODE** / **DESIGNER**, the typed `worlds.toml` **Data**
+edits in the **EDIT-MAP** view's **FACTIONS** tab, the typed `worlds.toml` **Data**
 editor, plus **SAVE** / **SAVE AS…** back to disk). Full sector construction
 (the command-bus undo/redo workspace) lives in `sectorforge-builder` (§8.2);
 the viewer's editing is the lighter subset listed below. It exposes the
@@ -2414,14 +2402,7 @@ following views via the top navigation bar:
   the top.
 - **Factions** — high-level sector faction view. It lists top-level factions,
   their palette chip, kind, disposition, power, sector summary presence, and
-  observed per-world presence while hiding subfaction and force details. Toggle
-  **EDIT MODE** for broad changes: rename factions, adjust kind/disposition,
-  add/delete top-level factions, set all/none system or world summary
-  presence, or rebuild summary presence from world records. Toggle
-  **DESIGNER** for ground-up catalog work: choose an overall faction preset
-  or custom kind, add/edit export rows with weights and world preferences,
-  import the loaded output's generated forces with **REPLACE FROM OUTPUT**,
-  and save the result as a `factions.toml`-compatible TOML file.
+  observed per-world presence while hiding subfaction and force details.
 - **Data** (nav label **DATA-RAW**) — typed `worlds.toml` editor from inside
   the app, with **RELOAD** (re-read `worlds.toml` from disk, discarding unsaved
   edits) and **SAVE** toolbar buttons. Requires a loaded project
@@ -2534,8 +2515,8 @@ and inspect the output files.
 
 The viewer crate exposes `sectorforge_viewer::App`. The struct takes a
 `GeneratedSector` in `App::new(sector)` or launches empty via `App::new_empty()`.
-Use `app.with_project_dir(dir)` to attach a project directory for regeneration
-and data-editor preloading.
+Use `app.with_project_dir(dir)` to attach a project directory for data-editor
+preloading.
 
 ### 8.2 Builder (`sectorforge-builder`)
 
@@ -2564,18 +2545,18 @@ startup smoke runs for `sectorforge-builder --project examples/m42_project`
 and `sectorforge-viewer --project examples/m42_project`.
 
 Every map element — hex tile, route, system glyph, label, region tint, overlay
-ring — reads its colour and sizing from
+ring — reads its colour from
 [`RenderMapTheme`](gui-core/src/map_theme.rs). Apps either pass a customised theme via
 `SectorView { theme: Some(&...), .. }` or leave it `None` to fall back to
-[`RenderMapTheme::default`]. Sizing is expressed as `ScaledSize { mul, min }`,
-which the painter resolves with `hex_size * mul` floored at `min`. Screen-text
-labels (system, subsector, pip, **and region**) are the exception: they take
-only the `mul` and scale linearly with zoom via the `*_font_px` helpers in
-[sector_view/render.rs](gui-core/src/sector_view/render.rs), then disappear below a ~3px
-`*_MIN_VISIBLE_PX` threshold rather than flooring at `min` — a floor would make
-the chip balloon relative to the shrinking map as the user zooms out. To restyle
-the map, edit one struct; the viewer, the editor MAP panel, and the builder MAP
-tab all follow. Named `RenderMapTheme` to disambiguate from
+[`RenderMapTheme::default`]. Its one size, the theme-scaled route thickness, is a
+`ScaledSize { mul, min }` resolved as `hex_size * mul` floored at `min`; fixed
+geometry (star radius, ring bumps, glow widths, label scales) is written inline at
+the paint sites in [sector_view/](gui-core/src/sector_view/). Screen-text labels
+(system, subsector, pip, **and region**) scale linearly with zoom through
+`label_px` in [sector_view/render.rs](gui-core/src/sector_view/render.rs), then
+disappear below ~3px rather than flooring — a floor would make the chip balloon
+relative to the shrinking map as the user zooms out. To recolour the map, edit one
+struct; the viewer, the editor MAP panel, and the builder MAP tab all follow. Named `RenderMapTheme` to disambiguate from
 [`sectorforge::map_theme::MapTheme`](src/export/map_theme.rs) — the data-layer
 counterpart that PNG/SVG exports consume.
 
@@ -2724,7 +2705,7 @@ foundation layer lives in:
 | Module | Purpose |
 |---|---|
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | `GeneratedSector::empty`, `GeneratedSystem::new_at`, `GeneratedWorld::new` constructors used by the builder when the user creates entities from scratch. |
-| [src/model/sector_model/mutation.rs](src/model/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, `add_faction`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
+| [src/model/sector_model/mutation.rs](src/model/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
 | [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + §39 live-derivation ledger (`derivations`) + dirty flag + validation/invariant reports + pending jobs. Holds the struct definition + `new_blank` constructor + `default_config`; method `impl` blocks are split into sibling modules by concern, and the **transient UI scratch** (§D-S3/D5) is grouped into the `panel_state.rs` sub-structs (`selection`/`map_view`/`drag`/`feedback`/`generation`/`route_bulk`/`hidden_routes`/`region_grow` + per-panel `*_panel`/`*_view`) rather than flat fields. Document state, derivation caches, and overrides stay flat on `BuilderState`. |
 | [builder/src/builder/state/panel_state.rs](builder/src/builder/state/panel_state.rs) | §D-S3/D5 transient-scratch sub-structs grouped off `BuilderState` (20 structs; in-memory only, never serialized, never on the undo stack). Each `Default` encodes the exact prior `BuilderState` init value — a pure behavior-identical field-move, not a bus/undo change. |
 | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types backing `BuilderState`: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind` (incl. the generic `ConfirmDestructive` + its data-only `ConfirmAction` payload — §FRIENDLY_PANEL_PASS transform #7), `HealthLevel`, `PartialRegenRect`, `PendingPlace`/`Rename`/`Collision`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, plus `DEFAULT_COMMAND_LOG_CAPACITY` / `DEFAULT_VALIDATION_DEBOUNCE_MS`. Re-exported by `state/mod.rs`. |
@@ -2738,7 +2719,7 @@ foundation layer lives in:
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3 cache primitives (`digest_input`) **and** the §39 live-derivation ledger (LD1..LD4): `DerivationKind` (16 overlays), `DepClass` (6 mutation-input classes) + the dependency table, `DerivationLedger` (per-kind fingerprints / stale set / deriving set), `DerivationStatus`. The generic key→value `DerivationCache` is flushed per command; the ledger is invalidated *precisely* by `BuilderCommand::dep_classes` (LD2). |
 | [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save points tying a `GeneratedSector` clone to a command-log position. |
-| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
+| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `SessionFile` JSON envelope, in memory only (`from_state` / `into_state`); no `.sgforge` save/load. |
 | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
 
 `BuilderState::run` routes a command through the bus enforcing the R4
@@ -2753,8 +2734,8 @@ same invariant / invalidation / auto-save tail so the status bar stays accurate.
 session used by the new-project wizard. It uses the new
 `GeneratedSector::empty` constructor under the hood.
 
-The `.sgforge` envelope is versioned (`SESSION_VERSION = 1`). Loaders refuse
-mismatched versions explicitly rather than partially decoding.
+`SessionFile::from_state` stamps `SESSION_VERSION = 1`; nothing reads it back,
+since no `.sgforge` file is written or loaded.
 
 #### R1–R10 architecture rails (DONE)
 
@@ -2771,7 +2752,7 @@ mismatched versions explicitly rather than partially decoding.
 | R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
 | R10 panel contract | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
 
-#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 DONE, LD4 DONE)
+#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 DONE (background half withdrawn), LD4 DONE)
 
 The overlay tabs (economy, relations, history, personae, hooks, sites, missions,
 prose, analytics, briefing, interestingness, …) render *derived* state. Each
@@ -2895,50 +2876,21 @@ row is a focus button that jumps the inspector to the offending file or entity.
 The status bar still reads `validation_report` directly for the always-visible
 health pip.
 
-**LD3 — stale tag + background re-derivation.**
-The status bar (`render_derivations`) shows `deriv N` (cached overlays), a yellow
-`stale M` tag (hover lists the kinds), and a blue `deriving K` tag.
-`DerivationStatus` is `Cold` / `Fresh` / `Stale` / `Deriving`.
+**LD3 — stale tag.**
+The status bar (`render_derivations`) shows `deriv N` (cached overlays) and a
+yellow `stale M` tag (hover lists the kinds). `DerivationStatus` is `Cold` /
+`Fresh` / `Stale`.
 
-*Active-tab fast path (synchronous).* `BuilderState::pump_derivations` (called
-each frame from `pump_active_state`) re-derives the active tab's stale overlay
-first, so the visible panel paints a live value the same frame — and the kind is
-cleared from `stale` before background dispatch reads the set, so it is never
-double-computed.
-
-*Off-thread path.* Seven background-eligible kinds — Relations, History,
-Personae, Hooks, Sites, Missions, Prose — re-derive on a worker via
-[`gui-core::jobs::JobHandle`](gui-core/src/jobs.rs).
-[derivation_jobs.rs](builder/src/builder/derivation_jobs.rs) holds
-`compute_chronicle`, the one derivation with real logic beyond a bare
-`derive_with` call (it preserves `manual = true` events); the other six
-overlays (relations / personae / hooks / sites / missions / prose) are
-one-line `sectorforge::*::derive_with`/`derive_with_threshold` passthroughs
-called directly from both the worker and the synchronous `recompute_*` in
-[state/derivations.rs](builder/src/builder/state/derivations.rs). Either way
-each takes owned/borrowed snapshots (sector + cloned cfg + scalars) with no
-`&mut self`, so both call sites compute byte-identical output from identical
-inputs. `dispatch_background_derivations`
-(in [state/derivations.rs](builder/src/builder/state/derivations.rs)) snapshots
-inputs (`sector.share()` `Arc`-clone + cloned cfg) and spawns one job per stale
-off-tab kind that has no in-flight slot; `pump_derivation_jobs` drains
-`DerivationKind::ALL` deterministically and, for each `Done` result, runs a
-**fingerprint stale-guard** — the dispatch-time `derivation_fingerprint` is
-compared against the live one: a mismatch discards the result (and leaves the
-kind stale to re-dispatch against current inputs), a match installs the off-bus
-derived-cache write + `mark_derivation_fresh`. All ledger writes stay on the UI
-thread. The job store is transient UI state
-(`BuilderState::derivation_jobs: DerivationJobs`, a
-`BTreeMap<DerivationKind, InFlightDerivation>` keyed by kind), written directly —
-not a command, not serialized.
-
-*Economy stays synchronous.* Its install runs `apply_stability_nudge`, which
-mutates per-world stability and re-invalidates `SystemsWorlds` — a
-document-affecting cascade that must run on the UI thread — so economy is
-excluded from `is_background_eligible`. Tests:
-`pure_compute_relations_equals_sync_recompute`,
-`background_drain_installs_and_clears_when_fingerprint_stable`,
-`background_drain_discards_result_when_fingerprint_changed`.
+*Synchronous on view.* `BuilderState::pump_derivations` (called each frame from
+`pump_active_state`) runs `ensure_fresh` on the active tab's overlay, so the
+visible panel paints a live value the same frame. Off-tab overlays stay stale
+until their tab is shown; undo/redo also re-establish the in-sector economy /
+relations / chronicle (`reestablish_persisted_derived`), while
+`save_project_as`, the export bundle and the close-time `flush_auto_save`
+refresh only relations / chronicle (`refresh_for_save`) — a save never applies
+the §E4 stability nudge. The off-thread pre-warm of off-tab
+overlays was withdrawn (2026-10-22), so a throttled mid-edit auto-save writes
+whatever is cached.
 
 **LD4 — panels consume the live cache.**
 The eight overlays with a state-level `recompute_*` are kept fresh centrally by
@@ -3148,8 +3100,8 @@ through the command bus; the SYSTEM tab owns the inspector + bulk-ops surface.
 | S2 inspector | [builder/src/builder/panels/system/mod.rs](builder/src/builder/panels/system/mod.rs) — collapsing sections for In-system map (§CTX0) / Identity / Star / Tags + Notes / Worlds (deep-link) / Routes (deep-link) / Primary factions / Control / Overlays. Every `GeneratedSystem` field is reachable; sibling panels manage the structured fields (§8 worlds, §10 factions, §11 control, §28..§32 overlays) and the SYSTEM tab provides "→" jumps via `BuilderState::active_tab`. |
 | CTX0 in-system map | [builder/src/builder/panels/system/preview.rs](builder/src/builder/panels/system/preview.rs) `show_system_map_section` — embeds the shared `sectorforge_gui_core::system_view::SystemView` widget at the top of the SYSTEM tab. Click on a planet routes through `handle_system_view_click` and writes `BuilderState::selected_world_id`; click on the central star sets `BuilderState::scroll_target = Some("sys_star_grid")`, which `show()` consumes on the same frame via `Response::scroll_to_me` on the Star section's header so it scrolls into view. Phase 0 of §CTX1 — prerequisite for the Phase 6 system-view context menus. |
 | System-view layout toggle | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) `SystemLayout::{Orbital, Horizontal}` plus the `layout` field on `SystemView`. `Horizontal` is the default (star at left, planets arrayed rightward in orbit order, axis ticks for empty slots); `Orbital` keeps the concentric-rings behaviour. The internal `SystemGeom::new(side, height, sys, layout)` (private to `system_view.rs`) backs the public `pick_world(side, height, sys, layout, local_pos)`; both are layout-aware so hit-testing matches whichever layout is being painted. Builder stores the selected layout in [`BuilderState::system_layout`](builder/src/builder/state/mod.rs) (in-memory only — never serialised); the SYSTEM-tab `show_system_map_section` renders Horizontal/Orbital `selectable_label`s above the embedded widget and passes the choice through to both `SystemView::show` and `panels/system_map.rs::arm_system_context_menu` so right-click empty-orbit picks land on the same slot the user sees. The viewer mirrors the toggle on its System-view bottom controls via `App::system_layout`. |
-| CTX1 sector right-click menu (plumbing) | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `resolve_sector_context` + `show_sector_context_menu` + `should_dismiss_sector_context_menu`. On `Response::secondary_clicked` the panel resolves the target (System / MultiSelection / EmptyHex) into `BuilderState::sector_context_menu = Some(SectorContextMenu { screen_pos, target })`. `SectorContextMenu` + `SectorMenuTarget` live in [state/types.rs](builder/src/builder/state/types.rs); the field is initialised `None` in both `BuilderState::new_blank` and `session.rs::default_builder_state` and never serialised. The renderer is an `egui::Area` + `Frame::menu` floating at `screen_pos`. Dismissal funnels through `should_dismiss_sector_context_menu(esc, focused, primary_click_outside)`. Guards: drag in progress / live rect-select / open collision dialog suppress the menu entirely; `MapTool::RegionPaint` keeps its existing secondary-click paint-erase binding unless `Ctrl` is held (the `Ctrl` branch opens the menu). While the menu is open the panel paints a yellow `paint_system_rings` overlay around the context system. Phase 1 of §CTX1. |
-| CTX1 sector menu items | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `SectorMenuAction` + `OpenInTarget` + `apply_sector_menu_action` + `render_empty_hex_menu` + `render_system_menu`. Phase 2 wires the §6.1 (empty hex) and §6.2 (single system) schemas. Each menu row calls `apply_sector_menu_action(state, …)` which is the pure-state-mutation side of every item — render fns own the UI, action fn owns the side-effect, tests call the action fn directly without an egui context. Empty-hex items: `PLACE SYSTEM HERE…` (arms `pending_place`), `PAINT REGION HERE` (gated on `selected_region_id`), `ERASE REGION HERE` (gated on the hex belonging to a region — scanned inline until Phase 5 plumbs the `SectorMapCache::region_for_hex` lookup), `COPY COORD`. System items: `FOCUS SYSTEM`, `RENAME…` (arms `pending_rename` with the current name), `DELETE` (`BuilderCommand::RemoveSystem`), `ADD ROUTE FROM HERE…` (arms `MapTool::AddRoute` + `pending_route_start`), `ADD WORLD` (`BuilderCommand::AddWorld` with a `World-N` default where N is the system's current world count + 1), `REGENERATE SYSTEM` (disabled for pinned, calls `BuilderState::generate_system_here`), `TOGGLE PIN` (flips `pinned_systems` membership), `Open in ▸` flat-indented submenu wired to System / World / Routes destinations (the Conflict / Orbital / Archetype / Intel destinations from the spec wait on a per-section scroll-anchor refactor under SYSTEM-tab sub-panels — deferred to a polish phase that touches conflict.rs / orbital.rs / intel.rs), `COPY ID`, `COPY COORD`. Phase 5 lights up the `Route` and `RegionHex` variants (see the next row); `SubsectorBorder` keeps the Phase 1 placeholder until a future phase. Phase 2 of §CTX1. |
+| CTX1 sector right-click menu (plumbing) | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `resolve_sector_context` + `show_sector_context_menu`. On `Response::secondary_clicked` the panel resolves the target (System / MultiSelection / EmptyHex) into `BuilderState::sector_context_menu = Some(SectorContextMenu { screen_pos, target })`. `SectorContextMenu` + `SectorMenuTarget` live in [state/types.rs](builder/src/builder/state/types.rs); the field is initialised `None` in both `BuilderState::new_blank` and `session.rs::default_builder_state` and never serialised. The renderer is an `egui::Area` + `Frame::menu` floating at `screen_pos`. Dismissal: Escape / focus loss / outside primary click / item activation. Guards: drag in progress / live rect-select / open collision dialog suppress the menu entirely; `MapTool::RegionPaint` keeps its existing secondary-click paint-erase binding unless `Ctrl` is held (the `Ctrl` branch opens the menu). While the menu is open the panel paints a yellow `paint_system_rings` overlay around the context system. Phase 1 of §CTX1. |
+| CTX1 sector menu items | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `SectorMenuAction` + `OpenInTarget` + `apply_sector_menu_action` + `render_empty_hex_menu` + `render_system_menu`. Phase 2 wires the §6.1 (empty hex) and §6.2 (single system) schemas. Each menu row calls `apply_sector_menu_action(state, …)` which is the pure-state-mutation side of every item — render fns own the UI, action fn owns the side-effect, tests call the action fn directly without an egui context. Empty-hex items: `PLACE SYSTEM HERE…` (arms `pending_place`), `PAINT REGION HERE` (gated on `selected_region_id`), `ERASE REGION HERE` (gated on the hex belonging to a region — scanned inline until Phase 5 plumbs the `SectorMapCache::region_for_hex` lookup), `COPY COORD`. System items: `FOCUS SYSTEM`, `RENAME…` (arms `pending_rename` with the current name), `DELETE` (`BuilderCommand::RemoveSystem`), `ADD ROUTE FROM HERE…` (arms `MapTool::AddRoute` + `pending_route_start`), `ADD WORLD` (`BuilderCommand::AddWorld` with a `World-N` default where N is the system's current world count + 1), `REGENERATE SYSTEM` (disabled for pinned, calls `BuilderState::generate_system_here`), `TOGGLE PIN` (flips `pinned_systems` membership), `Open in ▸` flat-indented submenu wired to System / World / Routes destinations (the Conflict / Orbital / Archetype / Intel destinations from the spec wait on a per-section scroll-anchor refactor under SYSTEM-tab sub-panels — deferred to a polish phase that touches conflict.rs / orbital.rs / intel.rs), `COPY ID`, `COPY COORD`. Phase 5 lights up the `Route` and `RegionHex` variants (see the next row). Phase 2 of §CTX1. |
 | CTX1 sector route + region-hex menus | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `render_route_menu` + `render_region_hex_menu` + `show_region_rename_dialog` + the §6.4 / §6.5 variants of `SectorMenuAction` (`FocusRoute`, `RemoveRoute`, `SetRouteType { id, value }`, `SetRouteStability { id, value }`, `FocusRegion`, `EraseRegionHex`, `SetRegionKind { region, value }`, `RenameRegionOpen`). Phase 5 of §CTX1 wires the route + region-hex schemas. Hit-tests funnel through two new gui-core helpers: `SectorGeom::hit_route(&sector, screen_pos) -> Option<RouteId>` in [gui-core/src/sector_view/render.rs](gui-core/src/sector_view/render.rs) (point-to-segment via `point_segment_distance`, threshold `hex_size * 0.18`, lex-id tie-break) and `SectorMapCache::region_for_hex(coord) -> Option<&str>` (O(1) over the existing `hex_region` table). `resolve_sector_context` now picks `Route` before falling through to the hex pick, and consults the cache so the empty-hex schema only fires when no region owns the hex. Mutations flow through four new `BuilderCommand` variants in [builder/src/builder/command.rs](builder/src/builder/command.rs) — `SetRouteType { id, before, after }`, `SetRouteStability { id, before, after }`, `SetRegionKind { region, before, after }` (renamed from the spec's `SetRegionColor` because the overlay colour is derived from `kind`), `RenameRegion { region, before, after }` — each with an `apply` / `revert` pair that the command bus undoes byte-for-byte. The route menu surfaces `CYCLE ROUTE TYPE ▸` / `CYCLE STABILITY ▸` as real nested submenus (resolves §14 Q14.1 in favour of the submenu — every variant is a 1-click row, the active one bullet-marked); the region menu surfaces `RECOLOR ▸` over `RegionConditionKind::ALL`. Same-value cycles short-circuit before reaching the bus so the command log stays clean. `RENAME REGION…` arms `BuilderState::pending_region_rename: Option<PendingRegionRename>` (in [state/types.rs](builder/src/builder/state/types.rs)); the modal is `show_region_rename_dialog` and commits via `BuilderCommand::RenameRegion`. Like every other transient dialog the field is in-memory only and not serialised by `session.rs`. |
 | CTX1 in-system right-click menu | [builder/src/builder/panels/system_map.rs](builder/src/builder/panels/system_map.rs) — Phase 6 of §CTX1. On `Response::secondary_clicked` from the embedded `SystemView`, `arm_system_context_menu` projects the screen coord into a widget-local `Pos2`, calls `sectorforge_gui_core::system_view::pick_world` (also new) to classify the click as `SystemPick::{Star, World(idx), EmptyOrbit(u8), Background}`, then writes `BuilderState::system_context_menu = Some(SystemContextMenu { screen_pos, target })`. `SystemContextMenu` + `SystemMenuTarget` live in [state/types.rs](builder/src/builder/state/types.rs); the field initialises `None` in both `BuilderState::new_blank` and `session.rs::default_builder_state` and never serialises. `show_system_context_menu` renders the floating `egui::Area` + `Frame::menu`; dismissal mirrors the MAP-tab menu (Escape / focus-loss / outside primary click / item activation). Schemas: `Star` (`FOCUS STAR DETAILS` arms `scroll_target = "sys_star_grid"`, `CYCLE SPECTRAL CLASS` cycles the `O→B→A→F→G→K→M` sequence keyed off the first letter of the current spectral string, `REMOVE STAR` / `ADD STAR` toggle the star via `BuilderCommand::SetStar`); `World` (`FOCUS WORLD`, `RENAME…` arms `BuilderState::pending_world_rename: Option<PendingWorldRename>` rendered by `show_world_rename_dialog` and committed as `BuilderCommand::RenameWorld`, `MOVE ORBIT ▸` nested submenu over `1..=max+4` rows dispatching `BuilderCommand::SetWorldOrbit` with the active orbit bullet-marked, `DUPLICATE WORLD` runs `BuilderCommand::AddWorld` + an inline payload mirror, `✕ REMOVE WORLD` runs `BuilderCommand::RemoveWorld`, `Open in WORLD tab`, `COPY ID`); `EmptyOrbit` (`ADD WORLD AT ORBIT N` runs `BuilderCommand::AddWorld` + pins `orbit = N`); `Background` (`ADD WORLD` lands on `max+1`, `REGENERATE SYSTEM` disabled-for-pinned with tooltip, `DERIVE ORBITAL ASSETS` calls the new `panels::orbital::derive_and_apply_orbital_assets` `pub(crate)` helper which dispatches `BuilderCommand::SetOrbitalAssets` + `SetBlockadeReport`). Phase 6 adds four `BuilderCommand` variants — `SetStar { system, before, after: Option<GeneratedStar> }`, `SetStarSpectral { system, before, after }`, `RenameWorld { world, before, after }`, `SetWorldOrbit { world, before, after }` — each with apply/revert round-tripped through the bus. `Open in ORBITAL section` is deferred to a polish pass (the SYSTEM tab already renders the orbital section inline below the map widget). |
 | CTX1 Phase 7 polish | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `menu_anchor_pivot` + `sector_menu_action_label`, [builder/src/builder/panels/system_map.rs](builder/src/builder/panels/system_map.rs) `menu_selection_override` + `system_menu_action_label`, [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) telemetry tail, and [`BuilderState::last_menu_action`](builder/src/builder/state/mod.rs). Phase 7 of §CTX1. **Viewport clamping**: `menu_anchor_pivot(cursor, screen)` returns `Align2::{LEFT,RIGHT}_{TOP,BOTTOM}` keyed off cursor quadrant; both `show_sector_context_menu` and `show_system_context_menu` build their `egui::Area` with `.pivot(menu_anchor_pivot(pos, screen_rect)).fixed_pos(pos).constrain(true)` so the menu grows away from the nearer screen edge and never extends past the viewport (egui's `constrain(true)` is the final safety net). **Hover ring on the SYSTEM tab**: `menu_selection_override(state, sys_idx)` returns `Some(SystemSelection::Star)` / `Some(SystemSelection::World(idx))` for the matching `SystemMenuTarget` while the menu is open, so `panels/system/preview.rs::show_system_map_section` hands the override into `SystemView::show` and the existing SELECTION ring lights up the contextual entity — no separate painter overlay needed. `Background` / `EmptyOrbit` targets and "menu targets a different system" cases fall through to the user's normal `selected_world_id`. **Telemetry tail**: `apply_sector_menu_action` and `apply_system_menu_action` populate `BuilderState::last_menu_action` via the new `sector_menu_action_label` / `system_menu_action_label` helpers (one `&'static str` per variant, exhaustively matched so future additions can't drift), and `panels/status.rs::show` tails it as `ctx_menu: <schema> :: <item>`. The field is in-memory only — dropped by `session::SessionFile` round-trip (verified by `ctx_menu_telemetry_resets_through_session_round_trip`). Deviations vs. spec draft: arrow-key traversal stays as future work (egui 0.29's focus chain handles Tab/Enter/Escape natively but does not implement arrow-step on `SelectableLabel`s), and telemetry routes through the status panel instead of the CLI `log_*progress` channel because the builder has no stderr surface. |
@@ -3183,8 +3135,8 @@ clicking the same action from the inspector tabs.
   `TOGGLE PIN`, `Open in ▸` submenu (System / World / Routes), `COPY ID`,
   `COPY COORD`.
 - **a route line** → `FOCUS ROUTE`, `REMOVE ROUTE`, `CYCLE ROUTE TYPE ▸`
-  submenu (active variant bullet-marked), `CYCLE STABILITY ▸` submenu,
-  `Open in ROUTES ▸`. Same-value cycles short-circuit so undo log stays
+  submenu (active variant bullet-marked), `CYCLE STABILITY ▸` submenu.
+  Same-value cycles short-circuit so undo log stays
   clean.
 - **a region hex** → `FOCUS REGION`, `ERASE FROM REGION`, `RECOLOR ▸` submenu
   over every `RegionConditionKind`, `RENAME REGION…` (inline dialog).
@@ -3266,7 +3218,7 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world/mod.rs](builder/
 | Piece | Where it lives |
 |---|---|
 | W1 inspector | [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays summary (§28 / §32), the §SU1/§SU2 surface-region editor ([builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs)), and the §W4 re-roll collapse. |
-| W2 enum pickers | `combo_enum(ui, salt, target, variants, display)` in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) takes `E::VARIANTS` and `E::display_name` as explicit arguments (no turbofish, no trait bound) and walks them to build the dropdown. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
+| W2 enum pickers | `combo_enum(ui, label, help, salt, target, variants, display)` in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) takes `E::VARIANTS` and `E::display_name` as explicit arguments (no turbofish, no trait bound) and walks them to build the dropdown. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
 | W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/gen/generation/mod.rs](src/gen/generation/mod.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
 | W5 features picker | `show_features_section` searchable multi-select. Weight previews are computed by `feature_weights_for_world` which sums per-world-type, per-star-colour, and global tiers of the pool's `FeaturePool` — empty when no worlds catalog is loaded. Already-present features are hidden from the add list. |
@@ -3408,7 +3360,7 @@ Phase C §16. The RELATIONS tab in [builder/src/builder/panels/relations.rs](bui
 | REL6 rich RelationOverride editor | Same as REL1 cell editor — `RelationOverride` fields are pinned per-axis with a `pin` checkbox so users can override a single dimension while leaving the rest derived. "Clear override for pair" drops the entry; the badge flips between "override pinned" / "derived (no override)". |
 | REL7 feed_conflict toggle | `show_settings` — checkbox bound to `data_catalogs.relations.feed_conflict`; `recompute_relations` copies the flag onto `RelationsMatrix.feed_conflict` so [`sectorforge::conflict::advance_sector`](src/analysis/conflict.rs) can read the live value on the next tick. |
 | REL8 min_world_presence | `show_settings` — `egui::Slider 1..=10` bound to `state.config.generation.relations.min_world_presence`. Changes arm `sectorforge.toml` dirty and (when auto-recompute is on) re-run `derive_with_threshold` so the matrix size matches a fresh `sectorforge generate` pass. |
-| REL9 Recompute / auto-recompute / Save | `show_header_actions` carries the synchronous Recompute button + `BuilderState::relations_auto_recompute` toggle (default `true`); `show_save_row` flushes the catalog through `project_io::save_project`, auto-pointing `config.inputs.relations` at `data/factions/relations.toml` when unset. |
+| REL9 Recompute / auto-recompute / Save | `show_header_actions` carries the synchronous Recompute button + `BuilderState::relations_auto_recompute` toggle (default `true`); the shared `panels::catalog_save_row` flushes the catalog through `project_io::save_project`, auto-pointing `config.inputs.relations` at `data/factions/relations.toml` when unset. |
 
 `BuilderState::recompute_relations` in [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) is the single canonical entry point: it calls `sectorforge::relations::derive_with_threshold(&sector, &cfg, min_world_presence)`, installs the matrix on `sector.relations` as an `Arc`, arms `dirty` + validation debounce + auto-save.
 
@@ -3580,7 +3532,7 @@ BUILDER_REQS §18 (PER1..PER5). Dramatis personae are a pure overlay over the fi
 |---|---|
 | PER1 per-faction-kind pool editor | [builder/src/builder/panels/personae.rs](builder/src/builder/panels/personae.rs) `show_kind_pools_section` — one `CollapsingHeader` per built-in kind (`imperial`, `mechanicus`, ..., `xenos`) plus any custom kind authored via the "custom kind id" text-entry. Each kind exposes `name_prefixes / name_roots / name_suffixes / single_names / titles / traits` as comma-separated `text_edit_multiline` rows wired to [`KindPools`](src/analysis/personae.rs). Empty fields fall back to the built-in defaults in `src/analysis/personae.rs::default_pool` via `merge_with_defaults`. Name assembly (`personae::assemble_name`) treats a `name_prefix` ending in `'` or `-` as a *name particle* that attaches directly to the root (T'au `"Shas'" + "ui"` ⇒ `"Shas'ui"`); any other prefix is a rank *honorific* and is dropped from the displayed name (the title already carries rank) unless it is needed to keep the sector-wide name unique. "Reset to defaults" removes the per-kind override so the built-in pool resumes. |
 | PER2 per-anchor table + manual editor | `show_persona_table` lists every derived persona (faction / kind / anchor / name / title / traits / agenda) with per-row links that fire `BuilderState::focus_entity` — the system slot links jump to the SYSTEM tab, world anchor links jump to the WORLD tab, `PersonaAnchor::Faction` (org-leadership) links and faction labels jump to FACTIONS. `show_manual_editor` adds/removes `[[manual]]` rows on `PersonaeConfig::manual`; `personae::derive_with` appends them last so manual personae survive every regenerate. |
-| PER3 auto-derive + auto-recompute | `show_header_actions` exposes the "Auto-derive personae" button (calls `BuilderState::recompute_personae`) and a `personae_auto_recompute` toggle that mirrors §H6 / §REL9 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. |
+| PER3 auto-derive + auto-recompute | `show_header_actions` exposes the "Auto-derive personae" button (calls `BuilderState::recompute_personae`) and a `personae_auto_recompute` toggle that mirrors §H6 / §REL9 — when on, every catalog edit triggers an immediate recompute through `after_catalog_commit`. |
 | PER4 dominance tier + caps | `show_dominance_section` binds `min_world_dominance` (`Presence` ↦ `Stronghold`), `max_per_world`, and `max_per_system` to the [`PersonaeConfig`](src/analysis/personae.rs) knobs. Higher tier ⇒ fewer worlds anchor personae. Caps are enforced inside `personae::derive_with`. |
 | PER5 agenda derivation tooltip | The agenda string itself is produced by `personae::build_agenda` — when the anchor world has a competing claim the prose calls out the rival faction (`Seeks to {verb} on {world} against {rival} (claim: {kind})`). The panel surfaces the derivation source as an `on_hover_text` tooltip beside each row: `Source: kind = <faction_kind>`, `faction = <faction_id>`, `anchor = system <id> (<slot>)` or `world <system>/<world>`. |
 | PER6 org-leadership leaders | `show_dominance_section` also binds `faction_leaders` (bool) and `min_faction_presence` (u32) on [`PersonaeConfig`](src/analysis/personae.rs). When `faction_leaders` is on, `personae::derive_faction_leaders` walks `GeneratedFaction → subfactions → forces` (id-sorted for determinism) and emits one leader per node whose `max(system_presence, world_presence)` count ≥ `min_faction_presence`. The anchor is `PersonaAnchor::Faction { faction_id, subfaction_id, force_id, tier }` with `tier ∈ {Overall, Subfaction, Force}`; titles come from `personae::tier_titles` and the agenda from `personae::build_faction_agenda` (footprint-based, no world claim). Leaders share the sector-wide `used_names` set so names never collide with geographic personae. |
@@ -3596,9 +3548,9 @@ BUILDER_REQS §19 (HK1..HK6). Plot hooks are a pure overlay over the finished se
 | HK1 ranked hook list + kind filter | [builder/src/builder/panels/hooks.rs](builder/src/builder/panels/hooks.rs) `show_filter_row` exposes a `ComboBox` over every `HookKind` variant (`CounterInfiltration`, `Reconquest`, `LostPassage`, `ConvoyEscort`, `BlockadeRun`, `HoldTheLine`, `SealedTombs`, `CrushUprising`, `SealedSystem`, `CultPurge`, `DiplomaticCrisis`, `SuccessionDispute`, `StarvingWorld`, `LifelineLane`); `show_hook_list` renders the cached `BuilderState::hooks_report` rows (`hooks::derive_with` already sorts by descending dramatic weight) with the filter applied on top. |
 | HK2 per-hook detail card | `show_detail_card` reads from `BuilderState::hooks_edit_target` / `selected_hook_id` and renders `id / kind / anchor / weight / gm-only / title / situation / stakes / factions / complications` in a two-column grid. Selecting a row in `show_hook_list` populates both fields so cross-tab links land here first-class. |
 | HK3 manual entry editor | `show_manual_editor` adds/removes entries on `HooksConfig::manual`. Each row exposes id / kind / anchor scope (System / World / Route) / anchor ids / title / situation / stakes / weight / gm-only / factions (CSV) / complications (one per line). |
-| HK4 auto-derive + auto-recompute | `show_header_actions` exposes the "Regenerate hooks" button (calls `BuilderState::recompute_hooks`) and a `hooks_auto_recompute` toggle that mirrors §H6 / §REL9 / §PER3 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual hooks survive every regenerate because `hooks::derive_with` drops any derived hook sharing a manual id and then appends the whole `cfg.manual` block last. |
+| HK4 auto-derive + auto-recompute | `show_header_actions` exposes the "Regenerate hooks" button (calls `BuilderState::recompute_hooks`) and a `hooks_auto_recompute` toggle that mirrors §H6 / §REL9 / §PER3 — when on, every catalog edit triggers an immediate recompute through `after_catalog_commit`. Manual hooks survive every regenerate because `hooks::derive_with` drops any derived hook sharing a manual id and then appends the whole `cfg.manual` block last. |
 | HK5 player-edition toggle | `BuilderState::hooks_player_edition` is flipped by the "player edition (--player)" checkbox in `show_header_actions`; `recompute_hooks` overrides `HooksConfig::hide_hidden_hooks` from this flag every run so the cached report already has `gm_only = true` rows stripped — mirroring the CLI `--player` behaviour. |
-| HK6 click-to-highlight anchor | Every anchor cell in `show_hook_list` and the "highlight on map" button on the detail card route through `focus_anchor` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `World` / `Route` (falls back to `EntityRef::Tab(BuilderTab::Map)` when the anchor id is empty). |
+| HK6 click-to-highlight anchor | Every anchor cell in `show_hook_list` and the "highlight on map" button on the detail card route through `anchor_link` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `World` / `Route` (falls back to `EntityRef::Tab(BuilderTab::Map)` when the anchor id is empty). |
 
 `BuilderState` adds five hooks fields: `hooks_report: Option<HooksReport>`, `hooks_auto_recompute: bool`, `hooks_player_edition: bool`, `hooks_filter_kind: Option<HookKind>`, `hooks_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. The `[inputs].hooks` field defaults to `data/hooks.toml` and is filled in lazily by `ensure_hooks_catalog` on first edit. `HooksConfig::manual` (new field on `src/analysis/hooks.rs::HooksConfig`) is appended after derivation and survives "Regenerate hooks". `synthesize_project_input` now feeds `data_catalogs.hooks` to validation / regeneration instead of defaulting.
 
@@ -3608,10 +3560,10 @@ BUILDER_REQS §20 (ST1..ST4). Planetary sites are a pure overlay over the finish
 
 | Piece | Where it lives |
 |---|---|
-| ST1 per-world site editor + detail | [builder/src/builder/panels/sites.rs](builder/src/builder/panels/sites.rs) `show_filter_row` exposes a `ComboBox` over every `SiteKind` variant (governor's palace, cathedral spire, manufactorum, underhive sump-city, void elevator, star-fort dockyard, quarantine zone, xenos ruin, pilgrim necropolis, astropathic choir, Arbites precinct, data-vault, disputed shrine, penal mine, black-market enclave, cult safehouse, crashed voidship, agri granary, forge reactor, tomb complex, naval anchorage); `show_site_list` renders the cached `BuilderState::sites_report` rows (grouped by world id and sorted inside `sites::derive_with`) with the filter applied on top. Row click sets `BuilderState::selected_site_id` / `sites_edit_target` and fires `focus_entity(EntityRef::World)` so cross-tab links land first-class. `show_detail_card` reads from `sites_edit_target` / `selected_site_id` and renders `id / kind / system+world (link) / region / name / controller (faction link) / public+actual status / known-to / tags / hook` in a two-column grid. |
-| ST2 auto-derive + manual survive | `show_header_actions` exposes the "Auto-derive sites" button (calls `BuilderState::recompute_sites`) and a `sites_auto_recompute` toggle that mirrors §PER3 / §HK4 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual sites survive every regenerate because `sites::derive_with` appends the whole `cfg.manual` block after sorting the derived rows. `show_manual_editor` adds/removes entries on `SitesConfig::manual` with id / kind / system+world ids / name / controller / public+actual status pickers / known-to (CSV) / tags (CSV) / hook fields. |
+| ST1 per-world site editor + detail | [builder/src/builder/panels/sites.rs](builder/src/builder/panels/sites.rs) `show_filter_row` exposes a `ComboBox` over every `SiteKind` variant (governor's palace, cathedral spire, manufactorum, underhive sump-city, void elevator, star-fort dockyard, quarantine zone, xenos ruin, pilgrim necropolis, astropathic choir, Arbites precinct, data-vault, disputed shrine, penal mine, black-market enclave, cult safehouse, crashed voidship, agri granary, forge reactor, tomb complex, naval anchorage); `show_site_list` renders the cached `BuilderState::sites_report` rows (grouped by world id and sorted inside `sites::derive_with`) with the filter applied on top. Row click sets `BuilderState::selection.site_id` and fires `focus_entity(EntityRef::World)`. `show_detail_card` reads `selection.site_id` and renders `id / kind / system+world (link) / region / name / controller (faction link) / public+actual status / known-to / tags / hook` in a two-column grid. |
+| ST2 auto-derive + manual survive | `show_header_actions` exposes the "Auto-derive sites" button (calls `BuilderState::recompute_sites`) and a `sites_auto_recompute` toggle that mirrors §PER3 / §HK4 — when on, every catalog edit triggers an immediate recompute through `after_catalog_commit`. Manual sites survive every regenerate because `sites::derive_with` appends the whole `cfg.manual` block after sorting the derived rows. `show_manual_editor` adds/removes entries on `SitesConfig::manual` with id / kind / system+world ids / name / controller / public+actual status pickers / known-to (CSV) / tags (CSV) / hook fields. |
 | ST3 player-edition toggle | `BuilderState::sites_player_edition` is flipped by the "player edition (--player)" checkbox in `show_header_actions`; `recompute_sites` overrides `SitesConfig::player_edition` from this flag every run so the cached report drops rows where `public_status != actual_status` — mirroring the CLI `--player` behaviour. The detail card and the list grid also hide the `Actual` column when the flag is on. |
-| ST4 sites.toml editor + round-trip | `show_config_section` binds `SitesConfig::max_per_world` (DragValue, 0..=32) and `SitesConfig::skip_uninhabited` (checkbox). `show_save_row` writes `data/sites.toml` through `project_io::save_project` (`[inputs].sites` defaults to `data/sites.toml` and is filled in lazily by `ensure_sites_catalog` on first edit). `project_io::catalogs_from_input` / `save_project_as` / `reload_catalog` and the file watcher round-trip the file alongside the other catalogs. |
+| ST4 sites.toml editor + round-trip | `show_config_section` binds `SitesConfig::max_per_world` (DragValue, 0..=32) and `SitesConfig::skip_uninhabited` (checkbox). The shared `panels::catalog_save_row` writes `data/sites.toml` through `project_io::save_project` (`[inputs].sites` defaults to `data/sites.toml` and is filled in lazily by `ensure_sites_catalog` on first edit). `project_io::catalogs_from_input` / `save_project_as` / `reload_catalog` and the file watcher round-trip the file alongside the other catalogs. |
 
 `BuilderState` adds six sites fields: `sites_report: Option<SitesReport>`, `sites_auto_recompute: bool`, `sites_player_edition: bool`, `sites_filter_kind: Option<SiteKind>`, `selected_site_id: Option<String>`, `sites_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::sites: Option<SitesConfig>` mirrors the on-disk file; the [`SitesConfig::manual`](src/gen/sites.rs) field — already present from §46 PSI2 — is appended after derivation and survives "Auto-derive sites". `synthesize_project_input` now feeds `data_catalogs.sites` to validation / regeneration instead of `SitesConfig::default()`.
 
@@ -3623,7 +3575,7 @@ BUILDER_REQS §21 (M1..M5). Mission seeds are a pure overlay over the finished s
 |---|---|
 | M1 mission list + detail card | [builder/src/builder/panels/missions.rs](builder/src/builder/panels/missions.rs) `show_filter_row` exposes a `ComboBox` over every `MissionKind` variant (`investigate`, `escort`, `sabotage`, `diplomacy`, `assassination`, `recovery`, `defense`, `exploration`); `show_mission_list` renders the cached `BuilderState::missions_report` rows (sorted inside `missions::derive_with` by descending weight, then id) with the filter applied on top. Row click sets `BuilderState::selected_mission_id` / `missions_edit_target`. `show_detail_card` reads from `missions_edit_target` / `selected_mission_id` and renders `id / kind / title / patron (faction link) / target (faction link) / primary + secondary location (link) / routes (route links) / objective / hidden complication / reward / consequence / scale / visibility / weight` in a two-column grid. |
 | M2 manual mission editor | `show_manual_editor` adds/removes entries on `MissionsConfig::manual`. Each row exposes id / kind picker / title / patron + target faction id / `primary_location` text (`sys` or `sys/world`) / secondary location / route-id CSV / objective / hidden complication / reward / consequence / scale + visibility pickers / weight DragValue / GM-only checkbox. New rows are seeded with `blank_manual_mission` so each row starts with stable defaults. |
-| M3 auto-derive + manual survive | `show_header_actions` exposes the "Auto-derive missions" button (calls `BuilderState::recompute_missions`) and a `missions_auto_recompute` toggle that mirrors §PER3 / §HK4 / §ST2 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual missions survive every regenerate because `missions::derive_with` now extends the working list with `cfg.manual` after the per-anchor cap pass and then re-sorts by `weight desc, id` so manual entries keep their authored priority. |
+| M3 auto-derive + manual survive | `show_header_actions` exposes the "Auto-derive missions" button (calls `BuilderState::recompute_missions`) and a `missions_auto_recompute` toggle that mirrors §PER3 / §HK4 / §ST2 — when on, every catalog edit triggers an immediate recompute through `after_catalog_commit`. Manual missions survive every regenerate because `missions::derive_with` now extends the working list with `cfg.manual` after the per-anchor cap pass and then re-sorts by `weight desc, id` so manual entries keep their authored priority. |
 | M4 player-edition toggle | `BuilderState::missions_player_edition` is flipped by the "player edition (--player)" checkbox in `show_header_actions`; `recompute_missions` overrides `MissionsConfig::player_edition` from this flag every run so the cached report drops `gm_only = true` rows — mirroring the CLI `--player` behaviour. The list grid hides the `GM` column and the detail card hides the hidden-complication row under the same flag. |
 | M5 click-to-highlight location | Every "highlight" button on the list, the detail card's primary / secondary location links, and the route id links route through `focus_primary_location` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `EntityRef::World` / `EntityRef::Route`. The helper parses the mission's `primary_location` string (`sys` or `sys/world`); when the string is empty it falls back to the first route id (when present) or `EntityRef::Tab(BuilderTab::Map)`. |
 
@@ -3638,7 +3590,7 @@ BUILDER_REQS §22 (PR1..PR4). The gazetteer prose is a pure overlay over the fin
 | PR1 per-system prose editor + override toggle | [builder/src/builder/panels/prose.rs](builder/src/builder/panels/prose.rs) `show_system_editor` — system picker (`ComboBox` seeded from `BuilderState::selected_prose_system_id`, falling through to `BuilderState::selected_system_id` on first focus) plus an "Override" checkbox that flips `ProseConfig::overrides::systems` for the chosen `SystemId`. The first toggle seeds the override with `entry.paragraphs.join("\n\n")` so the user edits in place; "Revert to derived" removes the entry. The derived paragraphs stay cached on [`SystemProse::derived_paragraphs`](src/analysis/prose.rs) inside the active report so the "Derived paragraphs (read-only)" collapsing block can restore them without re-running derivation. Overrides survive every "Regenerate prose" because they live inside `data_catalogs.prose` and `prose::derive_with` re-applies them after the deterministic derivation pass. A `→ system tab` link beside the picker fires `BuilderState::focus_entity(EntityRef::System(_))` so authors can flip to the SYSTEM tab while drafting prose. |
 | PR2 per-sector overview editor | `show_overview_editor` mirrors §PR1 against `ProseConfig::overrides::overview`. `ProseReport::overview_is_override` reflects the toggle state so the panel surfaces an "AUTHORED" badge next to the override; blank / whitespace-only overrides fall back to the derived overview at derive time. |
 | PR3 tone preset selector | `show_tone_section` exposes a `ComboBox` over [`ProseTone::Gazetteer`] / [`ProseTone::Dispatch`] bound to `ProseConfig::tone`, plus include-overview / include-per-system checkboxes that mirror the CLI knobs. Changing the tone rewrites the derived paragraphs on the next recompute; overrides are untouched because they store the manual text verbatim. |
-| PR4 regenerate + auto-recompute + manual survive | `show_header_actions` exposes the "Regenerate prose" button (calls `BuilderState::recompute_prose`) and a `prose_auto_recompute` toggle that mirrors §PER3 / §HK4 / §ST2 / §M3 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual overrides survive every regenerate because `prose::derive_with` re-applies the [`ProseOverrides`](src/analysis/prose.rs) block after the deterministic derivation. `show_save_row` writes `data/prose.toml` through `project_io::save_project` (`[inputs].prose` defaults to `data/prose.toml` and is filled in lazily by `ensure_prose_catalog` on first edit). The `sectorforge prose` CLI also honours `[inputs].prose` when `--project` is supplied — overrides survive on the CLI path too. |
+| PR4 regenerate + auto-recompute + manual survive | `show_header_actions` exposes the "Regenerate prose" button (calls `BuilderState::recompute_prose`) and a `prose_auto_recompute` toggle that mirrors §PER3 / §HK4 / §ST2 / §M3 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual overrides survive every regenerate because `prose::derive_with` re-applies the [`ProseOverrides`](src/analysis/prose.rs) block after the deterministic derivation. The shared `panels::catalog_save_row` writes `data/prose.toml` through `project_io::save_project` (`[inputs].prose` defaults to `data/prose.toml` and is filled in lazily by `ensure_prose_catalog` on first edit). The `sectorforge prose` CLI also honours `[inputs].prose` when `--project` is supplied — overrides survive on the CLI path too. |
 
 `BuilderState` adds three prose fields: `prose_report: Option<ProseReport>`, `prose_auto_recompute: bool`, and `selected_prose_system_id: Option<SystemId>`. Defaults: `None` / `true` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::prose: Option<ProseConfig>` mirrors the on-disk file. `ProseConfig` (in [src/analysis/prose.rs](src/analysis/prose.rs)) grew a new `overrides: ProseOverrides` field — `overview: Option<String>` + `systems: BTreeMap<SystemId, String>` — which is applied after derivation and survives "Regenerate prose"; the `ProseReport` and per-system `SystemProse` rows surface `overview_is_override` / `is_override` / `derived_paragraphs` so the panel can flag authored rows and keep the original derivation reachable. `[inputs].prose` was added to `src/loading/config.rs::InputConfig` and `src/loading/input.rs` parses the file into `ProjectInput::prose`; `synthesize_project_input` now feeds `data_catalogs.prose` to validation / regeneration instead of `ProseConfig::default()`.
 
@@ -3740,7 +3692,7 @@ BUILDER_REQS §34 (EX1..EX8). The EXPORT tab is the in-app face of `sectorforge 
 
 | Piece | Where it lives |
 |---|---|
-| EX1 formats + EX2 manifest | `panels/export.rs::show_formats` renders a checkbox per `OutputFormat` (`json` / `markdown` / `bitmap` / `svg` / `html`) that adds/removes it from `state.config.outputs.formats`, plus `write_manifest` / `pretty_json` / `write_per_system_files`. `run_bundle` calls [`sectorforge::export_sector`](src/lib.rs)`(&state.sector, &state.config.outputs, dir)`; the manifest write is gated by `write_manifest` inside `export_all` ([src/export/writers.rs](src/export/writers.rs)). Any edit sets `state.dirty`. **§V6 pre-export gate** — both `run_bundle` and `run_everything` first call `BuilderState::export_block_reason`, which re-validates the live sector (`revalidate_now` + `check_sector`) and returns `Some(reason)` on any validation error, invariant violation, or — under §V4 strict — validation warning; the export is then refused (surfaced via `ExportState::error`) instead of writing, mirroring the CLI `generate` refuse-on-error behaviour. |
+| EX1 formats + EX2 manifest | `panels/export.rs::show_formats` renders a checkbox per `OutputFormat` (`json` / `markdown` / `bitmap` / `svg` / `html`) that adds/removes it from `state.config.outputs.formats`, plus `write_manifest` / `pretty_json` / `write_per_system_files`. `run_bundle` calls [`sectorforge::export_sector`](src/lib.rs)`(&state.sector, &state.config.outputs, dir)`; the manifest write is gated by `write_manifest` inside `export_all_with_progress` ([src/export/writers.rs](src/export/writers.rs)). Any edit sets `state.dirty`. **§V6 pre-export gate** — both `run_bundle` and `run_everything` first call `BuilderState::export_block_reason`, which re-validates the live sector (`revalidate_now` + `check_sector`) and returns `Some(reason)` on any validation error, invariant violation, or — under §V4 strict — validation warning; the export is then refused (surfaced via `ExportState::error`) instead of writing, mirroring the CLI `generate` refuse-on-error behaviour. |
 | EX3 bitmap settings | `show_bitmap_settings` is a `DragValue`/checkbox/`ComboBox` grid over `state.config.outputs.bitmap`: `sector_scale` / `system_scale` (1..=8), `render_systems`, `faction_fill`, and a `heatmap` picker over `HeatmapMode::ALL`. |
 | EX4 HTML settings | `show_html_settings` edits `state.config.outputs.html`: theme picker over `HtmlTheme` (dark/parchment/hololithic), `player_observer` combo (faction ids from `state.sector.factions` + "(none)"), `player_min_confidence` slider, `size_warn_bytes`, `compact_json`. Faction ids are collected before borrowing `html` &mut to dodge the aliasing borrow. |
 | EX5 standalone-system | `show_standalone_system` collects seed / coord / index / markdown on `ExportState`; `generate_and_write_system` mirrors `generate-system` — `sectorforge::load_project` (from `state.project_path`), `generate_system_standalone`, then `write_system_json` (+ `render_system_markdown`) writing `<sys-id>.json` (+ `.md`) into the output folder. Gated on an open project. |
@@ -3872,7 +3824,7 @@ The newtypes also implement `Deref<Target = str>`, `AsRef<str>`, `Display`,
 ceremony.
 
 For GUI text-edit fields, [viewer/src/editor/ui_helpers.rs](viewer/src/editor/ui_helpers.rs)
-exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — generic wrappers
+exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — wrappers
 over the `&mut String` versions that round-trip the typed id through a
 temporary `String` buffer so `egui::TextEdit` keeps working unchanged.
 
@@ -3906,7 +3858,6 @@ Common codes:
 | `WB_NO_USABLE_ROWS` | World data produced zero usable candidates |
 | `WB_EXCLUDED_ROWS` | At least one row was excluded, but at most half (warning) |
 | `WB_EXCLUDED_ROWS_SEVERE` | More rows were excluded than kept (`n > usable`) — escalated to an error, since the sector would generate from a fraction of its templates |
-| `KEY_TABLE_EMPTY` | A key table built from enums had no entries |
 | `OUT_NO_FORMATS` | `outputs.formats` is empty; nothing will be written (warning) |
 | `OUT_BITMAP_SCALE_RANGE` | `outputs.bitmap.sector_scale` / `system_scale` is outside `1..=8` |
 | `OUT_BITMAP_THEME_INVALID` | `outputs.bitmap.theme` does not resolve to a known map theme |
@@ -3970,7 +3921,7 @@ Notable suites:
 - [tests/it/personae_tests.rs](tests/it/personae_tests.rs) — §3 dramatis personae: faction/system/world anchor validity, sector-wide name uniqueness, `max_per_world`/`max_per_system` caps, golden markdown structure, proptest determinism (TEST-001)
 - [tests/it/hooks_tests.rs](tests/it/hooks_tests.rs) — §7 plot hooks: anchor validity for system/world/route variants, id uniqueness, descending weight ordering, `hide_hidden_hooks` filter, golden markdown attribute lines, proptest determinism (TEST-001)
 - [tests/it/segmentum_tests.rs](tests/it/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
-- [builder/src/builder/smoke_test.rs](builder/src/builder/smoke_test.rs) — §T6 headless builder GUI smoke test: `builder_smoke_paints_core_tabs_and_saves` drives PROJECT / MAP / SYSTEM / WORLD through one `egui::Context::run` frame each, then asserts `save_session` to a temp `.sgforge` succeeds and is non-empty (no display server needed)
+- [builder/src/builder/smoke_test.rs](builder/src/builder/smoke_test.rs) — §T6 headless builder GUI smoke test: `builder_smoke_paints_core_tabs_and_saves` drives PROJECT / MAP / SYSTEM / WORLD through one `egui::Context::run` frame each and asserts none of them panics (no display server needed; the name's "saves" predates the `save_session` removal)
 
 Benchmarks (criterion):
 
@@ -3980,7 +3931,7 @@ cargo bench --bench generation -- --quick # ~10s smoke
 cargo bench -p sectorforge-builder        # builder mutation bench (§T7 / §PERF1)
 ```
 
-Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`, plus the §42 500-system scale benches (`validate/500`, `invariants/500`, `derive_cold/500`, `derive_warm/500`). [benches/seed_search.rs](benches/seed_search.rs) adds `search/128_cand_200sys` (§PERF7).
+Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`, plus the §42 500-system scale benches (`validate/500`, `invariants/500`, `derive_cold/500`). [benches/seed_search.rs](benches/seed_search.rs) adds `search/128_cand_200sys` (§PERF7).
 
 Generation builds a world candidate pool once per project load. That pool also
 caches star-colour weight totals, so per-system star selection does not rescan
@@ -4037,13 +3988,13 @@ across runs, so a regression check is a diff away.
 | [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
 | [src/main.rs](src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps `SectorError` → a stable exit code via `cli::exit_code::from_error` (sysexits-style: 1/65/70/74/78, 130 for cancel) |
 | [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli`/`Command` definitions (each variant wraps the subcommand's `<Name>Args` struct, declared beside its runner) + one-line-per-variant `run` dispatcher |
-| [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `load_or_regenerate`, all `log_*progress` hooks |
+| [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `resolve_sector_with_cfg`, all `log_*progress` hooks |
 | [src/cli/generate.rs](src/cli/generate.rs) | `generate` + `generate-system` runners (incl. §15 NEW2 constraint search wiring) |
 | [src/cli/generate_all.rs](src/cli/generate_all.rs) | `generate-all` runner: batch `run_generate` over every `sectorforge.toml`-bearing subdir of `--dir` (default `examples`), sorted order, continue-on-failure |
 | [src/cli/validate.rs](src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
 | [src/cli/analyze.rs](src/cli/analyze.rs) | `analyze` runner — §8 NEW.md analytics dashboard |
 | [src/cli/presets.rs](src/cli/presets.rs) | `new` + `list-presets` runners |
-| [src/cli/random.rs](src/cli/random.rs) | `random` runner — RANDOM.md size-only → fully-complete sector; resolves the size, calls `random_sector::generate_random_sector`, exports the bundle + the five post-gen reports |
+| [src/cli/random.rs](src/cli/random.rs) | `random` runner — RANDOM.md size-only → fully-complete sector; resolves the size, calls `random_sector::generate_random_sector_from`, exports the bundle + the five post-gen reports |
 | [src/cli/search.rs](src/cli/search.rs) | `search` runner — §2 NEW.md seed search |
 | [src/cli/history.rs](src/cli/history.rs) | `history` runner — §1 NEW2.md chronicle derivation |
 | [src/cli/personae.rs](src/cli/personae.rs) | `personae` runner — §3 NEW.md dramatis personae |
@@ -4064,7 +4015,7 @@ across runs, so a regression check is a diff away.
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
 | [src/gen/world_pool.rs](src/gen/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
 | [src/gen/generation/mod.rs](src/gen/generation/mod.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
-| [src/gen/random_sector.rs](src/gen/random_sector.rs) | RANDOM.md engine: `SectorSize`, `mint_seed`, `build_random_config` (rolls a complete fully-enabled `AppConfig` from a `"config"` RNG stage), and `generate_random_sector` (scaffold `_full` → write synthesised config → load → validate → generate → run the five post-gen derivations). Returns `RandomReport` |
+| [src/gen/random_sector.rs](src/gen/random_sector.rs) | RANDOM.md engine: `SectorSize`, `mint_seed`, `build_random_config` (rolls a complete fully-enabled `AppConfig` from a `"config"` RNG stage), and `generate_random_sector_from` (scaffold the baseline preset, `_full` by default → write synthesised config → load → validate → generate → run the five post-gen derivations). Returns `RandomReport` |
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
 | [src/model/sector_model/routes_view.rs](src/model/sector_model/routes_view.rs) | Route render vocabulary (§A1 split out of the DTO god-file): `RoutePattern` + `strides`, `RouteViewMode`, `stable_pattern_hash`, and the render impl-methods of `RouteType`/`RouteKind`/`GeneratedRoute`; re-exported at the `sector_model` root so consumer import paths are unchanged. |
 | [src/analysis/control.rs](src/analysis/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
@@ -4076,9 +4027,9 @@ across runs, so a regression check is a diff away.
 | [src/export/map_theme.rs](src/export/map_theme.rs) | §13 NEW2.md bitmap map themes: built-in palettes, custom TOML theme parsing, color validation, label/legend/route/symbol style knobs |
 | [src/export/bitmap/mod.rs](src/export/bitmap/mod.rs) | Sector PNG facade: public `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, `RenderOptions`, plus the top-level `render()` orchestrator that wires the submodules together |
 | [src/export/bitmap/primitives.rs](src/export/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
-| [src/export/bitmap/geom.rs](src/export/bitmap/geom.rs) | `Geom` (scale-derived sizes), `MapBounds`, hex centre/vertex math, axis-aligned `Rect` for label collision |
+| [src/export/bitmap/geom.rs](src/export/bitmap/geom.rs) | `Geom` (scale-derived sizes), `MapBounds`, integer wrappers over the shared `render_core::geom` hex layout, axis-aligned `Rect` for label collision |
 | [src/export/bitmap/colors.rs](src/export/bitmap/colors.rs) | Spectral star colour, stability colour, route thickness, `tint_against` / `darken` / `dim_rgba` / `stroke_px`, `short()` label truncation |
-| [src/export/bitmap/grid.rs](src/export/bitmap/grid.rs) | Hex grid fill, subsector borders, `compute_heatmap`; re-exports the shared tint computation `render_core::grid::compute_heat_tints` (§5 region overlay sits under §8 faction tint / §10 heatmap) |
+| [src/export/bitmap/grid.rs](src/export/bitmap/grid.rs) | Hex grid fill, subsector borders; re-exports the shared tint computation `render_core::grid::compute_heat_tints` (§5 region overlay sits under §8 faction tint / §10 heatmap) |
 | [src/export/bitmap/routes.rs](src/export/bitmap/routes.rs) | Route lines: solid/dashed/dotted/burst/zigzag/disc-trail/chevron/tripod motifs + midpoint route-control glyph; exports `RouteLineParams` |
 | [src/export/bitmap/regions.rs](src/export/bitmap/regions.rs) | §5 warp region label overlay (centroid anchor + truncated uppercase) |
 | [src/export/bitmap/systems.rs](src/export/bitmap/systems.rs) | Star disks (spectral colour), world-count pip text, subsector capital marker (diamond / cross / tactical) |
@@ -4101,7 +4052,7 @@ across runs, so a regression check is a diff away.
 | [src/export/subsectors/summary.rs](src/export/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/analysis/analytics.rs](src/analysis/analytics.rs) | §8 old/DONE.md analytics dashboard: faction balance + connectivity + flags |
 | [src/loading/presets.rs](src/loading/presets.rs) | §9 old/DONE.md preset library + scaffolder (`new`, `list-presets`) |
-| [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration). `clone_project_with_seed` per-candidate clones now `Arc::clone` the shared `ProjectCatalogs` (§TF-P-1) — one refcount bump replaces 14 deep clones of `world_tables` / `world_rows` / `factions` / etc., so seed search bandwidth scales with `config` + `input_digests` only. |
+| [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration). `clone_project_with_seed` per-candidate clones now `Arc::clone` the shared `ProjectCatalogs` (§TF-P-1) — one refcount bump replaces 14 deep clones of `world_rows` / `factions` / etc., so seed search bandwidth scales with `config` + `input_digests` only. |
 | [src/validate/diff.rs](src/validate/diff.rs) | §10 old/DONE.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
 | [src/analysis/history/mod.rs](src/analysis/history/mod.rs) | §1 NEW2.md/DONE deterministic `SectorChronicle`: typed dated / era-labelled history events with entity refs, consequences, route/subsector/region anchors, and `M{epoch}.{ddd}` notation. |
 | [src/analysis/personae.rs](src/analysis/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
@@ -4157,7 +4108,7 @@ across runs, so a regression check is a diff away.
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory TOML mirrors (worlds/factions/relations/route_rules/regions/economy/history/names) |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache for derived overlays |
 | [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save-point structure |
-| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
+| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `SessionFile` in-memory JSON envelope (no `.sgforge` save/load) |
 | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
 | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
 | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes (`atomic_write`), manifest digest refresh, `refresh_watcher_baseline` (§PF5) |
@@ -4237,7 +4188,7 @@ These hold across the crate and are enforced by review, not lints:
 - **`unwrap_or_else(|| ...)` when the fallback is not a trivial copy.** `unwrap_or(expr)` evaluates `expr` eagerly even on the happy path. For `&str` borrows of fields owned by surrounding scope, `unwrap_or_else` avoids the spurious borrow.
 - **`x.to_string()` over `format!("{}", x)`** for single-argument display — skips the format machinery and a temporary `Arguments` struct.
 - **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/gen/generation/mod.rs:419](src/gen/generation/mod.rs#L419) where the systems vector is pre-sized from the placement count.
-- **Keep golden tests cached and format-scoped.** Reuse the cached fixture in [tests/it/golden_generation.rs](tests/it/golden_generation.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
+- **Keep golden tests cached and format-scoped.** Reuse the cached `fixture_sector()` in [tests/it/shared.rs](tests/it/shared.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
 
 ### Math-accuracy lints (intentionally NOT applied)
 
@@ -4290,7 +4241,7 @@ cargo run --release --features dhat-heap --bin dhat-profile -- examples/m42_proj
 
 [benches/generation.rs](benches/generation.rs) registers twelve groups across the
 tiny / normal / large scale matrix from the optimisation spec §5B (the §5B
-core phases below, plus the four 500-system scale benches and the
+core phases below, plus the three 500-system scale benches and the
 emit-path groups):
 
 - `generate_sector` — pure generation; isolated per iteration with
@@ -4303,6 +4254,8 @@ emit-path groups):
 - `encode_png_bytes` — PNG encoder cost on a pre-rasterised image. Splitting
   raster from encode lets you see whether image compression or pixel layout
   is the bottleneck.
+- `render_sector_png` — the full raster **+** encode path end-to-end
+  (RUST_FIXES.md FU-9), directly comparable with the two halves above.
 - `render_sector_svg` / `serialize_json` / `render_sector_markdown` — the other
   emit paths (SVG render, `sector.json` serialisation, Markdown render), each
   across the same scale matrix.
@@ -4313,11 +4266,11 @@ Run all groups: `cargo bench --bench generation`. Run one group:
 The §42 builder performance targets (PERF3–PERF7) are covered at the spec's
 500-system / 128-candidate scale by additional named benches in the same two
 files: `validate/500` (PERF3), `invariants/500` (PERF4), `derive_cold/500`
-(PERF5, full overlay set re-derived per iteration), `derive_warm/500` (PERF6,
-the `Arc`-clone cache-hit return path) in [benches/generation.rs](benches/generation.rs),
-and `search/128_cand_200sys` (PERF7) in [benches/seed_search.rs](benches/seed_search.rs).
-All five met budget in the last run (validate 257 µs, invariants 2 ms, cold
-derive 411 ms, warm derive 2.6 ms, search 2.2 s).
+(PERF5, full overlay set re-derived per iteration) in [benches/generation.rs](benches/generation.rs),
+and `search/128_cand_200sys` (PERF7) in [benches/seed_search.rs](benches/seed_search.rs);
+PERF6's warm (cache-hit) path is the builder bench's `derive/economy_warm` below.
+All four met budget in the last run (validate 257 µs, invariants 2 ms, cold
+derive 411 ms, search 2.2 s).
 
 The builder's own large-sector mutation bench
 [builder/benches/builder_mutations.rs](builder/benches/builder_mutations.rs)
@@ -4329,7 +4282,9 @@ times `recompute_economy` (cold) vs cache-gated `ensure_fresh` (warm). All
 `command_apply` medians now clear the <1 ms PERF1 budget — the synchronous
 `check_sector` invariant re-check was deferred off `run`/`undo`/`redo` to the §V3
 debounced pump, dropping the heavy `auto_assign_archetypes` apply from ~1.31 ms to
-523 µs (move 78 µs, rename 76 µs).
+523 µs (move 78 µs, rename 76 µs). These timings predate T8 (4d1fa79, which moved
+the per-iteration command clone into `iter_batched` setup), so they include that
+clone.
 
 The gui-core map-redraw bench
 [gui-core/benches/sector_view_render.rs](gui-core/benches/sector_view_render.rs)
@@ -4340,7 +4295,7 @@ whether the ~16.6 ms frame budget is reachable — 1.16 ms on `big_test` (200 sy
 525 routes). End-to-end
 FPS is still confirmed manually in the builder/viewer.
 
-Four additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
+Three additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
 own `[[bench]]` so it runs in isolation — they exist to validate the §2.3 perf
 claims before a perf fix is called done:
 
@@ -4351,8 +4306,6 @@ claims before a perf fix is called done:
 - [benches/influence_field.rs](benches/influence_field.rs) — `influence_field::build`
   across 10/20/30-a-side sectors; the dense `Vec<f32>` cost this measures is what
   the TF-S-5 sparse-vs-dense storage decision hinges on.
-- [benches/render_png.rs](benches/render_png.rs) — the full raster **+** encode path
-  end-to-end (the `generation` groups above time the two halves separately).
 
 Run one: `cargo bench --bench influence_field`.
 
@@ -4382,13 +4335,23 @@ as re-exports where no adaptation is needed. Validation retains every rule and
 diagnostic string; shared codes are string constants.
 
 PNG and SVG share label predicates, legend metadata (`render_core/legend.rs`: row
-tables, `legend_lines`, `faction_row`), heat tint calculation
-(`grid::compute_heat_tints`), and test fixtures (`test_fixtures::sample_sector`) in
+tables, `legend_lines`, `faction_row`, `legend_width`), heat tint calculation
+(`grid::compute_heat_tints`), the `f32` hex layout (`render_core/geom.rs`), and test
+fixtures (`test_fixtures::sample_sector`) in
 [src/export/render_core/](src/export/render_core/). Each backend keeps its original
-pixel geometry and rounding. The viewer's feature pages share a frame helper
+rounding: bitmap rounds hex centres and truncates map bounds. The viewer's feature
+pages share a frame helper
 (`page`), and the sector map and route planner share cursor-anchored zoom (hex size
 clamped to 5–250) and drag handling (`update_map_navigation`) in
 [viewer/src/app/mod.rs](viewer/src/app/mod.rs).
+
+In [gui-core/](gui-core/src/lib.rs) the culled route passes share `visible_segment`,
+map labels share one ~3px `label_px` gate, the info panel's TAGS/NOTES and CONTROL
+blocks share `list_block` / `opt_kv_block`, the painted buttons share `button_frame`,
+alpha restamps go through `palette::with_alpha`, the route-control legend reuses the
+map glyph's `paint_route_control_shape`, the heatmap and overview caches key on one
+`SectorFingerprint`, and `palette::contrast_text` wraps the export's
+`system_map::contrast_text`.
 
 Archetype rules update each system directly without staging maps. Regional route
 effects share the stability update while preserving distance floors, bridge
@@ -4396,6 +4359,14 @@ protection, tags (`region:<condition slug>`, plus `region:perilous_applied` /
 `region:connectivity_preserved`), and progress events. Public route
 generation consumes no RNG. Builder undo shares world lookup (`world_mut`) while
 retaining its no-op for missing worlds.
+
+The history chroniclers for systems, worlds and routes share one cap / re-sort /
+emit tail (`flush_capped` in
+[src/analysis/history/systems.rs](src/analysis/history/systems.rs)); each passes
+its own truncation order — systems and worlds break weight ties by topological
+rank, routes keep insertion order. Persona tier titles, agenda verbs and default
+pools are one `KIND_TABLE` row per canonical kind in
+[src/analysis/personae.rs](src/analysis/personae.rs).
 
 ### Determinism regression tests
 

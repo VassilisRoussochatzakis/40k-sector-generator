@@ -264,18 +264,6 @@ where
     )
 }
 
-/// Capped max-distance for the CalmCorridor route-distance floor.
-///
-/// Must be the SAME capped max-distance `generate_routes` classified every
-/// route against: the raw config value floored by the route rules'
-/// `max_distance` (routes.rs `.max(rules.max_distance)`). Passing the raw config
-/// value alone lets the distance floor exceed the capped maximum (a hop in the
-/// `[raw_max, rules_max)` band would clamp to Perilous), producing routes
-/// longer/less-safe than the rules permit. (REVIEW §P4)
-fn calm_corridor_max_distance(config_max: u32, rules_max: u32) -> u32 {
-    config_max.max(rules_max)
-}
-
 /// Deterministic **prefix** generation: run the pipeline up to and including
 /// `through`, returning the partial [`GeneratedSector`] populated as far as the
 /// cutoff reached (overlays past the cutoff are left at their `Default`/empty
@@ -355,7 +343,6 @@ where
     // would consume the Arc when it's unique, but the seed-search loop holds
     // its own clones — borrowing keeps both paths cheap.
     let crate::loading::input::ProjectCatalogs {
-        world_tables,
         world_rows,
         authored_features,
         names,
@@ -385,11 +372,7 @@ where
     if Stage::WorldPool <= through {
         let source_rows = world_rows.len();
         let t_pool = Instant::now();
-        pool = crate::world_pool::build_pool(
-            world_rows,
-            world_tables,
-            &config.generation.world_selection,
-        );
+        pool = crate::world_pool::build_pool(world_rows, &config.generation.world_selection);
         if let Some(features) = &authored_features {
             crate::world_pool::apply_authored_features(&mut pool, features);
         }
@@ -532,12 +515,15 @@ where
             &warp_regions,
             &systems,
             &mut routes,
-            // Capped max-distance for the CalmCorridor floor
-            // (REVIEW §P4 — see `calm_corridor_max_distance`).
-            calm_corridor_max_distance(
-                config.generation.routes.max_route_distance,
-                route_rules.max_distance,
-            ),
+            // Capped max-distance for the CalmCorridor floor: the SAME cap
+            // `generate_routes` classified every route against (routes.rs
+            // `.max(rules.max_distance)`), never the raw config value — that
+            // lets the floor exceed the capped max (REVIEW §P4).
+            config
+                .generation
+                .routes
+                .max_route_distance
+                .max(route_rules.max_distance),
             |event| match event {
                 crate::regions::RegionRouteEffectsProgress::Started {
                     regions,
@@ -574,7 +560,6 @@ where
                     total_routes,
                     route_id,
                 }),
-                crate::regions::RegionRouteEffectsProgress::Completed { .. } => {}
             },
         );
         emit!(SectorProgress::RegionEffectsApplied {
@@ -800,48 +785,7 @@ where
             name: "influence field overlay",
         });
         sector.influence_field =
-            crate::influence_field::build_with_progress(&sector, |event| match event {
-                crate::influence_field::InfluenceFieldProgress::Started {
-                    systems,
-                    anchors,
-                    cells,
-                    radius,
-                } => progress(SectorProgress::InfluenceFieldStarted {
-                    systems,
-                    anchors,
-                    cells,
-                    radius,
-                }),
-                crate::influence_field::InfluenceFieldProgress::AnchorsProjected {
-                    current,
-                    total,
-                    touched_cells,
-                } => progress(SectorProgress::InfluenceFieldAnchorsProjected {
-                    current,
-                    total,
-                    touched_cells,
-                }),
-                crate::influence_field::InfluenceFieldProgress::CellsResolved {
-                    current,
-                    total,
-                    claimed_cells,
-                } => progress(SectorProgress::InfluenceFieldCellsResolved {
-                    current,
-                    total,
-                    claimed_cells,
-                }),
-                crate::influence_field::InfluenceFieldProgress::BandsBuilt {
-                    bands,
-                    claimed_cells,
-                } => progress(SectorProgress::InfluenceFieldBandsBuilt {
-                    bands,
-                    claimed_cells,
-                }),
-                crate::influence_field::InfluenceFieldProgress::Complete { cells, bands } => {
-                    progress(SectorProgress::InfluenceFieldComplete { cells, bands });
-                }
-            })
-            .into();
+            crate::influence_field::build_with_progress(&sector, &mut progress).into();
         emit!(SectorProgress::OverlayDerived {
             name: "influence_field",
         });
@@ -1020,25 +964,5 @@ fn build_manifest(
         system_count: systems.len(),
         world_count,
         route_count: routes.len(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::calm_corridor_max_distance;
-
-    #[test]
-    fn calm_corridor_max_distance_uses_capped_max_not_raw_config() {
-        // Guards the `generate_prefix` call site (REVIEW §P4): the CalmCorridor
-        // floor must receive the *capped* max — the raw config max floored by the
-        // rules cap — never the raw config value alone. Reverting the helper to
-        // return `config_max` makes the first assertion fail.
-        assert_eq!(
-            calm_corridor_max_distance(4, 8),
-            8,
-            "must use the larger rules cap when config is lower"
-        );
-        assert_eq!(calm_corridor_max_distance(8, 4), 8, "max of the two caps");
-        assert_eq!(calm_corridor_max_distance(5, 5), 5);
     }
 }

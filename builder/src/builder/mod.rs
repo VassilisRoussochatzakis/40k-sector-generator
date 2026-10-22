@@ -12,7 +12,6 @@ pub mod analytics_run;
 pub mod command;
 pub mod data_catalogs;
 pub mod derivation_cache;
-pub mod derivation_jobs;
 pub mod diff_run;
 pub mod errors;
 pub mod export_run;
@@ -53,7 +52,7 @@ pub use project_io::{
 pub use random_run::{RandomGenState, RandomJobResult};
 pub use search_run::{NewConstraintKind, SearchJobResult, SearchState};
 pub use segmentum_run::{ComposeJobResult, NewLinkDraft, SegmentumState};
-pub use session::{save_session, SessionFile};
+pub use session::SessionFile;
 pub use snapshot::Snapshot;
 pub use state::{BuilderState, ModalKind, PartialRegenRect};
 pub use workspace::BuilderWorkspace;

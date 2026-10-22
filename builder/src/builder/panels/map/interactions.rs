@@ -12,9 +12,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::HexCoord;
 
 use sectorforge_gui_core::palette::TEXT_DIM;
-use sectorforge_gui_core::sector_view::{
-    paint_system_rings, SectorGeom, SectorMapCache, SectorView,
-};
+use sectorforge_gui_core::sector_view::{paint_system_rings, SectorGeom, SectorView};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{
@@ -54,13 +52,12 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
 
     let rect_select = state.drag.rect_select;
 
-    let (subsectors_slice, lookup) = match state.map_view.cache.as_ref() {
-        Some(cache) => (
-            Some(cache.subsectors.as_slice()),
-            Some(&cache.lookup as &SectorMapCache),
-        ),
-        None => (None, None),
-    };
+    let (subsectors_slice, lookup) = state
+        .map_view
+        .cache
+        .as_ref()
+        .map(|cache| (cache.subsectors.as_slice(), &cache.lookup))
+        .unzip();
 
     let overlay_cells = crate::builder::panels::control::build_overlay_cells(
         &state.sector,
@@ -89,11 +86,7 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     let heatmap_ref = overlay_cells.as_ref().or(scalar_cells.as_ref());
 
     let lifeline_routes = crate::builder::panels::economy::lifeline_route_ids(state);
-    let lifeline_ref = if lifeline_routes.is_empty() {
-        None
-    } else {
-        Some(&lifeline_routes)
-    };
+    let lifeline_ref = (!lifeline_routes.is_empty()).then_some(&lifeline_routes);
 
     // §35 T1/T4: retint the live view from the project's map theme. A bad
     // custom colour falls back to the default render theme rather than panicking.
@@ -244,10 +237,8 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             let modifiers = ui.ctx().input(|i| i.modifiers);
             let hit = pick_geom.hit_system(&state.sector, pos);
             let coord = pick_geom.pick_hex(pos, sector_w, sector_h);
-            let completed = match (state.map_view.partial_regen_anchor, coord) {
-                (Some(_), Some(c)) => apply_partial_regen_anchor_click(state, c),
-                _ => false,
-            };
+            let completed = state.map_view.partial_regen_anchor.is_some()
+                && coord.is_some_and(|c| apply_partial_regen_anchor_click(state, c));
             if !completed {
                 handle_click(state, hit, coord, modifiers.shift);
             }

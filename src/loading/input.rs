@@ -18,7 +18,6 @@ use crate::routes::{RouteRules, RouteRulesFile};
 /// single allocation per candidate instead of deep-cloning 14 fields.
 #[derive(Debug, Clone)]
 pub struct ProjectCatalogs {
-    pub world_tables: crate::worlds::KeyTables,
     pub world_rows: Vec<crate::worlds::GenerationRow>,
     /// §45 WD3: structured feature pool authored in `worlds.toml`, when
     /// present. Callers building a `WorldCandidatePool` should overlay
@@ -99,7 +98,6 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
             }
         })?;
     let crate::worlds::WorldsLoad {
-        tables: world_tables,
         rows: world_rows,
         authored_features,
     } = worlds_load;
@@ -219,7 +217,6 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         root_dir,
         config,
         catalogs: Arc::new(ProjectCatalogs {
-            world_tables,
             world_rows,
             authored_features,
             names,

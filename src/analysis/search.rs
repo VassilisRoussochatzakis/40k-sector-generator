@@ -223,7 +223,7 @@ enum_slug!(RegionKindName {
     CalmCorridor => "calm_corridor",
     Blackout => "blackout",
     Anomaly => "anomaly",
-}, display);
+});
 
 impl RegionKindName {
     /// Slug-for-slug mirror of [`crate::regions::RegionConditionKind`], so
@@ -268,7 +268,7 @@ enum_slug!(PresenceName {
     Minor => "Minor",
     Significant => "Significant",
     Dominant => "Dominant",
-}, display);
+});
 
 impl PresenceName {
     fn matches(self, inf: crate::sector_model::FactionInfluence) -> bool {
@@ -774,15 +774,7 @@ fn evaluate(
         }
         Constraint::IsolatedSystemsMax { max } => {
             let n = analysis.connectivity.isolated_system_ids.len() as u32;
-            let passed = n <= *max;
-            let miss = if passed { 0.0 } else { (n - *max) as f32 };
-            ConstraintReport {
-                label: "isolated_systems_max".to_string(),
-                passed,
-                observed: n.to_string(),
-                required: format!("<= {max}"),
-                miss,
-            }
+            maximum_count("isolated_systems_max".to_string(), n, *max)
         }
         Constraint::ContestedRatioMax { max } => {
             let r = analysis.contested_world_ratio;
@@ -831,15 +823,7 @@ fn evaluate(
             maximum_count("economy_stranded_max".to_string(), n, *max)
         }
         Constraint::EconomyResourceMin { resource, min } => {
-            let v = match resource.as_str() {
-                "ore" => sector.economy.sector_balance.ore,
-                "promethium" => sector.economy.sector_balance.promethium,
-                "foodstuffs" => sector.economy.sector_balance.foodstuffs,
-                "manufactured" => sector.economy.sector_balance.manufactured,
-                "archeotech" => sector.economy.sector_balance.archeotech,
-                "recruits" => sector.economy.sector_balance.recruits,
-                _ => 0.0,
-            };
+            let v = sector.economy.sector_balance.get(resource);
             minimum_value(format!("economy_resource_min:{resource}"), v, *min, 1)
         }
     }

@@ -29,12 +29,6 @@ pub(super) fn place_systems_reroll(
     if target == 0 {
         return Ok(Vec::new());
     }
-    if target > total_cells {
-        return Err(SectorError::InvalidConfig(format!(
-            "system_count {} > grid cells {}",
-            g.system_count, total_cells
-        )));
-    }
 
     let mut all: Vec<HexCoord> = Vec::with_capacity(total_cells);
     for r in 0..height {

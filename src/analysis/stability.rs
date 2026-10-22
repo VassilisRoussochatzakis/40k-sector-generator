@@ -30,18 +30,18 @@ impl StabilityState {
     }
 }
 
-fn clamp(v: f32) -> f32 {
+pub(super) fn clamp(v: f32) -> f32 {
     v.clamp(0.0, 100.0)
 }
 
-fn kind_map(factions: &[GeneratedFaction]) -> BTreeMap<&str, &str> {
+pub(super) fn kind_map(factions: &[GeneratedFaction]) -> BTreeMap<&str, &str> {
     factions
         .iter()
         .map(|f| (f.id.as_str(), f.kind.as_slug()))
         .collect()
 }
 
-fn world_has_tag(w: &GeneratedWorld, needle: &str) -> bool {
+pub(super) fn world_has_tag(w: &GeneratedWorld, needle: &str) -> bool {
     w.tags.iter().any(|t| t.contains(needle))
         || w.world
             .notable_features
@@ -52,26 +52,23 @@ fn world_has_tag(w: &GeneratedWorld, needle: &str) -> bool {
 #[must_use]
 pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction]) -> StabilityState {
     let kinds = kind_map(factions);
+    // Kind of each presence: its subfaction id when set, else its faction's kind.
+    let presence_kinds: Vec<&str> = w
+        .factions
+        .iter()
+        .map(|p| {
+            p.subfaction_id
+                .as_deref()
+                .or_else(|| kinds.get(p.faction_id.as_str()).copied())
+                .unwrap_or("")
+        })
+        .collect();
 
-    let any_kind = |needles: &[&str]| {
-        w.factions.iter().any(|p| {
-            let k = p
-                .subfaction_id
-                .as_deref()
-                .or_else(|| kinds.get(p.faction_id.as_str()).copied())
-                .unwrap_or("");
-            needles.contains(&k)
-        })
-    };
+    let any_kind = |needles: &[&str]| presence_kinds.iter().any(|k| needles.contains(k));
     let any_kind_starts = |prefixes: &[&str]| {
-        w.factions.iter().any(|p| {
-            let k = p
-                .subfaction_id
-                .as_deref()
-                .or_else(|| kinds.get(p.faction_id.as_str()).copied())
-                .unwrap_or("");
-            prefixes.iter().any(|pre| k.starts_with(*pre))
-        })
+        presence_kinds
+            .iter()
+            .any(|k| prefixes.iter().any(|pre| k.starts_with(*pre)))
     };
 
     let war_zone = world_has_tag(w, "war_zone");
@@ -125,14 +122,7 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
     if warp_phen {
         corruption += 15.0;
     }
-    if w.factions.iter().any(|p| {
-        let k = p
-            .subfaction_id
-            .as_deref()
-            .or_else(|| kinds.get(p.faction_id.as_str()).copied())
-            .unwrap_or("");
-        matches!(k, "cult" | "genestealer_cult")
-    }) {
+    if any_kind(&["cult", "genestealer_cult"]) {
         corruption += 15.0;
     }
 

@@ -11,8 +11,7 @@ faster.
 > `tests/it/`, and `gui-core/tests/`. Per-module `mod.rs` files that only
 > re-export children are noted at the head of their section rather than given
 > their own row; benchmarks (`benches/`, `builder/benches/`,
-> `gui-core/benches/`) and fuzz targets (`fuzz/fuzz_targets/`) are
-> deliberately out of scope. If you add a file in a mapped tree, add its row
+> `gui-core/benches/`) are deliberately out of scope. If you add a file in a mapped tree, add its row
 > here (CLAUDE.md: "update GUIDE.md / docs on non-trivial changes").
 
 ## Parent-module layout (REFACTOR.txt Task 2)
@@ -41,7 +40,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 
 | File | Purpose |
 |---|---|
-| [src/worlds.rs](../src/worlds.rs) | Canonical world enums, declared via the module-private `world_enum!` macro (one `Variant => "Label"` line drives the enum, `VARIANTS` order and `display_name`; `StarColour` stays hand-written); re-exports the worlds-data loader from `worlds_toml` |
+| [src/worlds.rs](../src/worlds.rs) | Canonical world enums, declared via the module-private `world_enum!` macro (one `Variant => "Label"` line drives the enum, `VARIANTS` order and `display_name`; `StarColour`'s labels are its spectral codes); re-exports the worlds-data loader from `worlds_toml` |
 | [src/worlds_toml.rs](../src/worlds_toml.rs) | §45 native typed `worlds.toml` config (sole world-data format) + its loader (`WorldError`/`WorldsLoad`/`load_worlds_data`, C6) |
 | [src/lib.rs](../src/lib.rs) | Public API surface (doc-tests + `# Errors`); re-aliases moved modules back to root; pure-forwarding facades (`generate_sector`, `validate_sector`, `analyze_sector`, `derive_*_with`, …) are `pub use module::fn as name;` re-exports, adapting ones stay `pub fn` |
 | [src/macros.rs](../src/macros.rs) | Crate-internal `macro_rules!` (`#[macro_use]`): `enum_slug!` — `as_slug` for a fieldless enum from verbatim variant→slug pairs (B-S3); `const` form for const-fn slugs, and a trailing `, display` option that emits `Display` = `as_slug()` |
@@ -74,13 +73,13 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | File | Purpose |
 |---|---|
 | [src/gen/generation/mod.rs](../src/gen/generation/mod.rs) | Sector generation facade: `SectorProgress`, `generate*` orchestrator, manifest build |
-| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | Size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector`, `RandomReport` |
+| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | Size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector_from[_with_progress]`, `RandomReport` |
 | [src/gen/generation/placement.rs](../src/gen/generation/placement.rs) | Hex grid placement with min-distance relaxation |
-| [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming, spectral fallback |
+| [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming |
 | [src/gen/generation/world_placement.rs](../src/gen/generation/world_placement.rs) | Per-world build: candidate pick, features, naming, tags, `regenerate_world_payload` |
 | [src/gen/generation/factions.rs](../src/gen/generation/factions.rs) | Faction assignment + `aggregate_factions` + `assign_factions_for_systems` |
 | [src/gen/generation/routes.rs](../src/gen/generation/routes.rs) | Public route graph + `classify_route` + union-find connector |
-| [src/gen/generation/reroll.rs](../src/gen/generation/reroll.rs) | Iterative-generation prefix-run seam: `Stage` (18 variants; declaration order = pipeline order, `Stage::LAST`) + `RerollNonces` (`bump`/`get`/`suffix`) folding a `":r{n}"` suffix into each stage's RNG discriminator — empty at nonce 0, so one-shot output stays byte-identical |
+| [src/gen/generation/reroll.rs](../src/gen/generation/reroll.rs) | Iterative-generation prefix-run seam: `Stage` (18 variants; declaration order = pipeline order, `Stage::LAST`) + `RerollNonces` (`bump`/`suffix`) folding a `":r{n}"` suffix into each stage's RNG discriminator — empty at nonce 0, so one-shot output stays byte-identical |
 | [src/gen/world_pool.rs](../src/gen/world_pool.rs) | GenerationRow → weighted candidate pool (+ authored-feature overlay) |
 | [src/gen/archetypes.rs](../src/gen/archetypes.rs) | Archetype activations (necron/tyranid/ork/GSC/tau/aeldari/chaos) |
 | [src/gen/faction_style.rs](../src/gen/faction_style.rs) | Per-faction glyph + colour palette |
@@ -118,11 +117,10 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/analysis/history/mod.rs](../src/analysis/history/mod.rs) | §1 chronicle facade: `derive*`, orchestration, `anchor_key`, `pub use` surface |
 | [src/analysis/history/config.rs](../src/analysis/history/config.rs) | `HistoryConfig`/`HistoryFile`/`HistoryEra`/`HistoryEventRule` + defaults |
 | [src/analysis/history/model.rs](../src/analysis/history/model.rs) | DTOs: `HistoryReport`, `HistoryEvent`, `HistoryAnchor`, `EventKind`, entity/consequence types |
-| [src/analysis/history/context.rs](../src/analysis/history/context.rs) | `EmitContext` borrowed state threaded into emit families |
 | [src/analysis/history/progress.rs](../src/analysis/history/progress.rs) | `HistoryProgress` enum + progress-stride helpers |
-| [src/analysis/history/build.rs](../src/analysis/history/build.rs) | Event construction: `build_event`, date/era synthesis, entity refs, consequences |
+| [src/analysis/history/build.rs](../src/analysis/history/build.rs) | Event construction: `build_event`, date/era synthesis, entity refs, consequences; `EmitContext` borrowed state threaded into emit families |
 | [src/analysis/history/worlds.rs](../src/analysis/history/worlds.rs) | Per-world emission: foundation, claims, contested control, hidden cults, purges |
-| [src/analysis/history/systems.rs](../src/analysis/history/systems.rs) | Per-system emission: system state + archetype activations |
+| [src/analysis/history/systems.rs](../src/analysis/history/systems.rs) | Per-system emission: system state + archetype activations; `flush_capped` tail shared with worlds/routes |
 | [src/analysis/history/routes.rs](../src/analysis/history/routes.rs) | Per-route emission: warp hazards, concealed passages, pirate/interdictor control |
 | [src/analysis/history/subsectors.rs](../src/analysis/history/subsectors.rs) | Per-subsector emission: clustering vs deterministic sampling |
 | [src/analysis/history/regions.rs](../src/analysis/history/regions.rs) | Per-region emission: warp phenomena → chronicle entries |
@@ -148,20 +146,21 @@ exist and both backends import them.
 | [src/export/html_export.rs](../src/export/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
 | [src/export/subsectors/mod.rs](../src/export/subsectors/mod.rs) | Subsector clustering + public API |
 | [src/export/subsectors/summary.rs](../src/export/subsectors/summary.rs) | Ownership, faction control, capital selection |
-| [src/export/render_core/mod.rs](../src/export/render_core/mod.rs) | Backend-shared render layer: `RenderOptions`, colour helpers, `Canvas` trait, shared `grid`/`routes` draws, label predicates, legend metadata, heat tints; `#[cfg(test)] test_fixtures::sample_sector` shared by both backends' unit tests. Pixel geometry/rounding stays per backend |
+| [src/export/render_core/mod.rs](../src/export/render_core/mod.rs) | Backend-shared render layer: `RenderOptions`, colour helpers, `Canvas` trait, shared `grid`/`routes` draws, label predicates, legend metadata, heat tints, hex layout; `#[cfg(test)] test_fixtures::sample_sector` shared by both backends' unit tests. Pixel rounding stays per backend |
 | [src/export/render_core/colors.rs](../src/export/render_core/colors.rs) | `star_color`, `stability_color`, `tint_against`, `darken`, `dim`, `short`, `rgba`, `route_thickness_f32` — single source of truth, both backends import from here |
 | [src/export/render_core/options.rs](../src/export/render_core/options.rs) | Cross-backend `RenderOptions` (formerly in bitmap; re-exported there + at lib.rs for compat) |
 | [src/export/render_core/canvas.rs](../src/export/render_core/canvas.rs) | Backend-neutral `Canvas` drawing surface shared by `bitmap` and `svg_export` |
+| [src/export/render_core/geom.rs](../src/export/render_core/geom.rs) | `f32` pointy-top odd-r hex layout (`map_size`, `hex_center`) for both backends; bitmap rounds centres and truncates bounds |
 | [src/export/render_core/grid.rs](../src/export/render_core/grid.rs) | Shared hex-grid fill + subsector-border drawing (both backends); per-hex region colours (`compute_region_colours`) and heatmap tints (`compute_heat_tints`) |
 | [src/export/render_core/routes.rs](../src/export/render_core/routes.rs) | Shared route-line drawing for both PNG and SVG backends |
 | [src/export/render_core/labels.rs](../src/export/render_core/labels.rs) | Backend-neutral label predicates (C4): visibility decisions shared by PNG and SVG renderers |
-| [src/export/render_core/legend.rs](../src/export/render_core/legend.rs) | Legend content shared by PNG and SVG (layout stays per backend): `STABILITY_ROWS` / `COMPACT_STABILITY_ROWS` / `CONTROL_ROWS` tables, `legend_lines` row count, `faction_row` extraction |
+| [src/export/render_core/legend.rs](../src/export/render_core/legend.rs) | Legend content shared by PNG and SVG (layout stays per backend): `STABILITY_ROWS` / `COMPACT_STABILITY_ROWS` / `CONTROL_ROWS` tables, `legend_lines` row count, `faction_row` extraction, `legend_width` |
 | [src/export/bitmap/mod.rs](../src/export/bitmap/mod.rs) | Sector PNG facade: `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, top-level `render()` orchestrator. `RenderOptions` is now a re-export of `super::render_core::RenderOptions`. |
 | [src/export/bitmap/primitives.rs](../src/export/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
-| [src/export/bitmap/geom.rs](../src/export/bitmap/geom.rs) | `Geom`, `MapBounds`, hex centre/vertices, `Rect` collision type |
+| [src/export/bitmap/geom.rs](../src/export/bitmap/geom.rs) | `Geom`, `MapBounds`, integer wrappers over `render_core::geom`, `Rect` collision type |
 | [src/export/bitmap/colors.rs](../src/export/bitmap/colors.rs) | `i32`-quantised `route_thickness` wrapper; re-exports the shared helpers from `render_core::colors` |
 | [src/export/bitmap/canvas.rs](../src/export/bitmap/canvas.rs) | `Canvas` impl for the PNG backend: quantises `f32` world coords to pixels |
-| [src/export/bitmap/grid.rs](../src/export/bitmap/grid.rs) | Backend grid geometry: `compute_heatmap`, `draw_hex_grid` / `draw_subsector_borders` wrappers over `render_core::grid`; re-exports `compute_heat_tints` from there |
+| [src/export/bitmap/grid.rs](../src/export/bitmap/grid.rs) | Backend grid geometry: `draw_hex_grid` / `draw_subsector_borders` wrappers over `render_core::grid`; re-exports `compute_heat_tints` from there |
 | [src/export/bitmap/routes.rs](../src/export/bitmap/routes.rs) | Route line drawing: stride/jagged/zigzag/disc/chevron/etc. patterns + route control glyphs |
 | [src/export/bitmap/regions.rs](../src/export/bitmap/regions.rs) | §5 warp region label overlay |
 | [src/export/bitmap/systems.rs](../src/export/bitmap/systems.rs) | Star disks, pip text, capital markers |
@@ -197,7 +196,7 @@ Each runner file also owns its subcommand's `#[derive(clap::Args)]`
 | File | Purpose |
 |---|---|
 | [src/cli/mod.rs](../src/cli/mod.rs) | Clap `Cli` + `Command` enum (tuple variants wrapping each runner's `*Args`) + one-line-per-variant `run` dispatcher |
-| [src/cli/common.rs](../src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `load_or_regenerate`, `log_*progress` |
+| [src/cli/common.rs](../src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `resolve_sector_with_cfg`, `log_*progress` |
 | [src/cli/exit_code.rs](../src/cli/exit_code.rs) | Maps `SectorError` variants to stable `ExitCode` values |
 | [src/cli/generate.rs](../src/cli/generate.rs) | `generate` + `generate-system` runners (with §15 NEW2 constraint search wiring) |
 | [src/cli/generate_all.rs](../src/cli/generate_all.rs) | `generate-all` runner — batch regenerate all projects in a directory |
@@ -229,7 +228,7 @@ Each runner file also owns its subcommand's `#[derive(clap::Args)]`
 | [gui-core/src/palette.rs](../gui-core/src/palette.rs) | Color palette / faction glyph rendering |
 | [gui-core/src/sector_view/](../gui-core/src/sector_view/mod.rs) | Read-only hex map render. Split (F3, verbatim) into `view.rs` (the `SectorView` widget + `show()`), `render.rs` (`SectorGeom`, hex math, paint helpers, geometry tests), and `cache.rs` (`SectorMapCache`); `mod.rs` re-exports the public surface so `sector_view::*` paths are unchanged. `SectorView::new(sector)` (F-S3) seeds the 27-field widget with neutral defaults so call sites use `..SectorView::new(sector)` struct-update. `SectorGeom::hit_route` and `SectorMapCache::region_for_hex` back the right-click route + region-hex schemas in `builder::panels::map::context_menu::resolve_sector_context`. **§BEAUTY** live-only void flourishes (`paint_star_dust` / `paint_vignette` / `paint_chart_frame`, gated by `is_dark` + canvas size, in `render.rs`) paint on the egui path only — the golden PNG/SVG exporters are untouched; the gui-core `map_snapshots` goldens cover them. `paint_star_dust` memoizes its shapes per rect on `SectorMapCache.star_dust` (F10, byte-identical) instead of re-running the hash loop each frame. |
 | [gui-core/src/system_view.rs](../gui-core/src/system_view.rs) | System detail panel widget — also embedded under the SYSTEM tab by `panels/system/preview.rs::show_system_map_section` (§CTX0). §CTX1 Phase 6 exports `SystemPick` and `pick_world` (backed by the private `SystemGeom`) so `builder::panels::system_map::arm_system_context_menu` can hit-test star / planet / orbit-ring / background. |
-| [gui-core/src/info_panel/](../gui-core/src/info_panel/mod.rs) | Right-side info panel. Split (F8, verbatim) by entity section into `overview.rs` (+ `SectorOverviewCache`), `system.rs`, `route.rs`, `world.rs`, `subsector.rs`, `history.rs`; `mod.rs` keeps the shared text primitives (`title`/`section`/`body`/`dim`/`kv`/`short`), legend rows, and `stability_block` as parent-private helpers, and re-exports the public render fns so `info_panel::*` paths are unchanged. |
+| [gui-core/src/info_panel/](../gui-core/src/info_panel/mod.rs) | Right-side info panel. Split (F8, verbatim) by entity section into `overview.rs` (+ `SectorOverviewCache`), `system.rs`, `route.rs`, `world.rs`, `subsector.rs`, `history.rs`; `mod.rs` keeps the shared text primitives (`title`/`section`/`body`/`dim`/`short`, plus an imported `ui_kit::kv`), the `list_block`/`opt_kv_block` sections, legend rows, and `stability_block` as parent-private helpers, and re-exports the public render fns so `info_panel::*` paths are unchanged. |
 | [gui-core/src/heatmap.rs](../gui-core/src/heatmap.rs) | GUI heatmap color/cache wrapper |
 | [gui-core/src/map_theme.rs](../gui-core/src/map_theme.rs) | GUI-side map theme wrapper over `sectorforge` themes |
 | [gui-core/src/visual_tokens.rs](../gui-core/src/visual_tokens.rs) | Semantic map tokens bridging sector data and egui painting |
@@ -242,7 +241,7 @@ Each runner file also owns its subcommand's `#[derive(clap::Args)]`
 | [gui-core/src/widgets.rs](../gui-core/src/widgets.rs) | §BEAUTY bespoke painted controls — `primary_button` (brass) + `toggle`/`toggle_with_label` (sliding); shared `enum_combo` (F2) — generic `Option<T>` enum dropdown over `ui_kit::combo` with per-caller hover policy (called from the builder's conflict / surface-regions / orbital / worlds-editor panels and the viewer's data editor + editor dialogs) |
 | [gui-core/src/modal.rs](../gui-core/src/modal.rs) | §BEAUTY `scrim(ctx, open)` — fading modal backdrop (dims + inerts page) returning the eased entrance factor |
 | [gui-core/src/diagnostics.rs](../gui-core/src/diagnostics.rs) | Process-level crash diagnostics: panic hook for GUI binaries that writes timestamped crash notes before abort |
-| [gui-core/src/fonts.rs](../gui-core/src/fonts.rs) | §BEAUTY §5.5 custom-font registration (`install`); opt-in `bundled-fonts` feature, `FontData::from_static` from `assets/fonts/`. The **body** face alone carries a `FontTweak { y_offset_factor: 0.15 }` to optically re-centre its 250/1000 hhea line-gap (egui pads that below the baseline, floating labels ~3 px high); display + mono measure dead-centre and are untweaked |
+| [gui-core/src/fonts.rs](../gui-core/src/fonts.rs) | §BEAUTY §5.5 custom-font registration (`install`); always-bundled `FontData::from_static` from `assets/fonts/`. The **body** face alone carries a `FontTweak { y_offset_factor: 0.15 }` to optically re-centre its 250/1000 hhea line-gap (egui pads that below the baseline, floating labels ~3 px high); display + mono measure dead-centre and are untweaked |
 | [gui-core/tests/map_snapshots.rs](../gui-core/tests/map_snapshots.rs) | Snapshot tests for shared map rendering |
 
 ## sectorforge-viewer
@@ -255,7 +254,7 @@ per-view modules; `viewer/src/editor/` is the in-place sector/world editor.
 | [viewer/src/main.rs](../viewer/src/main.rs) | Viewer/editor binary entry (`sectorforge-viewer`) |
 | [viewer/src/lib.rs](../viewer/src/lib.rs) | Viewer crate root: module declarations, modular-by-entity layout |
 | [viewer/src/dashboard.rs](../viewer/src/dashboard.rs) | §8 sector analytics dashboard (lazy `SectorAnalysis`) |
-| [viewer/src/factions_overview.rs](../viewer/src/factions_overview.rs) | High-level faction overview/edit surface |
+| [viewer/src/factions_overview.rs](../viewer/src/factions_overview.rs) | High-level faction overview |
 | [viewer/src/preset_gallery.rs](../viewer/src/preset_gallery.rs) | §9 "New from preset" gallery window |
 | [viewer/src/route_planner.rs](../viewer/src/route_planner.rs) | Route planner: pathfind between two systems over the route graph |
 | [viewer/src/segmentum_view.rs](../viewer/src/segmentum_view.rs) | Segmentum overview widgets + on-disk bundle loading |
@@ -298,8 +297,6 @@ per-view modules; `viewer/src/editor/` is the in-place sector/world editor.
 | [viewer/src/editor/factions_panel.rs](../viewer/src/editor/factions_panel.rs) | Factions list editor (id/name/kind/disposition + system assignment) |
 | [viewer/src/editor/routes_panel.rs](../viewer/src/editor/routes_panel.rs) | Routes list editor (from/to/type/stability/distance) |
 | [viewer/src/editor/settings_panel.rs](../viewer/src/editor/settings_panel.rs) | Sector settings: id/title/seed/size/manifest hints |
-| [viewer/src/editor/generation_panel.rs](../viewer/src/editor/generation_panel.rs) | Generation settings for real-time building |
-| [viewer/src/editor/wishes_panel.rs](../viewer/src/editor/wishes_panel.rs) | `wishes.toml` editor + search integration |
 
 ## sectorforge-builder
 
@@ -318,7 +315,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 |---|---|
 | [builder/src/builder/mod.rs](../builder/src/builder/mod.rs) | GUI builder foundation facade (Phase A of docs/BUILDER_REQS.txt) |
 | [builder/src/builder/command.rs](../builder/src/builder/command.rs) | §U1 command bus: every structural mutation flows through `BuilderCommand` (undo/redo). Includes the coarse §R4 detail-editor commands `EditWorld` / `EditSystem` / `EditChronicle` / `BulkEditWorlds` / `DeriveBaselineIntel` (snapshot-replace; `apply` captures `before`) used by the WORLD/SYSTEM/CONTROL/INTEL/HISTORY inspectors |
-| [builder/src/builder/session.rs](../builder/src/builder/session.rs) | §D6 `.sgforge` session file (load/save round-trip) |
+| [builder/src/builder/session.rs](../builder/src/builder/session.rs) | §D6 `SessionFile` envelope, in memory only (`from_state`/`into_state`; no `.sgforge` save/load) |
 | [builder/src/builder/snapshot.rs](../builder/src/builder/snapshot.rs) | §U3/§U4 named save points (freeze sector + cursor position) |
 | [builder/src/builder/project_io.rs](../builder/src/builder/project_io.rs) | §P1–§P3 project file I/O for the GUI builder |
 | [builder/src/builder/preview.rs](../builder/src/builder/preview.rs) | §G3 live preview pipeline |
@@ -333,7 +330,6 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/diff_run.rs](../builder/src/builder/diff_run.rs) | §DF1..§DF5 DIFF runtime: two scratch sector slots + diff/tick |
 | [builder/src/builder/search_run.rs](../builder/src/builder/search_run.rs) | §SR1..§SR5 SEARCH runtime: editable wishes doc + search driver |
 | [builder/src/builder/segmentum_run.rs](../builder/src/builder/segmentum_run.rs) | §SG1..§SG5 SEGMENTUM runtime: editable `segmentum.toml` + off-thread compose job + composed result |
-| [builder/src/builder/derivation_jobs.rs](../builder/src/builder/derivation_jobs.rs) | §39 LD3 off-thread overlay re-derivation: stale overlay dispatcher + drain over background worker |
 | [builder/src/builder/export_run.rs](../builder/src/builder/export_run.rs) | §EX1..§EX8 EXPORT runtime: output folder, standalone-system form, cached markdown preview, last error |
 | [builder/src/builder/random_run.rs](../builder/src/builder/random_run.rs) | §7.4 random-sector generation runtime: off-thread synthesise-generate-derive job with live progress |
 | [builder/src/builder/smoke_test.rs](../builder/src/builder/smoke_test.rs) | Headless GUI smoke test (T6 / §40): off-screen egui frame per core tab, crash-only verification |
@@ -359,13 +355,13 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 
 | File | Purpose |
 |---|---|
-| [builder/src/builder/panels/map/mod.rs](../builder/src/builder/panels/map/mod.rs) | §S1 + §R2 MAP tab facade. `pub fn show`, `pub fn show_toolbox`, child-module declarations, full unit-test suite. Re-exports `menu_anchor_pivot` at `pub(super)` so `panels/system_map.rs` can share the viewport-pivot helper. |
+| [builder/src/builder/panels/map/mod.rs](../builder/src/builder/panels/map/mod.rs) | §S1 + §R2 MAP tab facade. `pub fn show`, `pub fn show_toolbox`, child-module declarations, full unit-test suite. Re-exports `menu_anchor_pivot` and `prompt_window` at `pub(super)` so `panels/system_map.rs` can share the viewport-pivot helper and the dialog window. |
 | [builder/src/builder/panels/map/interactions.rs](../builder/src/builder/panels/map/interactions.rs) | Hex render dispatcher + tool routing: `show_hex_map`, `handle_click`, `handle_drag_drop`, `apply_rect_select`, `apply_partial_regen_anchor_click`, `paint_region_at`, `add_route_between`. |
 | [builder/src/builder/panels/map/context_menu/mod.rs](../builder/src/builder/panels/map/context_menu/mod.rs) | §CTX1 right-click surface — **dir module** (split E11, verbatim). `mod.rs` holds the module doc, the submodule `mod`/re-export glue (preserves the `context_menu::` surface for `interactions.rs` + the `map/mod.rs` tests), and `show_sector_context_menu` (the gate → `render::*` builder → `menu_anchor_pivot` entry). |
-| [builder/src/builder/panels/map/context_menu/resolve.rs](../builder/src/builder/panels/map/context_menu/resolve.rs) | §CTX1 pure half (netted by the `map/mod.rs` test module): `resolve_sector_context` (right-click hit-test), `should_dismiss_sector_context_menu`, `sector_menu_target_is_stale`, `menu_anchor_pivot` (`pub(in …::panels)` — also reused by `system_map.rs`). |
+| [builder/src/builder/panels/map/context_menu/resolve.rs](../builder/src/builder/panels/map/context_menu/resolve.rs) | §CTX1 pure half (netted by the `map/mod.rs` test module): `resolve_sector_context` (right-click hit-test), `sector_menu_target_is_stale`, `menu_anchor_pivot` (`pub(in …::panels)` — also reused by `system_map.rs`). |
 | [builder/src/builder/panels/map/context_menu/action.rs](../builder/src/builder/panels/map/context_menu/action.rs) | §CTX1 action model + dispatch (the netted core): `SectorMenuAction` + `OpenInTarget` enums, `sector_menu_action_label`, `apply_sector_menu_action` (document edits route through the command bus / `edit_*` wrappers). |
 | [builder/src/builder/panels/map/context_menu/render.rs](../builder/src/builder/panels/map/context_menu/render.rs) | §CTX1 interactive schema builders (un-netted): `render_empty_hex_menu` / `render_system_menu` / `render_multi_selection_menu` / `render_route_menu` / `render_region_hex_menu`. Route stability now labels via `RouteStability::as_slug()` directly (no local helper). Only transient UI state is touched directly; every document edit forwards to `action::apply_sector_menu_action`. |
-| [builder/src/builder/panels/map/dialogs.rs](../builder/src/builder/panels/map/dialogs.rs) | Transient modal dialogs surfaced from the MAP panel: `show_place_dialog`, `show_rename_dialog`, `show_bulk_rename_dialog`, `show_region_rename_dialog`, `show_collision_dialog`. |
+| [builder/src/builder/panels/map/dialogs.rs](../builder/src/builder/panels/map/dialogs.rs) | Transient modal dialogs surfaced from the MAP panel: `show_place_dialog`, `show_rename_dialog`, `show_bulk_rename_dialog`, `show_region_rename_dialog`, `show_collision_dialog`, all drawn through the shared `prompt_window` (OK/Cancel window, also used by `system_map.rs`'s world rename). |
 | [builder/src/builder/panels/map/cache.rs](../builder/src/builder/panels/map/cache.rs) | `refresh_map_cache` + `sector_view_digest` — rebuilds `MapViewCache` (subsector clustering + hex→system lookup + region tints) when the sector slice digest changes. |
 | [builder/src/builder/panels/map/theme.rs](../builder/src/builder/panels/map/theme.rs) | MAP tab — §T1..§T4 THEMES + HEATMAPS controls: built-in/custom theme picker, heatmap selector, legend painter |
 
@@ -387,7 +383,7 @@ top-level tab router.
 | [builder/src/builder/panels/project.rs](../builder/src/builder/panels/project.rs) | PROJECT tab (§N1/§N2): composes Phase-A project I/O surfaces |
 | [builder/src/builder/panels/project_tree.rs](../builder/src/builder/panels/project_tree.rs) | §P4 PROJECT tree panel |
 | [builder/src/builder/panels/new_project.rs](../builder/src/builder/panels/new_project.rs) | New-project wizard (§P1) |
-| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard — `ModalKind::GenerateRandom` → `generate_random_sector` → `open_project` |
+| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard — `ModalKind::GenerateRandom` → `generate_random_sector_from_with_progress` → `open_project` |
 | [builder/src/builder/panels/iterative_gen.rs](../builder/src/builder/panels/iterative_gen.rs) | Iterative-generation wizard (`show`): 7-step rail with per-step knob forms, a live `SectorView` preview of the current prefix run, and the reroll/back/forward/accept/cancel action bar. Grid size is edited only through `BuilderState::set_grid_dim` so width and height can never diverge (square-sector invariant) |
 | [builder/src/builder/panels/open_project.rs](../builder/src/builder/panels/open_project.rs) | Open-project picker (§P2) |
 | [builder/src/builder/panels/save_project.rs](../builder/src/builder/panels/save_project.rs) | Save-project actions (§P3) |
@@ -456,5 +452,5 @@ that declares the modules below.
 | [tests/it/export_parity_tests.rs](../tests/it/export_parity_tests.rs) | Disk-I/O parity: in-memory HTML/PNG render must equal the bytes written to disk |
 | [tests/it/iterative_gen_tests.rs](../tests/it/iterative_gen_tests.rs) | `generate_prefix`/`Stage`/`RerollNonces` seam: prefix ≡ the same prefix of a full run, nonce-0 ≡ one-shot generation, per-stage reroll isolation |
 | [tests/it/loading_tests.rs](../tests/it/loading_tests.rs) | `read_relative` path-escape guards via `load_project`, plus `big_test`/`big_sparse_test` example parse + dims |
-| [tests/it/random_sector_tests.rs](../tests/it/random_sector_tests.rs) | Size-only random-sector completeness, seed determinism, the `random` CLI bundle, and `_full`/themed presets (Huge + 80×80 `#[ignore]`) |
+| [tests/it/random_sector_tests.rs](../tests/it/random_sector_tests.rs) | Size-only random-sector completeness, seed determinism, the `random` CLI bundle, and `_full`/themed presets (Huge `#[ignore]`) |
 | [tests/it/route_monotonicity.rs](../tests/it/route_monotonicity.rs) | docs/TEST_GAPS.md §2c gap 1 proptest: a shorter route is never less safe within a hazard bucket, and every `Webway` is `Stable` |

@@ -118,6 +118,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     for sys in &sector.systems {
         s.push_str(&format_system_section(
             sys,
+            "##",
             &events_by_system,
             &events_by_world,
         ));
@@ -178,38 +179,8 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
 
 #[must_use]
 pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
-    let mut s = String::new();
-    s.push_str(&format!("# {} — {}\n\n", sys.id.to_uppercase(), sys.name));
-    s.push_str(&format!(
-        "- **Coordinates:** q={}, r={}\n",
-        sys.coord.q, sys.coord.r
-    ));
-    if let Some(star) = &sys.star {
-        s.push_str(&format!(
-            "- **Star:** {} / {} / {}\n",
-            star.colour_code,
-            star.colour_name,
-            star.spectral_type.as_deref().unwrap_or("?")
-        ));
-    } else {
-        s.push_str(&format!("- **Kind:** {}\n", sys.kind));
-    }
-    if !sys.primary_factions.is_empty() {
-        s.push_str(&format!(
-            "- **Primary factions:** {}\n",
-            sys.primary_factions
-                .iter()
-                .map(|f| f.as_ref())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-    s.push_str(&format_system_control(sys));
-    s.push('\n');
-    s.push_str(&format_world_table(sys));
     let empty_map = FxMap::default();
-    s.push_str(&format_world_control_blocks(sys, &empty_map, &empty_map));
-    s
+    format_system_section(sys, "#", &empty_map, &empty_map)
 }
 
 fn format_route_controls(sector: &GeneratedSector) -> String {
@@ -407,39 +378,23 @@ fn format_sector_map(sector: &GeneratedSector) -> String {
 }
 
 fn format_relations_digest(sector: &GeneratedSector) -> String {
-    if sector.relations.pairs.is_empty() {
-        return String::new();
-    }
+    use crate::relations::Stance;
     let mut s = String::new();
-    let at_war: Vec<_> = sector
-        .relations
-        .pairs
-        .iter()
-        .filter(|p| matches!(p.stance, crate::relations::Stance::AtWar))
-        .collect();
-    let hostile: Vec<_> = sector
-        .relations
-        .pairs
-        .iter()
-        .filter(|p| matches!(p.stance, crate::relations::Stance::Hostile))
-        .collect();
-    if at_war.is_empty() && hostile.is_empty() {
-        return String::new();
-    }
-    s.push_str("## Diplomacy digest\n\n");
-    if !at_war.is_empty() {
-        s.push_str("**At war:**\n\n");
-        for p in &at_war {
-            s.push_str(&format!(
-                "- {} ↔ {} — public {}, secret {}, treaty {} (tension {:.0}; {})\n",
-                p.a, p.b, p.public_attitude, p.secret_attitude, p.treaty_status, p.tension, p.cause
-            ));
+    for (label, stance) in [("At war", Stance::AtWar), ("Hostile", Stance::Hostile)] {
+        let pairs: Vec<_> = sector
+            .relations
+            .pairs
+            .iter()
+            .filter(|p| p.stance == stance)
+            .collect();
+        if pairs.is_empty() {
+            continue;
         }
-        s.push('\n');
-    }
-    if !hostile.is_empty() {
-        s.push_str("**Hostile:**\n\n");
-        for p in &hostile {
+        if s.is_empty() {
+            s.push_str("## Diplomacy digest\n\n");
+        }
+        s.push_str(&format!("**{label}:**\n\n"));
+        for p in pairs {
             s.push_str(&format!(
                 "- {} ↔ {} — public {}, secret {}, treaty {} (tension {:.0}; {})\n",
                 p.a, p.b, p.public_attitude, p.secret_attitude, p.treaty_status, p.tension, p.cause
@@ -582,11 +537,11 @@ fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
 
 fn format_system_section(
     sys: &GeneratedSystem,
+    heading: &str,
     events_by_system: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
     events_by_world: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
 ) -> String {
-    let mut s = String::new();
-    s.push_str(&format!("## {} — {}\n\n", sys.id.to_uppercase(), sys.name));
+    let mut s = format!("{heading} {} — {}\n\n", sys.id.to_uppercase(), sys.name);
     s.push_str(&format!(
         "- **Coordinates:** q={}, r={}\n",
         sys.coord.q, sys.coord.r
@@ -818,29 +773,17 @@ fn format_world_control_blocks(
             }
             s.push_str(&format!("- Control score: {:.0}\n\n", c.control_score));
         }
-        if w.stability != crate::stability::StabilityState::default() {
-            s.push_str("**Stability:**\n");
+        let st = &w.stability;
+        if *st != crate::stability::StabilityState::default() {
             s.push_str(&format!(
-                "- Public order: {:.0}\n",
-                w.stability.public_order
-            ));
-            s.push_str(&format!("- Corruption: {:.0}\n", w.stability.corruption));
-            s.push_str(&format!("- Fear: {:.0}\n", w.stability.fear));
-            s.push_str(&format!(
-                "- Rebellion risk: {:.0}\n",
-                w.stability.rebellion_risk
-            ));
-            s.push_str(&format!(
-                "- Xenos threat: {:.0}\n",
-                w.stability.xenos_threat
-            ));
-            s.push_str(&format!(
-                "- Warp instability: {:.0}\n",
-                w.stability.warp_instability
-            ));
-            s.push_str(&format!(
-                "- Famine / resource stress: {:.0}\n\n",
-                w.stability.famine_or_resource_stress
+                "**Stability:**\n- Public order: {:.0}\n- Corruption: {:.0}\n- Fear: {:.0}\n- Rebellion risk: {:.0}\n- Xenos threat: {:.0}\n- Warp instability: {:.0}\n- Famine / resource stress: {:.0}\n\n",
+                st.public_order,
+                st.corruption,
+                st.fear,
+                st.rebellion_risk,
+                st.xenos_threat,
+                st.warp_instability,
+                st.famine_or_resource_stress,
             ));
         }
         if !w.claims.is_empty() {

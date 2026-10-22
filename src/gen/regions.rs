@@ -245,14 +245,8 @@ pub struct WarpRegion {
 // ── Stage entry point ─────────────────────────────────────────────────────────
 
 /// Build the warp-region overlay for a sector grid. Deterministic given the
-/// root seed and the grid dimensions.
-#[must_use]
-pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -> Vec<WarpRegion> {
-    build_regions_reroll(seed, width, height, cfg, "")
-}
-
-/// Like [`build_regions`] but folds a re-roll suffix into the RNG discriminator.
-/// An empty suffix reproduces the legacy `("regions","sector")` key exactly
+/// root seed and the grid dimensions; folds a re-roll suffix into the RNG
+/// discriminator. An empty suffix reproduces the legacy `("regions","sector")` key exactly
 /// (byte-identical); a `":r{n}"` suffix yields a deterministic distinct region
 /// layout. Regions **draws** RNG (grid shuffle + weighted condition picks), so
 /// the suffix matters here.
@@ -383,7 +377,7 @@ fn sample_condition(
 /// `occupied`. Returns the grown footprint sorted by `(r, q)`.
 ///
 /// Exposed so the builder can grow a single user-seeded region without going
-/// through the full `build_regions` stage.
+/// through the full `build_regions_reroll` stage.
 pub fn seed_region(
     seed: &str,
     discriminator: &str,
@@ -517,9 +511,6 @@ pub enum RegionRouteEffectsProgress {
         total_routes: usize,
         route_id: String,
     },
-    Completed {
-        summary: RegionRouteEffectsSummary,
-    },
 }
 
 /// §5: pick the strongest route-affecting region condition along the
@@ -531,17 +522,13 @@ pub fn dominant_route_condition(
     from: HexCoord,
     to: HexCoord,
 ) -> Option<RegionConditionKind> {
-    let mut best: Option<RegionConditionKind> = None;
-    for c in [from, to] {
-        if let Some(r) = region_at(regions, c) {
-            best = match best {
-                None => Some(r.kind),
-                Some(cur) if r.kind.route_precedence() > cur.route_precedence() => Some(r.kind),
-                Some(cur) => Some(cur),
-            };
-        }
-    }
-    best.filter(|k| k.route_precedence() > 0)
+    // `min_by_key(Reverse)`, not `max_by_key`: on a precedence tie the first
+    // (`from`) kind wins.
+    [from, to]
+        .into_iter()
+        .filter_map(|c| region_at(regions, c).map(|r| r.kind))
+        .min_by_key(|k| std::cmp::Reverse(k.route_precedence()))
+        .filter(|k| k.route_precedence() > 0)
 }
 
 /// Apply route-affecting region conditions to a list of routes. Idempotent
@@ -573,7 +560,6 @@ pub fn apply_route_effects_with_progress(
     });
     if regions.is_empty() {
         count_route_stabilities(routes, &mut summary);
-        progress(RegionRouteEffectsProgress::Completed { summary });
         return summary;
     }
     let by_id: BTreeMap<&str, HexCoord> =
@@ -606,13 +592,27 @@ pub fn apply_route_effects_with_progress(
                     _ => None,
                 };
                 let outcome = target.map_or_else(RouteEffectOutcome::default, |target| {
-                    apply_route_stability_with_bridge_progress(
+                    if target == RouteStability::Perilous
+                        && routes[idx].stability != RouteStability::Perilous
+                    {
+                        summary.bridge_checks += 1;
+                        if should_report_region_route_progress(
+                            summary.bridge_checks,
+                            summary.routes,
+                        ) {
+                            progress(RegionRouteEffectsProgress::BridgeCheckStarted {
+                                check: summary.bridge_checks,
+                                route_index: idx + 1,
+                                total_routes: summary.routes,
+                                route_id: routes[idx].id.to_string(),
+                            });
+                        }
+                    }
+                    apply_route_stability(
                         routes,
                         idx,
                         target,
                         &format!("region:{}", cond.as_slug()),
-                        &mut summary,
-                        &mut progress,
                     )
                 });
                 if outcome.changed {
@@ -636,32 +636,7 @@ pub fn apply_route_effects_with_progress(
         }
     }
     count_route_stabilities(routes, &mut summary);
-    progress(RegionRouteEffectsProgress::Completed { summary });
     summary
-}
-
-fn apply_route_stability_with_bridge_progress(
-    routes: &mut [GeneratedRoute],
-    idx: usize,
-    target: RouteStability,
-    tag: &str,
-    summary: &mut RegionRouteEffectsSummary,
-    progress: &mut impl FnMut(RegionRouteEffectsProgress),
-) -> RouteEffectOutcome {
-    let needs_bridge_check =
-        target == RouteStability::Perilous && routes[idx].stability != RouteStability::Perilous;
-    if needs_bridge_check {
-        summary.bridge_checks += 1;
-        if should_report_region_route_progress(summary.bridge_checks, summary.routes) {
-            progress(RegionRouteEffectsProgress::BridgeCheckStarted {
-                check: summary.bridge_checks,
-                route_index: idx + 1,
-                total_routes: summary.routes,
-                route_id: routes[idx].id.to_string(),
-            });
-        }
-    }
-    apply_route_stability(routes, idx, target, tag)
 }
 
 fn count_route_stabilities(routes: &[GeneratedRoute], summary: &mut RegionRouteEffectsSummary) {
@@ -843,14 +818,14 @@ mod tests {
 
     #[test]
     fn disabled_yields_empty() {
-        let regions = build_regions("seed", 6, 6, &RegionsConfig::default());
+        let regions = build_regions_reroll("seed", 6, 6, &RegionsConfig::default(), "");
         assert!(regions.is_empty());
     }
 
     #[test]
     fn deterministic_blobs() {
-        let a = build_regions("seed", 8, 8, &cfg(3, 5));
-        let b = build_regions("seed", 8, 8, &cfg(3, 5));
+        let a = build_regions_reroll("seed", 8, 8, &cfg(3, 5), "");
+        let b = build_regions_reroll("seed", 8, 8, &cfg(3, 5), "");
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
@@ -859,7 +834,7 @@ mod tests {
 
     #[test]
     fn blob_size_in_bounds() {
-        let regions = build_regions("seed", 8, 8, &cfg(2, 5));
+        let regions = build_regions_reroll("seed", 8, 8, &cfg(2, 5), "");
         assert!(!regions.is_empty());
         for r in &regions {
             assert!(!r.hexes.is_empty());
@@ -1133,6 +1108,16 @@ mod route_effect_tests {
         assert_eq!(
             dominant_route_condition(&regions, from, to),
             Some(RegionConditionKind::Turbulence)
+        );
+
+        // Equal precedence (EmpyricBleed = Turbulence = 2): `from` wins the tie.
+        let regions = vec![
+            region("r1", RegionConditionKind::EmpyricBleed, &[(0, 0)]),
+            region("r2", RegionConditionKind::Turbulence, &[(5, 0)]),
+        ];
+        assert_eq!(
+            dominant_route_condition(&regions, from, to),
+            Some(RegionConditionKind::EmpyricBleed)
         );
     }
 

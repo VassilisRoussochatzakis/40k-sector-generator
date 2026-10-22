@@ -86,20 +86,17 @@ typography *wiring* are now **done — do not redo them:**
 - **Typography (§5.5) — DONE.** The full registration
   path landed: `gui-core/src/fonts.rs::install(ctx)` (called once at startup from both
   apps' eframe creation closure, *before* the first theme apply), `design::FONT_DISPLAY`
-  + `design::display_family()` (a named family titles opt into; resolves to
-  `Proportional` until active), and `theme.rs` routes `Heading` through it. It is gated
-  behind the **`bundled-fonts`** Cargo feature — now **on by default** in both apps;
-  `--no-default-features` gives the byte-for-byte stock build. `design.rs` also gained
+  + `design::display_family()` (a named family titles opt into), and `theme.rs` routes
+  `Heading` through it. The faces are always bundled — the former `bundled-fonts`
+  feature and its stock-egui fallback build are gone. `design.rs` also gained
   `vertical_gradient` (a per-vertex `Mesh` quad, §5.6).
 
 **Start a future run here:**
 
 1. **The three OFL font binaries — DONE.** `display.ttf` / `body.ttf` / `mono.ttf`
-   (plus their OFL licences) are committed at `gui-core/assets/fonts/`, and both
-   `builder/Cargo.toml` and `viewer/Cargo.toml` carry
-   `default = ["sectorforge-gui-core/bundled-fonts"]` — so the bundled faces ship
-   **by default** and the display face lights up every title. Build with
-   `--no-default-features` to fall back to stock egui.
+   (plus their OFL licences) are committed at `gui-core/assets/fonts/` and always
+   embedded, so both apps ship the bundled faces and the display face lights up every
+   title.
 2. **Optional refinements** (nice-to-have, not blockers): glowing route lines /
    per-system hover halos / a smooth selection ring on the star map (§6.1); a single
    nav bar that *slides* between tabs vs. the per-row bar today (§6.3); a per-dialog
@@ -195,7 +192,7 @@ source of truth), and a theme-derived **accent ramp** (`accent` / `lerp_color` /
 scattered radius literals (`4.0`/`6.0`/`7.0`) are gone, and the first motion lives
 in `card.rs`. **Extend this module** when a component needs a new primitive — do
 not reintroduce literals, and do not recreate it. (The §5.5 display font is now
-registered too — see `fonts.rs` + the `bundled-fonts` default feature.)
+registered too — see `fonts.rs`.)
 
 ---
 

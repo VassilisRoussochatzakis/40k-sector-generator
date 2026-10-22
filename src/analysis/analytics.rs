@@ -193,35 +193,40 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     };
     a.claim_kind_counts = claim_counts;
     a.dominance_counts = dominance_counts;
-    a.system_state_counts = compute_system_state_counts(sector);
-    a.world_type_distribution =
-        compute_distribution(sector, |w| w.world.world_type.to_string().into());
-    a.star_colour_distribution = sector
-        .systems
-        .iter()
-        .filter_map(|s| s.star.as_ref().map(|star| star.colour_name.clone()))
-        .fold(BTreeMap::<Arc<str>, u32>::new(), |mut m, k| {
-            *m.entry(k).or_insert(0) += 1;
-            m
-        });
-    a.population_distribution =
-        compute_distribution(sector, |w| w.world.population.to_string().into());
-    a.route_type_distribution = sector
-        .routes
-        .iter()
-        .map(|r| Arc::from(r.route_type.as_slug()))
-        .fold(BTreeMap::new(), |mut m, k| {
-            *m.entry(k).or_insert(0) += 1;
-            m
-        });
-    a.route_stability_distribution = sector
-        .routes
-        .iter()
-        .map(|r| Arc::from(r.stability.as_slug()))
-        .fold(BTreeMap::new(), |mut m, k| {
-            *m.entry(k).or_insert(0) += 1;
-            m
-        });
+    a.system_state_counts = tally(
+        sector
+            .systems
+            .iter()
+            .filter_map(|s| s.control.state.map(|st| Arc::from(st.as_slug()))),
+    );
+    a.world_type_distribution = tally(
+        sector
+            .all_worlds()
+            .map(|w| w.world.world_type.to_string().into()),
+    );
+    a.star_colour_distribution = tally(
+        sector
+            .systems
+            .iter()
+            .filter_map(|s| s.star.as_ref().map(|star| star.colour_name.clone())),
+    );
+    a.population_distribution = tally(
+        sector
+            .all_worlds()
+            .map(|w| w.world.population.to_string().into()),
+    );
+    a.route_type_distribution = tally(
+        sector
+            .routes
+            .iter()
+            .map(|r| Arc::from(r.route_type.as_slug())),
+    );
+    a.route_stability_distribution = tally(
+        sector
+            .routes
+            .iter()
+            .map(|r| Arc::from(r.stability.as_slug())),
+    );
     a.connectivity = compute_connectivity(sector);
     let (variety, subsector_err) = compute_subsector_variety(sector);
     a.subsector_variety = variety;
@@ -340,26 +345,10 @@ fn compute_world_stats(sector: &GeneratedSector) -> WorldStats {
     }
 }
 
-fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<Arc<str>, u32> {
-    let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
-    for sys in sector.systems.iter() {
-        if let Some(state) = sys.control.state {
-            let key: Arc<str> = Arc::from(state.as_slug());
-            *out.entry(key).or_insert(0) += 1;
-        }
-    }
-    out
-}
-
-fn compute_distribution<F>(sector: &GeneratedSector, key: F) -> BTreeMap<Arc<str>, u32>
-where
-    F: Fn(&crate::sector_model::GeneratedWorld) -> Arc<str>,
-{
-    let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
-    for sys in sector.systems.iter() {
-        for w in sys.worlds.iter() {
-            *out.entry(key(w)).or_insert(0) += 1;
-        }
+fn tally(keys: impl IntoIterator<Item = Arc<str>>) -> BTreeMap<Arc<str>, u32> {
+    let mut out = BTreeMap::new();
+    for k in keys {
+        *out.entry(k).or_insert(0) += 1;
     }
     out
 }

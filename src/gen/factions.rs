@@ -123,17 +123,6 @@ pub fn legacy_top_faction_id(kind: &str) -> String {
         "genestealer_cult" => "tyranid".to_string(),
         "harlequin" => "aeldari".to_string(),
         "minor_xenos" => "xenos".to_string(),
-        "ork" => "ork".to_string(),
-        "tau" => "tau".to_string(),
-        "necron" => "necron".to_string(),
-        "tyranid" => "tyranid".to_string(),
-        "aeldari" => "aeldari".to_string(),
-        "drukhari" => "drukhari".to_string(),
-        "leagues_of_votann" => "leagues_of_votann".to_string(),
-        "xenos" => "xenos".to_string(),
-        "merchant" => "merchant".to_string(),
-        "criminal" => "criminal".to_string(),
-        "rebel" => "rebel".to_string(),
         _ => kind.to_string(),
     }
 }

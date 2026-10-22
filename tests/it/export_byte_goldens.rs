@@ -15,7 +15,7 @@
 
 use camino::Utf8PathBuf;
 
-use crate::shared::{assert_blake3_golden, fixture_sector, goldens_dir};
+use crate::shared::{assert_blake3_golden, assert_content_golden, fixture_sector, tempdir_utf8};
 
 // ── heatmap ──────────────────────────────────────────────────────────────────
 //
@@ -137,35 +137,12 @@ fn segmentum_base_file() -> sectorforge::segmentum::SegmentumFile {
 #[test]
 #[ignore = "slow: full m42 composition; run with `cargo test --test it export_byte_goldens -- --ignored`"]
 fn segmentum_composition_matches_committed_golden() {
-    let tmp = tempfile::tempdir().unwrap();
-    let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, out) = tempdir_utf8();
     let file = segmentum_base_file();
     let base = Utf8PathBuf::from(".");
     let seg = sectorforge::compose_segmentum(&file, &base, &out).expect("compose");
     let json = serde_json::to_string_pretty(&seg).unwrap();
-
-    // Full committed-file golden (mirrors `golden_generation.rs`).
-    let path = goldens_dir().join("segmentum_golden.json");
-    if std::env::var_os("UPDATE_GOLDEN_SEGMENTUM").is_some() {
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, &json).unwrap();
-        return;
-    }
-    let expected = std::fs::read_to_string(&path).unwrap_or_else(|_| {
-        panic!(
-            "missing segmentum golden; bless with `UPDATE_GOLDEN_SEGMENTUM=1 \
-             cargo test --test it segmentum_composition -- --ignored`"
-        )
-    });
-    assert_eq!(
-        expected,
-        json,
-        "segmentum composition drifted from the committed golden ({} vs {} bytes); \
-         if intentional, rerun with `UPDATE_GOLDEN_SEGMENTUM=1` and review \
-         `git diff tests/goldens/`",
-        expected.len(),
-        json.len(),
-    );
+    assert_content_golden("segmentum_golden.json", "UPDATE_GOLDEN_SEGMENTUM", &json);
 }
 
 // The human-readable Markdown super-map (`segmentum::render_markdown`) is the
@@ -177,32 +154,10 @@ fn segmentum_composition_matches_committed_golden() {
 #[test]
 #[ignore = "slow: full m42 composition; run with `cargo test --test it export_byte_goldens -- --ignored`"]
 fn segmentum_markdown_matches_committed_golden() {
-    let tmp = tempfile::tempdir().unwrap();
-    let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let (_tmp, out) = tempdir_utf8();
     let file = segmentum_base_file();
     let base = Utf8PathBuf::from(".");
     let seg = sectorforge::compose_segmentum(&file, &base, &out).expect("compose");
     let md = sectorforge::segmentum::render_markdown(&seg);
-
-    let path = goldens_dir().join("segmentum.md");
-    if std::env::var_os("UPDATE_GOLDEN_SEGMENTUM_MD").is_some() {
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, &md).unwrap();
-        return;
-    }
-    let expected = std::fs::read_to_string(&path).unwrap_or_else(|_| {
-        panic!(
-            "missing segmentum markdown golden; bless with `UPDATE_GOLDEN_SEGMENTUM_MD=1 \
-             cargo test --test it segmentum_markdown -- --ignored`"
-        )
-    });
-    assert_eq!(
-        expected,
-        md,
-        "segmentum markdown drifted from the committed golden ({} vs {} bytes); \
-         if intentional, rerun with `UPDATE_GOLDEN_SEGMENTUM_MD=1` and review \
-         `git diff tests/goldens/`",
-        expected.len(),
-        md.len(),
-    );
+    assert_content_golden("segmentum.md", "UPDATE_GOLDEN_SEGMENTUM_MD", &md);
 }

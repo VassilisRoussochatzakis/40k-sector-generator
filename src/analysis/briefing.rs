@@ -54,10 +54,6 @@ pub struct BriefingProfile {
     /// secret stances are replaced with public values.
     #[serde(default = "default_true")]
     pub show_secret_relations: bool,
-    /// When set, only routes / worlds touching these faction ids survive.
-    /// Empty = no faction-presence filter.
-    #[serde(default)]
-    pub restrict_to_factions: Vec<crate::ids::FactionId>,
     /// When true, factions absent from the observer's known world set are
     /// stripped from the top-level `factions` list. Useful for the public
     /// atlas profile so unknown xenos don't appear.
@@ -91,7 +87,6 @@ impl Default for BriefingProfile {
             include_hidden_routes: true,
             show_relations: true,
             show_secret_relations: true,
-            restrict_to_factions: Vec::new(),
             redact_unknown_factions: false,
             show_claims: true,
             show_orbital_assets: true,
@@ -239,21 +234,6 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
             redact_world_presences(w, p.observer_faction.as_deref(), p.minimum_intel_confidence);
             if !p.show_claims {
                 w.claims.clear();
-            }
-        }
-    }
-
-    // Faction-restrict filter.
-    if !p.restrict_to_factions.is_empty() {
-        let keep: BTreeSet<&str> = p
-            .restrict_to_factions
-            .iter()
-            .map(|id| id.as_str())
-            .collect();
-        for sys in &mut out.systems {
-            for w in &mut sys.worlds {
-                w.factions
-                    .retain(|fp| keep.contains(fp.faction_id.as_str()));
             }
         }
     }

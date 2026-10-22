@@ -150,7 +150,7 @@ fn render(
 
     // Per-system heatmap overlay tint (§10). No faction fill — the live map
     // never tints hexes by faction, and the export now matches it.
-    let heat = grid::compute_heatmap(sector, &opts);
+    let heat = crate::heatmap::compute_rgb(sector, opts.heatmap);
     let heat_tints = grid::compute_heat_tints(sector, &opts, &heat);
 
     grid::draw_hex_grid(&mut img, sector, &g, &heat_tints, &opts.theme);

@@ -108,7 +108,25 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                     right.separator();
                     show_timeline(right, state);
                     right.separator();
-                    show_save_row(right, state);
+                    right.label(RichText::new("Save history settings").strong());
+                    super::catalog_save_row(
+                        right,
+                        state.data_catalogs.history.is_some(),
+                        state,
+                        |i| &mut i.history,
+                        DEFAULT_HISTORY_PATH,
+                        [
+                            "💾  Save",
+                            "Write the chronicle settings, eras, and rules to disk",
+                            "Save history.toml failed",
+                        ],
+                        |ui, path| {
+                            let label = path.unwrap_or_else(|| {
+                                format!("will be saved to {DEFAULT_HISTORY_PATH}")
+                            });
+                            ui.colored_label(Color32::DARK_GRAY, label);
+                        },
+                    );
                 }
             });
         });
@@ -326,18 +344,6 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .speed(1),
                         )
                         .changed();
-                    hint_label(
-                        ui,
-                        "Weight",
-                        "How heavily events cluster in this era (schema: weight). Higher = busier.",
-                    );
-                    changed |= ui
-                        .add(
-                            egui::DragValue::new(&mut era.weight)
-                                .range(0.0..=10.0)
-                                .speed(0.05),
-                        )
-                        .changed();
                 });
                 hint_label(
                     ui,
@@ -381,7 +387,6 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                 label: "New era".into(),
                 relative_start: 0,
                 relative_end: 0,
-                weight: 1.0,
                 allowed_events: Vec::new(),
             });
             changed = true;
@@ -1423,36 +1428,6 @@ fn short_narrative(s: &str) -> String {
         out.push('…');
         out
     }
-}
-
-// ── save row ────────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("Save history settings").strong());
-    let has_catalog = state.data_catalogs.history.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save"))
-            .on_hover_text("Write the chronicle settings, eras, and rules to disk")
-            .clicked()
-        {
-            if state.config.inputs.history.is_none() {
-                state.config.inputs.history = Some(DEFAULT_HISTORY_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save history.toml failed: {e}"
-                )));
-            }
-        }
-        let path_label = state
-            .config
-            .inputs
-            .history
-            .clone()
-            .unwrap_or_else(|| format!("will be saved to {DEFAULT_HISTORY_PATH}"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
-    });
 }
 
 // ── focus / highlight ───────────────────────────────────────────────────────

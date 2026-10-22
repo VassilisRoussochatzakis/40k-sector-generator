@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use egui::{Pos2, Vec2};
+use egui::Pos2;
 
 use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::sector_model::GeneratedStar;
@@ -20,6 +20,8 @@ use crate::builder::state::{
     EntityRef, ModalKind, PendingWorldRename, SystemContextMenu, SystemMenuTarget,
 };
 use crate::builder::BuilderState;
+
+use super::system::SYS_STAR_GRID_ANCHOR;
 
 /// Default spectral cycle order used by `CYCLE SPECTRAL CLASS`. Keeps the
 /// menu out of the worlds.toml catalog so the cycle is deterministic and
@@ -52,11 +54,6 @@ pub(super) enum SystemMenuAction {
     DeriveOrbitalAssets { system: SystemId },
 }
 
-/// Anchor id consumed by [`super::system::show`] after the right-click
-/// `FOCUS STAR DETAILS` row arms `scroll_target`. Must match the
-/// `SYS_STAR_GRID_ANCHOR` constant in [`super::system`].
-const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
-
 /// Map a [`SystemPick`] (returned by [`pick_world`]) onto a
 /// [`SystemMenuTarget`]. Returns `None` when the system index is stale.
 pub(super) fn resolve_system_context(
@@ -73,7 +70,6 @@ pub(super) fn resolve_system_context(
             Some(SystemMenuTarget::World {
                 system,
                 world: w.id.clone(),
-                orbit: w.orbit,
             })
         }
         SystemPick::EmptyOrbit(orbit) => Some(SystemMenuTarget::EmptyOrbit { system, orbit }),
@@ -332,7 +328,7 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
 /// the resulting world's orbit through [`BuilderCommand::SetWorldOrbit`]. §R4:
 /// the orbit pin now rides the bus too (was a direct `w.orbit` write), so the
 /// add and the orbit land as two undoable entries.
-fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
+pub(super) fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
     let (next_index, sys_name) = state
         .sector
         .systems
@@ -481,13 +477,8 @@ pub(super) fn show_system_context_menu(ctx: &egui::Context, state: &mut BuilderS
                     SystemMenuTarget::Star { system } => {
                         close |= render_star_menu(ui, state, system.clone());
                     }
-                    SystemMenuTarget::World {
-                        system,
-                        world,
-                        orbit,
-                    } => {
-                        close |=
-                            render_world_menu(ui, state, system.clone(), world.clone(), *orbit);
+                    SystemMenuTarget::World { system, world, .. } => {
+                        close |= render_world_menu(ui, state, system.clone(), world.clone());
                     }
                     SystemMenuTarget::EmptyOrbit { system, orbit } => {
                         close |= render_empty_orbit_menu(ui, state, system.clone(), *orbit);
@@ -560,7 +551,6 @@ fn render_world_menu(
     state: &mut BuilderState,
     system: SystemId,
     world: WorldId,
-    orbit: u8,
 ) -> bool {
     let mut close = false;
     let summary = state
@@ -574,7 +564,6 @@ fn render_world_menu(
         }
         return close;
     };
-    let _ = orbit; // surfaced through `cur_orbit` after we re-read the model
     ui.label(egui::RichText::new(format!("WORLD {world} — {name}")).italics());
     ui.separator();
 
@@ -729,29 +718,11 @@ pub(super) fn show_world_rename_dialog(ctx: &egui::Context, state: &mut BuilderS
         .map(|w| w.name.to_string())
         .unwrap_or_default();
     let mut text = pending.text.clone();
-    let mut commit = false;
-    let mut close = false;
-    egui::Window::new("Rename world")
-        .collapsible(false)
-        .resizable(false)
-        .anchor(egui::Align2::CENTER_CENTER, Vec2::new(0.0, 0.0))
-        .show(ctx, |ui| {
-            ui.label(format!("world: {} — current: {}", pending.world, before));
-            ui.text_edit_singleline(&mut text);
-            ui.horizontal(|ui| {
-                let enabled = !text.trim().is_empty() && text != before;
-                if ui
-                    .add_enabled(enabled, egui::Button::new("Rename"))
-                    .clicked()
-                {
-                    commit = true;
-                    close = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    close = true;
-                }
-            });
-        });
+    let (commit, close) = super::map::prompt_window(ctx, "Rename world", "Rename", |ui| {
+        ui.label(format!("world: {} — current: {}", pending.world, before));
+        ui.text_edit_singleline(&mut text);
+        !text.trim().is_empty() && text != before
+    });
     if commit {
         let cmd = BuilderCommand::RenameWorld {
             world: pending.world.clone(),
@@ -810,7 +781,6 @@ mod tests {
             SystemMenuTarget::World {
                 system: sys,
                 world: wid,
-                orbit: 1
             }
         );
     }
@@ -987,7 +957,6 @@ mod tests {
             target: SystemMenuTarget::World {
                 system: sys,
                 world: wid,
-                orbit: 1,
             },
         });
         assert_eq!(
@@ -1062,11 +1031,9 @@ mod tests {
         // id — removing only the planet (while the host stays) is enough.
         let mut state = blank();
         let (sys, wid) = add_sys_world(&mut state);
-        let orbit = state.sector.systems[0].worlds[0].orbit;
         let target = SystemMenuTarget::World {
             system: sys.clone(),
             world: wid.clone(),
-            orbit,
         };
         assert!(!system_menu_target_is_stale(&state, &target));
         state.sector.systems[0].worlds.retain(|w| w.id != wid);

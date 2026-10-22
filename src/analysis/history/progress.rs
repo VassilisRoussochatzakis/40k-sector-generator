@@ -38,14 +38,13 @@ pub enum HistoryProgress {
     },
 }
 
-pub(super) fn should_report_history_progress(current: usize, total: usize) -> bool {
-    if total == 0 {
-        return false;
-    }
-    current == 1 || current == total || current.is_multiple_of(history_progress_stride(total))
+/// Progress cadence shared by the chronicle emitter and the CLI progress log:
+/// the first, the last and every stride-th of `total` steps.
+pub fn should_report_progress(current: usize, total: usize) -> bool {
+    current == 1 || current == total || current.is_multiple_of(progress_stride(total))
 }
 
-fn history_progress_stride(total: usize) -> usize {
+fn progress_stride(total: usize) -> usize {
     match total {
         0..=25 => 1,
         26..=100 => 10,

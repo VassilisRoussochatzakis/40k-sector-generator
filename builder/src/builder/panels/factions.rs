@@ -18,7 +18,7 @@ use std::collections::BTreeSet;
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::faction_style::{
-    faction_style_rgb_with_overrides, parse_hex_rgb, rgb_to_hex, FactionBorder,
+    faction_style_rgb, faction_style_rgb_with_overrides, parse_hex_rgb, rgb_to_hex, FactionBorder,
 };
 use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
@@ -769,15 +769,7 @@ fn show_style_preview(ui: &mut Ui, draft: &FactionDef) {
 }
 
 fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
-    let derived = faction_style_rgb_with_overrides(
-        &draft.kind,
-        draft.id.as_str(),
-        &draft.default_disposition,
-        None,
-        None,
-        None,
-        None,
-    );
+    let derived = faction_style_rgb(&draft.kind, draft.id.as_str(), &draft.default_disposition);
 
     labeled(
         ui,
@@ -1219,6 +1211,6 @@ fn resolve_style(draft: &FactionDef) -> sectorforge::faction_style::FactionStyle
         draft.style_fill.as_deref(),
         draft.style_accent.as_deref(),
         draft.style_glyph.as_deref(),
-        draft.style_border.map(FactionBorder::as_str),
+        draft.style_border,
     )
 }

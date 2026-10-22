@@ -216,7 +216,6 @@ fn warn_validation() -> sectorforge::validation::ValidationReport {
             code: "W".into(),
             message: "w".into(),
             path: None,
-            row: None,
             severity: Severity::Warning,
         }],
         world_workbook: WorldWorkbookValidation {
@@ -797,7 +796,7 @@ fn edit_system_round_trip() {
 // ── §TF-T-13b: command bus + live-derivation deep coverage (gaps 194-213) ────
 //
 // These tests drive the remaining `BuilderCommand` apply/revert paths, the
-// state-level recompute / ensure_fresh / dispatch machinery, the §R4 transient
+// state-level recompute / ensure_fresh machinery, the §R4 transient
 // selection ops, and the run()/undo()/redo() bookkeeping invariants. Document
 // mutations go through `state.run(BuilderCommand::..)`; `#[cfg(test)]` may bypass
 // the bus only to *build* fixtures (e.g. `s.sector.factions.push(..)`), never to
@@ -808,8 +807,8 @@ use super::types::TickLogScope;
 use crate::builder::DerivationStatus;
 use sectorforge::sector_model::{GeneratedFaction, GeneratedSector};
 
-/// Minimal faction for the relations/personae fixtures (mirrors the helper in
-/// `derivations::ld3_background_tests`). Bypasses the bus to seed `sector`.
+/// Minimal faction for the relations/personae fixtures. Bypasses the bus to
+/// seed `sector`.
 fn gen_faction(id: &str, kind: &str, disposition: &str) -> GeneratedFaction {
     GeneratedFaction {
         id: id.into(),
@@ -821,21 +820,6 @@ fn gen_faction(id: &str, kind: &str, disposition: &str) -> GeneratedFaction {
         world_presence: vec![],
         power: Default::default(),
     }
-}
-
-/// Bounded poll of the background-job drain pump so a slow worker thread cannot
-/// hang the test. Copied from `derivations::ld3_background_tests` — always run
-/// to completion so worker threads are joined before the test exits.
-fn drain_until_done(state: &mut BuilderState, kind: DerivationKind) -> bool {
-    for _ in 0..200 {
-        state.pump_derivation_jobs();
-        if !state.derivations.deriving.contains(&kind) && !state.derivation_jobs.has_in_flight(kind)
-        {
-            return true;
-        }
-        std::thread::sleep(Duration::from_millis(5));
-    }
-    false
 }
 
 /// Gap 194 (H) — `RemoveWorld` revert re-inserts at the *original* index, not
@@ -1504,88 +1488,6 @@ fn recompute_chronicle_undoable_is_one_command_and_preserves_manual() {
     );
 }
 
-/// Gap 207 (M) — `dispatch_background_derivations` + `pump_derivation_jobs`
-/// drain two eligible kinds (Relations + Personae) concurrently to completion.
-/// Both end Fresh with their outputs installed.
-#[test]
-fn pump_derivation_jobs_drains_multiple_kinds() {
-    let ctx = egui::Context::default();
-    let mut s = BuilderState::new_blank("t", "T", "seed", 16, 16);
-    // Bypass-bus fixture: a 2-faction sector so each recompute has observable output.
-    s.sector = GeneratedSector::empty("t", "T", "seed", 16, 16).into();
-    s.sector
-        .factions
-        .push(gen_faction("imp", "imperial", "lawful"));
-    s.sector
-        .factions
-        .push(gen_faction("chaos", "chaos_space_marine", "hostile"));
-
-    // Prime both as previously-derived so invalidate can flag them.
-    s.mark_derivation_fresh(DerivationKind::Relations);
-    s.mark_derivation_fresh(DerivationKind::Personae);
-    // A Factions-class edit stales BOTH (both list Factions in deps()).
-    s.derivations.invalidate(&[DepClass::Factions]);
-    assert!(s.derivations.is_stale(DerivationKind::Relations));
-    assert!(s.derivations.is_stale(DerivationKind::Personae));
-
-    s.dispatch_background_derivations(&ctx);
-    assert_eq!(
-        s.derivation_jobs.in_flight.len(),
-        2,
-        "two eligible stale kinds spawn two in-flight jobs"
-    );
-
-    assert!(drain_until_done(&mut s, DerivationKind::Relations));
-    assert!(drain_until_done(&mut s, DerivationKind::Personae));
-    assert!(!s.derivations.is_stale(DerivationKind::Relations));
-    assert!(!s.derivations.is_stale(DerivationKind::Personae));
-    assert!(
-        s.personae_report.is_some(),
-        "the Personae output is installed"
-    );
-    assert_eq!(
-        s.derivation_status(DerivationKind::Relations),
-        DerivationStatus::Fresh
-    );
-}
-
-/// Gap 208 (M) — Economy is excluded from background dispatch (its install
-/// mutates the sector), but a sibling eligible kind (Relations) IS dispatched.
-#[test]
-fn dispatch_excludes_economy_but_dispatches_sibling() {
-    let ctx = egui::Context::default();
-    let mut s = BuilderState::new_blank("t", "T", "seed", 16, 16);
-    s.sector = GeneratedSector::empty("t", "T", "seed", 16, 16).into();
-    s.sector
-        .factions
-        .push(gen_faction("imp", "imperial", "lawful"));
-    s.sector
-        .factions
-        .push(gen_faction("chaos", "chaos_space_marine", "hostile"));
-
-    // Prime both so invalidate can flag them stale.
-    s.mark_derivation_fresh(DerivationKind::Economy);
-    s.mark_derivation_fresh(DerivationKind::Relations);
-    // SystemsWorlds stales BOTH (both depend on SystemsWorlds).
-    s.derivations.invalidate(&[DepClass::SystemsWorlds]);
-    assert!(s.derivations.is_stale(DerivationKind::Economy));
-    assert!(s.derivations.is_stale(DerivationKind::Relations));
-
-    s.dispatch_background_derivations(&ctx);
-    assert!(
-        !s.derivation_jobs.has_in_flight(DerivationKind::Economy),
-        "Economy is never dispatched to a worker (it mutates the sector)"
-    );
-    assert!(
-        s.derivation_jobs.has_in_flight(DerivationKind::Relations),
-        "an eligible sibling kind IS dispatched"
-    );
-    assert!(!s.derivations.deriving.contains(&DerivationKind::Economy));
-
-    // Join the worker before the test exits.
-    assert!(drain_until_done(&mut s, DerivationKind::Relations));
-}
-
 /// Gap 209 (M) — `revalidate_now` D10 skip reason. Without a worlds catalog the
 /// validation report is skipped (with a recorded reason) but the invariant
 /// report is always set; with a worlds catalog the report is set and the skip
@@ -1865,7 +1767,6 @@ fn single_row_worlds_catalog() -> sectorforge::worlds_toml::WorldsConfig {
             tech: Some(TechLevel::High),
             government: Some(Government::MilitaryGovernor),
             notable_feature: None,
-            counter: None,
             weight: Some(1.0),
         }],
         ..Default::default()
@@ -2309,6 +2210,53 @@ mod off_bus_seam {
             saved.economy.systems.len(),
             fresh.systems.len(),
             "#22/#30: the persisted economy describes the persisted graph"
+        );
+    }
+
+    /// D2 follow-up — `save_project_as` refreshes the in-sector relations and
+    /// chronicle before writing, so `sector.json` never carries what an
+    /// un-viewed edit left stale; a stale economy is left alone (no §E4 nudge).
+    #[test]
+    fn save_project_as_writes_fresh_relations_and_chronicle() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let mut s = seeded();
+        // Fixture: a warzone puts "alpha" in the chronicle.
+        s.sector.systems[0].control.state = Some(sectorforge::sector_model::SystemState::Warzone);
+        s.recompute_economy(); // prime economy too, so the rename stales it
+        s.recompute_relations(); // prime both (no factions yet ⇒ empty matrix)
+        s.recompute_chronicle();
+        // Fixture: two factions arrive off-bus; the rename is the staling edit.
+        s.sector.factions.extend([
+            gen_faction("a", "imperial", "lawful"),
+            gen_faction("b", "chaos", "hostile"),
+        ]);
+        s.run(BuilderCommand::RenameSystem {
+            id: s.sector.systems[0].id.clone(),
+            from: String::new(),
+            to: "alpha-1".into(),
+        })
+        .unwrap();
+
+        crate::builder::project_io::save_project_as(&mut s, &root).unwrap();
+        assert!(
+            s.derivations.is_stale(DerivationKind::Economy),
+            "save never recomputes economy"
+        );
+
+        let saved = read_saved(&root.join("out/sector.json"));
+        assert_eq!(
+            saved.relations.pairs.len(),
+            1,
+            "fresh matrix pairs the two factions"
+        );
+        assert!(
+            saved
+                .chronicle
+                .events
+                .iter()
+                .any(|e| e.narrative.contains("alpha-1")),
+            "fresh chronicle names the renamed system"
         );
     }
 

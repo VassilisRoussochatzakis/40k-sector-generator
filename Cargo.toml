@@ -107,10 +107,6 @@ harness = false
 name = "influence_field"
 harness = false
 
-[[bench]]
-name = "render_png"
-harness = false
-
 [profile.dev.package."*"]
 # Skip DWARF generation for dependencies. Cuts linker work on integration test
 # bins and the GUI/builder binaries. Local code keeps full debuginfo so the

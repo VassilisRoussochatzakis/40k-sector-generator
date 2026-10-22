@@ -11,7 +11,7 @@ use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
 
-use super::combo_enum;
+use super::{combo_enum, edit_world_rows};
 
 // ── identity (W1 / W3) ──────────────────────────────────────────────────────
 
@@ -127,67 +127,37 @@ pub(super) fn show_classification_section(
     w_idx: usize,
 ) {
     ui_kit::collapsing_section(ui, "world_classification", "Classification", true, |ui| {
-        // §R4: edit a clone and dispatch one EditWorld for the whole group
-        // so classification changes are undoable.
-        let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-        let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-        let mut changed = false;
-        labeled(
-            ui,
-            "Star colour",
-            "Spectral class of the system's star (schema: star_colour_code). Sets the light and habitable band.",
-            |ui| {
-                let current_code = draft.world.star_colour.code().to_string();
-                let mut selected = StarColour::VARIANTS
-                    .iter()
-                    .copied()
-                    .find(|v| v.code() == current_code)
-                    .unwrap_or(StarColour::Yellow);
-                let prev = selected;
-                ui_kit::combo(
-                    "w_star",
-                    format!("{} ({})", selected.code(), selected.short_name()),
-                )
-                .show_ui(ui, |ui| {
-                    for v in StarColour::VARIANTS {
-                        ui.selectable_value(
-                            &mut selected,
-                            *v,
-                            format!("{} — {}", v.code(), v.short_name()),
-                        );
-                    }
-                });
-                if selected != prev {
-                    draft.world.star_colour = selected;
-                    changed = true;
-                }
-            },
-        );
-        labeled(
-            ui,
-            "World type",
-            "Overall world archetype (schema: world_type) — e.g. Hive, Agri, Forge, Death.",
-            |ui| {
-                if combo_enum(
-                    ui,
-                    "w_type",
-                    &mut draft.world.world_type,
-                    WorldType::VARIANTS,
-                    WorldType::display_name,
-                ) {
-                    changed = true;
-                }
-            },
-        );
-        if changed {
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: wid,
-                before: None,
-                after: Box::new(draft),
-            }) {
-                state.feedback.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
-            }
-        }
+        edit_world_rows(ui, state, sys_idx, w_idx, |ui, w| {
+            let prev = w.star_colour;
+            labeled(
+                ui,
+                "Star colour",
+                "Spectral class of the system's star (schema: star_colour_code). Sets the light and habitable band.",
+                |ui| {
+                    ui_kit::combo("w_star", format!("{} ({})", prev.code(), prev.short_name()))
+                        .show_ui(ui, |ui| {
+                            for v in StarColour::VARIANTS {
+                                ui.selectable_value(
+                                    &mut w.star_colour,
+                                    *v,
+                                    format!("{} — {}", v.code(), v.short_name()),
+                                );
+                            }
+                        });
+                },
+            );
+            let mut changed = w.star_colour != prev;
+            changed |= combo_enum(
+                ui,
+                "World type",
+                "Overall world archetype (schema: world_type) — e.g. Hive, Agri, Forge, Death.",
+                "w_type",
+                &mut w.world_type,
+                WorldType::VARIANTS,
+                WorldType::display_name,
+            );
+            changed
+        });
     });
 }
 

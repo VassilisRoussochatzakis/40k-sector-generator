@@ -569,11 +569,7 @@ pub enum SystemMenuTarget {
     /// Click landed on (or near) the central star disk.
     Star { system: SystemId },
     /// Click landed on a planet/world disk.
-    World {
-        system: SystemId,
-        world: WorldId,
-        orbit: u8,
-    },
+    World { system: SystemId, world: WorldId },
     /// Click landed on an orbit ring but not on any planet currently on that
     /// ring.
     EmptyOrbit { system: SystemId, orbit: u8 },
@@ -608,12 +604,6 @@ pub enum SectorMenuTarget {
     /// the region lookup is in the [`MapViewCache`].
     RegionHex {
         region: String,
-        coord: sectorforge::sector_model::HexCoord,
-    },
-    /// Click hit a subsector border edge — reserved for the future
-    /// "subsector right-click" workflow (Phase 8+).
-    SubsectorBorder {
-        subsector: String,
         coord: sectorforge::sector_model::HexCoord,
     },
     /// Click landed inside the live rect-select box or on a system already in

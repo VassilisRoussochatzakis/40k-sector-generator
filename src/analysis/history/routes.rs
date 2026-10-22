@@ -3,9 +3,9 @@
 
 use crate::sector_model::{GeneratedRoute, RouteStability, RouteType};
 
-use super::build::build_event;
-use super::context::EmitContext;
+use super::build::EmitContext;
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
+use super::systems::{flush_capped, Draft};
 
 pub(super) fn emit_route_events(
     ctx: &EmitContext,
@@ -23,7 +23,7 @@ pub(super) fn emit_route_events(
         .copied()
         .unwrap_or(route.to_system_id.as_str());
 
-    let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
+    let mut buf: Vec<Draft> = Vec::new();
     if matches!(
         route.stability,
         RouteStability::Unstable | RouteStability::Hazardous | RouteStability::Perilous
@@ -96,18 +96,12 @@ pub(super) fn emit_route_events(
         ));
     }
 
-    if buf.len() as u32 > ctx.cfg.max_events_per_route {
-        buf.sort_by_key(|b| std::cmp::Reverse(b.3));
-        buf.truncate(ctx.cfg.max_events_per_route as usize);
-    }
-    buf.sort_by_key(|a| a.0.topo_rank());
-
-    for (i, (kind, text, factions, weight)) in buf.into_iter().enumerate() {
-        let anchor = HistoryAnchor::Route {
-            route_id: route.id.clone(),
-            from_system_id: route.from_system_id.clone(),
-            to_system_id: route.to_system_id.clone(),
-        };
-        out.push(build_event(ctx, anchor, kind, text, factions, weight, i));
-    }
+    let anchor = HistoryAnchor::Route {
+        route_id: route.id.clone(),
+        from_system_id: route.from_system_id.clone(),
+        to_system_id: route.to_system_id.clone(),
+    };
+    // Weight only — no topo tiebreak: tied route events keep insertion order.
+    let cap = ctx.cfg.max_events_per_route;
+    flush_capped(ctx, buf, cap, |a, b| b.3.cmp(&a.3), anchor, out);
 }

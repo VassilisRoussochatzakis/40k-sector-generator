@@ -42,11 +42,6 @@ macro_rules! define_id {
             pub fn as_str(&self) -> &str {
                 &self.0
             }
-
-            #[must_use]
-            pub fn is_empty(&self) -> bool {
-                self.0.is_empty()
-            }
         }
 
         impl fmt::Display for $name {
@@ -86,12 +81,6 @@ macro_rules! define_id {
             }
         }
 
-        impl From<&String> for $name {
-            fn from(value: &String) -> Self {
-                Self(Arc::from(value.as_str()))
-            }
-        }
-
         impl From<$name> for String {
             fn from(value: $name) -> String {
                 value.0.to_string()
@@ -119,12 +108,6 @@ macro_rules! define_id {
         impl PartialEq<String> for $name {
             fn eq(&self, other: &String) -> bool {
                 &*self.0 == other
-            }
-        }
-
-        impl PartialEq<$name> for str {
-            fn eq(&self, other: &$name) -> bool {
-                self == &*other.0
             }
         }
 

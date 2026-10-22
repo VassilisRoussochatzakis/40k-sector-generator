@@ -239,11 +239,6 @@ enum_slug!(SystemSlot {
 // ── Entry point ────────────────────────────────────────────────────────────────
 
 #[must_use]
-pub fn derive(sector: &GeneratedSector) -> PersonaeReport {
-    derive_with(sector, &PersonaeConfig::default())
-}
-
-#[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeReport {
     let faction_kind: BTreeMap<&str, &str> = sector
         .factions
@@ -359,12 +354,6 @@ fn system_slot_factions(sys: &GeneratedSystem) -> Vec<(SystemSlot, crate::ids::F
 
 // ── Organizational-leadership personae ──────────────────────────────────────────
 
-/// Presence count used to gate org-leadership personae: the broader of the
-/// node's system and world footprints.
-fn node_presence(system_count: usize, world_count: usize) -> usize {
-    system_count.max(world_count)
-}
-
 /// Derive one leader per qualifying org node: overall faction, then each
 /// sub-faction, then each force. Nodes below `cfg.min_faction_presence` are
 /// skipped. Iteration is id-sorted at every level for determinism.
@@ -383,7 +372,7 @@ fn derive_faction_leaders(
         let kind = f.kind.as_slug();
         let fac_id = f.id.as_str();
 
-        if node_presence(f.system_presence.len(), f.world_presence.len()) >= min {
+        if f.system_presence.len().max(f.world_presence.len()) >= min {
             out.push(build_faction_leader(
                 FactionLeaderParams {
                     sector,
@@ -407,7 +396,7 @@ fn derive_faction_leaders(
         let mut subs: Vec<&GeneratedSubfaction> = f.subfactions.iter().collect();
         subs.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
         for sf in subs {
-            if node_presence(sf.system_presence.len(), sf.world_presence.len()) >= min {
+            if sf.system_presence.len().max(sf.world_presence.len()) >= min {
                 out.push(build_faction_leader(
                     FactionLeaderParams {
                         sector,
@@ -431,7 +420,7 @@ fn derive_faction_leaders(
             let mut forces: Vec<&GeneratedForce> = sf.forces.iter().collect();
             forces.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
             for force in forces {
-                if node_presence(force.system_presence.len(), force.world_presence.len()) >= min {
+                if force.system_presence.len().max(force.world_presence.len()) >= min {
                     out.push(build_faction_leader(
                         FactionLeaderParams {
                             sector,
@@ -488,11 +477,9 @@ fn build_faction_leader(params: FactionLeaderParams, used: &mut BTreeSet<String>
 
     let pools = resolve_pools(cfg, kind);
     let name = generate_name(&mut rng, &pools, used);
-    let tier_pool = tier_titles(kind, tier);
-    let title = if tier_pool.is_empty() {
-        pick(&pools.titles, &mut rng).unwrap_or_else(|| default_title(kind))
-    } else {
-        pick_str(&tier_pool, &mut rng)
+    let title = match tier_titles(kind, tier).choose(&mut rng) {
+        Some(t) => (*t).to_string(),
+        None => pick(&pools.titles, &mut rng).unwrap_or_default(),
     };
     let traits = pick_traits(&pools.traits, &mut rng, None);
     let agenda = build_faction_agenda(kind, tier, node_name, system_count, world_count);
@@ -534,14 +521,13 @@ fn build_faction_agenda(
 
 /// Fold a faction-kind string — in any of the spellings the generator / catalog
 /// can produce — to the single canonical key the persona pools below are keyed
-/// on. This is the one place that knows the full alias set, so every dispatch
-/// table (`tier_titles`, `agenda_verb`, `default_title`, `default_pool`) routes
+/// on. This is the one place that knows the full alias set, so every lookup
+/// into [`KIND_TABLE`] (`tier_titles`, `agenda_verb`, `default_pool`) routes
 /// through it and no producible kind falls through to the generic placeholder.
 ///
-/// The canonical keys returned here are exactly the rich-pool keys; every one of
-/// them has a non-placeholder arm in *each* table (Finding #20). Inputs that
-/// genuinely aren't a known faction kind return `""`, which deliberately lands
-/// on the placeholder arm.
+/// The canonical keys returned here are exactly the [`KIND_TABLE`] keys
+/// (Finding #20). Inputs that genuinely aren't a known faction kind return
+/// `""`, which deliberately lands on [`PLACEHOLDER_KIND`].
 fn canonical_kind(kind: &str) -> &'static str {
     // Normalise apostrophes (T'au / t'au), case, and surrounding whitespace so
     // the match below only has to enumerate the underscore spellings.
@@ -593,55 +579,13 @@ fn canonical_kind(kind: &str) -> &'static str {
 /// `Force` returns field-command titles; `Subfaction` returns empty so the
 /// caller falls back to the mid-level [`KindPools::titles`]. Empty result for
 /// an unknown kind also falls back.
-fn tier_titles(kind: &str, tier: FactionTier) -> Vec<&'static str> {
-    let k = canonical_kind(kind);
+fn tier_titles(kind: &str, tier: FactionTier) -> &'static [&'static str] {
+    let row = kind_row(kind);
     match tier {
-        FactionTier::Subfaction => Vec::new(),
-        FactionTier::Overall => match k {
-            "imperial" => vec!["Lord Sector", "Lord Commander Militant", "Sector Governor"],
-            "mechanicus" => vec!["Fabricator-General", "Archmagos Prime"],
-            "ecclesiarchy" => vec!["Cardinal Astral", "Arch-Cardinal"],
-            "inquisition" => vec!["Lord Inquisitor", "Inquisitorial Representative"],
-            "merchant" => vec!["Warrant-Holder Paramount", "Lord-Captain Dynast"],
-            "chaos" => vec!["Warmaster", "Dark Apostle Ascendant"],
-            "rebel" => vec!["Liberation Marshal", "Supreme Commander"],
-            "necron" => vec!["Phaeron", "Supreme Overlord"],
-            "tyranid" => vec!["Hive Tyrant Prime", "Norn-Queen Locus"],
-            "ork" => vec!["Warlord", "Big Boss of Bosses"],
-            "tau" => vec!["High Ethereal", "Supreme Commander"],
-            "aeldari" => vec!["Autarch Supreme", "High Farseer"],
-            "drukhari" => vec!["Supreme Archon"],
-            "harlequin" => vec!["Great Harlequin"],
-            "genestealer" => vec!["Patriarch"],
-            "xenos" => vec!["Paramount Warleader", "Supreme Voice"],
-            _ => vec!["Paramount Leader", "Sector Warlord"],
-        },
-        FactionTier::Force => match k {
-            "imperial" => vec!["Colonel", "Lord Captain", "Knight Commander"],
-            "mechanicus" => vec!["Tech-Priest Dominus", "Myrmidon Secutor"],
-            "ecclesiarchy" => vec!["Palatine", "Canoness"],
-            "inquisition" => vec!["Interrogator", "Throne Agent"],
-            "merchant" => vec!["Captain", "Voidmaster"],
-            "chaos" => vec!["Champion", "Aspiring Lord"],
-            "rebel" => vec!["Field Commander", "Cell Leader"],
-            "necron" => vec!["Lord", "Royal Warden"],
-            "tyranid" => vec!["Alpha Warrior", "Synapse Node"],
-            "ork" => vec!["Nob", "Boss"],
-            "tau" => vec!["Shas'o", "Shas'el"],
-            "aeldari" => vec!["Exarch", "Autarch"],
-            "drukhari" => vec!["Dracon", "Sybarite"],
-            "harlequin" => vec!["Troupe Master"],
-            "genestealer" => vec!["Primus", "Acolyte Iconward"],
-            "xenos" => vec!["Warleader", "Hivespeaker"],
-            _ => vec!["Commander", "Captain"],
-        },
+        FactionTier::Subfaction => &[],
+        FactionTier::Overall => row.overall,
+        FactionTier::Force => row.force,
     }
-}
-
-fn pick_str(pool: &[&'static str], rng: &mut impl Rng) -> String {
-    pool.choose(rng)
-        .map(|s| (*s).to_string())
-        .unwrap_or_default()
 }
 
 struct PersonaParams<'a> {
@@ -683,7 +627,7 @@ fn build_persona(params: PersonaParams, used: &mut BTreeSet<String>) -> Persona 
     let pools = resolve_pools(cfg, kind);
 
     let name = generate_name(&mut rng, &pools, used);
-    let title = pick(&pools.titles, &mut rng).unwrap_or_else(|| default_title(kind));
+    let title = pick(&pools.titles, &mut rng).unwrap_or_default();
     let traits = pick_traits(&pools.traits, &mut rng, world);
     let agenda = build_agenda(kind, faction_id, &anchor, world, sys);
 
@@ -865,10 +809,7 @@ fn build_agenda(
         PersonaAnchor::World { world_id, .. } => world
             .map(|w| w.name.clone())
             .unwrap_or_else(|| world_id.as_str().to_string().into()),
-        PersonaAnchor::System { .. } => sys.name.clone(),
-        // Org-leadership agendas are built by `build_faction_agenda`; this arm
-        // exists only for exhaustiveness and is never reached here.
-        PersonaAnchor::Faction { faction_id, .. } => faction_id.as_str().to_string().into(),
+        _ => sys.name.clone(),
     };
     // Inspect competing claims for color.
     let rival = world.and_then(|w| {
@@ -890,47 +831,7 @@ fn build_agenda(
 }
 
 fn agenda_verb(kind: &str) -> &'static str {
-    match canonical_kind(kind) {
-        "imperial" => "enforce Imperial writ",
-        "mechanicus" => "expand the cogitator covenant",
-        "ecclesiarchy" => "extend the dominion of the Faith",
-        "inquisition" => "hunt heresy in shadow",
-        "merchant" => "press a commercial advantage",
-        "chaos" => "spread the touch of the Dark Gods",
-        "rebel" => "break Imperial chains",
-        "xenos" => "press alien interests",
-        "necron" => "reclaim ancient dominion",
-        "tyranid" => "feed the Hive",
-        "ork" => "spread the Waaagh!",
-        "tau" => "expand the Greater Good",
-        "aeldari" => "thread the Skein toward victory",
-        "drukhari" => "harvest fresh suffering",
-        "harlequin" => "play out the Black Library",
-        "genestealer" => "incubate the awakening",
-        _ => "secure faction interests",
-    }
-}
-
-fn default_title(kind: &str) -> String {
-    match canonical_kind(kind) {
-        "imperial" => "Planetary Governor".into(),
-        "mechanicus" => "Magos Dominus".into(),
-        "ecclesiarchy" => "Cardinal".into(),
-        "inquisition" => "Inquisitor".into(),
-        "merchant" => "Lord-Captain".into(),
-        "chaos" => "Champion of Ruin".into(),
-        "rebel" => "Rebel Commander".into(),
-        "necron" => "Overlord".into(),
-        "tyranid" => "Synapse Beast".into(),
-        "ork" => "Warboss".into(),
-        "tau" => "Ethereal".into(),
-        "aeldari" => "Farseer".into(),
-        "drukhari" => "Dracon".into(),
-        "harlequin" => "Shadowseer".into(),
-        "genestealer" => "Cult Patriarch".into(),
-        "xenos" => "Warleader".into(),
-        _ => "Faction Lead".into(),
-    }
+    kind_row(kind).verb
 }
 
 // ── Built-in pools ─────────────────────────────────────────────────────────────
@@ -954,365 +855,428 @@ fn resolve_pools(cfg: &PersonaeConfig, kind: &str) -> KindPools {
 
 fn merge_with_defaults(user: &KindPools, kind: &str) -> KindPools {
     let base = default_pool(kind);
+    let or_base = |u: &Vec<String>, b: Vec<String>| if u.is_empty() { b } else { u.clone() };
     KindPools {
-        name_prefixes: if user.name_prefixes.is_empty() {
-            base.name_prefixes
-        } else {
-            user.name_prefixes.clone()
-        },
-        name_roots: if user.name_roots.is_empty() {
-            base.name_roots
-        } else {
-            user.name_roots.clone()
-        },
-        name_suffixes: if user.name_suffixes.is_empty() {
-            base.name_suffixes
-        } else {
-            user.name_suffixes.clone()
-        },
-        single_names: if user.single_names.is_empty() {
-            base.single_names
-        } else {
-            user.single_names.clone()
-        },
-        titles: if user.titles.is_empty() {
-            base.titles
-        } else {
-            user.titles.clone()
-        },
-        traits: if user.traits.is_empty() {
-            base.traits
-        } else {
-            user.traits.clone()
-        },
+        name_prefixes: or_base(&user.name_prefixes, base.name_prefixes),
+        name_roots: or_base(&user.name_roots, base.name_roots),
+        name_suffixes: or_base(&user.name_suffixes, base.name_suffixes),
+        single_names: or_base(&user.single_names, base.single_names),
+        titles: or_base(&user.titles, base.titles),
+        traits: or_base(&user.traits, base.traits),
     }
 }
 
 fn default_pool(kind: &str) -> KindPools {
-    match canonical_kind(kind) {
-        "imperial" => KindPools {
-            name_prefixes: svec(&["Lord", "Lady", "High"]),
-            name_roots: svec(&[
-                "Valerian",
-                "Aurelius",
-                "Constance",
-                "Septimia",
-                "Marius",
-                "Cassia",
-                "Cornelius",
-                "Drusilla",
-                "Octavian",
-                "Petronius",
-            ]),
-            name_suffixes: svec(&["Vex", "Karn", "Voll", "Halen", "Marsden", "Drachma"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Planetary Governor",
-                "Lord Militant",
-                "Sector Lord",
-                "Subsector Praetor",
-                "High Steward",
-            ]),
-            traits: svec(&[
-                "Iron-Fisted",
-                "Paranoid",
-                "Pious",
-                "Diplomatic",
-                "Severe",
-                "Pragmatic",
-                "Indolent",
-            ]),
-        },
-        "mechanicus" => KindPools {
-            name_prefixes: svec(&["Magos", "Genetor", "Artisan", "Logis"]),
-            name_roots: svec(&[
-                "Cryptus", "Theta", "Omikron", "Vex", "Volta", "Caliban", "Hyperion", "Strados",
-            ]),
-            name_suffixes: svec(&["-4", "-VII", "-XXI", "Prime", "Secundus", "Mu", "Tertius"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Magos Dominus",
-                "Forge Lord",
-                "Archmagos Veneratus",
-                "Logis Strategos",
-            ]),
-            traits: svec(&[
-                "Logic-Bound",
-                "Tech-Heretic-Curious",
-                "Schematic",
-                "Hoarding",
-                "Detached",
-                "Inquisitive",
-            ]),
-        },
-        "ecclesiarchy" => KindPools {
-            name_prefixes: svec(&["Father", "Mother", "Cardinal", "Confessor", "Deacon"]),
-            name_roots: svec(&[
-                "Ambrose",
-                "Cassian",
-                "Theonia",
-                "Vespera",
-                "Severus",
-                "Penance",
-                "Sabbatine",
-            ]),
-            name_suffixes: svec(&["of the Sword", "the Pure", "the Stern", "the Anointed"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Cardinal",
-                "Arch-Confessor",
-                "Sister Superior",
-                "Missionary Vexilla",
-                "Episcopa",
-            ]),
-            traits: svec(&[
-                "Zealous",
-                "Mortified",
-                "Eloquent",
-                "Iron-Faithed",
-                "Ascetic",
-                "Vengeful",
-            ]),
-        },
-        "inquisition" => KindPools {
-            name_prefixes: svec(&["Inquisitor", "Interrogator"]),
-            name_roots: svec(&[
-                "Eisenhorn",
-                "Ravenor",
-                "Karamanzov",
-                "Quixos",
-                "Sand",
-                "Greyfax",
-                "Drazyari",
-                "Voll",
-            ]),
-            name_suffixes: svec(&["", "-Vekt", "-Kael", "-Mordant"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Inquisitor (Ordo Malleus)",
-                "Inquisitor (Ordo Hereticus)",
-                "Inquisitor (Ordo Xenos)",
-                "Lord Inquisitor",
-            ]),
-            traits: svec(&[
-                "Paranoid",
-                "Radical",
-                "Puritan",
-                "Calculating",
-                "Cold",
-                "Ruthless",
-                "Patient",
-            ]),
-        },
-        "merchant" => KindPools {
-            name_prefixes: svec(&["Lord-Captain", "Captain", "Dame", "Dynast"]),
-            name_roots: svec(&[
-                "Vrede",
-                "Halcyon",
-                "Sigismund",
-                "Karnak",
-                "Verrin",
-                "Calderra",
-                "Surak",
-                "Tessera",
-            ]),
-            name_suffixes: svec(&["Caligari", "Voss", "Drask", "Hallow", "Tannhauser"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Rogue Trader",
-                "Free Captain",
-                "Dynast Primus",
-                "Lord of the Charter",
-            ]),
-            traits: svec(&[
-                "Acquisitive",
-                "Charming",
-                "Indebted",
-                "Bold",
-                "Calculating",
-                "Glittering",
-            ]),
-        },
-        "chaos" => KindPools {
-            name_prefixes: svec(&["Lord", "Champion", "Sorcerer"]),
-            name_roots: svec(&[
-                "Vraxis",
-                "Mortarion",
-                "Khar'kos",
-                "Tzeneth",
-                "Slathar",
-                "Bel'kor",
-                "Khel'gar",
-                "Maleth",
-            ]),
-            name_suffixes: svec(&[
-                "the Damned",
-                "the Eight-Eyed",
-                "of the Black Tongue",
-                "the Defiler",
-            ]),
-            single_names: vec![],
-            titles: svec(&[
-                "Chaos Lord",
-                "Daemon Prince",
-                "Dark Apostle",
-                "Sorcerer-Captain",
-            ]),
-            traits: svec(&[
-                "Vainglorious",
-                "Tainted",
-                "Cunning",
-                "Wrathful",
-                "Patient",
-                "Mad",
-            ]),
-        },
-        "rebel" => KindPools {
-            name_prefixes: svec(&["Commander", "Captain", "Speaker", "Headsman"]),
-            name_roots: svec(&[
-                "Toran", "Vada", "Selka", "Kosh", "Mira", "Petros", "Yarrick", "Aren",
-            ]),
-            name_suffixes: svec(&["", "Lien", "Vesh", "Karn"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Rebel Commander",
-                "Council Speaker",
-                "Revolutionary Marshal",
-                "Demagogue",
-            ]),
-            traits: svec(&[
-                "Charismatic",
-                "Embittered",
-                "Idealistic",
-                "Ruthless",
-                "Hounded",
-            ]),
-        },
-        "necron" => KindPools {
-            name_prefixes: svec(&["Overlord", "Phaeron", "Cryptek"]),
-            name_roots: svec(&[
-                "Sahmek",
-                "Trazyn",
-                "Imotekh",
-                "Kutlakh",
-                "Anrakyr",
-                "Khaybar",
-                "Zahndrekh",
-            ]),
-            name_suffixes: svec(&["", "of the Black Pyramid", "the Silent"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Necron Overlord",
-                "Phaeron",
-                "Cryptek Plasmancer",
-                "Lord of the Tomb",
-            ]),
-            traits: svec(&["Implacable", "Patient", "Disdainful", "Curious", "Vengeful"]),
-        },
-        "tyranid" => KindPools {
-            name_prefixes: svec(&[]),
-            name_roots: svec(&["Hive Tyrant", "Norn-Queen Echo", "Synapse Node", "Tendril"]),
-            name_suffixes: svec(&["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]),
-            single_names: vec![],
-            titles: svec(&["Hive Tyrant", "Synapse Beast", "Norn-Queen Echo"]),
-            traits: svec(&["Hungry", "Adaptive", "Patient", "Implacable"]),
-        },
-        "ork" => KindPools {
-            name_prefixes: svec(&[]),
-            name_roots: svec(&[
-                "Skarsnik",
-                "Grimskull",
-                "Bonebreaka",
-                "Throgg",
-                "Garglug",
-                "Skullkrump",
-                "Urghuz",
-            ]),
-            name_suffixes: svec(&["Big-Mek", "Da Brutal", "Wartoof", "Da Boss", "Krumpa"]),
-            single_names: vec![],
-            titles: svec(&["Warboss", "Big Mek", "Painboy", "Nob Boss"]),
-            traits: svec(&[
-                "Brutal",
-                "Cunning",
-                "Loud",
-                "Inventive",
-                "Massive",
-                "Reckless",
-            ]),
-        },
-        "tau" => KindPools {
-            name_prefixes: svec(&["Aun'", "Shas'", "Por'"]),
-            name_roots: svec(&["vre", "ui", "el", "o", "la", "su"]),
-            name_suffixes: svec(&["Mont'yr", "Tash'var", "Sa'cea", "Bork'an", "Vior'la"]),
-            single_names: vec![],
-            titles: svec(&[
-                "Ethereal",
-                "Shas'O Commander",
-                "Por'el Diplomat",
-                "Aun'vre Aide",
-            ]),
-            traits: svec(&[
-                "Patient",
-                "Idealistic",
-                "Disciplined",
-                "Inquisitive",
-                "Naive",
-            ]),
-        },
-        "aeldari" => KindPools {
-            name_prefixes: svec(&["Farseer", "Autarch", "Spiritseer"]),
-            name_roots: svec(&["Eldrad", "Asurmen", "Macha", "Yvraine", "Yriel", "Saerith"]),
-            name_suffixes: svec(&["", "the Cold", "Lin'doril"]),
-            single_names: vec![],
-            titles: svec(&["Farseer", "Autarch", "Warlock", "Spiritseer"]),
-            traits: svec(&["Cold", "Cryptic", "Patient", "Haughty", "Foreboding"]),
-        },
-        "drukhari" => KindPools {
-            name_prefixes: svec(&["Archon", "Dracon", "Succubus"]),
-            name_roots: svec(&["Vect", "Yllith", "Sliscus", "Aestred", "Drazhar"]),
-            name_suffixes: svec(&["the Cruel", "Pain-Touched"]),
-            single_names: vec![],
-            titles: svec(&["Archon", "Dracon", "Succubus", "Haemonculus"]),
-            traits: svec(&["Cruel", "Decadent", "Cunning", "Vindictive", "Aesthete"]),
-        },
-        "harlequin" => KindPools {
-            name_prefixes: svec(&["Troupe Master", "Shadowseer"]),
-            name_roots: svec(&["Sylandri", "Veilwalker", "Death-Mask"]),
-            name_suffixes: svec(&["", "the Laughing", "of the Crone"]),
-            single_names: vec![],
-            titles: svec(&["Troupe Master", "Shadowseer", "Death Jester"]),
-            traits: svec(&["Theatrical", "Cryptic", "Lethal"]),
-        },
-        "genestealer" => KindPools {
-            name_prefixes: svec(&["Patriarch", "Magus", "Primus"]),
-            name_roots: svec(&["Saint", "First", "Whisper", "Old", "Quiet"]),
-            name_suffixes: svec(&["Hraxon", "Velt", "Marek", "Selas"]),
-            single_names: vec![],
-            titles: svec(&["Cult Patriarch", "Cult Magus", "Cult Primus"]),
-            traits: svec(&["Patient", "Soothing", "Insidious", "Familial", "Concealed"]),
-        },
-        "xenos" => KindPools {
-            name_prefixes: svec(&[]),
-            name_roots: svec(&["Vesh'Ka", "Mor'tek", "Zhuun", "Pak'thar", "Ssuln"]),
-            name_suffixes: svec(&["", "the Many-Eyed", "of the Deep"]),
-            single_names: vec![],
-            titles: svec(&["Warleader", "Hivespeaker", "High Voice"]),
-            traits: svec(&["Inscrutable", "Hostile", "Cunning"]),
-        },
-        _ => KindPools {
-            name_prefixes: svec(&[]),
-            name_roots: svec(&["Anonymous", "Unknown", "Faceless"]),
-            name_suffixes: svec(&["One", "Two", "Three"]),
-            single_names: vec![],
-            titles: svec(&["Faction Lead", "Senior Operative"]),
-            traits: svec(&["Discreet", "Stoic"]),
-        },
+    let row = kind_row(kind);
+    KindPools {
+        name_prefixes: svec(row.prefixes),
+        name_roots: svec(row.roots),
+        name_suffixes: svec(row.suffixes),
+        single_names: vec![],
+        titles: svec(row.titles),
+        traits: svec(row.traits),
     }
 }
 
 fn svec(xs: &[&str]) -> Vec<String> {
     xs.iter().map(|s| (*s).to_string()).collect()
 }
+
+/// Built-in persona library for one canonical kind (see [`canonical_kind`]):
+/// leadership-tier titles, agenda verb, and the default name / title / trait
+/// pools.
+struct KindRow {
+    key: &'static str,
+    overall: &'static [&'static str],
+    force: &'static [&'static str],
+    verb: &'static str,
+    prefixes: &'static [&'static str],
+    roots: &'static [&'static str],
+    suffixes: &'static [&'static str],
+    titles: &'static [&'static str],
+    traits: &'static [&'static str],
+}
+
+fn kind_row(kind: &str) -> &'static KindRow {
+    let k = canonical_kind(kind);
+    KIND_TABLE
+        .iter()
+        .find(|r| r.key == k)
+        .unwrap_or(&PLACEHOLDER_KIND)
+}
+
+/// Generic entry for kinds [`canonical_kind`] doesn't know.
+static PLACEHOLDER_KIND: KindRow = KindRow {
+    key: "",
+    overall: &["Paramount Leader", "Sector Warlord"],
+    force: &["Commander", "Captain"],
+    verb: "secure faction interests",
+    prefixes: &[],
+    roots: &["Anonymous", "Unknown", "Faceless"],
+    suffixes: &["One", "Two", "Three"],
+    titles: &["Faction Lead", "Senior Operative"],
+    traits: &["Discreet", "Stoic"],
+};
+
+const KIND_TABLE: &[KindRow] = &[
+    KindRow {
+        key: "imperial",
+        overall: &["Lord Sector", "Lord Commander Militant", "Sector Governor"],
+        force: &["Colonel", "Lord Captain", "Knight Commander"],
+        verb: "enforce Imperial writ",
+        prefixes: &["Lord", "Lady", "High"],
+        roots: &[
+            "Valerian",
+            "Aurelius",
+            "Constance",
+            "Septimia",
+            "Marius",
+            "Cassia",
+            "Cornelius",
+            "Drusilla",
+            "Octavian",
+            "Petronius",
+        ],
+        suffixes: &["Vex", "Karn", "Voll", "Halen", "Marsden", "Drachma"],
+        titles: &[
+            "Planetary Governor",
+            "Lord Militant",
+            "Sector Lord",
+            "Subsector Praetor",
+            "High Steward",
+        ],
+        traits: &[
+            "Iron-Fisted",
+            "Paranoid",
+            "Pious",
+            "Diplomatic",
+            "Severe",
+            "Pragmatic",
+            "Indolent",
+        ],
+    },
+    KindRow {
+        key: "mechanicus",
+        overall: &["Fabricator-General", "Archmagos Prime"],
+        force: &["Tech-Priest Dominus", "Myrmidon Secutor"],
+        verb: "expand the cogitator covenant",
+        prefixes: &["Magos", "Genetor", "Artisan", "Logis"],
+        roots: &[
+            "Cryptus", "Theta", "Omikron", "Vex", "Volta", "Caliban", "Hyperion", "Strados",
+        ],
+        suffixes: &["-4", "-VII", "-XXI", "Prime", "Secundus", "Mu", "Tertius"],
+        titles: &[
+            "Magos Dominus",
+            "Forge Lord",
+            "Archmagos Veneratus",
+            "Logis Strategos",
+        ],
+        traits: &[
+            "Logic-Bound",
+            "Tech-Heretic-Curious",
+            "Schematic",
+            "Hoarding",
+            "Detached",
+            "Inquisitive",
+        ],
+    },
+    KindRow {
+        key: "ecclesiarchy",
+        overall: &["Cardinal Astral", "Arch-Cardinal"],
+        force: &["Palatine", "Canoness"],
+        verb: "extend the dominion of the Faith",
+        prefixes: &["Father", "Mother", "Cardinal", "Confessor", "Deacon"],
+        roots: &[
+            "Ambrose",
+            "Cassian",
+            "Theonia",
+            "Vespera",
+            "Severus",
+            "Penance",
+            "Sabbatine",
+        ],
+        suffixes: &["of the Sword", "the Pure", "the Stern", "the Anointed"],
+        titles: &[
+            "Cardinal",
+            "Arch-Confessor",
+            "Sister Superior",
+            "Missionary Vexilla",
+            "Episcopa",
+        ],
+        traits: &[
+            "Zealous",
+            "Mortified",
+            "Eloquent",
+            "Iron-Faithed",
+            "Ascetic",
+            "Vengeful",
+        ],
+    },
+    KindRow {
+        key: "inquisition",
+        overall: &["Lord Inquisitor", "Inquisitorial Representative"],
+        force: &["Interrogator", "Throne Agent"],
+        verb: "hunt heresy in shadow",
+        prefixes: &["Inquisitor", "Interrogator"],
+        roots: &[
+            "Eisenhorn",
+            "Ravenor",
+            "Karamanzov",
+            "Quixos",
+            "Sand",
+            "Greyfax",
+            "Drazyari",
+            "Voll",
+        ],
+        suffixes: &["", "-Vekt", "-Kael", "-Mordant"],
+        titles: &[
+            "Inquisitor (Ordo Malleus)",
+            "Inquisitor (Ordo Hereticus)",
+            "Inquisitor (Ordo Xenos)",
+            "Lord Inquisitor",
+        ],
+        traits: &[
+            "Paranoid",
+            "Radical",
+            "Puritan",
+            "Calculating",
+            "Cold",
+            "Ruthless",
+            "Patient",
+        ],
+    },
+    KindRow {
+        key: "merchant",
+        overall: &["Warrant-Holder Paramount", "Lord-Captain Dynast"],
+        force: &["Captain", "Voidmaster"],
+        verb: "press a commercial advantage",
+        prefixes: &["Lord-Captain", "Captain", "Dame", "Dynast"],
+        roots: &[
+            "Vrede",
+            "Halcyon",
+            "Sigismund",
+            "Karnak",
+            "Verrin",
+            "Calderra",
+            "Surak",
+            "Tessera",
+        ],
+        suffixes: &["Caligari", "Voss", "Drask", "Hallow", "Tannhauser"],
+        titles: &[
+            "Rogue Trader",
+            "Free Captain",
+            "Dynast Primus",
+            "Lord of the Charter",
+        ],
+        traits: &[
+            "Acquisitive",
+            "Charming",
+            "Indebted",
+            "Bold",
+            "Calculating",
+            "Glittering",
+        ],
+    },
+    KindRow {
+        key: "chaos",
+        overall: &["Warmaster", "Dark Apostle Ascendant"],
+        force: &["Champion", "Aspiring Lord"],
+        verb: "spread the touch of the Dark Gods",
+        prefixes: &["Lord", "Champion", "Sorcerer"],
+        roots: &[
+            "Vraxis",
+            "Mortarion",
+            "Khar'kos",
+            "Tzeneth",
+            "Slathar",
+            "Bel'kor",
+            "Khel'gar",
+            "Maleth",
+        ],
+        suffixes: &[
+            "the Damned",
+            "the Eight-Eyed",
+            "of the Black Tongue",
+            "the Defiler",
+        ],
+        titles: &[
+            "Chaos Lord",
+            "Daemon Prince",
+            "Dark Apostle",
+            "Sorcerer-Captain",
+        ],
+        traits: &[
+            "Vainglorious",
+            "Tainted",
+            "Cunning",
+            "Wrathful",
+            "Patient",
+            "Mad",
+        ],
+    },
+    KindRow {
+        key: "rebel",
+        overall: &["Liberation Marshal", "Supreme Commander"],
+        force: &["Field Commander", "Cell Leader"],
+        verb: "break Imperial chains",
+        prefixes: &["Commander", "Captain", "Speaker", "Headsman"],
+        roots: &[
+            "Toran", "Vada", "Selka", "Kosh", "Mira", "Petros", "Yarrick", "Aren",
+        ],
+        suffixes: &["", "Lien", "Vesh", "Karn"],
+        titles: &[
+            "Rebel Commander",
+            "Council Speaker",
+            "Revolutionary Marshal",
+            "Demagogue",
+        ],
+        traits: &[
+            "Charismatic",
+            "Embittered",
+            "Idealistic",
+            "Ruthless",
+            "Hounded",
+        ],
+    },
+    KindRow {
+        key: "necron",
+        overall: &["Phaeron", "Supreme Overlord"],
+        force: &["Lord", "Royal Warden"],
+        verb: "reclaim ancient dominion",
+        prefixes: &["Overlord", "Phaeron", "Cryptek"],
+        roots: &[
+            "Sahmek",
+            "Trazyn",
+            "Imotekh",
+            "Kutlakh",
+            "Anrakyr",
+            "Khaybar",
+            "Zahndrekh",
+        ],
+        suffixes: &["", "of the Black Pyramid", "the Silent"],
+        titles: &[
+            "Necron Overlord",
+            "Phaeron",
+            "Cryptek Plasmancer",
+            "Lord of the Tomb",
+        ],
+        traits: &["Implacable", "Patient", "Disdainful", "Curious", "Vengeful"],
+    },
+    KindRow {
+        key: "tyranid",
+        overall: &["Hive Tyrant Prime", "Norn-Queen Locus"],
+        force: &["Alpha Warrior", "Synapse Node"],
+        verb: "feed the Hive",
+        prefixes: &[],
+        roots: &["Hive Tyrant", "Norn-Queen Echo", "Synapse Node", "Tendril"],
+        suffixes: &["Alpha", "Beta", "Gamma", "Delta", "Epsilon"],
+        titles: &["Hive Tyrant", "Synapse Beast", "Norn-Queen Echo"],
+        traits: &["Hungry", "Adaptive", "Patient", "Implacable"],
+    },
+    KindRow {
+        key: "ork",
+        overall: &["Warlord", "Big Boss of Bosses"],
+        force: &["Nob", "Boss"],
+        verb: "spread the Waaagh!",
+        prefixes: &[],
+        roots: &[
+            "Skarsnik",
+            "Grimskull",
+            "Bonebreaka",
+            "Throgg",
+            "Garglug",
+            "Skullkrump",
+            "Urghuz",
+        ],
+        suffixes: &["Big-Mek", "Da Brutal", "Wartoof", "Da Boss", "Krumpa"],
+        titles: &["Warboss", "Big Mek", "Painboy", "Nob Boss"],
+        traits: &[
+            "Brutal",
+            "Cunning",
+            "Loud",
+            "Inventive",
+            "Massive",
+            "Reckless",
+        ],
+    },
+    KindRow {
+        key: "tau",
+        overall: &["High Ethereal", "Supreme Commander"],
+        force: &["Shas'o", "Shas'el"],
+        verb: "expand the Greater Good",
+        prefixes: &["Aun'", "Shas'", "Por'"],
+        roots: &["vre", "ui", "el", "o", "la", "su"],
+        suffixes: &["Mont'yr", "Tash'var", "Sa'cea", "Bork'an", "Vior'la"],
+        titles: &[
+            "Ethereal",
+            "Shas'O Commander",
+            "Por'el Diplomat",
+            "Aun'vre Aide",
+        ],
+        traits: &[
+            "Patient",
+            "Idealistic",
+            "Disciplined",
+            "Inquisitive",
+            "Naive",
+        ],
+    },
+    KindRow {
+        key: "aeldari",
+        overall: &["Autarch Supreme", "High Farseer"],
+        force: &["Exarch", "Autarch"],
+        verb: "thread the Skein toward victory",
+        prefixes: &["Farseer", "Autarch", "Spiritseer"],
+        roots: &["Eldrad", "Asurmen", "Macha", "Yvraine", "Yriel", "Saerith"],
+        suffixes: &["", "the Cold", "Lin'doril"],
+        titles: &["Farseer", "Autarch", "Warlock", "Spiritseer"],
+        traits: &["Cold", "Cryptic", "Patient", "Haughty", "Foreboding"],
+    },
+    KindRow {
+        key: "drukhari",
+        overall: &["Supreme Archon"],
+        force: &["Dracon", "Sybarite"],
+        verb: "harvest fresh suffering",
+        prefixes: &["Archon", "Dracon", "Succubus"],
+        roots: &["Vect", "Yllith", "Sliscus", "Aestred", "Drazhar"],
+        suffixes: &["the Cruel", "Pain-Touched"],
+        titles: &["Archon", "Dracon", "Succubus", "Haemonculus"],
+        traits: &["Cruel", "Decadent", "Cunning", "Vindictive", "Aesthete"],
+    },
+    KindRow {
+        key: "harlequin",
+        overall: &["Great Harlequin"],
+        force: &["Troupe Master"],
+        verb: "play out the Black Library",
+        prefixes: &["Troupe Master", "Shadowseer"],
+        roots: &["Sylandri", "Veilwalker", "Death-Mask"],
+        suffixes: &["", "the Laughing", "of the Crone"],
+        titles: &["Troupe Master", "Shadowseer", "Death Jester"],
+        traits: &["Theatrical", "Cryptic", "Lethal"],
+    },
+    KindRow {
+        key: "genestealer",
+        overall: &["Patriarch"],
+        force: &["Primus", "Acolyte Iconward"],
+        verb: "incubate the awakening",
+        prefixes: &["Patriarch", "Magus", "Primus"],
+        roots: &["Saint", "First", "Whisper", "Old", "Quiet"],
+        suffixes: &["Hraxon", "Velt", "Marek", "Selas"],
+        titles: &["Cult Patriarch", "Cult Magus", "Cult Primus"],
+        traits: &["Patient", "Soothing", "Insidious", "Familial", "Concealed"],
+    },
+    KindRow {
+        key: "xenos",
+        overall: &["Paramount Warleader", "Supreme Voice"],
+        force: &["Warleader", "Hivespeaker"],
+        verb: "press alien interests",
+        prefixes: &[],
+        roots: &["Vesh'Ka", "Mor'tek", "Zhuun", "Pak'thar", "Ssuln"],
+        suffixes: &["", "the Many-Eyed", "of the Deep"],
+        titles: &["Warleader", "Hivespeaker", "High Voice"],
+        traits: &["Inscrutable", "Hostile", "Cunning"],
+    },
+];
 
 // ── Markdown rendering ─────────────────────────────────────────────────────────
 
@@ -1506,8 +1470,8 @@ mod tests {
             archetype: Default::default(),
         });
 
-        let a = derive(&sec);
-        let b = derive(&sec);
+        let a = derive_with(&sec, &PersonaeConfig::default());
+        let b = derive_with(&sec, &PersonaeConfig::default());
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
@@ -1555,7 +1519,7 @@ mod tests {
             power: PowerProfile::default(),
         });
 
-        let report = derive(&sec);
+        let report = derive_with(&sec, &PersonaeConfig::default());
         let tiers: Vec<FactionTier> = report
             .personae
             .iter()
@@ -1612,7 +1576,6 @@ mod tests {
         // them via the empty key keeps the test honest if the `_` arms change.
         let placeholder_pool = default_pool("");
         let placeholder_verb = agenda_verb("");
-        let placeholder_title = default_title("");
         let placeholder_overall = tier_titles("", FactionTier::Overall);
         let placeholder_force = tier_titles("", FactionTier::Force);
 
@@ -1676,8 +1639,7 @@ mod tests {
                 "kind {kind:?} folds to the empty canonical key (placeholder)"
             );
 
-            // Pools, agenda verb, and default title must all differ from the
-            // placeholder the `_` arm would produce.
+            // Pools and agenda verb must differ from the placeholder's.
             let pool = default_pool(kind);
             assert_ne!(
                 pool.name_roots, placeholder_pool.name_roots,
@@ -1691,11 +1653,6 @@ mod tests {
                 agenda_verb(kind),
                 placeholder_verb,
                 "kind {kind:?} (canon {canon:?}) falls through to placeholder agenda verb"
-            );
-            assert_ne!(
-                default_title(kind),
-                placeholder_title,
-                "kind {kind:?} (canon {canon:?}) falls through to placeholder default title"
             );
 
             // Both flavored leadership tiers must resolve too (Subfaction
@@ -1720,7 +1677,6 @@ mod tests {
     fn unknown_kind_stays_placeholder() {
         assert_eq!(canonical_kind("definitely-not-a-faction"), "");
         assert_eq!(canonical_kind(""), "");
-        assert_eq!(default_title("definitely-not-a-faction"), "Faction Lead");
         assert_eq!(agenda_verb(""), "secure faction interests");
     }
 }

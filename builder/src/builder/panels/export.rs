@@ -261,7 +261,7 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
 /// Presentational Title-Case of a lowercase enum slug for friendly dropdown
 /// display. The raw slug stays reachable in a hover so the schema mapping is
 /// never lost. Purely cosmetic — the stored value is unchanged.
-fn title_case_slug(slug: &str) -> String {
+pub(super) fn title_case_slug(slug: &str) -> String {
     let mut out = String::with_capacity(slug.len());
     for (i, word) in slug.split(['_', '-']).enumerate() {
         if i > 0 {
@@ -654,6 +654,8 @@ fn run_bundle(state: &mut BuilderState, ctx: &egui::Context) {
     let Some(dir) = state.export.output_dir.clone() else {
         return;
     };
+    // The bundle writes sector.json too: refresh it like a save, before the gate.
+    state.refresh_for_save();
     // §V6 — refuse to export a sector carrying validation errors or invariant
     // violations (parity with the `sectorforge generate` refuse-on-error gate).
     if let Some(reason) = state.export_block_reason() {
@@ -704,6 +706,8 @@ fn run_everything(state: &mut BuilderState, ctx: &egui::Context) {
     let Some(dir) = state.export.output_dir.clone() else {
         return;
     };
+    // Refresh sector.json's relations / chronicle like a save (as in `run_bundle`).
+    state.refresh_for_save();
     // §V6 — same refuse-on-error gate as the §EX1 bundle: do not write a full
     // export (bundle + every overlay) for an invalid sector.
     if let Some(reason) = state.export_block_reason() {

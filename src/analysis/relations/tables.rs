@@ -1,8 +1,8 @@
 //! Built-in stance/ideology data + classifiers: the `*_KINDS` membership lists,
 //! the default kind-pair base stance + disposition delta tables, and the
-//! kind-group helpers (`in_group`/`cross_kinds`/`is_hidden_kind`/
-//! `is_merchant_kind`/`ideology_group`/`ideological_distance`) that the derive
-//! pipeline consults when the user config is silent.
+//! kind-group helpers (`in_group`/`cross_kinds`/`ideology_group`/
+//! `ideological_distance`) that the derive pipeline consults when the user
+//! config is silent.
 
 use super::config::Stance;
 use crate::sector_model::FactionKind;
@@ -202,14 +202,6 @@ pub(super) fn default_disposition_delta(a: &str, b: &str) -> i32 {
 pub(super) fn cross_kinds(a: &FactionKind, b: &FactionKind, g1: &[&str], g2: &[&str]) -> bool {
     let (a, b) = (a.as_slug(), b.as_slug());
     (in_group(a, g1) && in_group(b, g2)) || (in_group(a, g2) && in_group(b, g1))
-}
-
-pub(super) fn is_hidden_kind(kind: &FactionKind) -> bool {
-    kind.is_hidden()
-}
-
-pub(super) fn is_merchant_kind(kind: &FactionKind) -> bool {
-    kind.is_merchant()
 }
 
 fn ideology_group(kind: &str) -> &'static str {

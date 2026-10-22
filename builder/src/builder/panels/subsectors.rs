@@ -129,7 +129,6 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
         &state.sector,
         SubsectorConfig {
             target_systems_per_subsector: state.subsector_target_systems.max(1),
-            ..SubsectorConfig::default()
         },
     ) {
         Ok(v) => {
@@ -666,7 +665,6 @@ mod tests {
             &state.sector,
             SubsectorConfig {
                 target_systems_per_subsector: state.subsector_target_systems.max(1),
-                ..SubsectorConfig::default()
             },
         )
         .unwrap_or_default();

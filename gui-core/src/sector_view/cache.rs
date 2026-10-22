@@ -61,7 +61,8 @@ impl SectorMapCache {
         }
 
         let mut hex_region = HashMap::new();
-        let mut region_hex_counts: HashMap<String, (f32, f32, f32)> = HashMap::new();
+        // Centroids are stored in axial coords (q, r) for now, will be projected in render.
+        let mut region_centroids = HashMap::new();
 
         for reg in sector.regions.iter() {
             let mut sx = 0.0;
@@ -73,14 +74,8 @@ impl SectorMapCache {
             }
             if !reg.hexes.is_empty() {
                 let n = reg.hexes.len() as f32;
-                region_hex_counts.insert(reg.id.to_string(), (sx / n, sy / n, n));
+                region_centroids.insert(reg.id.to_string(), Pos2::new(sx / n, sy / n));
             }
-        }
-
-        let mut region_centroids = HashMap::new();
-        // Centroids are stored in axial coords (q, r) for now, will be projected in render.
-        for (id, (q, r, _)) in region_hex_counts {
-            region_centroids.insert(id, Pos2::new(q, r));
         }
 
         let mut system_label_cache: BTreeMap<SystemId, Arc<str>> = BTreeMap::new();

@@ -24,8 +24,6 @@ pub struct SystemNamesTable {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LocationNamesTable {
-    #[serde(default = "default_true")]
-    pub reuse_workbook_location_names: bool,
     #[serde(default = "default_fallback_pattern")]
     pub fallback_pattern: String,
 }
@@ -33,14 +31,9 @@ pub struct LocationNamesTable {
 impl Default for LocationNamesTable {
     fn default() -> Self {
         Self {
-            reuse_workbook_location_names: true,
             fallback_pattern: default_fallback_pattern(),
         }
     }
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_fallback_pattern() -> String {

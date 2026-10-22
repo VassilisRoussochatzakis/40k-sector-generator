@@ -159,7 +159,7 @@ impl BuilderState {
     }
 
     /// Pick the next free `reg-NNNN` id, matching the format used by
-    /// `regions::build_regions`. Scans the existing region list so manual
+    /// `regions::build_regions_reroll`. Scans the existing region list so manual
     /// adds and grown regions share one namespace.
     pub fn next_region_id(&self) -> String {
         let mut max: u32 = 0;

@@ -146,15 +146,12 @@ impl App {
         match action {
             PendingExport::SectorPng => {
                 let default_name = format!("{}-sector.png", sector.id);
-                let Some(path) = FileDialog::new()
-                    .add_filter("PNG", &["png"])
-                    .set_file_name(&default_name)
-                    .save_file()
-                else {
-                    return;
-                };
-                let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
-                    self.export_status = "path is not valid utf-8".into();
+                let Some(p) = self.require_utf8(
+                    FileDialog::new()
+                        .add_filter("PNG", &["png"])
+                        .set_file_name(&default_name)
+                        .save_file(),
+                ) else {
                     return;
                 };
                 let subsectors = self.subsectors.clone();
@@ -184,11 +181,7 @@ impl App {
                 );
             }
             PendingExport::AllSystemPngs => {
-                let Some(dir) = FileDialog::new().pick_folder() else {
-                    return;
-                };
-                let Ok(p) = camino::Utf8PathBuf::from_path_buf(dir) else {
-                    self.export_status = "path is not valid utf-8".into();
+                let Some(p) = self.require_utf8(FileDialog::new().pick_folder()) else {
                     return;
                 };
                 let sys_opts = system_render_options(self);
@@ -246,15 +239,12 @@ impl App {
                     return;
                 };
                 let default_name = format!("{}.png", sys.id);
-                let Some(path) = FileDialog::new()
-                    .add_filter("PNG", &["png"])
-                    .set_file_name(&default_name)
-                    .save_file()
-                else {
-                    return;
-                };
-                let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
-                    self.export_status = "path is not valid utf-8".into();
+                let Some(p) = self.require_utf8(
+                    FileDialog::new()
+                        .add_filter("PNG", &["png"])
+                        .set_file_name(&default_name)
+                        .save_file(),
+                ) else {
                     return;
                 };
                 let sys_opts = system_render_options(self);
@@ -294,15 +284,12 @@ impl App {
             return;
         };
         let default_name = format!("{}-sector.svg", sector.id);
-        let Some(path) = FileDialog::new()
-            .add_filter("SVG", &["svg"])
-            .set_file_name(&default_name)
-            .save_file()
-        else {
-            return;
-        };
-        let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
-            self.export_status = "path is not valid utf-8".into();
+        let Some(p) = self.require_utf8(
+            FileDialog::new()
+                .add_filter("SVG", &["svg"])
+                .set_file_name(&default_name)
+                .save_file(),
+        ) else {
             return;
         };
         let subsectors = self.subsectors.clone();
@@ -344,15 +331,12 @@ impl App {
             return;
         };
         let default_name = format!("{}-sector.html", sector.id);
-        let Some(path) = FileDialog::new()
-            .add_filter("HTML", &["html"])
-            .set_file_name(&default_name)
-            .save_file()
-        else {
-            return;
-        };
-        let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
-            self.export_status = "path is not valid utf-8".into();
+        let Some(p) = self.require_utf8(
+            FileDialog::new()
+                .add_filter("HTML", &["html"])
+                .set_file_name(&default_name)
+                .save_file(),
+        ) else {
             return;
         };
         let cfg = sectorforge::config::HtmlConfig::default();
@@ -450,6 +434,16 @@ impl App {
         });
     }
 
+    /// UTF-8-checks a file-dialog pick: `None` if the dialog was cancelled, or if
+    /// the path is not UTF-8 (which is reported on the status line).
+    fn require_utf8(&mut self, picked: Option<PathBuf>) -> Option<camino::Utf8PathBuf> {
+        let utf8 = camino::Utf8PathBuf::from_path_buf(picked?).ok();
+        if utf8.is_none() {
+            self.export_status = "path is not valid utf-8".into();
+        }
+        utf8
+    }
+
     fn start_export_job<F>(&mut self, id: &str, description: &str, ctx: &egui::Context, f: F)
     where
         F: FnOnce(crate::jobs::JobContext) -> ExportJobResult + Send + 'static,
@@ -472,7 +466,6 @@ impl App {
 
 fn sector_render_options(app: &App) -> sectorforge::bitmap::RenderOptions {
     sectorforge::bitmap::RenderOptions {
-        faction_fill: true,
         heatmap: app.heatmap_mode,
         theme: app.export_theme(),
         route_view_mode: app.route_view_mode,

@@ -109,23 +109,11 @@ pub fn ensure_connected_routes(
         return (routes, 0);
     }
 
-    let index: BTreeMap<SystemId, usize> = systems
+    let mut parent = route_dsu(systems, &routes);
+    let mut existing: BTreeSet<(SystemId, SystemId)> = routes
         .iter()
-        .enumerate()
-        .map(|(i, sys)| (sys.id.clone(), i))
+        .map(|route| ordered_pair(&route.from_system_id, &route.to_system_id))
         .collect();
-    let mut parent: Vec<usize> = (0..n).collect();
-    let mut existing: BTreeSet<(SystemId, SystemId)> = BTreeSet::new();
-    for route in &routes {
-        if let (Some(&a), Some(&b)) = (
-            index.get(&route.from_system_id),
-            index.get(&route.to_system_id),
-        ) {
-            union(&mut parent, a, b);
-        }
-        let (lo, hi) = ordered_pair(&route.from_system_id, &route.to_system_id);
-        existing.insert((lo, hi));
-    }
 
     let mut candidates = Vec::new();
     for i in 0..n {
@@ -190,12 +178,23 @@ pub fn route_component_count(systems: &[GeneratedSystem], routes: &[GeneratedRou
     if n == 0 {
         return 0;
     }
+    let mut parent = route_dsu(systems, routes);
+    let mut roots = BTreeSet::new();
+    for i in 0..n {
+        roots.insert(find_root(&mut parent, i));
+    }
+    roots.len()
+}
+
+/// Union-find parent array over `systems`, with every route whose endpoints
+/// both resolve to a known system already unioned.
+fn route_dsu(systems: &[GeneratedSystem], routes: &[GeneratedRoute]) -> Vec<usize> {
     let index: BTreeMap<SystemId, usize> = systems
         .iter()
         .enumerate()
         .map(|(i, sys)| (sys.id.clone(), i))
         .collect();
-    let mut parent: Vec<usize> = (0..n).collect();
+    let mut parent: Vec<usize> = (0..systems.len()).collect();
     for route in routes {
         if let (Some(&a), Some(&b)) = (
             index.get(&route.from_system_id),
@@ -204,24 +203,16 @@ pub fn route_component_count(systems: &[GeneratedSystem], routes: &[GeneratedRou
             union(&mut parent, a, b);
         }
     }
-    let mut roots = BTreeSet::new();
-    for i in 0..n {
-        roots.insert(find_root(&mut parent, i));
-    }
-    roots.len()
+    parent
 }
 
 /// Canonical `(min, max)` ordering of an endpoint pair, so a bridge between two
 /// systems has a single deterministic identity regardless of arg order.
 fn ordered_pair(a: &SystemId, b: &SystemId) -> (SystemId, SystemId) {
-    if a <= b {
-        (a.clone(), b.clone())
-    } else {
-        (b.clone(), a.clone())
-    }
+    (a.min(b).clone(), a.max(b).clone())
 }
 
-fn union(parent: &mut [usize], a: usize, b: usize) {
+pub(crate) fn union(parent: &mut [usize], a: usize, b: usize) {
     let ra = find_root(parent, a);
     let rb = find_root(parent, b);
     if ra != rb {
@@ -229,7 +220,7 @@ fn union(parent: &mut [usize], a: usize, b: usize) {
     }
 }
 
-fn find_root(parent: &mut [usize], mut i: usize) -> usize {
+pub(crate) fn find_root(parent: &mut [usize], mut i: usize) -> usize {
     while parent[i] != i {
         parent[i] = parent[parent[i]];
         i = parent[i];

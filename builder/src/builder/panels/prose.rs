@@ -76,7 +76,29 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                     left.separator();
                     show_system_selector(left, state);
                     left.separator();
-                    show_save_row(left, state);
+                    super::catalog_save_row(
+                        left,
+                        state.data_catalogs.prose.is_some(),
+                        state,
+                        |i| &mut i.prose,
+                        DEFAULT_PROSE_PATH,
+                        [
+                            "💾  Save prose",
+                            "Write the prose for this project to disk.",
+                            "Couldn't save prose",
+                        ],
+                        |ui, path| {
+                            let (status, where_hover) = match path {
+                                Some(p) => ("Saves to the project prose file.", p),
+                                None => (
+                                    "Not saved yet — will create a new prose file.",
+                                    DEFAULT_PROSE_PATH.to_string(),
+                                ),
+                            };
+                            ui.colored_label(Color32::DARK_GRAY, status)
+                                .on_hover_text(format!("File: {where_hover}"));
+                        },
+                    );
                 }
                 {
                     // Right — or the same single column when collapsed to one:
@@ -149,10 +171,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Writing style").strong());
-    ensure_prose_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.prose.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.prose.get_or_insert_default();
     let mut changed = false;
     labeled(
         ui,
@@ -203,11 +222,8 @@ fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Sector overview").strong());
-    ensure_prose_catalog_if_needed(state);
     let report = state.prose_report.clone();
-    let Some(cfg) = state.data_catalogs.prose.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.prose.get_or_insert_default();
 
     let derived_overview = report.as_ref().map(|r| r.overview.clone());
     let mut is_override = cfg
@@ -280,7 +296,6 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// reading column. Both run sequentially so each takes `state` fresh.
 fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Per-system prose").strong());
-    ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
         ui_kit::placeholder(
             ui,
@@ -352,7 +367,6 @@ fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR1 per-system editor (right reading column) ─────────────────────────
 
 fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
         return;
     };
@@ -377,9 +391,7 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
         return;
     };
 
-    let Some(cfg) = state.data_catalogs.prose.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.prose.get_or_insert_default();
     let mut is_override = cfg
         .overrides
         .systems
@@ -464,38 +476,6 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-// ── save row ──────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.prose.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save prose"))
-            .on_hover_text("Write the prose for this project to disk.")
-            .clicked()
-        {
-            if state.config.inputs.prose.is_none() {
-                state.config.inputs.prose = Some(DEFAULT_PROSE_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Couldn't save prose: {e}"
-                )));
-            }
-        }
-        let saved_path = state.config.inputs.prose.clone();
-        let (status, where_hover) = match &saved_path {
-            Some(p) => ("Saves to the project prose file.", p.clone()),
-            None => (
-                "Not saved yet — will create a new prose file.",
-                DEFAULT_PROSE_PATH.to_string(),
-            ),
-        };
-        ui.colored_label(Color32::DARK_GRAY, status)
-            .on_hover_text(format!("File: {where_hover}"));
-    });
-}
-
 // ── shared helpers ────────────────────────────────────────────────────────
 
 fn ensure_prose_catalog(state: &mut BuilderState) {
@@ -508,12 +488,6 @@ fn ensure_prose_catalog(state: &mut BuilderState) {
     // P6: the lazy seed above is a document-state write — arm the coalescing
     // session so the seeded catalog is tracked for dirty/undo.
     state.note_catalog_edit();
-}
-
-fn ensure_prose_catalog_if_needed(state: &mut BuilderState) {
-    if state.data_catalogs.prose.is_none() {
-        state.data_catalogs.prose = Some(ProseConfig::default());
-    }
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {

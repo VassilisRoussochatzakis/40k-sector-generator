@@ -1,12 +1,12 @@
-//! Public route graph generation, route classification, and union-find helpers
-//! used to optionally connect disjoint components.
+//! Public route graph generation and route classification, with union-find
+//! (shared with [`crate::routes`]) to optionally connect disjoint components.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::config::{AppConfig, StabilityTargets};
 use crate::ids;
-use crate::routes::RouteRules;
+use crate::routes::{find_root, union, RouteRules};
 use crate::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSystem, RouteStability, RouteType,
 };
@@ -184,7 +184,7 @@ pub(super) fn generate_routes(
         }
         for i in 0..systems.len() {
             for j in (i + 1)..systems.len() {
-                if find(&mut parent, i) == find(&mut parent, j) {
+                if find_root(&mut parent, i) == find_root(&mut parent, j) {
                     continue;
                 }
                 let dist = hex_distance(systems[i].coord, systems[j].coord);
@@ -363,23 +363,6 @@ fn classify_route(
         RouteType::ChartedPassage
     };
     (route_type, stability)
-}
-
-fn find(parent: &mut [usize], i: usize) -> usize {
-    if parent[i] == i {
-        return i;
-    }
-    let root = find(parent, parent[i]);
-    parent[i] = root;
-    root
-}
-
-fn union(parent: &mut [usize], a: usize, b: usize) {
-    let ra = find(parent, a);
-    let rb = find(parent, b);
-    if ra != rb {
-        parent[ra] = rb;
-    }
 }
 
 /// Cumulative cut indices `[c0, c1, c2]` partitioning `n` rank positions into

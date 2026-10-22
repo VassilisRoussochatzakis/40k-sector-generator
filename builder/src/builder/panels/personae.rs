@@ -118,7 +118,24 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_kind_pools_section(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.personae.is_some(),
+                    state,
+                    |i| &mut i.personae,
+                    DEFAULT_PERSONAE_PATH,
+                    [
+                        "💾  Save personae",
+                        "Write the personae file to disk",
+                        "Could not save the personae file",
+                    ],
+                    |ui, path| {
+                        let label = path.unwrap_or_else(|| {
+                            format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})")
+                        });
+                        ui.colored_label(Color32::DARK_GRAY, label);
+                    },
+                );
             });
     });
 }
@@ -166,10 +183,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Who gets a persona").strong());
-    ensure_personae_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.personae.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.personae.get_or_insert_default();
     let mut changed = false;
 
     labeled(
@@ -236,7 +250,8 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
         "Raise the minimum hold for a leaner cast; the per-world and per-system caps keep crowded planets from spawning too many names.",
     );
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
 }
 
@@ -293,14 +308,10 @@ fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
 /// key/value card plus the faction + anchor deep-links and the "edit manual"
 /// jump that the table's per-row buttons provided.
 fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
-    let Some(report) = state.personae_report.clone() else {
-        ui_kit::placeholder(
-            ui,
-            "Pick a persona from the cast on the left to see its details.",
-        );
-        return;
-    };
-    let Some(sel) = state.selection.persona_id.clone() else {
+    let (Some(report), Some(sel)) = (
+        state.personae_report.clone(),
+        state.selection.persona_id.clone(),
+    ) else {
         ui_kit::placeholder(
             ui,
             "Pick a persona from the cast on the left to see its details.",
@@ -461,10 +472,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     // Snapshot the existing faction ids before the mutable personae borrow so
     // the per-row faction picker can offer them as a dropdown (transform 6).
     let faction_ids = existing_faction_ids(state);
-    ensure_personae_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.personae.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.personae.get_or_insert_default();
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
@@ -560,7 +568,8 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         })
     });
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     if let Some((idx, label)) = pending_delete {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
@@ -661,10 +670,7 @@ fn blank_manual_persona(seq: usize) -> Persona {
 
 fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Name & title pools by faction type").strong());
-    ensure_personae_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.personae.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.personae.get_or_insert_default();
     let mut changed = false;
     ui.colored_label(
         Color32::DARK_GRAY,
@@ -707,15 +713,14 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
             && ui.input(|i| i.key_pressed(egui::Key::Enter))
             && !new_kind.trim().is_empty()
         {
-            cfg.kinds
-                .entry(new_kind.trim().to_string())
-                .or_insert_with(KindPools::default);
+            cfg.kinds.entry(new_kind.trim().to_string()).or_default();
             changed = true;
         }
     });
 
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
 }
 
@@ -780,33 +785,6 @@ fn csv_row(ui: &mut Ui, label: &str, help: &str, values: &mut Vec<String>) -> bo
     changed
 }
 
-// ── save row ────────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.personae.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save personae"))
-            .on_hover_text("Write the personae file to disk")
-            .clicked()
-        {
-            if state.config.inputs.personae.is_none() {
-                state.config.inputs.personae = Some(DEFAULT_PERSONAE_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Could not save the personae file: {e}"
-                )));
-            }
-        }
-        let path_label =
-            state.config.inputs.personae.clone().unwrap_or_else(|| {
-                format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})")
-            });
-        ui.colored_label(Color32::DARK_GRAY, path_label);
-    });
-}
-
 // ── shared helpers ──────────────────────────────────────────────────────────
 
 /// Unique, sorted faction ids currently defined in the project's roster. Feeds
@@ -833,22 +811,10 @@ fn ensure_personae_catalog(state: &mut BuilderState) {
     state.note_catalog_edit();
 }
 
-fn ensure_personae_catalog_if_needed(state: &mut BuilderState) {
-    if state.data_catalogs.personae.is_none() {
-        state.data_catalogs.personae = Some(PersonaeConfig::default());
-    }
-}
-
-fn on_catalog_edited(state: &mut BuilderState) {
-    // Audit finding #8: arm the coalescing session so this burst of live edits
-    // commits as one undoable `EditCatalog`, then run the shared post-edit
-    // bookkeeping.
-    state.note_catalog_edit();
-    after_catalog_commit(state);
-}
-
-/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
-/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+/// Post-catalog-edit bookkeeping shared by the in-session edits (which first arm
+/// the coalescing session via `note_catalog_edit` so a burst of live edits
+/// commits as one undoable `EditCatalog`, audit finding #8) and the
+/// out-of-session `delete_manual` (which commits via `edit_catalogs`).
 /// Does **not** call `note_catalog_edit` so the discrete-delete path does not
 /// re-open a session after its own commit.
 fn after_catalog_commit(state: &mut BuilderState) {

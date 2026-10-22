@@ -14,7 +14,7 @@ use crate::sector_model::{GeneratedStar, GeneratedSystem, HexCoord, SystemContro
 use crate::world_pool::WorldCandidatePool;
 use crate::worlds::StarColour;
 
-use super::world_placement::{generate_worlds_for_system, WorldGenParams};
+use super::world_placement::generate_worlds_for_system;
 
 /// Build one fully populated `GeneratedSystem` for a given index and coordinate.
 /// Pure: depends only on the seed in `config.generation.seed` plus the inputs
@@ -28,26 +28,6 @@ pub fn build_system(
     coord: HexCoord,
     used_system_names: &mut BTreeSet<String>,
 ) -> Result<GeneratedSystem, SectorError> {
-    build_system_with_bias(
-        config,
-        pool,
-        names,
-        system_index,
-        coord,
-        used_system_names,
-        false,
-    )
-}
-
-pub fn build_system_with_bias(
-    config: &AppConfig,
-    pool: &WorldCandidatePool,
-    names: &NameTables,
-    system_index: usize,
-    coord: HexCoord,
-    used_system_names: &mut BTreeSet<String>,
-    anomaly_bias: bool,
-) -> Result<GeneratedSystem, SectorError> {
     build_system_with_bias_reroll(
         config,
         pool,
@@ -55,13 +35,13 @@ pub fn build_system_with_bias(
         system_index,
         coord,
         used_system_names,
-        anomaly_bias,
+        false,
         "",
     )
 }
 
-/// Like [`build_system_with_bias`] but folds a re-roll suffix into both the
-/// per-system `("system",<sys_id>)` and per-world `("world",<world_id>)` RNG
+/// Like [`build_system`] (plus `anomaly_bias`) but folds a re-roll suffix into
+/// both the per-system `("system",<sys_id>)` and per-world `("world",<world_id>)` RNG
 /// discriminators (worlds are folded under `Stage::Systems` for v1). An empty
 /// suffix reproduces the legacy keys byte-for-byte; `":r{n}"` yields a
 /// deterministic distinct system + world payload.
@@ -87,18 +67,18 @@ pub(super) fn build_system_with_bias_reroll(
     let name = pick_system_name(names, system_index, &mut sys_rng, used_system_names);
     used_system_names.insert(name.clone());
 
-    let worlds = generate_worlds_for_system(WorldGenParams {
+    let worlds = generate_worlds_for_system(
         config,
         pool,
         names,
         system_index,
-        system_name: &name,
+        &name,
         star_colour,
-        sys_rng: &mut sys_rng,
-        root_seed: &config.generation.seed,
+        &mut sys_rng,
+        &config.generation.seed,
         anomaly_bias,
         reroll_suffix,
-    })?;
+    )?;
 
     Ok(GeneratedSystem {
         id: sys_id,
@@ -109,7 +89,7 @@ pub(super) fn build_system_with_bias_reroll(
         star: Some(GeneratedStar {
             colour_code: star_colour.code().to_string().into(),
             colour_name: star_colour.short_name().to_string().into(),
-            spectral_type: Some(spectral_type_fallback(star_colour).to_string().into()),
+            spectral_type: Some(star_colour.code().to_string().into()),
             source_row_index: worlds.first().map(|w| w.source_row_index),
         }),
         worlds,
@@ -186,18 +166,6 @@ fn deduplicate_name(base: String, used: &BTreeSet<String>) -> String {
             return candidate;
         }
         n += 1;
-    }
-}
-
-fn spectral_type_fallback(sc: StarColour) -> &'static str {
-    match sc {
-        StarColour::BlueHypergiant => "O",
-        StarColour::BlueWhite => "B",
-        StarColour::White => "A",
-        StarColour::YellowWhite => "F",
-        StarColour::Yellow => "G",
-        StarColour::OrangeDwarf => "K",
-        StarColour::RedDwarf => "M",
     }
 }
 

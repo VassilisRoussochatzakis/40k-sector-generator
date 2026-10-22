@@ -4,6 +4,7 @@
 //! override these via `economy.toml`.
 
 use super::config::{ResourceVector, StrategicOutput, StrategicOutputRule};
+use crate::worlds::{Population, TechLevel};
 
 // ── Built-in vectors (positive = surplus, negative = deficit) ──────────────────
 
@@ -25,21 +26,13 @@ pub(super) fn default_world_type_vector(world_type: &str) -> ResourceVector {
             archeotech: 10.0,
             recruits: 5.0,
         },
-        "AgriWorld" | "AgriculturalWorld" => ResourceVector {
+        "AgriWorld" => ResourceVector {
             ore: 0.0,
             promethium: 0.0,
             foodstuffs: 80.0,
             manufactured: -10.0,
             archeotech: 0.0,
             recruits: 10.0,
-        },
-        "MiningWorld" => ResourceVector {
-            ore: 70.0,
-            promethium: 20.0,
-            foodstuffs: -10.0,
-            manufactured: -10.0,
-            archeotech: 0.0,
-            recruits: 5.0,
         },
         "DeathWorld" => ResourceVector {
             ore: 0.0,
@@ -49,22 +42,6 @@ pub(super) fn default_world_type_vector(world_type: &str) -> ResourceVector {
             archeotech: 5.0,
             recruits: 40.0,
         },
-        "KnightWorld" => ResourceVector {
-            ore: 0.0,
-            promethium: 0.0,
-            foodstuffs: 10.0,
-            manufactured: 10.0,
-            archeotech: 0.0,
-            recruits: 30.0,
-        },
-        "CivilisedWorld" | "CivilizedWorld" => ResourceVector {
-            ore: 0.0,
-            promethium: 0.0,
-            foodstuffs: 10.0,
-            manufactured: 15.0,
-            archeotech: 0.0,
-            recruits: 15.0,
-        },
         "FeudalWorld" | "FeralWorld" => ResourceVector {
             ore: 5.0,
             promethium: 0.0,
@@ -73,15 +50,7 @@ pub(super) fn default_world_type_vector(world_type: &str) -> ResourceVector {
             archeotech: 0.0,
             recruits: 25.0,
         },
-        "FortressWorld" => ResourceVector {
-            ore: 0.0,
-            promethium: 5.0,
-            foodstuffs: -10.0,
-            manufactured: 5.0,
-            archeotech: 0.0,
-            recruits: 30.0,
-        },
-        "Shrine" | "ShrineWorld" => ResourceVector {
+        "ShrineWorld" => ResourceVector {
             ore: 0.0,
             promethium: 0.0,
             foodstuffs: -10.0,
@@ -97,9 +66,7 @@ pub(super) fn default_world_type_vector(world_type: &str) -> ResourceVector {
             archeotech: 0.0,
             recruits: 5.0,
         },
-        "DeadWorld" | "WarpLostWorld" | "QuarantinedWorld" | "Uninhabited" => {
-            ResourceVector::default()
-        }
+        "DeadWorld" | "WarpLostWorld" => ResourceVector::default(),
         _ => ResourceVector {
             ore: 0.0,
             promethium: 0.0,
@@ -113,12 +80,7 @@ pub(super) fn default_world_type_vector(world_type: &str) -> ResourceVector {
 
 pub(super) fn default_tech_multiplier(tech: &str) -> f32 {
     match tech {
-        "STC" | "Archeotech" => 1.5,
-        "Imperial" => 1.0,
-        "Mechanicus" => 1.2,
-        "PreImperial" | "Industrial" => 0.7,
-        "Renaissance" | "Medieval" | "Iron" => 0.4,
-        "Stone" | "Primitive" => 0.2,
+        "Primitive" => 0.2,
         _ => 1.0,
     }
 }
@@ -235,27 +197,25 @@ pub(super) fn default_strategic_world_type(world_type: &str) -> StrategicOutput 
     }
 }
 
-pub(super) fn strategic_tech_multiplier(tech: &str) -> f32 {
+pub(super) fn strategic_tech_multiplier(tech: &TechLevel) -> f32 {
     match tech {
-        "Primitive" => 0.35,
-        "Low" => 0.60,
-        "Standard" => 1.00,
-        "High" => 1.20,
-        "XenoHybrid" => 1.10,
-        "Archaeotech" => 1.45,
-        _ => default_tech_multiplier(tech),
+        TechLevel::Primitive => 0.35,
+        TechLevel::Low => 0.60,
+        TechLevel::Standard => 1.00,
+        TechLevel::High => 1.20,
+        TechLevel::XenoHybrid => 1.10,
+        TechLevel::Archaeotech => 1.45,
     }
 }
 
-pub(super) fn strategic_population_multiplier(pop_tag: &str, pop_label: &str) -> f32 {
-    match pop_label {
-        "Uninhabited" => 0.0,
-        "Minimal" => 0.25,
-        "LightlyPopulated" => 0.50,
-        "SoleSettlement" => 0.55,
-        "DenselyPopulated" => 1.00,
-        "ExtremelyDense" => 1.35,
-        _ => default_population_multiplier(pop_tag),
+pub(super) fn strategic_population_multiplier(pop: &Population) -> f32 {
+    match pop {
+        Population::Uninhabited => 0.0,
+        Population::Minimal => 0.25,
+        Population::LightlyPopulated => 0.50,
+        Population::SoleSettlement => 0.55,
+        Population::DenselyPopulated => 1.00,
+        Population::ExtremelyDense => 1.35,
     }
 }
 
@@ -299,48 +259,16 @@ pub(super) fn apply_world_type_rule(
     mut base: StrategicOutput,
     rule: &StrategicOutputRule,
 ) -> StrategicOutput {
-    if let Some(v) = rule.food {
-        base.food = v;
-    }
-    if let Some(v) = rule.ore {
-        base.ore = v;
-    }
-    if let Some(v) = rule.manufacturing {
-        base.manufacturing = v;
-    }
-    if let Some(v) = rule.arms {
-        base.arms = v;
-    }
-    if let Some(v) = rule.ships {
-        base.ships = v;
-    }
-    if let Some(v) = rule.pilgrimage {
-        base.pilgrimage = v;
-    }
-    if let Some(v) = rule.psyker_tithe {
-        base.psyker_tithe = v;
-    }
-    if let Some(v) = rule.manpower {
-        base.manpower = v;
-    }
-    if let Some(v) = rule.knowledge {
-        base.knowledge = v;
-    }
-    if let Some(v) = rule.xenos_value {
-        base.xenos_value = v;
+    for (f, v) in base.fields_mut().into_iter().zip(rule.scores()) {
+        if let Some(v) = v {
+            *f = v;
+        }
     }
     base
 }
 
 pub(super) fn apply_feature_rule(out: &mut StrategicOutput, rule: &StrategicOutputRule) {
-    out.food += rule.food.unwrap_or(0.0);
-    out.ore += rule.ore.unwrap_or(0.0);
-    out.manufacturing += rule.manufacturing.unwrap_or(0.0);
-    out.arms += rule.arms.unwrap_or(0.0);
-    out.ships += rule.ships.unwrap_or(0.0);
-    out.pilgrimage += rule.pilgrimage.unwrap_or(0.0);
-    out.psyker_tithe += rule.psyker_tithe.unwrap_or(0.0);
-    out.manpower += rule.manpower.unwrap_or(0.0);
-    out.knowledge += rule.knowledge.unwrap_or(0.0);
-    out.xenos_value += rule.xenos_value.unwrap_or(0.0);
+    for (f, v) in out.fields_mut().into_iter().zip(rule.scores()) {
+        *f += v.unwrap_or(0.0);
+    }
 }

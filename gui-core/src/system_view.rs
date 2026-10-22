@@ -81,8 +81,7 @@ pub fn pick_world(
     local_pos: Pos2,
 ) -> SystemPick {
     let g = SystemGeom::new(side, height, system, layout);
-    let center = layout_center(side, height);
-    let star = star_anchor(&g, center, layout);
+    let star = star_anchor(&g, Pos2::new(side / 2.0, height / 2.0), layout);
 
     // 1. Planet hit (nearest within 1.25 * planet_r).
     let mut best: Option<(usize, f32)> = None;
@@ -323,10 +322,6 @@ impl SystemGeom {
             planet_r,
         }
     }
-}
-
-fn layout_center(side: f32, height: f32) -> Pos2 {
-    Pos2::new(side / 2.0, height / 2.0)
 }
 
 fn star_anchor(g: &SystemGeom, center: Pos2, layout: SystemLayout) -> Pos2 {

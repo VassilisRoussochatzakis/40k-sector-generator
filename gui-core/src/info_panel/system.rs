@@ -9,7 +9,9 @@ use crate::palette::{faction_style_by_id, star_color, world_type_color};
 use crate::sector_view::SectorMapCache;
 
 use super::history::system_history;
-use super::{body, dim, kv, legend_row, section, short, stability_block, title};
+use super::{
+    body, dim, kv, legend_row, list_block, opt_kv_block, section, short, stability_block, title,
+};
 
 pub fn system_summary(
     ui: &mut Ui,
@@ -64,34 +66,20 @@ pub fn system_summary(
         }
     }
     let c = &sys.control;
-    if c.state.is_some()
-        || c.dominant.is_some()
-        || c.sovereign.is_some()
-        || c.orbital_controller.is_some()
-        || c.economic_hegemon.is_some()
-        || c.hidden_master.is_some()
-    {
-        ui.add_space(8.0);
-        section(ui, "CONTROL");
-        if let Some(state) = c.state {
-            kv(ui, "STATE", &format!("{state}").to_uppercase());
-        }
-        if let Some(v) = &c.dominant {
-            kv(ui, "DOMINANT", &short(&v.to_uppercase(), 22));
-        }
-        if let Some(v) = &c.sovereign {
-            kv(ui, "SOVEREIGN", &short(&v.to_uppercase(), 22));
-        }
-        if let Some(v) = &c.orbital_controller {
-            kv(ui, "ORBITAL", &short(&v.to_uppercase(), 22));
-        }
-        if let Some(v) = &c.economic_hegemon {
-            kv(ui, "ECONOMIC", &short(&v.to_uppercase(), 22));
-        }
-        if let Some(v) = &c.hidden_master {
-            kv(ui, "HIDDEN", &short(&v.to_uppercase(), 22));
-        }
-    }
+    // STATE is a short slug (≤ 11 chars), so the 22-char cut never bites it.
+    opt_kv_block(
+        ui,
+        "CONTROL",
+        22,
+        &[
+            ("STATE", c.state.map(|s| s.as_slug())),
+            ("DOMINANT", c.dominant.as_deref()),
+            ("SOVEREIGN", c.sovereign.as_deref()),
+            ("ORBITAL", c.orbital_controller.as_deref()),
+            ("ECONOMIC", c.economic_hegemon.as_deref()),
+            ("HIDDEN", c.hidden_master.as_deref()),
+        ],
+    );
     stability_block(ui, &sys.stability);
     blockade_block(ui, sys);
     conflict_block(ui, &sys.conflict);
@@ -99,20 +87,8 @@ pub fn system_summary(
     orbital_assets_block(ui, sys);
     routes_block(ui, sys, sector, cache);
     system_history(ui, sector, sys.id.as_str());
-    if !sys.tags.is_empty() {
-        ui.add_space(8.0);
-        section(ui, "TAGS");
-        for t in &sys.tags {
-            dim(ui, &t.to_uppercase());
-        }
-    }
-    if !sys.notes.is_empty() {
-        ui.add_space(8.0);
-        section(ui, "NOTES");
-        for n in &sys.notes {
-            dim(ui, n);
-        }
-    }
+    list_block(ui, "TAGS", &sys.tags, true);
+    list_block(ui, "NOTES", &sys.notes, false);
 }
 
 pub fn star_detail(ui: &mut Ui, sys: &GeneratedSystem) {

@@ -110,7 +110,7 @@ fn main() -> ExitCode {
         opts,
         Box::new(move |cc| {
             // §BEAUTY §5.5: register the bundled display/body/mono faces before
-            // the first frame applies the theme. No-op unless `bundled-fonts` is on.
+            // the first frame applies the theme.
             sectorforge_gui_core::fonts::install(&cc.egui_ctx);
             let app: Box<dyn eframe::App> = if let Some(path) = screenshot {
                 Box::new(ScreenshotApp::new(app, path, screenshot_frames))

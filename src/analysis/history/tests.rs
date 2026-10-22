@@ -133,8 +133,8 @@ fn derive_is_deterministic() {
         power: PowerProfile::default(),
     });
 
-    let a = derive(&sec);
-    let b = derive(&sec);
+    let a = derive_with(&sec, &HistoryConfig::default());
+    let b = derive_with(&sec, &HistoryConfig::default());
     let ja = serde_json::to_string(&a).unwrap();
     let jb = serde_json::to_string(&b).unwrap();
     assert_eq!(ja, jb);
@@ -155,7 +155,7 @@ fn derive_is_deterministic() {
 #[test]
 fn empty_sector_yields_empty_report() {
     let sec = empty_sector();
-    let r = derive(&sec);
+    let r = derive_with(&sec, &HistoryConfig::default());
     assert!(r.events.is_empty());
 }
 
@@ -165,7 +165,7 @@ fn world_with_no_claims_still_gets_foundation() {
     let mut sys = system("sys-0001");
     sys.worlds.push(world("wrld-0001-1", "Lonely"));
     sec.systems.push(sys);
-    let r = derive(&sec);
+    let r = derive_with(&sec, &HistoryConfig::default());
     assert!(r.events.iter().any(|e| e.kind == EventKind::Foundation));
 }
 
@@ -184,7 +184,7 @@ fn route_events_have_refs_and_consequences() {
         tags: Vec::new(),
         controls: Vec::new(),
     });
-    let r = derive(&sec);
+    let r = derive_with(&sec, &HistoryConfig::default());
     let ev = r
         .events
         .iter()

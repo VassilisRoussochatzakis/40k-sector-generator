@@ -73,7 +73,7 @@ pub const DIM: f32 = 14.0;
 
 // ── type *families* — the registered display face (BEAUTY.md §5.5) ────────────
 //
-// The body / mono faces (when bundled) are registered as the front of egui's
+// The bundled body / mono faces are registered as the front of egui's
 // `Proportional` / `Monospace` families by [`crate::fonts::install`], so ordinary
 // text picks them up with no call-site change. The *display* face is a named
 // family hero titles opt into via [`display_family`]; reserving it for titles
@@ -82,21 +82,11 @@ pub const DIM: f32 = 14.0;
 /// Family name the display face registers under (see [`crate::fonts`]).
 pub const FONT_DISPLAY: &str = "display";
 
-/// The [`FontFamily`] hero titles request. Resolves to the registered display
-/// face when the `bundled-fonts` feature is on (the OFL binaries are present and
-/// [`crate::fonts::install`] ran); otherwise it is the proportional default, so
-/// the stock build is byte-for-byte unchanged and never references a missing
-/// family.
+/// The [`FontFamily`] hero titles request: the display face registered by
+/// [`crate::fonts::install`] (which must run before any text uses it).
 #[must_use]
 pub fn display_family() -> FontFamily {
-    #[cfg(feature = "bundled-fonts")]
-    {
-        FontFamily::Name(FONT_DISPLAY.into())
-    }
-    #[cfg(not(feature = "bundled-fonts"))]
-    {
-        FontFamily::Proportional
-    }
+    FontFamily::Name(FONT_DISPLAY.into())
 }
 
 // ── elevation — soft layered shadows, never one harsh black drop ─────────────
@@ -201,8 +191,7 @@ pub fn accent_bright(ui: &Ui, t: f32) -> Color32 {
 /// or the selected element (use sparingly — BEAUTY.md §5.9).
 #[must_use]
 pub fn accent_glow(ui: &Ui, alpha: u8) -> Color32 {
-    let a = accent(ui);
-    Color32::from_rgba_unmultiplied(a.r(), a.g(), a.b(), alpha)
+    crate::palette::with_alpha(accent(ui), alpha)
 }
 
 // ── void plate — the nav rail's "cold void of space" selection backdrop ───────

@@ -94,12 +94,6 @@ impl RerollNonces {
         *n
     }
 
-    /// Read the current nonce for `s` (`0` when absent).
-    #[must_use]
-    pub fn get(&self, s: Stage) -> u64 {
-        self.0.get(&s).copied().unwrap_or(0)
-    }
-
     /// Discriminator suffix for stage `s`:
     /// `""` when the nonce is `0`/absent (byte-compatible legacy discriminator,
     /// invariant #2), `":r{n}"` otherwise.
@@ -147,7 +141,6 @@ mod tests {
                 "",
                 "default suffix must be empty (byte-compat)"
             );
-            assert_eq!(n.get(s), 0);
         }
     }
 
@@ -160,6 +153,5 @@ mod tests {
         assert_eq!(n.suffix(Stage::Placement), ":r2");
         // Bumping one stage leaves others at the empty/zero default.
         assert_eq!(n.suffix(Stage::Regions), "");
-        assert_eq!(n.get(Stage::Placement), 2);
     }
 }

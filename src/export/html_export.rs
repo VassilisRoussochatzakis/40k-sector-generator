@@ -190,40 +190,23 @@ fn html_escape(s: &str) -> String {
 }
 
 fn build_faction_palette_json(sector: &GeneratedSector) -> Result<String, serde_json::Error> {
+    #[derive(serde::Serialize)]
+    struct Entry<'a> {
+        fill: String,
+        name: &'a str,
+    }
     // BTreeMap to keep key order stable across builds.
-    let mut entries: std::collections::BTreeMap<&str, (String, &str)> = Default::default();
+    let mut entries: std::collections::BTreeMap<&str, Entry> = Default::default();
     for f in &sector.factions {
         let style = faction_style_rgb_by_id(&sector.factions, &f.id);
-        let hex = format!(
+        let fill = format!(
             "#{:02x}{:02x}{:02x}",
             style.fill.0, style.fill.1, style.fill.2
         );
-        entries.insert(f.id.as_str(), (hex, f.name.as_ref()));
+        let name: &str = &f.name;
+        entries.insert(f.id.as_str(), Entry { fill, name });
     }
-    // §5 FIX.txt: ~80 bytes per faction entry (id+hex+name+JSON punctuation)
-    // plus the surrounding braces. Exact upper bound is not knowable without
-    // serialising, but the linear estimate avoids the realloc chain.
-    let mut out = String::with_capacity(2 + entries.len() * 80);
-    out.push('{');
-    let mut first = true;
-    for (id, (hex, name)) in entries {
-        if !first {
-            out.push(',');
-        }
-        first = false;
-        out.push_str(&serde_json::to_string(id)?);
-        out.push(':');
-        use std::fmt::Write as _;
-        write!(
-            out,
-            "{{\"fill\":{},\"name\":{}}}",
-            serde_json::to_string(&hex)?,
-            serde_json::to_string(name)?
-        )
-        .expect("write! into String cannot fail");
-    }
-    out.push('}');
-    Ok(out)
+    serde_json::to_string(&entries)
 }
 
 fn theme_css(theme: HtmlTheme) -> &'static str {

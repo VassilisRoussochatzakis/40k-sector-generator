@@ -8,8 +8,9 @@
 
 use sectorforge::ids::{FactionId, RouteId, SystemId};
 use sectorforge::regions::RegionConditionKind;
-use sectorforge::sector_model::{HexCoord, RouteStability, RouteType, SystemState};
+use sectorforge::sector_model::{HexCoord, RouteStability, RouteType};
 
+use crate::builder::panels::SYSTEM_STATES;
 use crate::builder::BuilderState;
 
 use super::action::{apply_sector_menu_action, OpenInTarget, SectorMenuAction};
@@ -28,15 +29,9 @@ pub(super) fn render_empty_hex_menu(
     }
 
     let paint_enabled = state.selection.region_id.is_some();
-    let paint_resp = ui.add_enabled(
-        paint_enabled,
-        egui::SelectableLabel::new(false, "PAINT REGION HERE"),
-    );
-    if paint_resp.clicked() {
+    let paint_hint = "Pick a region in the REGIONS tab first.";
+    if gated_row(ui, paint_enabled, "PAINT REGION HERE", paint_hint) {
         close |= apply_sector_menu_action(state, SectorMenuAction::PaintRegion { coord });
-    }
-    if !paint_enabled {
-        paint_resp.on_hover_text("Pick a region in the REGIONS tab first.");
     }
 
     let erase_enabled = state
@@ -44,15 +39,9 @@ pub(super) fn render_empty_hex_menu(
         .regions
         .iter()
         .any(|r| r.hexes.contains(&coord));
-    let erase_resp = ui.add_enabled(
-        erase_enabled,
-        egui::SelectableLabel::new(false, "ERASE REGION HERE"),
-    );
-    if erase_resp.clicked() {
+    let erase_hint = "Hex is not part of any region.";
+    if gated_row(ui, erase_enabled, "ERASE REGION HERE", erase_hint) {
         close |= apply_sector_menu_action(state, SectorMenuAction::EraseRegion { coord });
-    }
-    if !erase_enabled {
-        erase_resp.on_hover_text("Hex is not part of any region.");
     }
 
     ui.separator();
@@ -125,11 +114,7 @@ pub(super) fn render_system_menu(
     }
 
     let pinned = state.pinned_systems.contains(&id);
-    let regen_resp = ui.add_enabled(
-        !pinned,
-        egui::SelectableLabel::new(false, "REGENERATE SYSTEM"),
-    );
-    if regen_resp.clicked() {
+    if gated_row(ui, !pinned, "REGENERATE SYSTEM", "Unpin first.") {
         close |= apply_sector_menu_action(
             state,
             SectorMenuAction::RegenerateSystem {
@@ -137,9 +122,6 @@ pub(super) fn render_system_menu(
                 coord,
             },
         );
-    }
-    if pinned {
-        regen_resp.on_hover_text("Unpin first.");
     }
 
     let pin_label = if pinned { "UNPIN" } else { "TOGGLE PIN" };
@@ -168,8 +150,7 @@ pub(super) fn render_system_menu(
             .find(|s| s.id == id)
             .map(|s| !s.worlds.is_empty())
             .unwrap_or(false);
-        let world_resp = ui.add_enabled(has_world, egui::SelectableLabel::new(false, "WORLD"));
-        if world_resp.clicked() {
+        if gated_row(ui, has_world, "WORLD", "System has no worlds.") {
             close |= apply_sector_menu_action(
                 state,
                 SectorMenuAction::OpenIn {
@@ -177,8 +158,6 @@ pub(super) fn render_system_menu(
                     target: OpenInTarget::World,
                 },
             );
-        } else if !has_world {
-            world_resp.on_hover_text("System has no worlds.");
         }
 
         if ui.selectable_label(false, "ROUTES").clicked() {
@@ -231,19 +210,13 @@ pub(super) fn render_multi_selection_menu(
 
     let any_unpinned = ids.iter().any(|id| !state.pinned_systems.contains(id));
     let any_pinned = ids.iter().any(|id| state.pinned_systems.contains(id));
-    let pin_resp = ui.add_enabled(any_unpinned, egui::SelectableLabel::new(false, "PIN ALL"));
-    if pin_resp.clicked() {
+    let pin_hint = "Every selected system is already pinned.";
+    if gated_row(ui, any_unpinned, "PIN ALL", pin_hint) {
         close |= apply_sector_menu_action(state, SectorMenuAction::MultiPinAll);
     }
-    if !any_unpinned {
-        pin_resp.on_hover_text("Every selected system is already pinned.");
-    }
-    let unpin_resp = ui.add_enabled(any_pinned, egui::SelectableLabel::new(false, "UNPIN ALL"));
-    if unpin_resp.clicked() {
+    let unpin_hint = "Nothing in the selection is pinned.";
+    if gated_row(ui, any_pinned, "UNPIN ALL", unpin_hint) {
         close |= apply_sector_menu_action(state, SectorMenuAction::MultiUnpinAll);
-    }
-    if !any_pinned {
-        unpin_resp.on_hover_text("Nothing in the selection is pinned.");
     }
 
     ui.separator();
@@ -307,16 +280,7 @@ pub(super) fn render_multi_selection_menu(
     }
 
     ui.menu_button("FLIP CONTROL STATE ▸", |ui| {
-        for value in [
-            None,
-            Some(SystemState::Pacified),
-            Some(SystemState::Fragmented),
-            Some(SystemState::Blockaded),
-            Some(SystemState::Warzone),
-            Some(SystemState::Infiltrated),
-            Some(SystemState::Quarantined),
-            Some(SystemState::Uncharted),
-        ] {
+        for value in std::iter::once(None).chain(SYSTEM_STATES.iter().copied().map(Some)) {
             let label = match value {
                 None => "(none)".to_string(),
                 Some(v) => format!("{v}"),
@@ -332,15 +296,9 @@ pub(super) fn render_multi_selection_menu(
     });
 
     let reseed_enabled = ids.iter().any(|id| !state.pinned_systems.contains(id));
-    let reseed_resp = ui.add_enabled(
-        reseed_enabled,
-        egui::SelectableLabel::new(false, "RESEED WORLDS"),
-    );
-    if reseed_resp.clicked() {
+    let reseed_hint = "All selected systems are pinned — unpin first.";
+    if gated_row(ui, reseed_enabled, "RESEED WORLDS", reseed_hint) {
         close |= apply_sector_menu_action(state, SectorMenuAction::MultiReseedWorlds);
-    }
-    if !reseed_enabled {
-        reseed_resp.on_hover_text("All selected systems are pinned — unpin first.");
     }
 
     ui.separator();
@@ -387,11 +345,8 @@ pub(super) fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id:
 
     ui.menu_button("CYCLE ROUTE TYPE ▸", |ui| {
         for value in RouteType::ALL {
-            let label = if value == cur_type {
-                format!("• {}", value.editor_label())
-            } else {
-                value.editor_label().to_string()
-            };
+            let mark = if value == cur_type { "• " } else { "" };
+            let label = format!("{mark}{}", value.editor_label());
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_sector_menu_action(
                     state,
@@ -412,11 +367,8 @@ pub(super) fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id:
             RouteStability::Hazardous,
             RouteStability::Perilous,
         ] {
-            let label = if value == cur_stab {
-                format!("• {}", value.as_slug())
-            } else {
-                value.as_slug().to_string()
-            };
+            let mark = if value == cur_stab { "• " } else { "" };
+            let label = format!("{mark}{}", value.as_slug());
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_sector_menu_action(
                     state,
@@ -429,11 +381,6 @@ pub(super) fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id:
             }
         }
     });
-
-    ui.separator();
-    if ui.selectable_label(false, "Open in ROUTES ▸").clicked() {
-        close |= apply_sector_menu_action(state, SectorMenuAction::FocusRoute { id });
-    }
 
     close
 }
@@ -484,11 +431,8 @@ pub(super) fn render_region_hex_menu(
 
     ui.menu_button("RECOLOR ▸", |ui| {
         for value in RegionConditionKind::ALL.iter().copied() {
-            let label = if value == cur_kind {
-                format!("• {} {}", value.glyph(), value.label())
-            } else {
-                format!("{} {}", value.glyph(), value.label())
-            };
+            let mark = if value == cur_kind { "• " } else { "" };
+            let label = format!("{mark}{} {}", value.glyph(), value.label());
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_sector_menu_action(
                     state,
@@ -512,4 +456,17 @@ pub(super) fn render_region_hex_menu(
     }
 
     close
+}
+
+/// A menu row greyed out unless `enabled`, with `hint` attached when disabled.
+/// Returns whether the row was clicked.
+fn gated_row(ui: &mut egui::Ui, enabled: bool, label: &str, hint: &str) -> bool {
+    let resp = ui.add_enabled(enabled, egui::SelectableLabel::new(false, label));
+    let clicked = resp.clicked();
+    if !enabled {
+        // NB: egui 0.29 suppresses `on_hover_text` on disabled widgets, so this
+        // hint never shows; `on_disabled_hover_text` would.
+        resp.on_hover_text(hint);
+    }
+    clicked
 }

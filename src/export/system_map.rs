@@ -381,11 +381,11 @@ pub fn world_type_color(t: &str) -> Rgba<u8> {
     }
 }
 
-fn contrast_text(c: Rgba<u8>) -> Rgba<u8> {
-    let luma = 0.0722f32.mul_add(
-        f32::from(c.0[2]),
-        0.2126f32.mul_add(f32::from(c.0[0]), 0.7152 * f32::from(c.0[1])),
-    );
+/// Dark or light ink for text on `c`, by Rec. 709 luma. Shared with the GUI
+/// (`gui-core`'s `palette::contrast_text` wraps it). Plain `+`, not `mul_add`:
+/// the two differ only at (205, 123, 117), which no world-type colour hits.
+pub fn contrast_text(c: Rgba<u8>) -> Rgba<u8> {
+    let luma = 0.2126 * f32::from(c.0[0]) + 0.7152 * f32::from(c.0[1]) + 0.0722 * f32::from(c.0[2]);
     if luma > 140.0 {
         Rgba([20, 20, 30, 255])
     } else {

@@ -5,7 +5,6 @@
 //! normalizers, and `load_relations_file`.
 
 use std::collections::BTreeMap;
-use std::fs;
 
 use camino::Utf8Path;
 use rand::Rng;
@@ -16,7 +15,7 @@ use super::config::{
 };
 use super::tables::{
     cross_kinds, default_disposition_delta, default_kind_stance, ideological_distance,
-    is_hidden_kind, is_merchant_kind, IMPERIAL_KINDS, MERCHANT_KINDS,
+    IMPERIAL_KINDS, MERCHANT_KINDS,
 };
 use super::tension::{build_cooccurrence, cooccur_stats, tension_of, CooccurStats};
 use crate::errors::SectorError;
@@ -135,76 +134,48 @@ pub fn derive_with_threshold_reroll(
     }
 }
 
-/// Assign `s` the next sequential id if it is not already interned.
-fn intern<'c>(map: &mut FxMap<&'c str, u32>, s: &'c str) {
-    let n = map.len() as u32;
-    map.entry(s).or_insert(n);
-}
-
 /// Pre-indexed user rules (B3). The O(F²) pair loop previously rescanned the
 /// full `kind_rules` / `disposition_rules` slices per pair. Here each rule set
-/// is indexed once on the canonical (unordered) pair of interned kind /
-/// disposition strings, so a pair does two map lookups instead of two linear
-/// scans. Strings absent from every rule are never interned — a kind/disposition
-/// that matches no rule can never satisfy a match, so a missing index entry is
-/// exactly the linear scan's "no match".
+/// is indexed once on the canonical (unordered) kind / disposition string pair,
+/// so a pair does two map lookups instead of two linear scans.
 struct RuleIndex<'c> {
-    kind_ids: FxMap<&'c str, u32>,
     /// First rule per canonical kind pair (matches the scan's first-match-wins).
-    kind_rules: BTreeMap<(u32, u32), &'c KindRule>,
-    disp_ids: FxMap<&'c str, u32>,
+    kind_rules: BTreeMap<(&'c str, &'c str), &'c KindRule>,
     /// All rules per canonical disposition pair, in config order (the scan sums
     /// every match and concatenates causes in order).
-    disp_rules: BTreeMap<(u32, u32), Vec<&'c DispositionRule>>,
+    disp_rules: BTreeMap<(&'c str, &'c str), Vec<&'c DispositionRule>>,
 }
 
 impl<'c> RuleIndex<'c> {
     fn build(cfg: &'c RelationsConfig) -> Self {
-        let mut kind_ids: FxMap<&str, u32> = FxMap::default();
+        let mut kind_rules: BTreeMap<(&str, &str), &KindRule> = BTreeMap::new();
         for r in &cfg.kind_rules {
-            intern(&mut kind_ids, r.a.as_str());
-            intern(&mut kind_ids, r.b.as_str());
-        }
-        let mut kind_rules: BTreeMap<(u32, u32), &KindRule> = BTreeMap::new();
-        for r in &cfg.kind_rules {
-            let key = canonical_pair_idx(kind_ids[r.a.as_str()], kind_ids[r.b.as_str()]);
+            let key = canonical_pair_idx(r.a.as_str(), r.b.as_str());
             kind_rules.entry(key).or_insert(r);
         }
 
-        let mut disp_ids: FxMap<&str, u32> = FxMap::default();
+        let mut disp_rules: BTreeMap<(&str, &str), Vec<&DispositionRule>> = BTreeMap::new();
         for r in &cfg.disposition_rules {
-            intern(&mut disp_ids, r.a.as_str());
-            intern(&mut disp_ids, r.b.as_str());
-        }
-        let mut disp_rules: BTreeMap<(u32, u32), Vec<&DispositionRule>> = BTreeMap::new();
-        for r in &cfg.disposition_rules {
-            let key = canonical_pair_idx(disp_ids[r.a.as_str()], disp_ids[r.b.as_str()]);
+            let key = canonical_pair_idx(r.a.as_str(), r.b.as_str());
             disp_rules.entry(key).or_default().push(r);
         }
 
         Self {
-            kind_ids,
             kind_rules,
-            disp_ids,
             disp_rules,
         }
     }
 
     /// The winning kind rule for an (unordered) kind pair, if any.
     fn kind_rule(&self, a: &str, b: &str) -> Option<&'c KindRule> {
-        let ia = *self.kind_ids.get(a)?;
-        let ib = *self.kind_ids.get(b)?;
-        self.kind_rules.get(&canonical_pair_idx(ia, ib)).copied()
+        self.kind_rules.get(&canonical_pair_idx(a, b)).copied()
     }
 
     /// Every disposition rule matching an (unordered) disposition pair, in
     /// config order.
-    fn disposition_rules(&self, a: &str, b: &str) -> &[&'c DispositionRule] {
-        let (Some(&ia), Some(&ib)) = (self.disp_ids.get(a), self.disp_ids.get(b)) else {
-            return &[];
-        };
+    fn disposition_rules<'s>(&'s self, a: &'s str, b: &'s str) -> &'s [&'c DispositionRule] {
         self.disp_rules
-            .get(&canonical_pair_idx(ia, ib))
+            .get(&canonical_pair_idx(a, b))
             .map(Vec::as_slice)
             .unwrap_or(&[])
     }
@@ -309,8 +280,8 @@ fn build_relation(
         }
     }
 
-    let public_attitude = max_attitude(a_to_b.public_attitude, b_to_a.public_attitude);
-    let secret_attitude = max_attitude(a_to_b.secret_attitude, b_to_a.secret_attitude);
+    let public_attitude = a_to_b.public_attitude.max(b_to_a.public_attitude);
+    let secret_attitude = a_to_b.secret_attitude.max(b_to_a.secret_attitude);
     let public_stance = public_attitude.to_stance();
     let secret_stance = secret_attitude.to_stance();
     let metrics = combine_metrics(a_to_b.metrics, b_to_a.metrics);
@@ -443,13 +414,13 @@ fn public_attitude_for(
     secret: RelationAttitude,
     stats: CooccurStats,
 ) -> RelationAttitude {
-    if secret.level() < RelationAttitude::Hostile.level() {
+    if secret < RelationAttitude::Hostile {
         return secret;
     }
-    if is_hidden_kind(&from.kind) || from.disposition.as_ref() == "secretive" {
+    if from.kind.is_hidden() || from.disposition.as_ref() == "secretive" {
         return RelationAttitude::Suspicious;
     }
-    if is_hidden_kind(&to.kind) && stats.hidden_overlap > 0 {
+    if to.kind.is_hidden() && stats.hidden_overlap > 0 {
         return RelationAttitude::Suspicious;
     }
     secret
@@ -510,13 +481,13 @@ fn directional_metrics(
     );
     let covert_activity = clamp_score(
         to_covert.mul_add(0.75, stats.covert_activity * 0.5)
-            + if is_hidden_kind(&to.kind) { 18.0 } else { 0.0 },
+            + if to.kind.is_hidden() { 18.0 } else { 0.0 },
     );
     let economic_dependency = clamp_score(
         from_econ
             .min(to_econ)
             .mul_add(0.55, stats.economic_dependency * 0.55)
-            + if is_merchant_kind(&from.kind) || is_merchant_kind(&to.kind) {
+            + if from.kind.is_merchant() || to.kind.is_merchant() {
                 8.0
             } else {
                 0.0
@@ -573,14 +544,6 @@ fn combine_metrics(a: RelationMetrics, b: RelationMetrics) -> RelationMetrics {
     }
 }
 
-fn max_attitude(a: RelationAttitude, b: RelationAttitude) -> RelationAttitude {
-    if a.level() >= b.level() {
-        a
-    } else {
-        b
-    }
-}
-
 fn treaty_status_of(
     a: &GeneratedFaction,
     b: &GeneratedFaction,
@@ -623,9 +586,10 @@ pub(super) fn canonical_pair(a: &str, b: &str) -> (String, String) {
     }
 }
 
-/// Allocation-free canonical key for the co-occurrence map, keyed on faction
-/// indices instead of id strings (B6). Order-independent, like `canonical_pair`.
-pub(super) fn canonical_pair_idx(a: u32, b: u32) -> (u32, u32) {
+/// Allocation-free canonical key: faction indices for the co-occurrence map
+/// (B6), borrowed kind / disposition strings for `RuleIndex`. Order-independent,
+/// like `canonical_pair`.
+pub(super) fn canonical_pair_idx<T: Ord>(a: T, b: T) -> (T, T) {
     if a <= b {
         (a, b)
     } else {
@@ -650,11 +614,5 @@ fn clamp_score(v: f32) -> u8 {
 /// Returns [`SectorError::ConfigParse`] if the file is malformed or
 /// [`SectorError::Io`] if it cannot be read.
 pub fn load_relations_file(path: &Utf8Path) -> Result<RelationsConfig, SectorError> {
-    if !path.exists() {
-        return Ok(RelationsConfig::default());
-    }
-    let text = fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
-    let parsed: super::config::RelationsFile = toml::from_str(&text)
-        .map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))?;
-    Ok(parsed.relations)
+    crate::analysis::load_toml_or_default(path).map(|f: super::config::RelationsFile| f.relations)
 }

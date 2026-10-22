@@ -11,7 +11,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use egui::{Align2, Color32, FontId, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2};
+use egui::{Align2, FontId, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
@@ -20,16 +20,15 @@ use sectorforge::subsectors::Subsector;
 use crate::design;
 use crate::heatmap::HeatCell;
 use crate::map_theme::RenderMapTheme;
-use crate::palette::{darken, draw_route_control_glyph, draw_route_line, star_color};
+use crate::palette::{darken, draw_route_control_glyph, draw_route_line, star_color, with_alpha};
 use crate::visual_tokens::MapSystemGlyph;
 
 use super::cache::SectorMapCache;
 use super::render::{
-    blend_heat, draw_capital_marker, draw_hex, draw_hex_fill, draw_hex_outline_only,
-    draw_region_labels, draw_system_glyph, hex_center, hex_vertices, is_dark,
-    label_intersects_rect, paint_chart_frame, paint_star_dust, paint_vignette,
-    point_segment_distance, segment_intersects_rect, subsector_label_font_px, system_label_font_px,
-    system_pip_metrics, SectorGeom,
+    blend_heat, draw_capital_marker, draw_hex, draw_hex_outline_only, draw_region_labels,
+    draw_system_glyph, hex_center, hex_vertices, is_dark, label_intersects_rect, paint_chart_frame,
+    paint_star_dust, paint_vignette, point_segment_distance, segment_intersects_rect,
+    subsector_label_font_px, system_label_font_px, system_pip_metrics, SectorGeom,
 };
 
 pub struct SectorView<'a> {
@@ -130,6 +129,20 @@ fn shorten_segment(a: Pos2, b: Pos2, star_r: f32) -> Option<(Pos2, Pos2)> {
     Some((a + dir * star_r, b - dir * star_r))
 }
 
+/// The culled route passes' shared prologue: `route`'s star-trimmed segment,
+/// or `None` when an endpoint has no screen centre, the systems are too close
+/// to draw between, or the segment misses the cull rect.
+fn visible_segment(
+    ctx: &RenderCtx<'_>,
+    centers: &HashMap<&str, Pos2>,
+    route: &sector_model::GeneratedRoute,
+) -> Option<(Pos2, Pos2)> {
+    let a = *centers.get(route.from_system_id.as_str())?;
+    let b = *centers.get(route.to_system_id.as_str())?;
+    let (a2, b2) = shorten_segment(a, b, ctx.star_r)?;
+    segment_intersects_rect(a2, b2, ctx.cull, ctx.route_cull_margin).then_some((a2, b2))
+}
+
 impl<'a> SectorView<'a> {
     /// A `SectorView` over `sector` with every other field at its neutral default
     /// (no selection/overlays/path, `hex_size` 40, `origin` zero, hover-only sense,
@@ -207,7 +220,7 @@ impl<'a> SectorView<'a> {
         let max_q = ((cull.max.x - origin.x - g.margin + horiz_step) / horiz_step).ceil() as i32;
 
         let route_thickness = theme.route_thickness.px(g.hex_size);
-        let star_r = g.hex_size * theme.star_radius_mul;
+        let star_r = g.hex_size * 0.2016;
         let route_cull_margin = (route_thickness * 6.0).max(12.0);
 
         let ctx = RenderCtx {
@@ -324,7 +337,7 @@ impl<'a> SectorView<'a> {
                     f
                 };
 
-                draw_hex(painter, c, g.hex_size, fill, theme.hex_outline);
+                draw_hex(painter, c, g.hex_size, fill, Some(theme.hex_outline));
             }
         }
     }
@@ -349,7 +362,7 @@ impl<'a> SectorView<'a> {
             for r in sr.max(min_r.max(0))..=er.min(max_r.min(self.sector.height as i32 - 1)) {
                 for q in sq.max(min_q.max(0))..=eq.min(max_q.min(self.sector.width as i32 - 1)) {
                     let c = hex_center(q, r, &g) + origin.to_vec2();
-                    draw_hex_fill(painter, c, g.hex_size, theme.rect_select_tint);
+                    draw_hex(painter, c, g.hex_size, theme.rect_select_tint, None);
                 }
             }
         }
@@ -371,7 +384,7 @@ impl<'a> SectorView<'a> {
                     if sid == sel {
                         let c = hex_center(q, r, &g) + origin.to_vec2();
                         if cull.expand(g.hex_size).contains(c) {
-                            draw_hex_fill(painter, c, g.hex_size, theme.subsector_highlight);
+                            draw_hex(painter, c, g.hex_size, theme.subsector_highlight, None);
                         }
                     }
                 }
@@ -382,7 +395,7 @@ impl<'a> SectorView<'a> {
                         for &(q, r) in &s.hex_cells {
                             let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
                             if cull.expand(g.hex_size).contains(c) {
-                                draw_hex_fill(painter, c, g.hex_size, theme.subsector_highlight);
+                                draw_hex(painter, c, g.hex_size, theme.subsector_highlight, None);
                             }
                         }
                     }
@@ -406,7 +419,7 @@ impl<'a> SectorView<'a> {
         } = *ctx;
         if let Some(subs) = self.subsectors {
             if !subs.is_empty() {
-                let border_thick = theme.subsector_border_thickness.px(g.hex_size);
+                let border_thick = (g.hex_size * 0.10).max(2.5);
                 for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
                     let neighbor_deltas = sectorforge::sector_model::offset_r_neighbors(r);
                     for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
@@ -486,26 +499,13 @@ impl<'a> SectorView<'a> {
         let RenderCtx {
             painter,
             theme,
-            cull,
             route_thickness,
-            star_r,
-            route_cull_margin,
             ..
         } = *ctx;
         for route in &self.sector.routes {
-            let (Some(&a), Some(&b)) = (
-                centers.get(route.from_system_id.as_str()),
-                centers.get(route.to_system_id.as_str()),
-            ) else {
+            let Some((a2, b2)) = visible_segment(ctx, centers, route) else {
                 continue;
             };
-
-            let Some((a2, b2)) = shorten_segment(a, b, star_r) else {
-                continue;
-            };
-            if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
-                continue;
-            }
             draw_route_line(
                 painter,
                 a2,
@@ -536,8 +536,7 @@ impl<'a> SectorView<'a> {
         } = *ctx;
         if let Some((start_id, cursor)) = self.pending_route_preview.as_ref() {
             if let Some(&a) = centers.get(start_id.as_str()) {
-                let preview_thickness = (route_thickness * theme.pending_route_preview_mul)
-                    .max(theme.pending_route_preview_min);
+                let preview_thickness = (route_thickness * 1.4).max(2.5);
                 draw_route_line(
                     painter,
                     a,
@@ -556,37 +555,20 @@ impl<'a> SectorView<'a> {
         let RenderCtx {
             painter,
             theme,
-            cull,
             route_thickness,
-            star_r,
-            route_cull_margin,
             ..
         } = *ctx;
         if let Some(ids) = self.path_route_ids {
-            let glow_thick = route_thickness * theme.path_glow_mul;
-            let core_thick = route_thickness * theme.path_core_mul;
-            let glow = Color32::from_rgba_unmultiplied(
-                theme.path_highlight.r(),
-                theme.path_highlight.g(),
-                theme.path_highlight.b(),
-                theme.path_glow_alpha,
-            );
+            let glow_thick = route_thickness * 3.2;
+            let core_thick = route_thickness * 1.8;
+            let glow = with_alpha(theme.path_highlight, 70);
             for route in &self.sector.routes {
                 if !ids.contains(&route.id) {
                     continue;
                 }
-                let (Some(&a), Some(&b)) = (
-                    centers.get(route.from_system_id.as_str()),
-                    centers.get(route.to_system_id.as_str()),
-                ) else {
+                let Some((a2, b2)) = visible_segment(ctx, centers, route) else {
                     continue;
                 };
-                let Some((a2, b2)) = shorten_segment(a, b, star_r) else {
-                    continue;
-                };
-                if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
-                    continue;
-                }
                 painter.line_segment([a2, b2], Stroke::new(glow_thick, glow));
                 painter.line_segment([a2, b2], Stroke::new(core_thick, theme.path_highlight));
             }
@@ -599,10 +581,7 @@ impl<'a> SectorView<'a> {
         let RenderCtx {
             painter,
             theme,
-            cull,
             route_thickness,
-            star_r,
-            route_cull_margin,
             ..
         } = *ctx;
         if let Some(sel) = self.selected_route {
@@ -610,33 +589,16 @@ impl<'a> SectorView<'a> {
                 if route.id.as_str() != sel {
                     continue;
                 }
-                let (Some(&a), Some(&b)) = (
-                    centers.get(route.from_system_id.as_str()),
-                    centers.get(route.to_system_id.as_str()),
-                ) else {
+                let Some((a2, b2)) = visible_segment(ctx, centers, route) else {
                     continue;
                 };
-                let Some((a2, b2)) = shorten_segment(a, b, star_r) else {
-                    continue;
-                };
-                if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
-                    continue;
-                }
-                let glow = Color32::from_rgba_unmultiplied(
-                    theme.selection.r(),
-                    theme.selection.g(),
-                    theme.selection.b(),
-                    theme.selection_glow_alpha,
-                );
-                painter.line_segment(
-                    [a2, b2],
-                    Stroke::new(route_thickness * theme.selection_glow_mul, glow),
-                );
+                let glow = with_alpha(theme.selection, 75);
+                painter.line_segment([a2, b2], Stroke::new(route_thickness * 3.6, glow));
                 draw_route_line(
                     painter,
                     a2,
                     b2,
-                    route_thickness * theme.selection_core_mul,
+                    route_thickness * 1.9,
                     theme.selection,
                     route.route_type.pattern(self.route_view_mode),
                 );
@@ -667,29 +629,17 @@ impl<'a> SectorView<'a> {
                 .unwrap_or(false);
             let is_pinned = self.pinned.map(|s| s.contains(&sys.id)).unwrap_or(false);
             if is_pinned {
-                draw_hex_outline_only(
-                    painter,
-                    c,
-                    g.hex_size + theme.pinned_ring_bump,
-                    theme.pinned_outline,
-                    theme.pinned_ring_thickness,
-                );
+                draw_hex_outline_only(painter, c, g.hex_size + 5.0, theme.pinned_outline, 1.5);
             }
             if is_sel {
-                draw_hex_outline_only(
-                    painter,
-                    c,
-                    g.hex_size + theme.selection_ring_bump,
-                    theme.selection,
-                    theme.selection_ring_thickness,
-                );
+                draw_hex_outline_only(painter, c, g.hex_size + 2.0, theme.selection, 2.5);
             } else if is_multi {
                 draw_hex_outline_only(
                     painter,
                     c,
-                    g.hex_size + theme.selection_ring_bump,
+                    g.hex_size + 2.0,
                     theme.multi_select_outline,
-                    theme.multi_select_ring_thickness,
+                    2.0,
                 );
             }
             if self
@@ -697,13 +647,7 @@ impl<'a> SectorView<'a> {
                 .map(|s| s.contains(&sys.id))
                 .unwrap_or(false)
             {
-                draw_hex_outline_only(
-                    painter,
-                    c,
-                    g.hex_size + theme.waypoint_ring_bump,
-                    theme.path_waypoint,
-                    theme.waypoint_ring_thickness,
-                );
+                draw_hex_outline_only(painter, c, g.hex_size + 4.0, theme.path_waypoint, 2.5);
             }
 
             let fill = if let Some(star) = &sys.star {
@@ -732,8 +676,7 @@ impl<'a> SectorView<'a> {
             }
 
             let pip = sys.worlds.len();
-            if let (true, Some((pip_font_size, disc_r))) =
-                (pip > 0, system_pip_metrics(theme, g.hex_size))
+            if let (true, Some((pip_font_size, disc_r))) = (pip > 0, system_pip_metrics(g.hex_size))
             {
                 // Top-right corner of the hex. Name label sits below the
                 // star and the capital marker sits at top-center, so this
@@ -775,9 +718,9 @@ impl<'a> SectorView<'a> {
             ..
         } = *ctx;
         if let Some(subs) = self.subsectors {
-            if let Some(sub_label_size) = subsector_label_font_px(theme, g.hex_size) {
+            if let Some(sub_label_size) = subsector_label_font_px(g.hex_size) {
                 let font = FontId::monospace(sub_label_size);
-                let sys_font = system_label_font_px(theme, g.hex_size).map(FontId::monospace);
+                let sys_font = system_label_font_px(g.hex_size).map(FontId::monospace);
                 let pad = Vec2::new(4.0, 1.5);
                 let sys_pad = Vec2::new(2.0, 0.5);
                 let line_gap = 2.0;
@@ -998,7 +941,7 @@ impl<'a> SectorView<'a> {
             star_r,
             ..
         } = *ctx;
-        if let Some(label_size) = system_label_font_px(theme, ctx.g.hex_size) {
+        if let Some(label_size) = system_label_font_px(ctx.g.hex_size) {
             let font = FontId::monospace(label_size);
             let pad = Vec2::new(3.0, 1.0);
             for sys in &self.sector.systems {

@@ -217,16 +217,14 @@ pub enum DerivationStatus {
     Fresh,
     /// A dependency changed; the cached value is out of date.
     Stale,
-    /// A background recompute is in flight (LD3).
-    Deriving,
 }
 
 /// §39 live-derivation ledger (LD1..LD4). Tracks, per [`DerivationKind`]:
-/// the input fingerprint that produced the currently-cached value (LD1),
-/// whether a dependency has since changed (LD2), and whether a background
-/// recompute is running (LD3). The cached *values* still live in their
-/// existing homes (`BuilderState::*_report`, `sector.economy`, …); this ledger
-/// is the freshness authority those panels consult before rendering (LD4).
+/// the input fingerprint that produced the currently-cached value (LD1) and
+/// whether a dependency has since changed (LD2). The cached *values* still
+/// live in their existing homes (`BuilderState::*_report`, `sector.economy`,
+/// …); this ledger is the freshness authority those panels consult before
+/// rendering (LD4).
 #[derive(Debug, Clone, Default)]
 pub struct DerivationLedger {
     /// LD1 — input digest (`BuilderState::derivation_fingerprint`) that
@@ -235,8 +233,6 @@ pub struct DerivationLedger {
     /// LD2 — kinds whose dependency inputs changed since their last derive and
     /// have not yet been recomputed.
     pub stale: BTreeSet<DerivationKind>,
-    /// LD3 — kinds with an in-flight background recompute.
-    pub deriving: BTreeSet<DerivationKind>,
 }
 
 impl DerivationLedger {
@@ -287,17 +283,10 @@ impl DerivationLedger {
     }
 
     /// Record that `kind` was just (re)derived from the input identified by
-    /// `fingerprint`: stores the fingerprint and clears the stale / deriving
-    /// flags.
+    /// `fingerprint`: stores the fingerprint and clears the stale flag.
     pub fn mark_fresh(&mut self, kind: DerivationKind, fingerprint: String) {
         self.fingerprints.insert(kind, fingerprint);
         self.stale.remove(&kind);
-        self.deriving.remove(&kind);
-    }
-
-    /// LD3 — flag a kind as having a background recompute in flight.
-    pub fn mark_deriving(&mut self, kind: DerivationKind) {
-        self.deriving.insert(kind);
     }
 
     pub fn is_stale(&self, kind: DerivationKind) -> bool {
@@ -310,9 +299,6 @@ impl DerivationLedger {
     /// of LD2 (a dependency-table hit that did not actually change inputs does
     /// not force a recompute).
     pub fn status(&self, kind: DerivationKind, current: &str) -> DerivationStatus {
-        if self.deriving.contains(&kind) {
-            return DerivationStatus::Deriving;
-        }
         match self.fingerprints.get(&kind) {
             None => DerivationStatus::Cold,
             Some(stored) if stored == current => DerivationStatus::Fresh,
@@ -331,7 +317,6 @@ impl DerivationLedger {
     pub fn clear(&mut self) {
         self.fingerprints.clear();
         self.stale.clear();
-        self.deriving.clear();
     }
 }
 
@@ -443,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn status_distinguishes_cold_fresh_stale_deriving() {
+    fn status_distinguishes_cold_fresh_stale() {
         let mut led = DerivationLedger::new();
         assert_eq!(
             led.status(DerivationKind::Hooks, "fp"),
@@ -458,11 +443,6 @@ mod tests {
         assert_eq!(
             led.status(DerivationKind::Hooks, "fp2"),
             DerivationStatus::Stale
-        );
-        led.mark_deriving(DerivationKind::Hooks);
-        assert_eq!(
-            led.status(DerivationKind::Hooks, "fp"),
-            DerivationStatus::Deriving
         );
     }
 }

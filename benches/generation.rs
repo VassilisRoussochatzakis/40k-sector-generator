@@ -6,31 +6,19 @@
 //! plus split groups for rasterisation vs PNG encode so encoding overhead
 //! can be tracked independently of the draw pass.
 
+mod common;
+
 use std::hint::black_box;
 
-use camino::Utf8PathBuf;
+use common::{fixture, load, project, SCALES};
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
+use image::RgbaImage;
 use sectorforge::{
     bitmap::{encode_png_bytes, render_sector_image, RenderOptions},
-    generate_sector, load_project, render_sector_markdown,
+    generate_sector, render_sector_markdown,
     svg_export::render_sector_svg,
-    validate_project, validate_sector, GeneratedSector, ProjectInput,
+    validate_project, validate_sector, GeneratedSector,
 };
-
-fn project_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
-fn load() -> sectorforge::ProjectInput {
-    load_project(project_dir()).expect("load m42_project")
-}
-
-// Sectors are square (width == height); the bench grids follow suit.
-const SCALES: &[(u32, u32, usize)] = &[
-    (10, 10, 24),  // tiny
-    (20, 20, 96),  // normal
-    (30, 30, 200), // large
-];
 
 // docs/IMPROVEMENT.txt §42 PERF3..PERF6 are all specified at the 500-system
 // scale. A 40×40 grid (square — the geometry invariant) comfortably holds 500
@@ -41,21 +29,15 @@ const PERF_DIM: u32 = 40;
 
 fn bench_generate(c: &mut Criterion) {
     let mut group = c.benchmark_group("generate_sector");
-    for &(w, h, count) in SCALES {
-        let label = format!("{w}x{h}_{count}");
+    for &(side, count) in SCALES {
+        let label = format!("{side}x{side}_{count}");
         group.throughput(Throughput::Elements(count as u64));
         group.bench_with_input(
             BenchmarkId::from_parameter(&label),
-            &(w, h, count),
-            |b, &(w, h, count)| {
+            &(side, count),
+            |b, &(side, count)| {
                 b.iter_batched(
-                    || {
-                        let mut input = load();
-                        input.config.generation.sector_width = w;
-                        input.config.generation.sector_height = h;
-                        input.config.generation.system_count = count;
-                        input
-                    },
+                    || project(side, count),
                     |input| black_box(generate_sector(input).expect("generate")),
                     BatchSize::SmallInput,
                 );
@@ -65,58 +47,27 @@ fn bench_generate(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_validate_pre(c: &mut Criterion) {
+/// Pre-gen `validate_project` and post-gen `validate_sector` (the
+/// `invariants::check_sector` pass): on the stock project, then at 500
+/// systems, where docs/IMPROVEMENT.txt §42 PERF3 / PERF4 cap each at 50 ms.
+/// Generation runs in setup, outside every measurement.
+fn bench_validate(c: &mut Criterion) {
     let input = load();
+    let sector = generate_sector(input.clone()).expect("generate");
     c.bench_function("validate_project", |b| {
         b.iter(|| validate_project(black_box(&input)).unwrap());
     });
-}
-
-fn bench_validate_post(c: &mut Criterion) {
-    let sector = generate_sector(load()).expect("generate");
     c.bench_function("validate_sector_invariants", |b| {
         b.iter(|| black_box(validate_sector(black_box(&sector))));
     });
-}
-
-/// A 500-system project template (fixed seed, square grid) for the §42
-/// PERF3..PERF6 measurements. Built once per bench; the generation cost is
-/// kept out of the validation/derivation measurements below.
-fn perf_project() -> ProjectInput {
-    let mut input = load();
-    input.config.generation.sector_width = PERF_DIM;
-    input.config.generation.sector_height = PERF_DIM;
-    input.config.generation.system_count = PERF_SYSTEMS;
-    input
-}
-
-/// The generated 500-system sector shared by the invariant/derivation benches.
-fn perf_sector() -> GeneratedSector {
-    generate_sector(perf_project()).expect("generate 500-system fixture")
-}
-
-/// docs/IMPROVEMENT.txt §42 PERF3: pre-generation validation must stay under
-/// 50 ms for a 500-system config. `validate_project` runs the `validation`
-/// rule set against the loaded project (the pre-gen path).
-fn bench_validate_500(c: &mut Criterion) {
-    let input = perf_project();
-    let mut group = c.benchmark_group("validate");
-    group.bench_function("500", |b| {
+    let input = project(PERF_DIM, PERF_SYSTEMS);
+    let sector = generate_sector(input.clone()).expect("generate 500-system fixture");
+    c.benchmark_group("validate").bench_function("500", |b| {
         b.iter(|| validate_project(black_box(&input)).unwrap());
     });
-    group.finish();
-}
-
-/// docs/IMPROVEMENT.txt §42 PERF4: the sectorforge invariant check
-/// (`invariants::check_sector`, via `validate_sector`) must stay under 50 ms
-/// for a 500-system generated sector.
-fn bench_invariants_500(c: &mut Criterion) {
-    let sector = perf_sector();
-    let mut group = c.benchmark_group("invariants");
-    group.bench_function("500", |b| {
+    c.benchmark_group("invariants").bench_function("500", |b| {
         b.iter(|| black_box(validate_sector(black_box(&sector))));
     });
-    group.finish();
 }
 
 /// docs/IMPROVEMENT.txt §42 PERF5: a full *cold* derivation pass over all
@@ -126,8 +77,10 @@ fn bench_invariants_500(c: &mut Criterion) {
 /// generation enrichment path in `src/gen/random_sector.rs` plus the standalone
 /// `derive_*` CLI commands (economy / relations / history / personae / sites /
 /// hooks / missions / prose / interestingness, and the `analyze` dashboard).
+/// PERF6's *warm* (cache-hit) path is `derive/economy_warm` in
+/// `builder/benches/builder_mutations.rs`.
 fn bench_derive_cold_500(c: &mut Criterion) {
-    let input = perf_project();
+    let input = project(PERF_DIM, PERF_SYSTEMS);
     let sector = generate_sector(input.clone()).expect("generate 500-system fixture");
     let cats = &input.catalogs;
     let mut group = c.benchmark_group("derive_cold");
@@ -145,150 +98,95 @@ fn bench_derive_cold_500(c: &mut Criterion) {
             black_box(sectorforge::derive_hooks_with(&sector, &cats.hooks));
             black_box(sectorforge::derive_missions_with(&sector, &cats.missions));
             black_box(sectorforge::derive_prose_with(&sector, &cats.prose));
-            black_box(sectorforge::derive_interestingness(&sector));
+            black_box(sectorforge::interestingness::derive(&sector));
         });
     });
     group.finish();
-}
-
-/// docs/IMPROVEMENT.txt §42 PERF6: a *warm* derivation pass (cache hit) must
-/// stay under 50 ms. The derived overlays are `Arc`-wrapped fields on
-/// `GeneratedSector` (`economy`, `relations`, `chronicle`, …) — exactly how the
-/// builder/viewer install a recomputed overlay (`self.sector.economy =
-/// Arc::new(report)`). A cache hit re-reads those already-installed overlays
-/// without recomputing them, which is the `Arc`-clone the cache-hit path
-/// returns. We derive once into a sector, then measure that warm re-read.
-fn bench_derive_warm_500(c: &mut Criterion) {
-    let input = perf_project();
-    let mut sector = generate_sector(input.clone()).expect("generate 500-system fixture");
-    let cats = &input.catalogs;
-
-    // Cold pass once: install the overlays carried as sector fields (economy /
-    // relations / chronicle), mirroring the generation enrichment / builder
-    // recompute install points. The warm measurement below only re-reads these
-    // installed overlays — the cache-hit return path.
-    sector.economy = std::sync::Arc::new(sectorforge::derive_economy_with(&sector, &cats.economy));
-    sector.relations =
-        std::sync::Arc::new(sectorforge::derive_relations_with(&sector, &cats.relations));
-    // `SectorChronicle` is a type alias for `HistoryReport`, so the derived
-    // report installs directly onto the field (the generation/builder pattern).
-    sector.chronicle = sectorforge::derive_history_with(&sector, &cats.history);
-
-    let mut group = c.benchmark_group("derive_warm");
-    group.bench_function("500", |b| {
-        b.iter(|| {
-            // Cache hit: clone the already-derived overlay `Arc`s (refcount
-            // bumps) rather than recomputing them.
-            black_box(std::sync::Arc::clone(&black_box(&sector).economy));
-            black_box(std::sync::Arc::clone(&black_box(&sector).relations));
-            black_box(black_box(&sector).chronicle.clone());
-        });
-    });
-    group.finish();
-}
-
-/// Helper: produce one fixed sector per scale for raster/encode benches so
-/// generation cost stays out of those measurements.
-fn fixture_for(w: u32, h: u32, count: usize) -> GeneratedSector {
-    let mut input = load();
-    input.config.generation.sector_width = w;
-    input.config.generation.sector_height = h;
-    input.config.generation.system_count = count;
-    generate_sector(input).expect("generate fixture")
 }
 
 /// docs/OPTIMIZE.txt G1: rasterisation alone (no PNG encode, no I/O).
-fn bench_render_png(c: &mut Criterion) {
-    let mut group = c.benchmark_group("render_sector_image");
-    for &(w, h, count) in SCALES {
-        let sector = fixture_for(w, h, count);
-        let label = format!("{w}x{h}_{count}");
-        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
-            b.iter(|| {
-                black_box(render_sector_image(
-                    sector,
-                    2,
-                    None,
-                    RenderOptions::default(),
-                ))
-            });
+fn raster(sector: &GeneratedSector) -> RgbaImage {
+    render_sector_image(sector, 2, None, RenderOptions::default())
+}
+
+/// RUST_FIXES.md FU-9: the whole PNG path, raster + encode — what a
+/// `write_bitmap` caller pays, minus the disk write.
+fn png(sector: &GeneratedSector) -> Vec<u8> {
+    encode_png_bytes(&raster(sector)).expect("encode")
+}
+
+/// `sector.json` serialisation (~MB on the large scale, so worth tracking alone).
+fn json(sector: &GeneratedSector) -> Vec<u8> {
+    serde_json::to_vec(sector).expect("serialize")
+}
+
+/// One group named `name` timing `f` on the input built for each `SCALES`
+/// entry; `bytes`, when set, reports that many bytes per input as throughput.
+fn per_scale<I, O>(
+    c: &mut Criterion,
+    name: &str,
+    inputs: &[I],
+    bytes: Option<fn(&I) -> usize>,
+    f: impl Fn(&I) -> O,
+) {
+    let mut group = c.benchmark_group(name);
+    for (&(side, count), input) in SCALES.iter().zip(inputs) {
+        if let Some(bytes) = bytes {
+            group.throughput(Throughput::Bytes(bytes(input) as u64));
+        }
+        let label = format!("{side}x{side}_{count}");
+        group.bench_with_input(BenchmarkId::from_parameter(label), input, |b, input| {
+            b.iter(|| f(black_box(input)));
         });
     }
     group.finish();
 }
 
-/// docs/OPTIMIZE.txt G1: PNG encode alone (rasterised in setup, not measured).
-fn bench_encode_png(c: &mut Criterion) {
-    let mut group = c.benchmark_group("encode_png_bytes");
-    for &(w, h, count) in SCALES {
-        let sector = fixture_for(w, h, count);
-        let img = render_sector_image(&sector, 2, None, RenderOptions::default());
-        let label = format!("{w}x{h}_{count}");
-        group.throughput(Throughput::Bytes(img.as_raw().len() as u64));
-        group.bench_with_input(BenchmarkId::from_parameter(&label), &img, |b, img| {
-            b.iter(|| black_box(encode_png_bytes(black_box(img)).expect("encode")));
-        });
-    }
-    group.finish();
-}
-
-/// docs/OPTIMIZE.txt G1: SVG vector render alone (rasterised sector in setup,
-/// not measured). Same `RenderOptions::default()` (heatmap: Off) as the PNG path.
-fn bench_render_svg(c: &mut Criterion) {
-    let mut group = c.benchmark_group("render_sector_svg");
+/// docs/OPTIMIZE.txt G1: each emit path alone, on one fixed sector per scale
+/// generated once up front, so generation stays out of every number. Raster
+/// and PNG encode are timed apart (encode on a pre-rasterised image) and
+/// together (`render_sector_png`), so whole ≈ raster + encode.
+fn bench_emit(c: &mut Criterion) {
+    let sectors: Vec<_> = SCALES
+        .iter()
+        .map(|&(side, count)| fixture(side, count))
+        .collect();
+    let images: Vec<_> = sectors.iter().map(raster).collect();
+    // Same `RenderOptions::default()` (heatmap: Off) as the PNG path.
     let opts = RenderOptions::default();
-    for &(w, h, count) in SCALES {
-        let sector = fixture_for(w, h, count);
-        let label = format!("{w}x{h}_{count}");
-        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
-            b.iter(|| black_box(render_sector_svg(sector, None, &opts)));
-        });
-    }
-    group.finish();
-}
-
-/// docs/OPTIMIZE.txt G1: JSON serialisation of the full `GeneratedSector`
-/// (the sector.json export is ~MB on the large scale, so worth tracking alone).
-fn bench_serialize_json(c: &mut Criterion) {
-    let mut group = c.benchmark_group("serialize_json");
-    for &(w, h, count) in SCALES {
-        let sector = fixture_for(w, h, count);
-        let bytes = serde_json::to_vec(&sector).expect("serialize sector");
-        let label = format!("{w}x{h}_{count}");
-        group.throughput(Throughput::Bytes(bytes.len() as u64));
-        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
-            b.iter(|| black_box(serde_json::to_vec(black_box(sector)).expect("serialize")));
-        });
-    }
-    group.finish();
-}
-
-/// docs/OPTIMIZE.txt G1: Markdown render alone.
-fn bench_render_markdown(c: &mut Criterion) {
-    let mut group = c.benchmark_group("render_sector_markdown");
-    for &(w, h, count) in SCALES {
-        let sector = fixture_for(w, h, count);
-        let label = format!("{w}x{h}_{count}");
-        group.bench_with_input(BenchmarkId::from_parameter(&label), &sector, |b, sector| {
-            b.iter(|| black_box(render_sector_markdown(sector)));
-        });
-    }
-    group.finish();
+    per_scale(c, "render_sector_image", &sectors, None, raster);
+    per_scale(
+        c,
+        "encode_png_bytes",
+        &images,
+        Some(|i| i.as_raw().len()),
+        |i| encode_png_bytes(i).expect("encode"),
+    );
+    per_scale(
+        c,
+        "render_sector_png",
+        &sectors,
+        Some(|s| png(s).len()),
+        png,
+    );
+    per_scale(c, "render_sector_svg", &sectors, None, |s| {
+        render_sector_svg(s, None, &opts)
+    });
+    per_scale(c, "serialize_json", &sectors, Some(|s| json(s).len()), json);
+    per_scale(
+        c,
+        "render_sector_markdown",
+        &sectors,
+        None,
+        render_sector_markdown,
+    );
 }
 
 criterion_group!(
     benches,
     bench_generate,
-    bench_validate_pre,
-    bench_validate_post,
-    bench_validate_500,
-    bench_invariants_500,
+    bench_validate,
     bench_derive_cold_500,
-    bench_derive_warm_500,
-    bench_render_png,
-    bench_encode_png,
-    bench_render_svg,
-    bench_serialize_json,
-    bench_render_markdown,
+    bench_emit,
 );
 criterion_main!(benches);

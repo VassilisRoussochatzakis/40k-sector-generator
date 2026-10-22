@@ -420,51 +420,67 @@ pub fn draw_route_control_glyph(
         return;
     }
     let color = faction_style_by_id(factions, &faction_id).fill;
-    let dark = darken(color, 0.5);
     let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
     let size = (thickness * 3.0).max(6.0);
-    let stroke_w = thickness.max(2.0);
-    let outline = Stroke::new(1.0, dark);
+    // Interdiction's crossbar runs perpendicular to the route, `size` each way.
+    let dx = b.x - a.x;
+    let dy = b.y - a.y;
+    let len = (dx * dx + dy * dy).sqrt().max(1.0);
+    let bar = Vec2::new(-dy / len, dx / len) * size;
+    paint_route_control_shape(
+        painter,
+        kind,
+        mid,
+        size,
+        bar,
+        Stroke::new(thickness.max(2.0), color),
+        Stroke::new(1.0, darken(color, 0.5)),
+    );
+}
+
+/// One route-control shape centred on `mid`: a disc (Patrol) or square (Toll)
+/// of side `size` ringed by `outline`, a crossbar from `mid - bar` to
+/// `mid + bar` (Interdiction), or an X spanning `size` (Piracy). `line`'s colour
+/// fills every shape and its stroke draws the bar and X. Shared by the map
+/// glyph ([`draw_route_control_glyph`]) and the info-panel legend.
+pub(crate) fn paint_route_control_shape(
+    painter: &egui::Painter,
+    kind: RouteControlKind,
+    mid: Pos2,
+    size: f32,
+    bar: Vec2,
+    line: Stroke,
+    outline: Stroke,
+) {
+    let half = size * 0.5;
     match kind {
         RouteControlKind::Patrol => {
-            let r = size * 0.5;
-            painter.circle_filled(mid, r, color);
-            painter.circle_stroke(mid, r, outline);
+            painter.circle_filled(mid, half, line.color);
+            painter.circle_stroke(mid, half, outline);
         }
         RouteControlKind::Toll => {
-            let half = size * 0.5;
             let rect =
                 egui::Rect::from_min_size(Pos2::new(mid.x - half, mid.y - half), Vec2::splat(size));
-            painter.rect_filled(rect, 0.0, color);
+            painter.rect_filled(rect, 0.0, line.color);
             painter.rect_stroke(rect, 0.0, outline);
         }
         RouteControlKind::Interdiction => {
-            let dx = b.x - a.x;
-            let dy = b.y - a.y;
-            let len = (dx * dx + dy * dy).sqrt().max(1.0);
-            let px = -dy / len;
-            let py = dx / len;
-            let half = size;
-            let p0 = Pos2::new(mid.x - px * half, mid.y - py * half);
-            let p1 = Pos2::new(mid.x + px * half, mid.y + py * half);
-            painter.line_segment([p0, p1], Stroke::new(stroke_w, color));
+            painter.line_segment([mid - bar, mid + bar], line);
         }
         RouteControlKind::Piracy => {
-            let half = size * 0.5;
-            let stroke = Stroke::new(stroke_w, color);
             painter.line_segment(
                 [
                     Pos2::new(mid.x - half, mid.y - half),
                     Pos2::new(mid.x + half, mid.y + half),
                 ],
-                stroke,
+                line,
             );
             painter.line_segment(
                 [
                     Pos2::new(mid.x - half, mid.y + half),
                     Pos2::new(mid.x + half, mid.y - half),
                 ],
-                stroke,
+                line,
             );
         }
     }
@@ -822,13 +838,18 @@ pub fn tint(c: Color32, amount: f32) -> Color32 {
     )
 }
 
+/// `c`'s stored RGB restamped at alpha `a`.
+#[must_use]
+pub fn with_alpha(c: Color32, a: u8) -> Color32 {
+    Color32::from_rgba_unmultiplied(c.r(), c.g(), c.b(), a)
+}
+
+/// Thin wrapper over [`sectorforge::export::system_map::contrast_text`]
+/// converting `egui::Color32` ↔ `image::Rgba<u8>`, like [`world_type_color`].
 pub fn contrast_text(c: Color32) -> Color32 {
-    let luma = 0.2126 * f32::from(c.r()) + 0.7152 * f32::from(c.g()) + 0.0722 * f32::from(c.b());
-    if luma > 140.0 {
-        Color32::from_rgb(20, 20, 30)
-    } else {
-        Color32::from_rgb(240, 240, 245)
-    }
+    let image::Rgba([r, g, b, a]) =
+        sectorforge::export::system_map::contrast_text(image::Rgba(c.to_array()));
+    Color32::from_rgba_premultiplied(r, g, b, a)
 }
 
 // ── Per-faction style (§8) ───────────────────────────────────────────────────
@@ -879,9 +900,7 @@ pub fn draw_faction_chip(ui: &mut Ui, style: FactionStyle) {
     let (rect, _resp) = ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
     let painter = ui.painter_at(rect);
     let bg = match style.border {
-        FactionBorder::Dotted => {
-            Color32::from_rgba_unmultiplied(style.fill.r(), style.fill.g(), style.fill.b(), 150)
-        }
+        FactionBorder::Dotted => with_alpha(style.fill, 150),
         _ => style.fill,
     };
     painter.rect_filled(rect, rounding, bg);

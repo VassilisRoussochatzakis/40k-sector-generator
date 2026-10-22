@@ -115,8 +115,8 @@ impl BuilderState {
         }
     }
 
-    /// Record that a catalog widget changed this frame (called from each
-    /// panel's `on_catalog_edited` and the continuous-editor `changed` blocks).
+    /// Record that a catalog widget changed this frame (called from prose /
+    /// history's `on_catalog_edited` and the other panels' `changed` blocks).
     /// Ensures a baseline exists (covers the rare case a panel mutates before
     /// `begin_catalog_session` ran) and arms the burst so it commits on settle.
     /// Does **not** itself push a command — coalescing waits for the burst to

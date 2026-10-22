@@ -18,42 +18,27 @@ use crate::names::{roman_numeral, NameTables};
 use crate::rng::{self, weighted_index};
 use crate::sector_model::{GeneratedWorld, WorldControlSummary, WorldDto};
 use crate::taxonomy;
-use crate::world_pool::{WorldCandidate, WorldCandidatePool};
+use crate::world_pool::{WeightedFeature, WorldCandidate, WorldCandidatePool};
 use crate::worlds::{NotableFeature, StarColour};
 
-pub(super) struct WorldGenParams<'a> {
-    pub config: &'a AppConfig,
-    pub pool: &'a WorldCandidatePool,
-    pub names: &'a NameTables,
-    pub system_index: usize,
-    pub system_name: &'a str,
-    pub star_colour: StarColour,
-    pub sys_rng: &'a mut ChaCha8Rng,
-    pub root_seed: &'a str,
-    pub anomaly_bias: bool,
-    /// Re-roll suffix folded into the per-world `("world",<world_id>)` RNG
-    /// discriminator. Empty (the default) reproduces the legacy key
-    /// byte-for-byte; `":r{n}"` yields a deterministic distinct world payload.
-    /// Worlds are folded under `Stage::Systems` for v1, so this carries the
-    /// `Stage::Systems` suffix.
-    pub reroll_suffix: &'a str,
-}
-
+/// `reroll_suffix` is folded into the per-world `("world",<world_id>)` RNG
+/// discriminator. Empty (the default) reproduces the legacy key
+/// byte-for-byte; `":r{n}"` yields a deterministic distinct world payload.
+/// Worlds are folded under `Stage::Systems` for v1, so this carries the
+/// `Stage::Systems` suffix.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn generate_worlds_for_system(
-    params: WorldGenParams,
+    config: &AppConfig,
+    pool: &WorldCandidatePool,
+    names: &NameTables,
+    system_index: usize,
+    system_name: &str,
+    star_colour: StarColour,
+    sys_rng: &mut ChaCha8Rng,
+    root_seed: &str,
+    anomaly_bias: bool,
+    reroll_suffix: &str,
 ) -> Result<Vec<GeneratedWorld>, SectorError> {
-    let WorldGenParams {
-        config,
-        pool,
-        names,
-        system_index,
-        system_name,
-        star_colour,
-        sys_rng,
-        root_seed,
-        anomaly_bias,
-        reroll_suffix,
-    } = params;
     let min_w = config.generation.min_worlds_per_system;
     let max_w = config.generation.max_worlds_per_system;
     let world_count = if min_w == max_w {
@@ -202,7 +187,17 @@ fn pick_features(
         seen.insert(f.clone());
     }
 
-    let tiers: [&[crate::world_pool::WeightedFeature]; 3] = [
+    // The key table drains last, every feature at weight 1.0.
+    let key_tier: Vec<WeightedFeature> = pool
+        .feature_pool
+        .key_table_features
+        .iter()
+        .map(|f| WeightedFeature {
+            feature: f.clone(),
+            weight: 1.0,
+        })
+        .collect();
+    let tiers: [&[WeightedFeature]; 4] = [
         pool.feature_pool
             .by_world_type
             .get(&cand.world_type)
@@ -214,6 +209,7 @@ fn pick_features(
             .map(Vec::as_slice)
             .unwrap_or(&[]),
         pool.feature_pool.global.as_slice(),
+        &key_tier,
     ];
 
     for tier in tiers {
@@ -225,27 +221,6 @@ fn pick_features(
             .filter(|wf| !seen.contains(&wf.feature))
             .map(|wf| (wf.feature.clone(), wf.weight))
             .collect();
-        while chosen.len() < target_count && !filtered.is_empty() {
-            let idx = match weighted_index(&filtered, rng, "feature") {
-                Ok(i) => i,
-                Err(_) => break,
-            };
-            let (feature, _) = filtered.remove(idx);
-            if seen.insert(feature.clone()) {
-                chosen.push(feature);
-            }
-        }
-    }
-
-    if chosen.len() < target_count {
-        let key_tier: Vec<(NotableFeature, f64)> = pool
-            .feature_pool
-            .key_table_features
-            .iter()
-            .filter(|f| !seen.contains(*f))
-            .map(|f| (f.clone(), 1.0))
-            .collect();
-        let mut filtered = key_tier;
         while chosen.len() < target_count && !filtered.is_empty() {
             let idx = match weighted_index(&filtered, rng, "feature") {
                 Ok(i) => i,
@@ -307,11 +282,7 @@ fn tags_for_world(world: &crate::worlds::World) -> Vec<Arc<str>> {
         format!("population:{}", snake(&world.population.to_string())).into(),
         format!("tech:{}", snake(&world.tech_level.to_string())).into(),
         format!("gov:{}", snake(&world.government.to_string())).into(),
-        format!(
-            "star:{}",
-            snake(taxonomy::star_colour_variant_name(world.star_colour))
-        )
-        .into(),
+        format!("star:{}", snake(&format!("{:?}", world.star_colour))).into(),
     ];
     for f in &world.notable_features {
         tags.push(format!("feature:{}", snake(f.as_ref())).into());

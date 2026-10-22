@@ -1515,7 +1515,7 @@ fn commit(state: &mut BuilderState, ui: &mut Ui) {
         {
             if let Ok(parent) = camino::Utf8PathBuf::from_path_buf(folder) {
                 if let Some(session) = state.iterative_gen.as_mut() {
-                    let slug = super::dir_slug(&session.root_seed);
+                    let slug = sectorforge::random_sector::dir_slug(&session.root_seed);
                     session.dest = Some(parent.join(format!("iterative-{slug}")));
                 }
             }

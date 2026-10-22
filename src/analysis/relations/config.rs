@@ -234,6 +234,8 @@ pub struct FactionRelation {
     pub tension: f32,
 }
 
+/// Declared from friendliest to most hostile — the derived `Ord` is the
+/// hostility ranking (`max` picks the more hostile attitude).
 #[derive(
     Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]
@@ -259,17 +261,6 @@ enum_slug!(RelationAttitude {
 }, display);
 
 impl RelationAttitude {
-    pub(super) fn level(self) -> i32 {
-        match self {
-            Self::Allied => -2,
-            Self::Friendly => -1,
-            Self::Transactional => 0,
-            Self::Suspicious => 1,
-            Self::Hostile => 2,
-            Self::ExistentialEnemy => 3,
-        }
-    }
-
     pub(super) fn from_stance(s: Stance) -> Self {
         match s {
             Stance::Allied => Self::Allied,

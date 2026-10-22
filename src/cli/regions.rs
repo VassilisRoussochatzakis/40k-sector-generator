@@ -23,11 +23,12 @@ pub(crate) fn run_regions(args: RegionsArgs) -> Result<ExitCode, sectorforge::Se
 
     let input = sectorforge::load_project(project)?;
     let cfg = input.catalogs.regions.clone();
-    let regs = sectorforge::build_regions(
+    let regs = sectorforge::regions::build_regions_reroll(
         &input.config.generation.seed,
         input.config.generation.sector_width,
         input.config.generation.sector_height,
         &cfg,
+        "",
     );
     emit_report(
         out,

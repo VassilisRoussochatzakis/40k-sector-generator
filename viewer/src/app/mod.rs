@@ -19,7 +19,7 @@ use sectorforge::heatmap::HeatmapMode;
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::Subsector;
 
-use super::{dashboard, editor, factions_overview, info_panel, palette, preset_gallery};
+use super::{dashboard, editor, info_panel, palette, preset_gallery};
 
 mod types;
 pub use types::*;
@@ -141,8 +141,6 @@ pub struct App {
     pub(super) segmentum: Option<Arc<SegmentumBundle>>,
     pub(super) segmentum_active_child: Option<std::sync::Arc<str>>,
     pub(super) segmentum_selected_link: Option<std::sync::Arc<str>>,
-    pub(super) factions_mode: FactionsMode,
-    pub(super) faction_designer: factions_overview::FactionDesignerState,
     pub(super) history_selected_event: Option<std::sync::Arc<str>>,
     pub(super) history_snapshots: Vec<(String, GeneratedSector)>,
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
@@ -191,8 +189,6 @@ impl Default for App {
             segmentum: None,
             segmentum_active_child: None,
             segmentum_selected_link: None,
-            factions_mode: FactionsMode::Overview,
-            faction_designer: factions_overview::FactionDesignerState::default(),
             history_selected_event: None,
             history_snapshots: Vec::new(),
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
@@ -243,7 +239,6 @@ impl eframe::App for App {
             self.applied_theme = Some(self.theme);
         }
 
-        self.handle_preview_logic(ctx);
         self.handle_export_job();
 
         layout::draw_top_bar(self, ctx);

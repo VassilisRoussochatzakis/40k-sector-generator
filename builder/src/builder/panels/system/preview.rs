@@ -24,26 +24,11 @@ pub(crate) fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys
         let panel_width = ui.available_width();
         ui.horizontal(|ui| {
             ui.label("Layout:");
-            let mut horiz = matches!(state.system_view.layout, SystemLayout::Horizontal);
-            if ui
-                .selectable_label(horiz, "Horizontal")
-                .on_hover_text("Star left, planets arrayed right in orbit order")
-                .clicked()
-            {
-                horiz = true;
-            }
-            if ui
-                .selectable_label(!horiz, "Orbital")
-                .on_hover_text("Concentric orbit rings")
-                .clicked()
-            {
-                horiz = false;
-            }
-            state.system_view.layout = if horiz {
-                SystemLayout::Horizontal
-            } else {
-                SystemLayout::Orbital
-            };
+            let layout = &mut state.system_view.layout;
+            ui.selectable_value(layout, SystemLayout::Horizontal, "Horizontal")
+                .on_hover_text("Star left, planets arrayed right in orbit order");
+            ui.selectable_value(layout, SystemLayout::Orbital, "Orbital")
+                .on_hover_text("Concentric orbit rings");
             ui.separator();
             ui.label("Size:");
             ui.add(

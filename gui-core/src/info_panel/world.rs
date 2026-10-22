@@ -7,7 +7,9 @@ use sectorforge::sector_model::GeneratedWorld;
 
 use crate::palette::world_type_color;
 
-use super::{dim, kv, legend_row, section, short, stability_block, title};
+use super::{
+    dim, kv, legend_row, list_block, opt_kv_block, section, short, stability_block, title,
+};
 
 pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
     title(ui, &format!("WORLD: {}", w.name.to_uppercase()));
@@ -114,33 +116,19 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         }
     }
     let wc = &w.control;
-    if wc.dominant.is_some()
-        || wc.sovereign.is_some()
-        || wc.occupier.is_some()
-        || wc.economic_hegemon.is_some()
-        || wc.popular_authority.is_some()
-        || wc.hidden_master.is_some()
-    {
-        ui.add_space(8.0);
-        section(ui, "CONTROL");
-        if let Some(v) = &wc.dominant {
-            kv(ui, "DOMINANT", &v.to_uppercase());
-        }
-        if let Some(v) = &wc.sovereign {
-            kv(ui, "SOVEREIGN", &v.to_uppercase());
-        }
-        if let Some(v) = &wc.occupier {
-            kv(ui, "OCCUPIER", &v.to_uppercase());
-        }
-        if let Some(v) = &wc.economic_hegemon {
-            kv(ui, "ECONOMIC", &v.to_uppercase());
-        }
-        if let Some(v) = &wc.popular_authority {
-            kv(ui, "POPULAR", &v.to_uppercase());
-        }
-        if let Some(v) = &wc.hidden_master {
-            kv(ui, "HIDDEN", &v.to_uppercase());
-        }
+    if opt_kv_block(
+        ui,
+        "CONTROL",
+        usize::MAX,
+        &[
+            ("DOMINANT", wc.dominant.as_deref()),
+            ("SOVEREIGN", wc.sovereign.as_deref()),
+            ("OCCUPIER", wc.occupier.as_deref()),
+            ("ECONOMIC", wc.economic_hegemon.as_deref()),
+            ("POPULAR", wc.popular_authority.as_deref()),
+            ("HIDDEN", wc.hidden_master.as_deref()),
+        ],
+    ) {
         if wc.contested {
             dim(ui, "CONTESTED");
         }
@@ -190,18 +178,6 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
             );
         }
     }
-    if !w.tags.is_empty() {
-        ui.add_space(8.0);
-        section(ui, "TAGS");
-        for t in &w.tags {
-            dim(ui, &t.to_uppercase());
-        }
-    }
-    if !w.notes.is_empty() {
-        ui.add_space(8.0);
-        section(ui, "NOTES");
-        for n in &w.notes {
-            dim(ui, n);
-        }
-    }
+    list_block(ui, "TAGS", &w.tags, true);
+    list_block(ui, "NOTES", &w.notes, false);
 }

@@ -3,10 +3,10 @@
 
 use crate::sector_model::{ClaimType, GeneratedSystem, GeneratedWorld};
 
-use super::build::build_event;
-use super::context::EmitContext;
+use super::build::EmitContext;
 use super::labels::article_phrase;
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
+use super::systems::{flush_capped, heaviest_then_topo, Draft};
 
 pub(super) fn emit_world_events(
     ctx: &EmitContext,
@@ -14,7 +14,7 @@ pub(super) fn emit_world_events(
     w: &GeneratedWorld,
     out: &mut Vec<HistoryEvent>,
 ) {
-    let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
+    let mut buf: Vec<Draft> = Vec::new();
 
     // Foundation — every world gets one.
     let foundation_text = format!(
@@ -156,23 +156,11 @@ pub(super) fn emit_world_events(
         ));
     }
 
-    // Truncate per-world, retain strongest.
-    if buf.len() as u32 > ctx.cfg.max_events_per_world {
-        buf.sort_by(|a, b| {
-            b.3.cmp(&a.3)
-                .then_with(|| a.0.topo_rank().cmp(&b.0.topo_rank()))
-        });
-        buf.truncate(ctx.cfg.max_events_per_world as usize);
-    }
-
-    // Resort by topological rank so the chronicle reads forward.
-    buf.sort_by_key(|a| a.0.topo_rank());
-
-    for (i, (kind, text, factions, weight)) in buf.into_iter().enumerate() {
-        let anchor = HistoryAnchor::World {
-            system_id: sys.id.clone(),
-            world_id: w.id.clone(),
-        };
-        out.push(build_event(ctx, anchor, kind, text, factions, weight, i));
-    }
+    // Truncate per-world, retain strongest, then emit in topological order.
+    let anchor = HistoryAnchor::World {
+        system_id: sys.id.clone(),
+        world_id: w.id.clone(),
+    };
+    let cap = ctx.cfg.max_events_per_world;
+    flush_capped(ctx, buf, cap, heaviest_then_topo, anchor, out);
 }

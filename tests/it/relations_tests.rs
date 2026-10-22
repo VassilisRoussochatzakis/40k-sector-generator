@@ -18,7 +18,7 @@ use sectorforge::{
 
 use crate::shared::{
     assert_derive_deterministic, derivation_proptest_config, fixture_dir, fixture_sector,
-    gen_sector,
+    prop_seed_deterministic,
 };
 
 fn build_report(sector: &GeneratedSector, cfg: &RelationsConfig) -> RelationsReport {
@@ -215,14 +215,7 @@ proptest! {
     /// the same seed yield byte-identical report JSON, with canonical pair order.
     #[test]
     fn relations_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
-        let s1 = gen_sector(&seed);
-        let s2 = gen_sector(&seed);
-        let a = build_report(&s1, &RelationsConfig::default());
-        let b = build_report(&s2, &RelationsConfig::default());
-        prop_assert_eq!(
-            serde_json::to_string(&a).unwrap(),
-            serde_json::to_string(&b).unwrap()
-        );
+        let a = prop_seed_deterministic(&seed, |s| build_report(s, &RelationsConfig::default()))?;
         for p in &a.matrix.pairs {
             prop_assert!(p.a.as_str() < p.b.as_str(), "pair not canonical: {} {}", p.a, p.b);
         }

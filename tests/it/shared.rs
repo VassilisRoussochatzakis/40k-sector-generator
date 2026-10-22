@@ -8,11 +8,12 @@
 use std::collections::BTreeSet;
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::OnceLock;
 
 use camino::Utf8PathBuf;
 use proptest::prelude::*;
-use sectorforge::{generate_sector, load_project, GeneratedSector};
+use sectorforge::{generate_sector, load_project, GeneratedSector, ProjectInput};
 
 pub fn fixture_dir() -> Utf8PathBuf {
     Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
@@ -36,6 +37,34 @@ pub fn goldens_dir() -> Utf8PathBuf {
 /// suites that drive the binary as a subprocess.
 pub fn bin() -> &'static str {
     env!("CARGO_BIN_EXE_sectorforge")
+}
+
+/// Run the binary with `args`, returning `(exit_code, stdout, stderr)`.
+pub fn run_cli(args: &[&str]) -> (Option<i32>, String, String) {
+    let out = Command::new(bin())
+        .args(args)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to spawn `sectorforge {args:?}`: {e}"));
+    (
+        out.status.code(),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+/// [`run_cli`], asserting a zero exit; returns stdout.
+pub fn run_cli_ok(args: &[&str]) -> String {
+    let (code, stdout, stderr) = run_cli(args);
+    assert_eq!(code, Some(0), "`sectorforge {args:?}` failed: {stderr}");
+    stdout
+}
+
+/// A fresh tempdir and its UTF-8 path. Keep the guard bound for the whole test
+/// (`let (_tmp, dir) = tempdir_utf8();`, never `_`): dropping it deletes the dir.
+pub fn tempdir_utf8() -> (tempfile::TempDir, Utf8PathBuf) {
+    let tmp = tempfile::tempdir().unwrap();
+    let path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    (tmp, path)
 }
 
 /// The shared `ProptestConfig` for the derivation/invariant proptest suites:
@@ -94,12 +123,17 @@ prop_compose! {
     }
 }
 
+/// The m42 fixture project, loaded once per process; each call returns a clone.
+pub fn fixture_input() -> ProjectInput {
+    static INPUT: OnceLock<ProjectInput> = OnceLock::new();
+    INPUT
+        .get_or_init(|| load_project(fixture_dir()).expect("load fixture project"))
+        .clone()
+}
+
 pub fn fixture_sector() -> &'static GeneratedSector {
     static SECTOR: OnceLock<GeneratedSector> = OnceLock::new();
-    SECTOR.get_or_init(|| {
-        let input = load_project(fixture_dir()).expect("load fixture project");
-        generate_sector(input).expect("generate fixture sector")
-    })
+    SECTOR.get_or_init(|| generate_sector(fixture_input()).expect("generate fixture sector"))
 }
 
 /// Generate a fresh sector from `seed`, independent of the memoised
@@ -110,6 +144,23 @@ pub fn gen_sector(seed: &str) -> GeneratedSector {
     let mut input = load_project(fixture_dir()).expect("load fixture");
     input.config.generation.seed = seed.to_string();
     generate_sector(input).expect("generate fixture")
+}
+
+/// Generate `seed`'s sector twice, independently, and `prop_assert` that
+/// `derive` serialises byte-identically on both; returns the first result for
+/// the suite's own checks. Shared by the economy/relations/hooks/personae
+/// `*_derive_deterministic_across_seeds` proptests.
+pub fn prop_seed_deterministic<T: serde::Serialize>(
+    seed: &str,
+    derive: impl Fn(&GeneratedSector) -> T,
+) -> Result<T, TestCaseError> {
+    let a = derive(&gen_sector(seed));
+    let b = derive(&gen_sector(seed));
+    prop_assert_eq!(
+        serde_json::to_string(&a).unwrap(),
+        serde_json::to_string(&b).unwrap()
+    );
+    Ok(a)
 }
 
 /// Recursively copy the directory tree at `src` into `dst` (both real
@@ -152,4 +203,51 @@ pub fn assert_blake3_golden(file_name: &str, env: &str, bytes: &[u8]) {
         "{file_name} drifted from the pinned hash ({} bytes); if intentional, rerun with `{env}=1`",
         bytes.len(),
     );
+}
+
+/// Compare `actual` against the committed golden `file_name`. With the `env`
+/// gate set, (re)writes the golden and returns. On drift, reports the first
+/// differing line rather than dumping the whole multi-KB file.
+pub fn assert_content_golden(file_name: &str, env: &str, actual: &str) {
+    let path = goldens_dir().join(file_name);
+    if std::env::var_os(env).is_some() {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, actual).unwrap();
+        return;
+    }
+    let expected = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+        panic!("missing golden {file_name}; bless with `{env}=1 cargo test --test it -- golden`")
+    });
+    if expected != actual {
+        let (line, exp_l, act_l) = first_line_diff(&expected, actual);
+        panic!(
+            "{file_name} drifted from the committed golden at line {line}:\n  \
+             golden: {exp_l:?}\n  actual: {act_l:?}\n(golden {} bytes, actual {} \
+             bytes). If intentional, rerun with `{env}=1 cargo test --test it -- \
+             golden` and review `git diff tests/goldens/`.",
+            expected.len(),
+            actual.len(),
+        );
+    }
+}
+
+/// First line (1-based) at which two texts diverge, with both lines. Only
+/// called once a byte-level difference is known to exist.
+fn first_line_diff(expected: &str, actual: &str) -> (usize, String, String) {
+    let mut e = expected.lines();
+    let mut a = actual.lines();
+    let mut n = 0;
+    loop {
+        n += 1;
+        match (e.next(), a.next()) {
+            (Some(el), Some(al)) if el == al => continue,
+            (el, al) => {
+                return (
+                    n,
+                    el.unwrap_or("<end of file>").to_string(),
+                    al.unwrap_or("<end of file>").to_string(),
+                );
+            }
+        }
+    }
 }

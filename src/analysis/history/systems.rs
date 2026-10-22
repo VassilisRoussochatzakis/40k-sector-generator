@@ -2,11 +2,12 @@
 //! and archetype activations (necron awakening, tyranid contact, ork waaagh,
 //! GSC exposure, tau contact, aeldari raiding, chaos incursion).
 
+use std::cmp::Ordering;
+
 use crate::archetypes::{GscStage, NecronPhase, TauSphereBand, TyranidStage};
 use crate::sector_model::{GeneratedSystem, SystemState};
 
-use super::build::build_event;
-use super::context::EmitContext;
+use super::build::{build_event, EmitContext};
 use super::labels::{gsc_stage_label, tau_band_label};
 use super::model::{EventKind, HistoryAnchor, HistoryEvent};
 
@@ -15,7 +16,7 @@ pub(super) fn emit_system_events(
     sys: &GeneratedSystem,
     out: &mut Vec<HistoryEvent>,
 ) {
-    let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
+    let mut buf: Vec<Draft> = Vec::new();
 
     if let Some(state) = sys.control.state {
         match state {
@@ -179,19 +180,40 @@ pub(super) fn emit_system_events(
         ));
     }
 
-    if buf.len() as u32 > ctx.cfg.max_events_per_system {
-        buf.sort_by(|a, b| {
-            b.3.cmp(&a.3)
-                .then_with(|| a.0.topo_rank().cmp(&b.0.topo_rank()))
-        });
-        buf.truncate(ctx.cfg.max_events_per_system as usize);
+    let anchor = HistoryAnchor::System {
+        system_id: sys.id.clone(),
+    };
+    let cap = ctx.cfg.max_events_per_system;
+    flush_capped(ctx, buf, cap, heaviest_then_topo, anchor, out);
+}
+
+/// One buffered event before anchoring: kind, text, factions, weight.
+pub(super) type Draft = (EventKind, String, Vec<crate::ids::FactionId>, u8);
+
+/// Shared tail of the system / world / route chroniclers: over `cap`, keep the
+/// first `cap` drafts in `strongest_first` order; then re-sort by topological
+/// rank so the chronicle reads forward, and emit each under `anchor`.
+pub(super) fn flush_capped(
+    ctx: &EmitContext,
+    mut buf: Vec<Draft>,
+    cap: u32,
+    strongest_first: impl FnMut(&Draft, &Draft) -> Ordering,
+    anchor: HistoryAnchor,
+    out: &mut Vec<HistoryEvent>,
+) {
+    if buf.len() as u32 > cap {
+        buf.sort_by(strongest_first);
+        buf.truncate(cap as usize);
     }
     buf.sort_by_key(|a| a.0.topo_rank());
-
     for (i, (kind, text, factions, weight)) in buf.into_iter().enumerate() {
-        let anchor = HistoryAnchor::System {
-            system_id: sys.id.clone(),
-        };
+        let anchor = anchor.clone();
         out.push(build_event(ctx, anchor, kind, text, factions, weight, i));
     }
+}
+
+/// Heaviest first; equal weights by topological rank.
+pub(super) fn heaviest_then_topo(a: &Draft, b: &Draft) -> Ordering {
+    b.3.cmp(&a.3)
+        .then_with(|| a.0.topo_rank().cmp(&b.0.topo_rank()))
 }

@@ -4,6 +4,7 @@ use camino::Utf8PathBuf;
 use serde::Serialize;
 
 use sectorforge::config::OutputFormat;
+use sectorforge::history::should_report_progress;
 use sectorforge::validation::Severity;
 use sectorforge::{SectorProgress, SegmentumProgress};
 
@@ -132,7 +133,6 @@ fn severity_tag(s: Severity) -> &'static str {
     match s {
         Severity::Error => "ERROR",
         Severity::Warning => "WARN",
-        Severity::Info => "INFO",
         _ => "UNKNOWN",
     }
 }
@@ -158,8 +158,11 @@ pub fn parse_heatmap(
         "supply" | "supply_vulnerability" | "supply-vulnerability" => {
             Ok(HeatmapMode::SupplyVulnerability)
         }
+        "conflict" | "conflict_intensity" | "conflict-intensity" => {
+            Ok(HeatmapMode::ConflictIntensity)
+        }
         other => Err(sectorforge::SectorError::InvalidConfig(format!(
-            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel|tension|trade_volume|food|tithe|supply)"
+            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel|tension|trade_volume|food|tithe|supply|conflict)"
         ))),
     }
 }
@@ -241,29 +244,13 @@ fn parse_format_tokens(
     Ok(out)
 }
 
-pub fn load_or_regenerate(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-) -> Result<sectorforge::GeneratedSector, sectorforge::SectorError> {
-    match (project, sector) {
-        (Some(project), None) => {
-            let input = sectorforge::load_project(&project)?;
-            sectorforge::generate_sector(input)
-        }
-        (None, Some(sector)) => sectorforge::load_sector_json(&sector),
-        (Some(_), Some(_)) | (None, None) => Err(sectorforge::SectorError::InvalidConfig(
-            "pass exactly one of --project <dir> or --sector <path>".into(),
-        )),
-    }
-}
-
 /// Resolve a derived-report runner's sector plus its per-runner config `C` from
 /// exactly one of `--project` / `--sector` (C2 / C-S1). On `--project`,
 /// `extract` pulls the runner's config out of the loaded `ProjectInput`
 /// **before** `generate_sector` consumes it; on `--sector` there is no project
 /// config, so `C::default()` is used. Centralises the "pass exactly one of …"
-/// error that was inlined across six runners. (`load_or_regenerate` above is the
-/// no-config variant for runners that need only the sector.)
+/// error that was inlined across six runners. Runners that need only the
+/// sector pass `|_| ()`.
 pub fn resolve_sector_with_cfg<C: Default>(
     project: Option<&Utf8PathBuf>,
     sector: Option<&Utf8PathBuf>,
@@ -421,7 +408,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             worlds,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: generated systems {current}/{total} (last {worlds} world(s))"
             ));
@@ -452,7 +439,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             changed_routes,
             bridge_checks,
             bridges_preserved,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: region route effects scanned {current}/{total} route(s), affected {affected_routes}, changed {changed_routes}, bridge checks {bridge_checks}, preserved {bridges_preserved}"
             ));
@@ -508,7 +495,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             "{prefix}: applied hidden routes (+{added}, total {routes})"
         )),
         SectorProgress::RouteControlsProgress { current, total }
-            if should_log_progress(current, total) =>
+            if should_report_progress(current, total) =>
         {
             log_progress(format_args!(
                 "{prefix}: derived route control {current}/{total}"
@@ -518,7 +505,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             log_progress(format_args!("{prefix}: derived control for {routes} route(s)"));
         }
         SectorProgress::SystemStateDerived { current, total }
-            if should_log_progress(current, total) =>
+            if should_report_progress(current, total) =>
         {
             log_progress(format_args!("{prefix}: derived system state {current}/{total}"));
         }
@@ -588,7 +575,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             events,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: chronicle scanned systems {current}/{total} ({events} event(s))"
             ));
@@ -597,7 +584,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             events,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: chronicle scanned routes {current}/{total} ({events} event(s))"
             ));
@@ -624,19 +611,6 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             log_progress(format_args!("{prefix}: stage `{stage}` took {millis} ms"));
         }
         _ => {}
-    }
-}
-
-fn should_log_progress(current: usize, total: usize) -> bool {
-    current == 1 || current == total || current.is_multiple_of(progress_stride(total))
-}
-
-fn progress_stride(total: usize) -> usize {
-    match total {
-        0..=25 => 1,
-        26..=100 => 10,
-        101..=500 => 25,
-        _ => 100,
     }
 }
 
@@ -767,6 +741,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_heatmap_accepts_every_mode_slug() {
+        // Bug 5: `ConflictIntensity` was in `ALL` but unreachable from the CLI.
+        for &mode in HeatmapMode::ALL {
+            assert_eq!(parse_heatmap(mode.as_slug()).unwrap(), mode);
+        }
+    }
+
+    #[test]
     fn parse_heatmap_unknown_token_errors() {
         let err = parse_heatmap("nonsense").unwrap_err();
         assert!(
@@ -776,29 +758,12 @@ mod tests {
         );
     }
 
-    // ── load_or_regenerate + resolve_sector_with_cfg (Gap 8) ───────────────
+    // ── resolve_sector_with_cfg (Gap 8) ────────────────────────────────────
 
     /// Marker config: its `Default` is `MarkerCfg(0)`. Used to prove the
     /// `--sector` arm substitutes `C::default()` and never runs `extract`.
     #[derive(Debug, Default, PartialEq)]
     struct MarkerCfg(u32);
-
-    /// Both fns share the "exactly one of --project / --sector" guard; the
-    /// `(None, None)` and `(Some, Some)` arms short-circuit before any I/O.
-    #[test]
-    fn load_or_regenerate_requires_exactly_one_source() {
-        let err = load_or_regenerate(None, None).unwrap_err();
-        assert!(
-            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
-            "expected exactly-one error for (None, None)"
-        );
-
-        let err = load_or_regenerate(Some("a".into()), Some("b".into())).unwrap_err();
-        assert!(
-            matches!(err, SectorError::InvalidConfig(m) if m.contains("pass exactly one of")),
-            "expected exactly-one error for (Some, Some)"
-        );
-    }
 
     #[test]
     fn resolve_sector_with_cfg_requires_exactly_one_source() {

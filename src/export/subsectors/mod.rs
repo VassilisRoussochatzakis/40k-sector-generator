@@ -8,7 +8,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::ids::SystemId;
@@ -19,9 +18,10 @@ use crate::sector_model::{
 /// Default target system count per subsector. Cluster count is derived as
 /// `ceil(system_count / target)`.
 pub const DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR: u32 = 12;
+/// Hard cap on Lloyd refinement iterations.
 pub const DEFAULT_CLUSTER_ITERATIONS: u32 = 24;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Subsector {
     pub id: Arc<str>,
     pub sector_id: Arc<str>,
@@ -39,7 +39,6 @@ pub struct Subsector {
     pub route_ids_internal: Vec<crate::ids::RouteId>,
     pub route_ids_border: Vec<crate::ids::RouteId>,
 
-    pub neighboring_subsector_ids: Vec<String>,
     pub connected_subsector_ids: Vec<String>,
 
     pub summary: SubsectorSummary,
@@ -47,7 +46,7 @@ pub struct Subsector {
     pub notes: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub struct SubsectorBounds {
     pub q_min: u32,
     pub q_max: u32,
@@ -55,7 +54,7 @@ pub struct SubsectorBounds {
     pub r_max: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SubsectorSummary {
     pub system_count: u32,
     pub world_count: u32,
@@ -70,23 +69,20 @@ pub struct SubsectorSummary {
     pub dominant_factions: Vec<ScoredId>,
     pub faction_control: Vec<FactionControlSummary>,
     pub world_type_counts: BTreeMap<Arc<str>, u32>,
-    pub star_colour_counts: BTreeMap<Arc<str>, u32>,
     pub population_counts: BTreeMap<Arc<str>, u32>,
     pub tech_level_counts: BTreeMap<Arc<str>, u32>,
     pub government_counts: BTreeMap<Arc<str>, u32>,
     pub feature_counts: BTreeMap<Arc<str>, u32>,
-    pub route_type_counts: BTreeMap<Arc<str>, u32>,
     pub route_stability_counts: BTreeMap<Arc<str>, u32>,
-    pub tag_counts: BTreeMap<Arc<str>, u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ScoredId {
     pub id: crate::ids::FactionId,
     pub score: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct FactionControlSummary {
     pub faction_id: crate::ids::FactionId,
     pub owned_system_count: u32,
@@ -94,10 +90,8 @@ pub struct FactionControlSummary {
     pub owned_world_count: u32,
     pub system_share_basis_points: u32,
     pub inhabited_system_share_basis_points: u32,
-    pub world_share_basis_points: u32,
     pub control_score: i32,
     pub control_tier: Arc<str>,
-    pub contested_system_count: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -105,19 +99,12 @@ pub struct SubsectorConfig {
     /// Average number of systems each cluster should contain. Cluster count
     /// `K = ceil(system_count / target_systems_per_subsector)`.
     pub target_systems_per_subsector: u32,
-    /// Hard cap on Lloyd refinement iterations.
-    pub max_iterations: u32,
-    pub include_empty_subsectors: bool,
-    pub faction_control_top_n: usize,
 }
 
 impl Default for SubsectorConfig {
     fn default() -> Self {
         Self {
             target_systems_per_subsector: DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
-            max_iterations: DEFAULT_CLUSTER_ITERATIONS,
-            include_empty_subsectors: true,
-            faction_control_top_n: 5,
         }
     }
 }
@@ -235,7 +222,6 @@ pub fn build_subsectors(
                 hex_cells: Vec::new(),
                 route_ids_internal: Vec::new(),
                 route_ids_border: Vec::new(),
-                neighboring_subsector_ids: Vec::new(),
                 connected_subsector_ids: Vec::new(),
                 summary: SubsectorSummary::default(),
                 tags: Vec::new(),
@@ -338,10 +324,6 @@ pub fn build_subsectors(
     for (_, ci) in system_to_cluster.iter_mut() {
         *ci = new_index_by_old[ci];
     }
-    let hex_cluster_new: BTreeMap<(u32, u32), usize> = hex_cluster
-        .into_iter()
-        .map(|(k, v)| (k, new_index_by_old[&v]))
-        .collect();
 
     // Route classification.
     for route in &sector.routes {
@@ -375,13 +357,10 @@ pub fn build_subsectors(
         }
     }
 
-    // Neighbor adjacency: any two clusters whose hexes share an edge.
-    let neighbors = compute_neighbor_adjacency(&hex_cluster_new, sector, &cells);
-    for (ci, neigh_ids) in neighbors.into_iter().enumerate() {
-        cells[ci].neighboring_subsector_ids = neigh_ids;
-        cells[ci].route_ids_internal.sort();
-        cells[ci].route_ids_border.sort();
-        cells[ci].connected_subsector_ids.sort();
+    for cell in &mut cells {
+        cell.route_ids_internal.sort();
+        cell.route_ids_border.sort();
+        cell.connected_subsector_ids.sort();
     }
 
     // Summaries.
@@ -393,12 +372,7 @@ pub fn build_subsectors(
             route_degree: &route_degree,
             stable_route_degree: &stable_route_degree,
             owners: &owners,
-            config: &config,
         });
-    }
-
-    if !config.include_empty_subsectors {
-        cells.retain(|c| !c.system_ids.is_empty());
     }
 
     Ok(cells)
@@ -557,7 +531,7 @@ fn cluster_systems(
 
     // Lloyd refinement over hex distance.
     let mut assignment: Vec<usize> = vec![usize::MAX; n];
-    for _iter in 0..config.max_iterations {
+    for _iter in 0..DEFAULT_CLUSTER_ITERATIONS {
         // Assign each system to its nearest seed; ties favor the lower seed idx.
         for i in 0..n {
             let mut best = (u32::MAX, usize::MAX);
@@ -643,46 +617,6 @@ fn assign_hex_grid(sector: &GeneratedSector, seed_ids: &[SystemId]) -> BTreeMap<
     out
 }
 
-/// For each cluster, build the sorted list of neighbor subsector ids: clusters
-/// whose hexes share at least one pointy-top hex edge across the cluster border.
-fn compute_neighbor_adjacency(
-    hex_cluster: &BTreeMap<(u32, u32), usize>,
-    sector: &GeneratedSector,
-    cells: &[Subsector],
-) -> Vec<Vec<String>> {
-    let mut adjacency: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); cells.len()];
-    for r in 0..sector.height {
-        let neighbor_deltas = crate::sector_model::offset_r_neighbors(r as i32);
-        for q in 0..sector.width {
-            let Some(&here) = hex_cluster.get(&(q, r)) else {
-                continue;
-            };
-            for (dq, dr) in &neighbor_deltas {
-                let nq = q as i32 + dq;
-                let nr = r as i32 + dr;
-                if nq < 0 || nr < 0 || nq as u32 >= sector.width || nr as u32 >= sector.height {
-                    continue;
-                }
-                let Some(&there) = hex_cluster.get(&(nq as u32, nr as u32)) else {
-                    continue;
-                };
-                if there != here {
-                    adjacency[here].insert(there);
-                    adjacency[there].insert(here);
-                }
-            }
-        }
-    }
-    adjacency
-        .into_iter()
-        .map(|set| {
-            let mut v: Vec<String> = set.into_iter().map(|i| cells[i].id.to_string()).collect();
-            v.sort();
-            v
-        })
-        .collect()
-}
-
 /// Row-major spreadsheet label: 0→A, 25→Z, 26→AA.
 pub fn subsector_label(index: u32) -> String {
     let mut n = index as i64 + 1;
@@ -702,7 +636,7 @@ fn push_unique(v: &mut Vec<String>, s: String) {
     }
 }
 
-mod summary;
+pub(crate) mod summary;
 use summary::{
     pick_capital, populate_summary, population_rank, resolve_system_owners, tech_rank,
     SummaryParams,
@@ -825,13 +759,9 @@ mod tests {
     }
 
     #[test]
-    fn empty_subsectors_dropped_when_requested_yields_one_for_single_system() {
+    fn single_system_yields_one_subsector() {
         let sector = mini_sector(32, 32, vec![(0, 0)]);
-        let cfg = SubsectorConfig {
-            include_empty_subsectors: false,
-            ..SubsectorConfig::default()
-        };
-        let subs = build_subsectors(&sector, cfg).unwrap();
+        let subs = build_subsectors(&sector, SubsectorConfig::default()).unwrap();
         assert_eq!(subs.len(), 1);
     }
 
@@ -850,7 +780,6 @@ mod tests {
         sector.systems[1].name = "Bromios".into();
         let cfg = SubsectorConfig {
             target_systems_per_subsector: 1,
-            ..SubsectorConfig::default()
         };
         let subs = build_subsectors(&sector, cfg).unwrap();
         // Each cluster should have one system, named after it.
@@ -896,7 +825,6 @@ mod tests {
         // sys-0003 forms its own cluster.
         let cfg = SubsectorConfig {
             target_systems_per_subsector: 2,
-            ..SubsectorConfig::default()
         };
         let subs = build_subsectors(&sector, cfg).unwrap();
         let owner_of = |sid: &str| -> &Subsector {

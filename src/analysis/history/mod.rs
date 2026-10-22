@@ -19,7 +19,6 @@ use crate::sector_model::GeneratedSector;
 
 mod build;
 mod config;
-mod context;
 mod labels;
 mod markdown;
 mod model;
@@ -40,15 +39,9 @@ pub use model::{
     EventKind, HistoryAnchor, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind,
     HistoryEntityRef, HistoryEvent, HistoryReport, SectorChronicle,
 };
-pub use progress::HistoryProgress;
+pub use progress::{should_report_progress, HistoryProgress};
 
-use context::EmitContext;
-use progress::should_report_history_progress;
-
-#[must_use]
-pub fn derive(sector: &GeneratedSector) -> HistoryReport {
-    derive_with(sector, &HistoryConfig::default())
-}
+use build::EmitContext;
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryReport {
@@ -114,7 +107,7 @@ pub fn derive_with_progress_reroll(
             worlds::emit_world_events(&ctx, sys, world, &mut events);
         }
         let current = idx + 1;
-        if should_report_history_progress(current, system_total) {
+        if should_report_progress(current, system_total) {
             progress(HistoryProgress::SystemsScanned {
                 current,
                 total: system_total,
@@ -126,7 +119,7 @@ pub fn derive_with_progress_reroll(
     for (idx, route) in sector.routes.iter().enumerate() {
         routes::emit_route_events(&ctx, route, &mut events);
         let current = idx + 1;
-        if should_report_history_progress(current, route_total) {
+        if should_report_progress(current, route_total) {
             progress(HistoryProgress::RoutesScanned {
                 current,
                 total: route_total,

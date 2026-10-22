@@ -111,7 +111,26 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
                 ui.separator();
                 show_manual_editor(ui, state);
                 ui.separator();
-                show_save_row(ui, state);
+                super::catalog_save_row(
+                    ui,
+                    state.data_catalogs.missions.is_some(),
+                    state,
+                    |i| &mut i.missions,
+                    DEFAULT_MISSIONS_PATH,
+                    [
+                        "💾  Save missions",
+                        "Write the mission settings and hand-written missions to disk.",
+                        "Saving missions failed",
+                    ],
+                    |ui, path| {
+                        if path.is_none() {
+                            ui.colored_label(Color32::DARK_GRAY, "not saved yet")
+                                .on_hover_text(format!(
+                                    "Will be written to {DEFAULT_MISSIONS_PATH}."
+                                ));
+                        }
+                    },
+                );
             });
     });
 }
@@ -164,10 +183,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Mission settings").strong());
-    ensure_missions_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.missions.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.missions.get_or_insert_default();
     let mut changed = false;
     labeled(
         ui,
@@ -190,7 +206,8 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
         },
     );
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
 }
 
@@ -201,7 +218,7 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(RichText::new("Show").strong());
         let label = match state.missions_panel.filter_kind {
             None => "all kinds".to_string(),
-            Some(k) => kind_label(k).to_string(),
+            Some(k) => kind_label(k),
         };
         ui_kit::combo("m1_kind", label).show_ui(ui, |ui| {
             ui.selectable_value(&mut state.missions_panel.filter_kind, None, "all kinds");
@@ -248,7 +265,7 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
     for m in &rows {
         let is_selected = selected.as_deref() == Some(m.id.as_str());
         let title = if m.title.is_empty() {
-            kind_label(m.kind).to_string()
+            kind_label(m.kind)
         } else {
             m.title.clone()
         };
@@ -494,10 +511,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     // Existing sector ids feed the location / faction pickers below. Built
     // once here (sorted, deterministic) and shared across every manual row.
     let existing = ExistingRefs::from_state(state);
-    ensure_missions_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.missions.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.missions.get_or_insert_default();
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
@@ -557,7 +571,8 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         })
     });
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     if let Some((idx, label)) = pending_delete {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
@@ -685,24 +700,7 @@ fn manual_mission_editor(
         "Routes",
         "Travel routes this mission touches, as a comma-separated list of route ids (schema: route_ids).",
         |ui| {
-            let mut csv = m
-                .route_ids
-                .iter()
-                .map(|r| r.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-            if ui
-                .add(egui::TextEdit::singleline(&mut csv).hint_text("route-1, route-2…"))
-                .changed()
-            {
-                m.route_ids = csv
-                    .split(',')
-                    .map(|t| t.trim())
-                    .filter(|t| !t.is_empty())
-                    .map(RouteId::new)
-                    .collect();
-                changed = true;
-            }
+            changed |= super::roster::csv_field(ui, &mut m.route_ids, ",", "route-1, route-2…");
         },
     );
     labeled(
@@ -937,32 +935,6 @@ fn faction_field(
     changed
 }
 
-// ── save row ──────────────────────────────────────────────────────────────
-
-fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    let has_catalog = state.data_catalogs.missions.is_some();
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_catalog, egui::Button::new("💾  Save missions"))
-            .on_hover_text("Write the mission settings and hand-written missions to disk.")
-            .clicked()
-        {
-            if state.config.inputs.missions.is_none() {
-                state.config.inputs.missions = Some(DEFAULT_MISSIONS_PATH.into());
-            }
-            if let Err(e) = crate::builder::project_io::save_project(state) {
-                state.feedback.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Saving missions failed: {e}"
-                )));
-            }
-        }
-        if state.config.inputs.missions.is_none() {
-            ui.colored_label(Color32::DARK_GRAY, "not saved yet")
-                .on_hover_text(format!("Will be written to {DEFAULT_MISSIONS_PATH}."));
-        }
-    });
-}
-
 // ── shared helpers ─────────────────────────────────────────────────────────
 
 fn ensure_missions_catalog(state: &mut BuilderState) {
@@ -977,21 +949,9 @@ fn ensure_missions_catalog(state: &mut BuilderState) {
     state.note_catalog_edit();
 }
 
-fn ensure_missions_catalog_if_needed(state: &mut BuilderState) {
-    if state.data_catalogs.missions.is_none() {
-        state.data_catalogs.missions = Some(MissionsConfig::default());
-    }
-}
-
-fn on_catalog_edited(state: &mut BuilderState) {
-    // Audit finding #8: arm the coalescing session (see personae.rs), then run
-    // the shared post-edit bookkeeping.
-    state.note_catalog_edit();
-    after_catalog_commit(state);
-}
-
-/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
-/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+/// Post-catalog-edit bookkeeping shared by the in-session edits (which first arm
+/// the coalescing session via `note_catalog_edit`, audit finding #8) and the
+/// out-of-session `delete_manual` (which commits via `edit_catalogs`).
 fn after_catalog_commit(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.missions.clone(), DEFAULT_MISSIONS_PATH);
     state.mark_validation_dirty();
@@ -1029,18 +989,8 @@ fn focus_primary_location(state: &mut BuilderState, loc: &str, routes: &[RouteId
     }
 }
 
-fn kind_label(k: MissionKind) -> &'static str {
-    match k {
-        MissionKind::Investigate => "Investigate",
-        MissionKind::Escort => "Escort",
-        MissionKind::Sabotage => "Sabotage",
-        MissionKind::Diplomacy => "Diplomacy",
-        MissionKind::Assassination => "Assassination",
-        MissionKind::Recovery => "Recovery",
-        MissionKind::Defense => "Defense",
-        MissionKind::Exploration => "Exploration",
-        _ => "Unknown",
-    }
+fn kind_label(k: MissionKind) -> String {
+    super::system::pretty_slug(k.as_slug())
 }
 
 fn scale_label(s: MissionScale) -> &'static str {
@@ -1052,14 +1002,8 @@ fn scale_label(s: MissionScale) -> &'static str {
     }
 }
 
-fn visibility_label(v: MissionVisibility) -> &'static str {
-    match v {
-        MissionVisibility::Public => "Public",
-        MissionVisibility::Restricted => "Restricted",
-        MissionVisibility::Secret => "Secret",
-        MissionVisibility::Misinformation => "Misinformation",
-        _ => "Unknown",
-    }
+fn visibility_label(v: MissionVisibility) -> String {
+    super::system::pretty_slug(v.as_slug())
 }
 
 #[cfg(test)]

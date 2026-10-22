@@ -140,12 +140,11 @@ What it **can** edit is confined to an already-built sector and its generation i
 
 - live map edits behind an **EDIT MAP** toggle on the sector/system views (add/remove systems, routes, planets);
 - a structured **EDIT-MAP** tab with MAP / ROUTES / FACTIONS / SETTINGS sub-tabs and per-system / per-world inspectors;
-- a typed, grid-based **worlds.toml data editor** (DATA-RAW tab) that saves back to disk;
-- with full project context (`sectorforge.toml` + `data/`), **RE-GENERATE / RE-ROLL** and **constraint search (Wishes)** that re-invoke the existing generation engine.
+- a typed, grid-based **worlds.toml data editor** (DATA-RAW tab) that saves back to disk.
 
 It can open/scaffold-new/save/save-as projects and export PNG / SVG / HTML / JSON bundle / per-system PNGs.
 
-**The builder-vs-viewer boundary:** the viewer hand-edits an already-built sector's data and can re-run the pipeline on a loaded project, but it has **no command bus and no undo/redo**. Free-form, stage-by-stage construction — world-pool curation, region/influence/chronicle authoring, presence/claim/roster/relations/economy overrides — lives only in the builder. In short: *view, analyze, and lightly edit an already-generated sector in the viewer; build a sector from scratch in the builder.*
+**The builder-vs-viewer boundary:** the viewer hand-edits an already-built sector's data, but it has **no command bus and no undo/redo**. Free-form, stage-by-stage construction — world-pool curation, region/influence/chronicle authoring, presence/claim/roster/relations/economy overrides — lives only in the builder. In short: *view, analyze, and lightly edit an already-generated sector in the viewer; build a sector from scratch in the builder.*
 
 Launch options (window opens at 1400×900):
 
@@ -156,7 +155,7 @@ cargo run -p sectorforge-viewer -- --segmentum path/to/segmentum.json   # open a
 cargo run -p sectorforge-viewer                           # start with no sector loaded
 ```
 
-`--project <dir>` resolves the first existing of `<dir>`, `<dir>/out/sector.json`, `<dir>/sector.json`; when the file sits in an `out/` dir it also sets the editor's project root, enabling the worlds.toml editor and the Generation/Wishes tabs.
+`--project <dir>` resolves the first existing of `<dir>`, `<dir>/out/sector.json`, `<dir>/sector.json`; when the file sits in an `out/` dir it also sets the editor's project root, enabling the worlds.toml editor.
 
 ## CLI reference
 
@@ -219,7 +218,7 @@ Generate a full sector (all configured exports) from a project directory.
 | `--seed <SEED>` | Override the seed from `sectorforge.toml`. |
 | `--out <DIR>` | Override the output directory. |
 | `--allow-warnings` | Continue if validation produced warnings (not errors). |
-| `--heatmap <MODE>` | PNG heatmap mode: `off`, `control`, `military`, `trade`, `industrial`, `covert`, `faith`, `threat`, `intel`, `tension`, `trade_volume`, `food`, `tithe`, `supply`. |
+| `--heatmap <MODE>` | PNG heatmap mode: `off`, `control`, `military`, `trade`, `industrial`, `covert`, `faith`, `threat`, `intel`, `tension`, `trade_volume`, `food`, `tithe`, `supply`, `conflict`. |
 | `--no-faction-fill` | Disable the per-system planet-map faction tint (the sector hex grid itself is never faction-tinted). |
 | `--theme <THEME>` | PNG map theme: `gm_dark`, `print_mono`, `imperial_archive`, `navis_tactical`, `inquisition_redacted`, `subsector_political`. |
 | `--constraints <PATH>` | Constraint file the generated sector must satisfy. |
@@ -731,7 +730,7 @@ All four crates share one version (0.1.0), edition (2021), and MSRV (1.87) via `
 | `sectorforge-viewer` | `viewer/` | Egui viewer (eframe) with limited in-place editing (map/faction/world edits, `worlds.toml` data editor, save/save-as). Depends on `sectorforge` + `sectorforge-gui-core`. |
 | `sectorforge-gui-core` | `gui-core/` | Shared egui widget library (`SectorView`, palette, `info_panel`, and the rest of the GUI chrome) used by both the builder and viewer. Owns the raw paint primitives; `#![forbid(unsafe_code)]`. |
 
-The builder and viewer both enable the `sectorforge-gui-core/bundled-fonts` feature by default, so the shipping apps build with bundled fonts on (the gui-core feature itself is opt-in/off by default). Integration tests live as a single-binary suite under `tests/it/`.
+The builder and viewer both ship the bundled fonts that `gui-core` always embeds (no feature flag). Integration tests live as a single-binary suite under `tests/it/`.
 
 ## Development
 
@@ -752,14 +751,7 @@ cargo clippy --workspace --all-targets -- -D warnings   # lint, warnings as erro
 cargo test --test it segmentum -- --ignored
 ```
 
-Several criterion benchmarks (`generation`, `briefing`, `seed_search`, `influence_field`, `render_png`) are defined as `[[bench]]` targets and are separate from the test suite.
-
-**Fuzzing.** The `fuzz/` crate (cargo-fuzz + `libfuzzer-sys`) fuzzes the attacker-controlled parser surfaces. It is deliberately kept *outside* the workspace because `libfuzzer-sys` requires a nightly toolchain, so `--workspace` builds stay on stable. Six targets cover the config/data parsers: `config_parse`, `worlds_toml_parse`, `factions_toml_parse`, `sector_json_parse`, `presets_load`, `map_theme_parse_color`.
-
-```bash
-cargo install cargo-fuzz                      # one-time
-cd fuzz && cargo +nightly fuzz run config_parse
-```
+Several criterion benchmarks (`generation`, `briefing`, `seed_search`, `influence_field`) are defined as `[[bench]]` targets and are separate from the test suite.
 
 ## Documentation
 

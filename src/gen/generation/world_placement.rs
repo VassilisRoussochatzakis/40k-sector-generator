@@ -307,11 +307,7 @@ fn tags_for_world(world: &crate::worlds::World) -> Vec<Arc<str>> {
         format!("population:{}", snake(&world.population.to_string())).into(),
         format!("tech:{}", snake(&world.tech_level.to_string())).into(),
         format!("gov:{}", snake(&world.government.to_string())).into(),
-        format!(
-            "star:{}",
-            snake(taxonomy::star_colour_variant_name(world.star_colour))
-        )
-        .into(),
+        format!("star:{}", snake(&format!("{:?}", world.star_colour))).into(),
     ];
     for f in &world.notable_features {
         tags.push(format!("feature:{}", snake(f.as_ref())).into());

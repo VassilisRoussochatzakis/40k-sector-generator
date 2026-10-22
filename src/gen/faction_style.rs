@@ -32,22 +32,6 @@ pub enum FactionBorder {
     Unknown,
 }
 
-impl FactionBorder {
-    /// Canonical lowercase spelling — matches the serialized form and the
-    /// strings accepted by [`parse_border`]. `Unknown` renders as `"thin"`
-    /// (its rendering fallback), so round-tripping through a UI combo stays a
-    /// known value.
-    #[must_use]
-    pub fn as_str(self) -> &'static str {
-        match self {
-            FactionBorder::Clean => "clean",
-            FactionBorder::Jagged => "jagged",
-            FactionBorder::Dotted => "dotted",
-            FactionBorder::Thin | FactionBorder::Unknown => "thin",
-        }
-    }
-}
-
 /// RGB-flavoured `FactionStyle`. The GUI re-wraps `fill` / `accent` as
 /// `egui::Color32`; the bitmap renderer wraps them as `image::Rgba<u8>`.
 #[derive(Debug, Clone, Copy)]
@@ -216,18 +200,6 @@ pub fn rgb_to_hex(rgb: (u8, u8, u8)) -> String {
     format!("#{:02X}{:02X}{:02X}", rgb.0, rgb.1, rgb.2)
 }
 
-/// Parse a border-style spelling. `"clean"`, `"jagged"`, `"dotted"`, `"thin"`.
-#[must_use]
-pub fn parse_border(s: &str) -> Option<FactionBorder> {
-    match s.trim().to_ascii_lowercase().as_str() {
-        "clean" => Some(FactionBorder::Clean),
-        "jagged" => Some(FactionBorder::Jagged),
-        "dotted" => Some(FactionBorder::Dotted),
-        "thin" => Some(FactionBorder::Thin),
-        _ => None,
-    }
-}
-
 /// §F2: derive a style honoring per-faction `FactionDef` overrides before
 /// falling back to the kind/id deterministic palette.
 #[must_use]
@@ -238,7 +210,7 @@ pub fn faction_style_rgb_with_overrides(
     fill_override: Option<&str>,
     accent_override: Option<&str>,
     glyph_override: Option<&str>,
-    border_override: Option<&str>,
+    border_override: Option<FactionBorder>,
 ) -> FactionStyleRgb {
     let mut base = faction_style_rgb(kind, id, disposition);
     if let Some(rgb) = fill_override.and_then(parse_hex_rgb) {
@@ -250,7 +222,7 @@ pub fn faction_style_rgb_with_overrides(
     if let Some(g) = glyph_override.and_then(|s| s.chars().next()) {
         base.glyph = g;
     }
-    if let Some(b) = border_override.and_then(parse_border) {
+    if let Some(b) = border_override {
         base.border = b;
     }
     base
@@ -296,21 +268,6 @@ mod tests {
     }
 
     #[test]
-    fn border_parser_covers_all_variants() {
-        assert!(matches!(parse_border("clean"), Some(FactionBorder::Clean)));
-        assert!(matches!(
-            parse_border("JAGGED"),
-            Some(FactionBorder::Jagged)
-        ));
-        assert!(matches!(
-            parse_border("dotted"),
-            Some(FactionBorder::Dotted)
-        ));
-        assert!(matches!(parse_border("thin"), Some(FactionBorder::Thin)));
-        assert!(parse_border("nope").is_none());
-    }
-
-    #[test]
     fn overrides_replace_derived_fields() {
         let derived = faction_style_rgb("imperial", "f1", "lawful");
         let custom = faction_style_rgb_with_overrides(
@@ -320,7 +277,7 @@ mod tests {
             Some("#112233"),
             Some("#445566"),
             Some("X"),
-            Some("jagged"),
+            Some(FactionBorder::Jagged),
         );
         assert_eq!(custom.fill, (0x11, 0x22, 0x33));
         assert_eq!(custom.accent, (0x44, 0x55, 0x66));

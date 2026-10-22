@@ -633,10 +633,6 @@ pub fn write_relations(
     relations::write_report(output_dir.as_ref(), report)
 }
 
-/// §5 NEW.md: build the regional warp-phenomena overlay for a sector grid.
-/// `cfg.enabled = false` returns an empty list (the default).
-pub use regions::build_regions;
-
 /// §5 NEW.md: write `regions.md` + `regions.json` into a directory.
 ///
 /// # Errors

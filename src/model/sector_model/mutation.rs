@@ -9,11 +9,10 @@
 use std::collections::BTreeMap;
 use thiserror::Error;
 
-use crate::ids::{route_id, system_id, world_id, FactionId, RouteId, SystemId, WorldId};
+use crate::ids::{route_id, system_id, world_id, RouteId, SystemId, WorldId};
 use crate::regions::{RegionConditionKind, WarpRegion};
 use crate::sector_model::{
-    GeneratedFaction, GeneratedRoute, GeneratedStar, GeneratedWorld, HexCoord, RouteStability,
-    RouteType, SystemKind,
+    GeneratedRoute, GeneratedStar, GeneratedWorld, HexCoord, RouteStability, RouteType, SystemKind,
 };
 
 use super::GeneratedSector;
@@ -37,8 +36,6 @@ pub enum MutationError {
     CoordOccupied(HexCoord),
     #[error("duplicate route between {0} and {1}")]
     DuplicateRoute(String, String),
-    #[error("duplicate faction: {0}")]
-    DuplicateFaction(String),
     #[error("route endpoints must differ ({0})")]
     SelfRoute(String),
     #[error("history event index out of range: {0}")]
@@ -342,34 +339,6 @@ impl GeneratedSector {
         Ok(())
     }
 
-    // ── Faction mutations ───────────────────────────────────────────────────
-
-    /// Insert a new faction with the given `id`, `name`, and `kind`. Returns the
-    /// assigned id on success, or [`MutationError::DuplicateFaction`] if a
-    /// faction with that id already exists (so the duplicate case is observable
-    /// rather than a silent no-op).
-    pub fn add_faction(
-        &mut self,
-        id: FactionId,
-        name: &str,
-        kind: &str,
-    ) -> Result<FactionId, MutationError> {
-        if self.factions.iter().any(|f| f.id == id) {
-            return Err(MutationError::DuplicateFaction(id.to_string()));
-        }
-        self.factions.push(GeneratedFaction {
-            id: id.clone(),
-            name: name.into(),
-            kind: kind.into(),
-            disposition: "neutral".into(),
-            subfactions: Vec::new(),
-            system_presence: Vec::new(),
-            world_presence: Vec::new(),
-            power: Default::default(),
-        });
-        Ok(id)
-    }
-
     // ── Region mutations ────────────────────────────────────────────────────
 
     pub fn add_region(
@@ -562,7 +531,8 @@ impl GeneratedSector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sector_model::HexCoord;
+    use crate::ids::FactionId;
+    use crate::sector_model::{GeneratedFaction, HexCoord};
 
     fn empty() -> GeneratedSector {
         GeneratedSector::empty("t", "Title", "seed", 8, 8)
@@ -645,15 +615,17 @@ mod tests {
             .unwrap();
 
         // a faction present on the removed system + its world, plus on a survivor
-        let f = s
-            .add_faction(FactionId::new("imperium"), "Imperium", "imperial")
-            .unwrap();
-        {
-            let fac = s.factions.iter_mut().find(|x| x.id == f).unwrap();
-            fac.system_presence.push(a.clone());
-            fac.system_presence.push(b.clone());
-            fac.world_presence.push(wa.clone());
-        }
+        let f = FactionId::new("imperium");
+        s.factions.push(GeneratedFaction {
+            id: f.clone(),
+            name: "Imperium".into(),
+            kind: "imperial".into(),
+            disposition: "neutral".into(),
+            subfactions: Vec::new(),
+            system_presence: vec![a.clone(), b.clone()],
+            world_presence: vec![wa.clone()],
+            power: Default::default(),
+        });
 
         s.remove_system(&a).unwrap();
 

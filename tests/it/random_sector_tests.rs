@@ -8,8 +8,8 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 use sectorforge::random_sector::{
-    build_random_config, generate_random_sector, generate_random_sector_from, mint_seed,
-    RandomReport, SectorSize,
+    build_random_config, generate_random_sector_from, mint_seed, RandomReport, SectorSize,
+    FULL_PRESET_ID,
 };
 
 use crate::shared::presets_dir;
@@ -130,7 +130,9 @@ fn random_small_and_medium_are_complete() {
     ] {
         let tmp = tempfile::TempDir::new().unwrap();
         let dest = fresh_dest(&tmp, name);
-        let report = generate_random_sector(size, Some(seed.to_string()), &dir, &dest).unwrap();
+        let report =
+            generate_random_sector_from(size, Some(seed.to_string()), FULL_PRESET_ID, &dir, &dest)
+                .unwrap();
         assert_complete(&report, size);
     }
 }
@@ -144,7 +146,14 @@ fn random_custom_size_respects_dims() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = fresh_dest(&tmp, "custom");
     let size = SectorSize::Custom { dim: 9 };
-    let report = generate_random_sector(size, Some("it-custom".to_string()), &dir, &dest).unwrap();
+    let report = generate_random_sector_from(
+        size,
+        Some("it-custom".to_string()),
+        FULL_PRESET_ID,
+        &dir,
+        &dest,
+    )
+    .unwrap();
     assert_eq!(report.sector.width, 9);
     assert_eq!(report.sector.height, 9);
     assert_complete(&report, size);
@@ -159,8 +168,14 @@ fn random_huge_is_complete() {
     }
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = fresh_dest(&tmp, "huge");
-    let report =
-        generate_random_sector(SectorSize::Huge, Some("it-huge".to_string()), &dir, &dest).unwrap();
+    let report = generate_random_sector_from(
+        SectorSize::Huge,
+        Some("it-huge".to_string()),
+        FULL_PRESET_ID,
+        &dir,
+        &dest,
+    )
+    .unwrap();
     assert_complete(&report, SectorSize::Huge);
 }
 
@@ -174,7 +189,14 @@ fn random_max_80x80_completes() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = fresh_dest(&tmp, "max80");
     let size = SectorSize::Custom { dim: 80 };
-    let report = generate_random_sector(size, Some("it-80x80".to_string()), &dir, &dest).unwrap();
+    let report = generate_random_sector_from(
+        size,
+        Some("it-80x80".to_string()),
+        FULL_PRESET_ID,
+        &dir,
+        &dest,
+    )
+    .unwrap();
     assert_eq!(report.sector.width, 80);
     assert_eq!(report.sector.height, 80);
     // The big grid still satisfies every completeness guarantee.
@@ -188,16 +210,18 @@ fn random_is_byte_deterministic() {
         return;
     }
     let tmp = tempfile::TempDir::new().unwrap();
-    let a = generate_random_sector(
+    let a = generate_random_sector_from(
         SectorSize::Small,
         Some("repro".to_string()),
+        FULL_PRESET_ID,
         &dir,
         &fresh_dest(&tmp, "a"),
     )
     .unwrap();
-    let b = generate_random_sector(
+    let b = generate_random_sector_from(
         SectorSize::Small,
         Some("repro".to_string()),
+        FULL_PRESET_ID,
         &dir,
         &fresh_dest(&tmp, "b"),
     )

@@ -245,14 +245,8 @@ pub struct WarpRegion {
 // ── Stage entry point ─────────────────────────────────────────────────────────
 
 /// Build the warp-region overlay for a sector grid. Deterministic given the
-/// root seed and the grid dimensions.
-#[must_use]
-pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -> Vec<WarpRegion> {
-    build_regions_reroll(seed, width, height, cfg, "")
-}
-
-/// Like [`build_regions`] but folds a re-roll suffix into the RNG discriminator.
-/// An empty suffix reproduces the legacy `("regions","sector")` key exactly
+/// root seed and the grid dimensions; folds a re-roll suffix into the RNG
+/// discriminator. An empty suffix reproduces the legacy `("regions","sector")` key exactly
 /// (byte-identical); a `":r{n}"` suffix yields a deterministic distinct region
 /// layout. Regions **draws** RNG (grid shuffle + weighted condition picks), so
 /// the suffix matters here.
@@ -383,7 +377,7 @@ fn sample_condition(
 /// `occupied`. Returns the grown footprint sorted by `(r, q)`.
 ///
 /// Exposed so the builder can grow a single user-seeded region without going
-/// through the full `build_regions` stage.
+/// through the full `build_regions_reroll` stage.
 pub fn seed_region(
     seed: &str,
     discriminator: &str,
@@ -833,14 +827,14 @@ mod tests {
 
     #[test]
     fn disabled_yields_empty() {
-        let regions = build_regions("seed", 6, 6, &RegionsConfig::default());
+        let regions = build_regions_reroll("seed", 6, 6, &RegionsConfig::default(), "");
         assert!(regions.is_empty());
     }
 
     #[test]
     fn deterministic_blobs() {
-        let a = build_regions("seed", 8, 8, &cfg(3, 5));
-        let b = build_regions("seed", 8, 8, &cfg(3, 5));
+        let a = build_regions_reroll("seed", 8, 8, &cfg(3, 5), "");
+        let b = build_regions_reroll("seed", 8, 8, &cfg(3, 5), "");
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
@@ -849,7 +843,7 @@ mod tests {
 
     #[test]
     fn blob_size_in_bounds() {
-        let regions = build_regions("seed", 8, 8, &cfg(2, 5));
+        let regions = build_regions_reroll("seed", 8, 8, &cfg(2, 5), "");
         assert!(!regions.is_empty());
         for r in &regions {
             assert!(!r.hexes.is_empty());

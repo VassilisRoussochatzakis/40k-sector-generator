@@ -1620,8 +1620,17 @@ pub(crate) mod tests {
     #[test]
     fn apply_faction_power_round_trip() {
         let mut s = empty();
-        s.add_faction(FactionId::from("f"), "F", "imperial")
-            .unwrap();
+        s.factions
+            .push(sectorforge::sector_model::GeneratedFaction {
+                id: FactionId::from("f"),
+                name: "F".into(),
+                kind: "imperial".into(),
+                disposition: "neutral".into(),
+                subfactions: Vec::new(),
+                system_presence: Vec::new(),
+                world_presence: Vec::new(),
+                power: Default::default(),
+            });
         s.factions[0].power.military = 7.0;
         let mut after = std::collections::BTreeMap::new();
         after.insert(
@@ -2364,8 +2373,17 @@ pub(crate) mod tests {
     #[test]
     fn derive_baseline_intel_round_trip() {
         let mut s = empty();
-        s.add_faction(FactionId::from("imperium"), "Imperium", "imperial")
-            .unwrap();
+        s.factions
+            .push(sectorforge::sector_model::GeneratedFaction {
+                id: FactionId::from("imperium"),
+                name: "Imperium".into(),
+                kind: "imperial".into(),
+                disposition: "neutral".into(),
+                subfactions: Vec::new(),
+                system_presence: Vec::new(),
+                world_presence: Vec::new(),
+                power: Default::default(),
+            });
         let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
         let wid = s.add_world_to_system(&sys, "W").unwrap();
         let sys_intel_before_empty = s.get_system(&sys).unwrap().intel.is_empty();

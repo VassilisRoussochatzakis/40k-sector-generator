@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 
 use crate::config::WorldSelectionConfig;
 use crate::errors::SectorError;
-use crate::taxonomy;
 use crate::worlds::{
     Atmosphere, Biosphere, GenerationRow, Government, NotableFeature, Population, StarColour,
     TechLevel, Temperature, World, WorldType,
@@ -324,7 +323,7 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     let mut feat_counts: BTreeMap<String, usize> = BTreeMap::new();
 
     for c in &pool.candidates {
-        let sc_name = taxonomy::star_colour_variant_name(c.star_colour).to_string();
+        let sc_name = format!("{:?}", c.star_colour);
         *star_totals.entry(sc_name).or_insert(0.0) += c.weight;
         *wt_totals.entry(c.world_type.to_string()).or_insert(0.0) += c.weight;
         if let Some(f) = &c.primary_feature {

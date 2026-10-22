@@ -74,13 +74,13 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | File | Purpose |
 |---|---|
 | [src/gen/generation/mod.rs](../src/gen/generation/mod.rs) | Sector generation facade: `SectorProgress`, `generate*` orchestrator, manifest build |
-| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | Size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector`, `RandomReport` |
+| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | Size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector_from[_with_progress]`, `RandomReport` |
 | [src/gen/generation/placement.rs](../src/gen/generation/placement.rs) | Hex grid placement with min-distance relaxation |
 | [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming, spectral fallback |
 | [src/gen/generation/world_placement.rs](../src/gen/generation/world_placement.rs) | Per-world build: candidate pick, features, naming, tags, `regenerate_world_payload` |
 | [src/gen/generation/factions.rs](../src/gen/generation/factions.rs) | Faction assignment + `aggregate_factions` + `assign_factions_for_systems` |
 | [src/gen/generation/routes.rs](../src/gen/generation/routes.rs) | Public route graph + `classify_route` + union-find connector |
-| [src/gen/generation/reroll.rs](../src/gen/generation/reroll.rs) | Iterative-generation prefix-run seam: `Stage` (18 variants; declaration order = pipeline order, `Stage::LAST`) + `RerollNonces` (`bump`/`get`/`suffix`) folding a `":r{n}"` suffix into each stage's RNG discriminator — empty at nonce 0, so one-shot output stays byte-identical |
+| [src/gen/generation/reroll.rs](../src/gen/generation/reroll.rs) | Iterative-generation prefix-run seam: `Stage` (18 variants; declaration order = pipeline order, `Stage::LAST`) + `RerollNonces` (`bump`/`suffix`) folding a `":r{n}"` suffix into each stage's RNG discriminator — empty at nonce 0, so one-shot output stays byte-identical |
 | [src/gen/world_pool.rs](../src/gen/world_pool.rs) | GenerationRow → weighted candidate pool (+ authored-feature overlay) |
 | [src/gen/archetypes.rs](../src/gen/archetypes.rs) | Archetype activations (necron/tyranid/ork/GSC/tau/aeldari/chaos) |
 | [src/gen/faction_style.rs](../src/gen/faction_style.rs) | Per-faction glyph + colour palette |
@@ -387,7 +387,7 @@ top-level tab router.
 | [builder/src/builder/panels/project.rs](../builder/src/builder/panels/project.rs) | PROJECT tab (§N1/§N2): composes Phase-A project I/O surfaces |
 | [builder/src/builder/panels/project_tree.rs](../builder/src/builder/panels/project_tree.rs) | §P4 PROJECT tree panel |
 | [builder/src/builder/panels/new_project.rs](../builder/src/builder/panels/new_project.rs) | New-project wizard (§P1) |
-| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard — `ModalKind::GenerateRandom` → `generate_random_sector` → `open_project` |
+| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard — `ModalKind::GenerateRandom` → `generate_random_sector_from_with_progress` → `open_project` |
 | [builder/src/builder/panels/iterative_gen.rs](../builder/src/builder/panels/iterative_gen.rs) | Iterative-generation wizard (`show`): 7-step rail with per-step knob forms, a live `SectorView` preview of the current prefix run, and the reroll/back/forward/accept/cancel action bar. Grid size is edited only through `BuilderState::set_grid_dim` so width and height can never diverge (square-sector invariant) |
 | [builder/src/builder/panels/open_project.rs](../builder/src/builder/panels/open_project.rs) | Open-project picker (§P2) |
 | [builder/src/builder/panels/save_project.rs](../builder/src/builder/panels/save_project.rs) | Save-project actions (§P3) |

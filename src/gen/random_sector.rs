@@ -535,39 +535,8 @@ fn patch_regions_toml(text: &str, count: u32, mean_size: u32) -> String {
     out
 }
 
-/// Synthesise, generate, and fully derive a random sector into `dest`.
-///
-/// `presets_dir` must contain the [`FULL_PRESET_ID`] preset (use
-/// [`crate::presets::default_presets_dir`] for the standard location). `dest`
-/// must **not** already exist — it
-/// is created fresh, so callers headless of the builder typically pass a path
-/// inside a [`tempfile::TempDir`].
-///
-/// # Errors
-///
-/// Propagates every error from scaffolding, loading, validation, and
-/// generation. Returns [`SectorError::ValidationFailed`] if the synthesised
-/// project fails pre-generation validation (should not happen for the rolled
-/// ranges, but guards against a malformed preset bundle).
-pub fn generate_random_sector(
-    size: SectorSize,
-    seed: Option<String>,
-    presets_dir: &Utf8Path,
-    dest: &Utf8Path,
-) -> Result<RandomReport, SectorError> {
-    generate_random_sector_from_with_progress(
-        size,
-        seed,
-        FULL_PRESET_ID,
-        presets_dir,
-        dest,
-        &mut |_| {},
-    )
-}
-
-/// As [`generate_random_sector`], but scaffolds the data tree from an explicit
-/// `baseline` preset id (no-op progress). See
-/// [`generate_random_sector_from_with_progress`] for the baseline semantics.
+/// [`generate_random_sector_from_with_progress`] with a no-op progress
+/// callback; see it for the baseline semantics.
 ///
 /// # Errors
 ///
@@ -582,9 +551,13 @@ pub fn generate_random_sector_from(
     generate_random_sector_from_with_progress(size, seed, baseline, presets_dir, dest, &mut |_| {})
 }
 
-/// As [`generate_random_sector`], but scaffolds the content +
-/// overlay *data tree* from an explicit `baseline` preset id (e.g.
-/// `"dead-sector"`) instead of [`FULL_PRESET_ID`].
+/// Synthesise, generate, and fully derive a random sector into `dest`,
+/// scaffolding the content + overlay *data tree* from the `baseline` preset id
+/// ([`FULL_PRESET_ID`] for the standard bundle, or a themed one such as
+/// `"dead-sector"`). Use [`crate::presets::default_presets_dir`] for the
+/// standard `presets_dir`. `dest` must **not** already exist — it is created
+/// fresh, so callers headless of the builder typically pass a path inside a
+/// [`tempfile::TempDir`].
 ///
 /// The rolled `[generation]` config is byte-identical for the same
 /// `(size, seed)` regardless of the baseline — only the scaffolded data tree
@@ -601,8 +574,11 @@ pub fn generate_random_sector_from(
 ///
 /// # Errors
 ///
-/// Identical to [`generate_random_sector`]; additionally surfaces
-/// any scaffolding error if `baseline` is missing or incomplete.
+/// Propagates every error from scaffolding, loading, validation, and
+/// generation — including a scaffolding error if `baseline` is missing or
+/// incomplete. Returns [`SectorError::ValidationFailed`] if the synthesised
+/// project fails pre-generation validation (should not happen for the rolled
+/// ranges, but guards against a malformed preset bundle).
 pub fn generate_random_sector_from_with_progress(
     size: SectorSize,
     seed: Option<String>,

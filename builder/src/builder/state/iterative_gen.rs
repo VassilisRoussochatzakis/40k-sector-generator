@@ -1407,14 +1407,14 @@ mod step_nav_tests {
 
         let s = sess(&state);
         assert_eq!(
-            s.nonces.get(Stage::RouteControls),
-            1,
+            s.nonces.suffix(Stage::RouteControls),
+            ":r1",
             "re-rolling Routes bumps its owned stage nonce once"
         );
         // No other stage nonce moved.
-        assert_eq!(s.nonces.get(Stage::Placement), 0);
-        assert_eq!(s.nonces.get(Stage::Systems), 0);
-        assert_eq!(s.nonces.get(Stage::Factions), 0);
+        assert_eq!(s.nonces.suffix(Stage::Placement), "");
+        assert_eq!(s.nonces.suffix(Stage::Systems), "");
+        assert_eq!(s.nonces.suffix(Stage::Factions), "");
         // DAG retreat: Routes.prev() == Factions (ALL order is
         // Size, Placement, Regions, Systems, Factions, Routes, Finalize).
         assert_eq!(s.accepted_through, Some(GenStep::Factions));
@@ -1429,7 +1429,7 @@ mod step_nav_tests {
         let mut state = session_state();
         state.reroll_step(&ctx(), GenStep::Placement);
         state.reroll_step(&ctx(), GenStep::Placement);
-        assert_eq!(sess(&state).nonces.get(Stage::Placement), 2);
+        assert_eq!(sess(&state).nonces.suffix(Stage::Placement), ":r2");
     }
 
     /// Re-rolling `Size` re-mints `root_seed` (fresh entropy), mirrors it into
@@ -1465,8 +1465,8 @@ mod step_nav_tests {
         assert_eq!(s.config.generation.sector_width, 8);
         assert_eq!(s.config.generation.sector_height, 8);
         // All nonces reset to zero, including the one bumped above.
-        assert_eq!(s.nonces.get(Stage::Systems), 0);
-        assert_eq!(s.nonces.get(Stage::Placement), 0);
+        assert_eq!(s.nonces.suffix(Stage::Systems), "");
+        assert_eq!(s.nonces.suffix(Stage::Placement), "");
         // Size invalidates everything downstream.
         assert_eq!(s.accepted_through, None);
     }

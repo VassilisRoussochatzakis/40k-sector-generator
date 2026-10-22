@@ -5,12 +5,14 @@ use image::Rgba;
 use crate::export::render_core::RenderOptions;
 use crate::heatmap::HeatmapMode;
 use crate::map_theme::LegendStyle;
-use crate::sector_model::{GeneratedSector, RouteStability, RouteType};
+use crate::sector_model::{GeneratedSector, RouteType};
 
 use super::colors::{darken, rgba_from_tuple, route_thickness, short, stability_color};
 use super::primitives::{circle, line, rect, text};
 use super::routes::{draw_route_pattern, ControlKind};
-use crate::export::render_core::labels::factions_visible;
+use crate::export::render_core::legend::{
+    faction_row, legend_lines, COMPACT_STABILITY_ROWS, CONTROL_ROWS, STABILITY_ROWS,
+};
 
 pub(super) const LEGEND_PAD: f32 = 16.0;
 const LINE_H: f32 = 18.0;
@@ -21,38 +23,7 @@ pub(super) fn legend_height(sector: &GeneratedSector, opts: &RenderOptions) -> f
     if matches!(opts.theme.legend, LegendStyle::Hidden) {
         return 0.0;
     }
-    let heatmap_lines: i32 = if matches!(opts.heatmap, HeatmapMode::Off) {
-        0
-    } else {
-        2
-    };
-    if matches!(opts.theme.legend, LegendStyle::Compact) {
-        let lines = 4 + 1 + 5 + 1 + factions_visible(sector) as i32 + heatmap_lines;
-        return LEGEND_PAD.mul_add(2.0, lines as f32 * LINE_H);
-    }
-    let route_type_rows = match opts.route_view_mode {
-        crate::sector_model::RouteViewMode::Detailed => RouteType::ALL.len() as i32,
-        crate::sector_model::RouteViewMode::TopLevel => {
-            crate::sector_model::RouteKind::ALL.len() as i32
-        }
-    };
-    let route_control_lines: i32 = if sector.routes.iter().any(|r| !r.controls.is_empty()) {
-        5
-    } else {
-        0
-    };
-    let lines = 4
-        + 1
-        + route_type_rows
-        + 1
-        + 1
-        + 4
-        + 1
-        + route_control_lines
-        + 1
-        + factions_visible(sector) as i32
-        + heatmap_lines;
-    LEGEND_PAD.mul_add(2.0, lines as f32 * LINE_H)
+    LEGEND_PAD.mul_add(2.0, legend_lines(sector, opts) as f32 * LINE_H)
 }
 
 pub(super) fn draw_legend(
@@ -168,12 +139,7 @@ pub(super) fn draw_legend(
     // ROUTE STABILITY
     text(s, x0, y, "ROUTE STABILITY", theme.text, BODY_FONT, "start");
     y += LINE_H;
-    for (stab, name) in [
-        (RouteStability::Stable, "STABLE"),
-        (RouteStability::Unstable, "UNSTABLE"),
-        (RouteStability::Hazardous, "HAZARDOUS"),
-        (RouteStability::Perilous, "PERILOUS"),
-    ] {
+    for (stab, name) in STABILITY_ROWS {
         let color = stability_color(theme, stab);
         line(
             s,
@@ -198,12 +164,7 @@ pub(super) fn draw_legend(
         let glyph_size = 10.0;
         let half = glyph_size * 0.5;
         let neutral = theme.route_control_neutral;
-        for (name, kind) in [
-            ("PATROL", ControlKind::Patrol),
-            ("TOLL", ControlKind::Toll),
-            ("INTERDICTION", ControlKind::Interdiction),
-            ("PIRACY", ControlKind::Piracy),
-        ] {
+        for (name, kind) in CONTROL_ROWS {
             let cy_y = BODY_FONT.mul_add(-0.3, y);
             match kind {
                 ControlKind::Patrol => {
@@ -280,30 +241,7 @@ pub(super) fn draw_legend(
             crate::importance::DEFAULT_DISPLAY_CAP,
         );
         for b in &buckets {
-            let (label, sys_n, world_n, swatch_rgb) = match b {
-                crate::importance::DisplayBucket::Faction {
-                    name,
-                    kind,
-                    id,
-                    system_count,
-                    world_count,
-                    ..
-                } => {
-                    let style = crate::faction_style::faction_style_rgb(kind, id, "lawful");
-                    (name.to_uppercase(), *system_count, *world_count, style.fill)
-                }
-                crate::importance::DisplayBucket::Aggregated {
-                    label,
-                    system_count,
-                    world_count,
-                    ..
-                } => (
-                    label.to_uppercase(),
-                    *system_count,
-                    *world_count,
-                    (140, 140, 150),
-                ),
-            };
+            let (label, sys_n, world_n, swatch_rgb) = faction_row(b);
             let swatch_color = rgba_from_tuple(swatch_rgb);
             rect(
                 s,
@@ -365,12 +303,7 @@ fn draw_compact_legend_body(
     let theme = &opts.theme;
     text(s, x0, y, "ROUTES", theme.text, BODY_FONT, "start");
     y += LINE_H;
-    for (stab, name) in [
-        (RouteStability::Stable, "STABLE"),
-        (RouteStability::Unstable, "UNSTABLE"),
-        (RouteStability::Hazardous, "HAZARD"),
-        (RouteStability::Perilous, "PERIL"),
-    ] {
+    for (stab, name) in COMPACT_STABILITY_ROWS {
         let color = stability_color(theme, stab);
         line(
             s,
@@ -396,23 +329,7 @@ fn draw_compact_legend_body(
             crate::importance::DEFAULT_DISPLAY_CAP,
         );
         for b in &buckets {
-            let (label, sys_n, swatch_rgb) = match b {
-                crate::importance::DisplayBucket::Faction {
-                    name,
-                    kind,
-                    id,
-                    system_count,
-                    ..
-                } => {
-                    let style = crate::faction_style::faction_style_rgb(kind, id, "lawful");
-                    (name.to_uppercase(), *system_count, style.fill)
-                }
-                crate::importance::DisplayBucket::Aggregated {
-                    label,
-                    system_count,
-                    ..
-                } => (label.to_uppercase(), *system_count, (140, 140, 150)),
-            };
+            let (label, sys_n, _, swatch_rgb) = faction_row(b);
             let swatch_color = rgba_from_tuple(swatch_rgb);
             rect(
                 s,

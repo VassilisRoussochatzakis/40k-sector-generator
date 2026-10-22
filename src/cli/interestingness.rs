@@ -6,13 +6,37 @@ use camino::Utf8PathBuf;
 
 use super::common::{emit_report, load_or_regenerate};
 
+#[derive(Debug, clap::Args)]
+pub(super) struct InterestingnessArgs {
+    #[arg(long)]
+    pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub sector: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub json: bool,
+    /// Target profile id. One of:
+    /// `political_sandbox` | `grim_collapse` | `mercantile` |
+    /// `villainous` | `frontier`. Default: `political_sandbox`.
+    #[arg(long)]
+    pub profile: Option<String>,
+}
+
 pub(crate) fn run_interestingness(
-    project: Option<&Utf8PathBuf>,
-    sector: Option<&Utf8PathBuf>,
-    out: Option<&Utf8PathBuf>,
-    json: bool,
-    profile: Option<String>,
+    args: InterestingnessArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    let InterestingnessArgs {
+        project,
+        sector,
+        out,
+        json,
+        profile,
+    } = args;
+    let project = project.as_ref();
+    let sector = sector.as_ref();
+    let out = out.as_ref();
+
     let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let mut cfg = sectorforge::interestingness::InterestingnessConfig::default();
     if let Some(p) = profile.as_deref() {

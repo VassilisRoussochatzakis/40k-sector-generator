@@ -6,14 +6,27 @@ use camino::Utf8PathBuf;
 
 use super::common::emit_report;
 
-pub struct DiffArgs {
+#[derive(Debug, clap::Args)]
+pub(super) struct DiffArgs {
+    #[arg(long)]
     pub before: Option<Utf8PathBuf>,
+    #[arg(long)]
     pub after: Option<Utf8PathBuf>,
+    #[arg(long)]
     pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
     pub ticks: Option<u32>,
+    /// Write diff.md + diff.json into this directory.
+    #[arg(long)]
     pub out: Option<Utf8PathBuf>,
+    /// Print JSON to stdout instead of Markdown.
+    #[arg(long)]
     pub json: bool,
+    /// Skip world-level detail in the report.
+    #[arg(long)]
     pub skip_worlds: bool,
+    /// Skip per-route detail.
+    #[arg(long)]
     pub skip_routes: bool,
 }
 

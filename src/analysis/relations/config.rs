@@ -32,13 +32,7 @@ enum_slug!(Stance {
     Rival => "rival",
     Hostile => "hostile",
     AtWar => "at_war",
-});
-
-impl core::fmt::Display for Stance {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl Stance {
     fn level(self) -> i32 {
@@ -262,13 +256,7 @@ enum_slug!(RelationAttitude {
     Suspicious => "suspicious",
     Hostile => "hostile",
     ExistentialEnemy => "existential_enemy",
-});
-
-impl core::fmt::Display for RelationAttitude {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl RelationAttitude {
     pub(super) fn level(self) -> i32 {
@@ -343,13 +331,7 @@ enum_slug!(TreatyStatus {
     Charter => "charter",
     Nonaggression => "nonaggression",
     Vendetta => "vendetta",
-});
-
-impl core::fmt::Display for TreatyStatus {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 impl TreatyStatus {
     /// Stable human-readable label. Used by the markdown digest and the

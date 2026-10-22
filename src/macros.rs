@@ -11,10 +11,10 @@
 /// enum_slug!(Disposition {
 ///     Presence => "presence",
 ///     Influence => "influence",
-/// });
+/// }, display); // Omit `display` when Display uses different text.
 /// ```
 macro_rules! enum_slug {
-    ($ty:ty { $($variant:ident => $slug:literal),+ $(,)? }) => {
+    ($ty:ty { $($variant:ident => $slug:literal),+ $(,)? } $(, $display:ident)?) => {
         impl $ty {
             pub fn as_slug(&self) -> &'static str {
                 match self {
@@ -22,14 +22,23 @@ macro_rules! enum_slug {
                 }
             }
         }
+        $(enum_slug!(@$display $ty);)?
     };
     // `const` form for the few enums whose `as_slug` is a `const fn`.
-    (const $ty:ty { $($variant:ident => $slug:literal),+ $(,)? }) => {
+    (const $ty:ty { $($variant:ident => $slug:literal),+ $(,)? } $(, $display:ident)?) => {
         impl $ty {
             pub const fn as_slug(&self) -> &'static str {
                 match self {
                     $( Self::$variant => $slug, )+
                 }
+            }
+        }
+        $(enum_slug!(@$display $ty);)?
+    };
+    (@display $ty:ty) => {
+        impl core::fmt::Display for $ty {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                f.write_str(self.as_slug())
             }
         }
     };
@@ -45,10 +54,8 @@ mod slug_parity_tests {
     //! a forgotten `rename_all`, a hand-edited slug). It is the single source of
     //! truth that the two encodings stay byte-identical.
     //!
-    //! Two `enum_slug!` enums are deliberately absent: `ValidationCode` and
-    //! `analysis::importance::KindGroup` do not derive `Serialize`, so there is
-    //! no serde wire string to compare against — their slugs are emitted
-    //! directly via `as_slug()` and have no `rename_all` to drift from.
+    //! `analysis::importance::KindGroup` does not derive `Serialize`, so its
+    //! slug has no serde wire string to compare against.
 
     /// For each `Type => [variants...]`, assert the serde wire string equals
     /// `as_slug()` for every listed variant. The `enum_slug!`-generated
@@ -120,13 +127,8 @@ mod slug_parity_tests {
             ],
 
             // ── analysis::search ────────────────────────────────────────
-            crate::search::StanceName => [Allied, Aligned, Neutral, Rival, Hostile, AtWar],
             crate::search::RegionKindName => [
                 WarpStorm, Turbulence, CalmCorridor, Blackout, Anomaly,
-            ],
-            crate::search::SystemStateName => [
-                Pacified, Fragmented, Blockaded, Warzone, Infiltrated, Quarantined,
-                Uncharted,
             ],
             // NOTE: PascalCase serde, not snake_case — the parity check covers it.
             crate::search::PresenceName => [Hidden, Minor, Significant, Dominant],

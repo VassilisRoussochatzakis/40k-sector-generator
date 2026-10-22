@@ -8,11 +8,50 @@ use super::common::{
     print_invariant_report, print_json, print_validation_report, print_workbook_stats,
 };
 
-pub(crate) fn run_validate(
-    project: &Utf8PathBuf,
-    json: bool,
-    strict: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct ValidateArgs {
+    #[arg(long)]
+    pub project: Utf8PathBuf,
+    /// Emit validation report as JSON to stdout.
+    #[arg(long)]
+    pub json: bool,
+    /// Treat warnings as errors.
+    #[arg(long)]
+    pub strict: bool,
+}
+
+#[derive(Debug, clap::Args)]
+pub(super) struct ValidateSectorArgs {
+    #[arg(long)]
+    pub sector: Utf8PathBuf,
+    /// Emit report as JSON to stdout.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, clap::Args)]
+pub(super) struct RenderMarkdownArgs {
+    #[arg(long)]
+    pub sector: Utf8PathBuf,
+    /// Output path for the Markdown (defaults to stdout).
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+}
+
+#[derive(Debug, clap::Args)]
+pub(super) struct InspectWorldsArgs {
+    #[arg(long)]
+    pub data_dir: String,
+}
+
+pub(crate) fn run_validate(args: ValidateArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let ValidateArgs {
+        project,
+        json,
+        strict,
+    } = args;
+    let project = &project;
+
     let input = sectorforge::load_project(project)?;
     let report = sectorforge::validate_project(&input)?;
     if json {
@@ -29,9 +68,11 @@ pub(crate) fn run_validate(
 }
 
 pub(crate) fn run_validate_sector(
-    sector: &Utf8PathBuf,
-    json: bool,
+    args: ValidateSectorArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    let ValidateSectorArgs { sector, json } = args;
+    let sector = &sector;
+
     let sec = sectorforge::load_sector_json(sector)?;
     let report = sectorforge::validate_sector(&sec);
     if json {
@@ -47,9 +88,12 @@ pub(crate) fn run_validate_sector(
 }
 
 pub(crate) fn run_render_markdown(
-    sector: &Utf8PathBuf,
-    out: Option<&Utf8PathBuf>,
+    args: RenderMarkdownArgs,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    let RenderMarkdownArgs { sector, out } = args;
+    let sector = &sector;
+    let out = out.as_ref();
+
     let sec = sectorforge::load_sector_json(sector)?;
     let md = sectorforge::render_sector_markdown(&sec);
     match out {
@@ -59,7 +103,12 @@ pub(crate) fn run_render_markdown(
     Ok(ExitCode::SUCCESS)
 }
 
-pub(crate) fn run_inspect_worlds(data_dir: &str) -> Result<ExitCode, sectorforge::SectorError> {
+pub(crate) fn run_inspect_worlds(
+    args: InspectWorldsArgs,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let InspectWorldsArgs { data_dir } = args;
+    let data_dir = &data_dir;
+
     let stats = sectorforge::inspect_world_workbook(data_dir)?;
     print_workbook_stats(&stats);
     Ok(ExitCode::SUCCESS)

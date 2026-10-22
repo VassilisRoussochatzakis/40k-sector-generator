@@ -498,9 +498,8 @@ where
     }
 
     // ── Stage 6: Routes (public) ───────────────────────────────────────────────
-    // RNG key is reserved/unused today (`routes.rs` `let _ = rng;`); the stage is
-    // gated so step 6 can stop here, but its discriminator is left UNCHANGED (no
-    // nonce suffix) per `ITERATIVE_GENERATION.md` §3 / §9.
+    // Routes are deterministic from the configuration and systems; no RNG is
+    // consumed here. The stage gate still lets step 6 stop after public routes.
     let mut routes: Vec<GeneratedRoute> = Vec::new();
     if Stage::Routes <= through {
         let t_routes = Instant::now();
@@ -508,8 +507,7 @@ where
             emit!(SectorProgress::StageStarted {
                 name: "public routes",
             });
-            let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
-            routes::generate_routes(&config, route_rules, &systems, &mut route_rng)
+            routes::generate_routes(&config, route_rules, &systems)
         } else {
             Vec::new()
         };

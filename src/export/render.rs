@@ -20,6 +20,7 @@ fn md_cell(value: &str) -> std::borrow::Cow<'_, str> {
 }
 
 /// Spec §12: deterministic Markdown overview for a generated sector.
+#[must_use]
 pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     let mut s = String::new();
     s.push_str(&format!("# {} — {}\n\n", sector.id, sector.title));
@@ -175,6 +176,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s
 }
 
+#[must_use]
 pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     let mut s = String::new();
     s.push_str(&format!("# {} — {}\n\n", sys.id.to_uppercase(), sys.name));

@@ -378,13 +378,7 @@ enum_slug!(OutputFormat {
     Bitmap => "bitmap",
     Svg => "svg",
     Html => "html",
-});
-
-impl core::fmt::Display for OutputFormat {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// §11 NEW.md: interactive HTML exporter knobs. Theme picks the palette;
 /// `player_edition` runs the existing intel redaction helper over the sector

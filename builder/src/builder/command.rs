@@ -1055,12 +1055,7 @@ impl BuilderCommand {
             }
             Self::SetSurfaceRegions { world, before, .. } => {
                 if let Some(prev) = before {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *world)
-                    {
+                    if let Ok(w) = world_mut(sector, world) {
                         w.regions = prev.clone();
                     }
                 }
@@ -1068,12 +1063,7 @@ impl BuilderCommand {
             }
             Self::SetWorldConflict { world, before, .. } => {
                 if let Some(prev) = before {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *world)
-                    {
+                    if let Ok(w) = world_mut(sector, world) {
                         w.conflict = (**prev).clone();
                     }
                 }
@@ -1089,12 +1079,7 @@ impl BuilderCommand {
             }
             Self::SetWorldStability { world, before, .. } => {
                 if let Some(prev) = before {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *world)
-                    {
+                    if let Ok(w) = world_mut(sector, world) {
                         w.stability = **prev;
                     }
                 }
@@ -1165,23 +1150,13 @@ impl BuilderCommand {
                 Ok(())
             }
             Self::RenameWorld { world, before, .. } => {
-                if let Some(w) = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                {
+                if let Ok(w) = world_mut(sector, world) {
                     w.name = Arc::from(before.as_str());
                 }
                 Ok(())
             }
             Self::SetWorldOrbit { world, before, .. } => {
-                if let Some(w) = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                {
+                if let Ok(w) = world_mut(sector, world) {
                     w.orbit = *before;
                 }
                 Ok(())
@@ -1203,12 +1178,7 @@ impl BuilderCommand {
                     }
                 }
                 for (world_id, conflict) in before_world {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *world_id)
-                    {
+                    if let Ok(w) = world_mut(sector, world_id) {
                         w.conflict = conflict.clone();
                     }
                 }
@@ -1216,12 +1186,7 @@ impl BuilderCommand {
             }
             Self::EditWorld { world, before, .. } => {
                 if let Some(prev) = before {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *world)
-                    {
+                    if let Ok(w) = world_mut(sector, world) {
                         *w = (**prev).clone();
                     }
                 }
@@ -1254,12 +1219,7 @@ impl BuilderCommand {
             }
             Self::BulkEditWorlds { before, .. } => {
                 for (wid, prev) in before {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *wid)
-                    {
+                    if let Ok(w) = world_mut(sector, wid) {
                         *w = prev.clone();
                     }
                 }
@@ -1276,12 +1236,7 @@ impl BuilderCommand {
                     }
                 }
                 for (wid, intel) in before_worlds {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *wid)
-                    {
+                    if let Ok(w) = world_mut(sector, wid) {
                         w.intel = intel.clone();
                     }
                 }

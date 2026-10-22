@@ -6,13 +6,34 @@ use camino::Utf8PathBuf;
 
 use super::common::{emit_report, resolve_sector_with_cfg};
 
-pub(crate) fn run_analyze(
-    project: Option<&Utf8PathBuf>,
-    sector: Option<&Utf8PathBuf>,
-    out: Option<&Utf8PathBuf>,
-    json: bool,
-    strict: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct AnalyzeArgs {
+    #[arg(long)]
+    pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub sector: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    /// Emit only the JSON to stdout (overrides Markdown).
+    #[arg(long)]
+    pub json: bool,
+    /// Exit with status 1 if any health flag fires (useful in CI).
+    #[arg(long)]
+    pub strict: bool,
+}
+
+pub(crate) fn run_analyze(args: AnalyzeArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let AnalyzeArgs {
+        project,
+        sector,
+        out,
+        json,
+        strict,
+    } = args;
+    let project = project.as_ref();
+    let sector = sector.as_ref();
+    let out = out.as_ref();
+
     let (sec, cfg) =
         resolve_sector_with_cfg(project, sector, |input| input.config.analyze.clone())?;
     let analysis = sectorforge::analyze_sector_with(&sec, &cfg);

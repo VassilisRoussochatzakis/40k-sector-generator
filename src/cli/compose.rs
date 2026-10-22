@@ -6,12 +6,33 @@ use camino::Utf8PathBuf;
 
 use super::common::{log_progress, log_segmentum_progress, print_json};
 
-pub(crate) fn run_compose(
-    segmentum_path: &Utf8PathBuf,
-    out: &Utf8PathBuf,
-    stitch_seed: Option<String>,
-    json: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct ComposeArgs {
+    /// Path to `segmentum.toml`.
+    #[arg(long)]
+    pub segmentum: Utf8PathBuf,
+    /// Output directory for `segmentum.md`, `segmentum.json`,
+    /// `super_manifest.json`, and per-child sector subdirectories.
+    #[arg(long)]
+    pub out: Utf8PathBuf,
+    /// Override the stitch seed from the segmentum file.
+    #[arg(long)]
+    pub stitch_seed: Option<String>,
+    /// Emit JSON to stdout instead of writing files.
+    #[arg(long)]
+    pub json: bool,
+}
+
+pub(crate) fn run_compose(args: ComposeArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let ComposeArgs {
+        segmentum: segmentum_path,
+        out,
+        stitch_seed,
+        json,
+    } = args;
+    let segmentum_path = &segmentum_path;
+    let out = &out;
+
     log_progress(format_args!("segmentum: loading config {segmentum_path}"));
     let mut file = sectorforge::load_segmentum_file(segmentum_path)?;
     if let Some(s) = stitch_seed {

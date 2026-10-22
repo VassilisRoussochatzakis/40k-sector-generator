@@ -25,7 +25,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ids::{FactionId, SystemId};
+use crate::ids::FactionId;
 use crate::sector_model::GeneratedSector;
 
 /// Per-system archetype-derived state. Lives on `GeneratedSystem.archetype`
@@ -85,13 +85,7 @@ enum_slug!(NecronPhase {
     Dormant => "dormant",
     Awakening => "awakening",
     Awake => "awake",
-});
-
-impl core::fmt::Display for NecronPhase {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -109,13 +103,7 @@ enum_slug!(TyranidStage {
     Inhabited => "inhabited",
     Besieged => "besieged",
     Consumed => "consumed",
-});
-
-impl core::fmt::Display for TyranidStage {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -139,13 +127,7 @@ enum_slug!(GscStage {
     ParallelGovernment => "parallel_government",
     Uprising => "uprising",
     PlanetarySeizure => "planetary_seizure",
-});
-
-impl core::fmt::Display for GscStage {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -165,13 +147,7 @@ enum_slug!(TauSphereBand {
     Fringe => "fringe",
     Client => "client",
     Core => "core",
-});
-
-impl core::fmt::Display for TauSphereBand {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// Apply all archetype rules. Mutates `sector` in place.
 /// Apply all archetype rules. Mutates `sector` in place.
@@ -205,8 +181,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Fact
         "collegia_titanica",
         "mechanicus",
     ];
-    let mut system_co_sovereigns: BTreeMap<SystemId, Vec<FactionId>> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut co_sovereigns: BTreeSet<FactionId> = BTreeSet::new();
         for w in &sys.worlds {
             for p in &w.factions {
@@ -225,12 +200,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Fact
             }
         }
         if co_sovereigns.len() >= 2 {
-            system_co_sovereigns.insert(sys.id.clone(), co_sovereigns.into_iter().collect());
-        }
-    }
-    for sys in &mut sector.systems {
-        if let Some(sovs) = system_co_sovereigns.get(&sys.id) {
-            sys.archetype.imperial_co_sovereigns = sovs.clone();
+            sys.archetype.imperial_co_sovereigns = co_sovereigns.into_iter().collect();
         }
     }
 }
@@ -238,8 +208,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Fact
 // ── §16.9 Necron dormant / awakening ───────────────────────────────────────────
 
 fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_phases: BTreeMap<SystemId, NecronPhase> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut max_score: f32 = 0.0;
         let mut max_visibility: f32 = 0.0;
         let mut has_tomb = false;
@@ -271,23 +240,14 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, 
         } else {
             NecronPhase::Awake
         };
-        system_phases.insert(sys.id.clone(), phase);
-    }
-
-    for sys in &mut sector.systems {
-        if let Some(phase) = system_phases.get(&sys.id) {
-            sys.archetype.necron_phase = *phase;
-        }
+        sys.archetype.necron_phase = phase;
     }
 }
 
 // ── §16.8 Tyranid biomass front ────────────────────────────────────────────────
 
 fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_stages: BTreeMap<SystemId, TyranidStage> = BTreeMap::new();
-    let mut system_needs_shadow: BTreeSet<SystemId> = BTreeSet::new();
-
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut max_score: f32 = 0.0;
         let mut consumed = false;
         for w in &sys.worlds {
@@ -312,17 +272,8 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
         } else {
             TyranidStage::Inhabited
         };
-        system_stages.insert(sys.id.clone(), stage);
+        sys.archetype.tyranid_stage = stage;
         if matches!(stage, TyranidStage::Consumed | TyranidStage::Besieged) {
-            system_needs_shadow.insert(sys.id.clone());
-        }
-    }
-
-    for sys in &mut sector.systems {
-        if let Some(stage) = system_stages.get(&sys.id) {
-            sys.archetype.tyranid_stage = *stage;
-        }
-        if system_needs_shadow.contains(&sys.id) {
             for w in &mut sys.worlds {
                 let tag: Arc<str> = "feature:shadow_of_the_warp".into();
                 if !w.tags.iter().any(|t| t == &tag) {
@@ -337,8 +288,7 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
 // ── §16.7 Ork Waaagh! momentum ─────────────────────────────────────────────────
 
 fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_waaagh: BTreeMap<SystemId, u8> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut score: f32 = 0.0;
         let mut count = 0;
         for w in &sys.worlds {
@@ -355,20 +305,14 @@ fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Ar
         } else {
             (score / count as f32).min(100.0)
         };
-        system_waaagh.insert(sys.id.clone(), v.round().clamp(0.0, 100.0) as u8);
-    }
-    for sys in &mut sector.systems {
-        if let Some(v) = system_waaagh.get(&sys.id) {
-            sys.archetype.ork_waaagh = *v;
-        }
+        sys.archetype.ork_waaagh = v.round().clamp(0.0, 100.0) as u8;
     }
 }
 
 // ── §16.6 Genestealer staged uprising ─────────────────────────────────────────
 
 fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_stages: BTreeMap<SystemId, GscStage> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut max_score: f32 = 0.0;
         let mut min_visibility: f32 = 100.0;
         let mut has_gsc = false;
@@ -397,20 +341,14 @@ fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<Facti
         } else {
             GscStage::PlanetarySeizure
         };
-        system_stages.insert(sys.id.clone(), stage);
-    }
-    for sys in &mut sector.systems {
-        if let Some(stage) = system_stages.get(&sys.id) {
-            sys.archetype.gsc_stage = *stage;
-        }
+        sys.archetype.gsc_stage = stage;
     }
 }
 
 // ── §16.11 Tau sphere of influence ────────────────────────────────────────────
 
 fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_bands: BTreeMap<SystemId, TauSphereBand> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let max_local = sys
             .worlds
             .iter()
@@ -426,20 +364,14 @@ fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Ar
             s if s > 0.0 => TauSphereBand::Contact,
             _ => TauSphereBand::None,
         };
-        system_bands.insert(sys.id.clone(), band);
-    }
-    for sys in &mut sector.systems {
-        if let Some(band) = system_bands.get(&sys.id) {
-            sys.archetype.tau_sphere = *band;
-        }
+        sys.archetype.tau_sphere = band;
     }
 }
 
 // ── §16.10 Aeldari intermittent ───────────────────────────────────────────────
 
 fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_activity: BTreeMap<SystemId, u8> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut max_covert: f32 = 0.0;
         for w in &sys.worlds {
             for p in &w.factions {
@@ -449,20 +381,14 @@ fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<Fac
                 }
             }
         }
-        system_activity.insert(sys.id.clone(), max_covert.round().clamp(0.0, 100.0) as u8);
-    }
-    for sys in &mut sector.systems {
-        if let Some(act) = system_activity.get(&sys.id) {
-            sys.archetype.aeldari_activity = *act;
-        }
+        sys.archetype.aeldari_activity = max_covert.round().clamp(0.0, 100.0) as u8;
     }
 }
 
 // ── §16.12 Chaos corruption + metaphysical layer ──────────────────────────────
 
 fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
-    let mut system_chaos: BTreeMap<SystemId, (u8, u8)> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in &mut sector.systems {
         let mut traitor_military: f32 = 0.0;
         let mut daemonic_presence: f32 = 0.0;
         let mut warp_phen_count: u32 = 0;
@@ -498,16 +424,8 @@ fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<Faction
         let manifestation = (warp_phen_count as f32)
             .mul_add(12.0, daemonic_presence)
             .clamp(0.0, 100.0);
-        system_chaos.insert(
-            sys.id.clone(),
-            (corruption.round() as u8, manifestation.round() as u8),
-        );
-    }
-    for sys in &mut sector.systems {
-        if let Some((corr, mani)) = system_chaos.get(&sys.id) {
-            sys.archetype.chaos_corruption = *corr;
-            sys.archetype.daemon_manifestation = *mani;
-        }
+        sys.archetype.chaos_corruption = corruption.round() as u8;
+        sys.archetype.daemon_manifestation = manifestation.round() as u8;
     }
 }
 

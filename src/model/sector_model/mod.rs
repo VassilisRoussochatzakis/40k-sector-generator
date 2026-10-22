@@ -101,13 +101,7 @@ enum_slug!(SystemKind {
     BlackHole => "black_hole",
     WarpAnomaly => "warp_anomaly",
     SpaceStation => "space_station",
-});
-
-impl core::fmt::Display for SystemKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// Map glyph class for a system — the single source of truth shared by the
 /// egui live renderer (`sectorforge-gui-core`) and the PNG/SVG exporters
@@ -581,7 +575,7 @@ pub enum RouteKind {
 enum_slug!(RouteKind {
     Warp => "warp",
     Webway => "webway",
-});
+}, display);
 
 impl RouteKind {
     pub const ALL: [Self; 2] = [Self::Warp, Self::Webway];
@@ -595,12 +589,6 @@ impl RouteKind {
     }
 }
 
-impl core::fmt::Display for RouteKind {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 enum_slug!(const RouteType {
     StableWarpLane => "stable_warp_lane",
     ChartedPassage => "charted_passage",
@@ -608,7 +596,7 @@ enum_slug!(const RouteType {
     Webway => "webway",
     BlackShip => "black_ship",
     SmugglingLane => "smuggling_lane",
-});
+}, display);
 
 impl RouteType {
     pub const ALL: [Self; 6] = [
@@ -678,12 +666,6 @@ impl RouteType {
     }
 }
 
-impl core::fmt::Display for RouteType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
-
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -699,13 +681,7 @@ enum_slug!(RouteStability {
     Unstable => "unstable",
     Hazardous => "hazardous",
     Perilous => "perilous",
-});
-
-impl core::fmt::Display for RouteStability {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 /// Typed faction kind (REVIEW P9). Replaces the previous free-text `Arc<str>`
 /// `kind` field with a closed set of known slugs plus an [`FactionKind::Unknown`]
@@ -1052,7 +1028,7 @@ enum_slug!(FactionInfluence {
     Minor => "minor",
     Significant => "significant",
     Dominant => "dominant",
-});
+}, display);
 
 impl FactionInfluence {
     /// Spec §10.9 scoring weight for primary-faction derivation.
@@ -1064,12 +1040,6 @@ impl FactionInfluence {
             FactionInfluence::Minor => 1.0,
             FactionInfluence::Hidden => 0.5,
         }
-    }
-}
-
-impl core::fmt::Display for FactionInfluence {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
     }
 }
 
@@ -1238,18 +1208,12 @@ enum_slug!(DominanceState {
     Contested => "contested",
     Controlled => "controlled",
     Stronghold => "stronghold",
-});
+}, display);
 
 impl DominanceState {
     #[must_use]
     pub fn is_default(&self) -> bool {
         matches!(self, DominanceState::Rumored)
-    }
-}
-
-impl core::fmt::Display for DominanceState {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
     }
 }
 
@@ -1298,13 +1262,7 @@ enum_slug!(ClaimType {
     HuntingGround => "hunting_ground",
     CovertWrit => "covert_writ",
     Rebellion => "rebellion",
-});
-
-impl core::fmt::Display for ClaimType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
@@ -1374,13 +1332,7 @@ enum_slug!(SystemState {
     Infiltrated => "infiltrated",
     Quarantined => "quarantined",
     Uncharted => "uncharted",
-});
-
-impl core::fmt::Display for SystemState {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(self.as_slug())
-    }
-}
+}, display);
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 /// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /

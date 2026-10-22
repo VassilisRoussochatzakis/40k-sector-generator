@@ -6,14 +6,38 @@ use camino::Utf8PathBuf;
 
 use super::common::load_or_regenerate;
 
-pub(crate) fn run_briefing(
-    project: Option<&Utf8PathBuf>,
-    sector: Option<&Utf8PathBuf>,
-    out: &Utf8PathBuf,
-    preset: String,
-    observer: Option<String>,
-    min_confidence: Option<u8>,
-) -> Result<ExitCode, sectorforge::SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct BriefingArgs {
+    #[arg(long)]
+    pub project: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub sector: Option<Utf8PathBuf>,
+    #[arg(long)]
+    pub out: Utf8PathBuf,
+    /// Built-in preset to apply.
+    #[arg(long)]
+    pub preset: String,
+    /// Observer faction id (defaults to none for GM / public).
+    #[arg(long)]
+    pub observer: Option<String>,
+    /// Override the preset's intel confidence cutoff (0..=100).
+    #[arg(long)]
+    pub min_confidence: Option<u8>,
+}
+
+pub(crate) fn run_briefing(args: BriefingArgs) -> Result<ExitCode, sectorforge::SectorError> {
+    let BriefingArgs {
+        project,
+        sector,
+        out,
+        preset,
+        observer,
+        min_confidence,
+    } = args;
+    let project = project.as_ref();
+    let sector = sector.as_ref();
+    let out = &out;
+
     let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let audience = sectorforge::briefing::parse_preset(&preset).ok_or_else(|| {
         sectorforge::SectorError::InvalidConfig(format!(

@@ -345,34 +345,13 @@ impl App {
 
         let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
 
-        // Handle zooming
-        let mut zoom_delta = ui.input(|i| i.zoom_delta());
-        if zoom_delta == 1.0 && response.hovered() {
-            let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-            if scroll != 0.0 {
-                zoom_delta = (scroll / 400.0).exp();
-            }
-        }
-
-        if zoom_delta != 1.0 {
-            if let Some(mouse_pos) = response.hover_pos() {
-                // Zoom relative to mouse position
-                let old_zoom = self.sector_hex_size;
-                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(5.0, 250.0);
-                let actual_delta = self.sector_hex_size / old_zoom;
-
-                // Adjust pan to keep mouse over the same map point
-                let map_origin = rect.min + self.sector_pan;
-                self.sector_pan = (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
-            } else {
-                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(5.0, 250.0);
-            }
-        }
-
-        // Handle panning
-        if response.dragged() {
-            self.sector_pan += response.drag_delta();
-        }
+        super::update_map_navigation(
+            ui,
+            &response,
+            rect,
+            &mut self.sector_hex_size,
+            &mut self.sector_pan,
+        );
 
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             let (_resp, click) = SectorView {

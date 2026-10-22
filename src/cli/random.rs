@@ -13,19 +13,69 @@ use sectorforge::SectorError;
 
 use super::common::{log_export_progress, log_progress, resolve_formats};
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn run_random(
-    size: Option<String>,
-    width: Option<u32>,
-    height: Option<u32>,
-    seed: Option<String>,
-    out: Option<Utf8PathBuf>,
-    presets_dir: Utf8PathBuf,
-    baseline: String,
-    formats: Option<Vec<String>>,
-    light: bool,
-    exclude: Option<Vec<String>>,
-) -> Result<ExitCode, SectorError> {
+#[derive(Debug, clap::Args)]
+pub(super) struct RandomArgs {
+    /// Sector size: small | medium | large | vast | massive | huge.
+    /// Ignored when --width/--height are given. Defaults to medium.
+    #[arg(long)]
+    pub size: Option<String>,
+    /// Explicit square grid side length (sectors must be square). When
+    /// both --width and --height are given they must be equal.
+    #[arg(long)]
+    pub width: Option<u32>,
+    /// Explicit square grid side length (sectors must be square). When
+    /// both --width and --height are given they must be equal.
+    #[arg(long)]
+    pub height: Option<u32>,
+    /// Reproducibility seed. Omit to mint a fresh one (echoed on success).
+    #[arg(long)]
+    pub seed: Option<String>,
+    /// Project directory to create (must not exist). Defaults to
+    /// `./random-<seed>`.
+    #[arg(long)]
+    pub out: Option<Utf8PathBuf>,
+    /// Source directory holding presets (must contain the chosen
+    /// `--baseline`, `_full` by default). Defaults to `./presets`.
+    #[arg(long, default_value = "presets")]
+    pub presets_dir: Utf8PathBuf,
+    /// Baseline preset whose themed data tree seeds the sector's content
+    /// (worlds, factions, relations, regions, economy, history, personae,
+    /// sites, hooks, missions, prose). The layout — placement, density,
+    /// routes, sizing — is still fully rolled from the seed. Use a gallery
+    /// preset (e.g. `dead-sector`, `mercantile-crossroads`) or `_full` (the
+    /// default: every feature, balanced).
+    #[arg(long, default_value = "_full")]
+    pub baseline: String,
+    /// Comma-separated output formats to export. Defaults to all five
+    /// (json, markdown, png, svg, html).
+    #[arg(long, value_delimiter = ',')]
+    pub formats: Option<Vec<String>>,
+    /// Drop render-only artifacts (html, png, svg, markdown), keeping the
+    /// machine-readable `json` the viewer loads. Subtracts from `--formats`
+    /// / the synthesised config's formats.
+    #[arg(long)]
+    pub light: bool,
+    /// Comma-separated formats to *exclude* from the effective set. `json`
+    /// is load-bearing (the viewer reads `out/sector.json`) and cannot be
+    /// excluded. Applies after `--formats` / `--light`.
+    #[arg(long, value_delimiter = ',')]
+    pub exclude: Option<Vec<String>>,
+}
+
+pub(crate) fn run_random(args: RandomArgs) -> Result<ExitCode, SectorError> {
+    let RandomArgs {
+        size,
+        width,
+        height,
+        seed,
+        out,
+        presets_dir,
+        baseline,
+        formats,
+        light,
+        exclude,
+    } = args;
+
     let size = resolve_size(size.as_deref(), width, height)?;
     // Mint here (not inside the core) so we can name the project dir after the
     // seed and echo a reproduce line even when the caller passed no seed.

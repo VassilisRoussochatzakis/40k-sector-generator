@@ -1,8 +1,4 @@
-//! Hex-grid fill + subsector borders + per-system tints.
-//!
-//! Tint computation stays here (it joins backend-agnostic theme math with
-//! `Rgba` types that both backends already share). The hex polygon walk
-//! and subsector border drawing call into [`crate::export::render_core::grid`].
+//! Backend-specific grid geometry; tint and grid drawing logic lives in render_core.
 
 use std::collections::HashMap;
 
@@ -13,35 +9,11 @@ use crate::map_theme::MapTheme;
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
-use crate::export::render_core::colors::blend_heat;
+pub(super) use crate::export::render_core::grid::compute_heat_tints;
 
 use super::canvas::BitmapCanvas;
-use super::colors::rgba;
 use super::geom::{hex_center, Geom};
 use super::RenderOptions;
-
-/// Per-hex heatmap tint (no faction fill — the live map never tints by
-/// faction). Mirrors the live renderer: `blend_heat(hex_empty, cell, intensity)`.
-pub(super) fn compute_heat_tints(
-    sector: &GeneratedSector,
-    opts: &RenderOptions,
-    heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
-) -> HashMap<(i32, i32), Rgba<u8>> {
-    let mut out = HashMap::new();
-    if matches!(opts.heatmap, HeatmapMode::Off) {
-        return out;
-    }
-    for sys in sector.systems.iter() {
-        if let Some(cell) = heat.get(&sys.id) {
-            let key = (sys.coord.q, sys.coord.r);
-            out.insert(
-                key,
-                blend_heat(opts.theme.hex_empty, rgba(cell.rgb), cell.intensity),
-            );
-        }
-    }
-    out
-}
 
 pub(super) fn compute_heatmap(
     sector: &GeneratedSector,

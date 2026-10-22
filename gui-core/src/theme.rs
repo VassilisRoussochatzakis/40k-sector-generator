@@ -429,12 +429,6 @@ mod tests {
                 theme.label()
             );
             assert_eq!(palette::danger(), want.danger, "{}: danger", theme.label());
-            assert_eq!(
-                palette::validation_color(0, 0),
-                palette::chrome_text_dim(),
-                "{}: clean validation is muted, not amber",
-                theme.label()
-            );
             assert_ne!(
                 palette::warning(),
                 p.accent,

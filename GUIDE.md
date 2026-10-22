@@ -4367,6 +4367,30 @@ histogram for free. Listeners that wildcard-match on `SectorProgress` need
 no changes; consumers that want the histogram can filter for
 `StageElapsed`.
 
+### Shared implementation
+
+World taxonomy variants, iteration order, and display labels are declared together
+with `world_enum!` in [src/worlds.rs](src/worlds.rs). Slug enums opt into their
+existing `Display` behavior with `enum_slug!(..., display)`. Search constraints
+reuse the domain stance and system-state enums; their count and decimal report
+helpers retain integer comparisons, float conversion order, and printed precision.
+
+CLI commands own their `clap::Args` structs in [src/cli/](src/cli/), keeping flags,
+defaults, and help text beside each handler. Public facade names remain available
+as re-exports where no adaptation is needed. Validation retains every rule and
+diagnostic string; shared codes are string constants.
+
+PNG and SVG share legend metadata, heat tint calculation, and test fixtures in
+[src/export/render_core/](src/export/render_core/). Each backend keeps its original
+pixel geometry and rounding. The viewer's feature pages share a frame helper, and
+the sector map and route planner share cursor-anchored zoom and drag handling in
+[viewer/src/app/mod.rs](viewer/src/app/mod.rs).
+
+Archetype rules update each system directly without staging maps. Regional route
+effects share the stability update while preserving distance floors, bridge
+protection, tags, and progress events. Public route generation consumes no RNG.
+Builder undo shares world lookup while retaining its no-op for missing worlds.
+
 ### Determinism regression tests
 
 In addition to the JSON-byte test in

@@ -106,26 +106,9 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 .num_columns(4)
                 .striped(true)
                 .show(ui, |ui| {
-                    ui.label(
-                        RichText::new("FROM")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("TO")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("VOLUME")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("FRICTION")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
+                    for h in ["FROM", "TO", "VOLUME", "FRICTION"] {
+                        ui.label(RichText::new(h).color(palette::chrome_text_dim()).strong());
+                    }
                     ui.end_row();
                     for r in routes.iter().take(20) {
                         ui.label(RichText::new(&r.from_system_id));

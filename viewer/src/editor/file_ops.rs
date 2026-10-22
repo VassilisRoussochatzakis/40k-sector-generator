@@ -48,27 +48,11 @@ pub(crate) fn project_sector_path(name: &str) -> PathBuf {
 
 pub(crate) fn load_project_sector(
     name: &str,
-) -> Result<
-    (
-        sectorforge::sector_model::GeneratedSector,
-        Option<sectorforge::input::ProjectInput>,
-        String,
-    ),
-    EditorFileError,
-> {
+) -> Result<(sectorforge::sector_model::GeneratedSector, String), EditorFileError> {
     let path = project_sector_path(name);
     let text = fs::read_to_string(&path)?;
     let sector: sectorforge::sector_model::GeneratedSector = serde_json::from_str(&text)?;
-
-    let project_root = PathBuf::from(EXAMPLES_DIR).join(name);
-    let mut input = None;
-    if let Ok(utf8_root) = camino::Utf8PathBuf::from_path_buf(project_root) {
-        if let Ok(pi) = sectorforge::input::load_project(&utf8_root) {
-            input = Some(pi);
-        }
-    }
-
-    Ok((sector, input, path.to_string_lossy().to_string()))
+    Ok((sector, path.to_string_lossy().to_string()))
 }
 
 pub(crate) fn save_project_sector(
@@ -182,7 +166,7 @@ mod tests {
         assert_eq!(projects, vec!["alpha".to_string(), "beta".to_string()]);
 
         // --- load an existing project ---
-        let (sector, _input, path) = load_project_sector("alpha").unwrap();
+        let (sector, path) = load_project_sector("alpha").unwrap();
         assert_eq!(&*sector.id, "alpha");
         assert!(
             path.ends_with("examples/alpha/out/sector.json"),
@@ -198,7 +182,7 @@ mod tests {
         // --- save → list → load round-trip: delta now discoverable + loadable ---
         let projects = list_projects();
         assert!(projects.contains(&"delta".to_string()));
-        let (delta, _input, _path) = load_project_sector("delta").unwrap();
+        let (delta, _path) = load_project_sector("delta").unwrap();
         assert_eq!(&*delta.id, "delta");
     }
 }

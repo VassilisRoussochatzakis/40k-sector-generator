@@ -611,7 +611,6 @@ fn link_table(
                 ui.label(RichText::new(orientation_label(l.orientation)));
                 ui.label(RichText::new(l.distance_units.to_string()));
                 let type_label = match mode {
-                    sectorforge::sector_model::RouteViewMode::Detailed => l.route_type.label(),
                     sectorforge::sector_model::RouteViewMode::TopLevel => {
                         l.route_type.kind().label()
                     }
@@ -658,17 +657,11 @@ fn link_detail(
     );
     crate::ui_kit::kv(ui, "EDGE", orientation_label(link.orientation));
     crate::ui_kit::kv(ui, "UNITS", &link.distance_units.to_string());
-    match mode {
-        sectorforge::sector_model::RouteViewMode::Detailed => {
-            crate::ui_kit::kv(ui, "TYPE", link.route_type.label());
-        }
-        sectorforge::sector_model::RouteViewMode::TopLevel => {
-            crate::ui_kit::kv(ui, "TYPE", link.route_type.kind().label());
-        }
-        _ => {
-            crate::ui_kit::kv(ui, "TYPE", link.route_type.label());
-        }
-    }
+    let type_label = match mode {
+        sectorforge::sector_model::RouteViewMode::TopLevel => link.route_type.kind().label(),
+        _ => link.route_type.label(),
+    };
+    crate::ui_kit::kv(ui, "TYPE", type_label);
     crate::ui_kit::kv(
         ui,
         "STABILITY",

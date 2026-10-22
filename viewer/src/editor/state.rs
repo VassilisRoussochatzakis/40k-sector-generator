@@ -89,7 +89,6 @@ pub enum SectorEditTool {
 
 pub struct EditorState {
     pub sector: Option<GeneratedSector>,
-    pub project_input: Option<sectorforge::input::ProjectInput>,
     pub loaded_from: Option<String>,
     pub dirty: bool,
     /// Monotonic revision of `sector`, bumped on every mutation (`mark_dirty`)
@@ -127,7 +126,6 @@ impl Default for EditorState {
     fn default() -> Self {
         Self {
             sector: None,
-            project_input: None,
             loaded_from: None,
             dirty: false,
             revision: 0,
@@ -152,14 +150,8 @@ impl Default for EditorState {
 }
 
 impl EditorState {
-    pub(crate) fn set_sector(
-        &mut self,
-        sector: GeneratedSector,
-        project_input: Option<sectorforge::input::ProjectInput>,
-        source_path: Option<String>,
-    ) {
+    pub(crate) fn set_sector(&mut self, sector: GeneratedSector, source_path: Option<String>) {
         self.sector = Some(sector);
-        self.project_input = project_input;
         self.loaded_from = source_path;
         self.dirty = false;
         self.revision = self.revision.wrapping_add(1);
@@ -204,7 +196,7 @@ mod tests {
         };
 
         let before_rev = st.revision;
-        st.set_sector(empty_sector("a", "A", "s", 8, 8), None, Some("path".into()));
+        st.set_sector(empty_sector("a", "A", "s", 8, 8), Some("path".into()));
 
         assert!(!st.dirty);
         assert_eq!(st.revision, before_rev + 1); // wrapping_add(1)
@@ -222,7 +214,7 @@ mod tests {
     #[test]
     fn mark_dirty_sets_dirty_bumps_revision_drops_cache() {
         let mut st = EditorState::default();
-        st.set_sector(empty_sector("a", "A", "s", 8, 8), None, None); // dirty=false, revision=1
+        st.set_sector(empty_sector("a", "A", "s", 8, 8), None); // dirty=false, revision=1
         assert!(!st.dirty);
         let r = st.revision;
         st.mark_dirty();

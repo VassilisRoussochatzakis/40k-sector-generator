@@ -1,8 +1,7 @@
 //! High-level faction overview.
 //!
 //! This view deliberately stays above subfaction/force detail: it shows sector-level
-//! faction rollups and offers broad summary edits for names, kinds,
-//! dispositions, and large presence sets.
+//! faction rollups.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -19,22 +18,12 @@ struct PresenceStats {
     worlds: BTreeSet<WorldId>,
 }
 
-impl PresenceStats {
-    fn system_count(&self) -> usize {
-        self.systems.len()
-    }
-
-    fn world_count(&self) -> usize {
-        self.worlds.len()
-    }
-}
-
 pub(crate) fn show_readonly(ui: &mut Ui, sector: &GeneratedSector) {
-    show_header(ui, sector, false);
+    show_header(ui, sector);
     ui.add_space(8.0);
     show_kind_summary(ui, sector);
     ui.add_space(10.0);
-    show_table_header(ui, false);
+    show_table_header(ui);
 
     let observed = observed_presence(sector);
     let order = faction_order(sector);
@@ -47,7 +36,7 @@ pub(crate) fn show_readonly(ui: &mut Ui, sector: &GeneratedSector) {
     }
 }
 
-fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
+fn show_header(ui: &mut Ui, sector: &GeneratedSector) {
     ui.label(
         RichText::new("FACTIONS")
             .color(palette::chrome_text())
@@ -57,11 +46,10 @@ fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
     let world_count: usize = sector.systems.iter().map(|s| s.worlds.len()).sum();
     ui.label(
         RichText::new(format!(
-            "{} factions - {} systems - {} worlds{}",
+            "{} factions - {} systems - {} worlds",
             sector.factions.len(),
             sector.systems.len(),
             world_count,
-            if edit_mode { " - edit mode" } else { "" }
         ))
         .color(palette::chrome_text_dim()),
     );
@@ -86,7 +74,7 @@ fn show_kind_summary(ui: &mut Ui, sector: &GeneratedSector) {
     });
 }
 
-fn show_table_header(ui: &mut Ui, edit_mode: bool) {
+fn show_table_header(ui: &mut Ui) {
     ui.horizontal(|ui| {
         fixed(ui, 28.0, "");
         fixed(ui, 180.0, "NAME");
@@ -96,9 +84,6 @@ fn show_table_header(ui: &mut Ui, edit_mode: bool) {
         fixed(ui, 98.0, "SUMMARY");
         fixed(ui, 98.0, "WORLD DATA");
         fixed(ui, 80.0, "POWER");
-        if edit_mode {
-            fixed(ui, 160.0, "BULK");
-        }
     });
     ui.separator();
 }
@@ -125,7 +110,7 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
         fixed_text(
             ui,
             98.0,
-            &format!("{}S {}W", observed.system_count(), observed.world_count()),
+            &format!("{}S {}W", observed.systems.len(), observed.worlds.len()),
             palette::chrome_text_dim(),
         );
         fixed_text(

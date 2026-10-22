@@ -88,17 +88,8 @@ impl App {
             }
         }
 
-        let mut input = None;
-        if let Some(path) = &self.project_dir {
-            if let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.clone()) {
-                if let Ok(pi) = sectorforge::input::load_project(&utf8_path) {
-                    input = Some(pi);
-                }
-            }
-        }
-
         // Always set the sector in the editor and clear dirty flag when explicitly loading
-        self.editor.set_sector(sector, input, source_path);
+        self.editor.set_sector(sector, source_path);
         self.editor.dirty = false;
         // `self.sector` was seeded directly above; mark the bridge in sync so it
         // doesn't redundantly re-derive the snapshot we just built.

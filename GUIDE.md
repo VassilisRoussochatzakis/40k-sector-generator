@@ -2345,7 +2345,7 @@ responsive columns of D1/D2/D5/D6/D9/D10/D11 were already delivered by §UO/§BE
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,
 built with egui + eframe. **It is not read-only** — it supports *limited*
 in-place editing of a loaded sector (map edits behind **EDIT MAP**, faction
-edits behind **EDIT MODE**, the typed `worlds.toml` **Data**
+edits in the **EDIT-MAP** view's **FACTIONS** tab, the typed `worlds.toml` **Data**
 editor, plus **SAVE** / **SAVE AS…** back to disk). Full sector construction
 (the command-bus undo/redo workspace) lives in `sectorforge-builder` (§8.2);
 the viewer's editing is the lighter subset listed below. It exposes the
@@ -2407,10 +2407,7 @@ following views via the top navigation bar:
   the top.
 - **Factions** — high-level sector faction view. It lists top-level factions,
   their palette chip, kind, disposition, power, sector summary presence, and
-  observed per-world presence while hiding subfaction and force details. Toggle
-  **EDIT MODE** for broad changes: rename factions, adjust kind/disposition,
-  add/delete top-level factions, set all/none system or world summary
-  presence, or rebuild summary presence from world records.
+  observed per-world presence while hiding subfaction and force details.
 - **Data** (nav label **DATA-RAW**) — typed `worlds.toml` editor from inside
   the app, with **RELOAD** (re-read `worlds.toml` from disk, discarding unsaved
   edits) and **SAVE** toolbar buttons. Requires a loaded project
@@ -3861,7 +3858,7 @@ The newtypes also implement `Deref<Target = str>`, `AsRef<str>`, `Display`,
 ceremony.
 
 For GUI text-edit fields, [viewer/src/editor/ui_helpers.rs](viewer/src/editor/ui_helpers.rs)
-exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — generic wrappers
+exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — wrappers
 over the `&mut String` versions that round-trip the typed id through a
 temporary `String` buffer so `egui::TextEdit` keeps working unchanged.
 

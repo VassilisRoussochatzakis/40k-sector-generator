@@ -1,6 +1,7 @@
 //! Small egui helpers shared across editor panels.
 
 use egui::{Response, RichText, Ui};
+use sectorforge::ids::{SystemId, WorldId};
 
 use crate::palette;
 
@@ -85,31 +86,25 @@ where
     resp
 }
 
-pub(crate) fn combo_str_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[&str]) -> bool
-where
-    T: AsRef<str> + From<String>,
-{
+pub(crate) fn combo_str_id(ui: &mut Ui, id: &str, current: &mut WorldId, options: &[&str]) -> bool {
     let mut buf = current.as_ref().to_string();
     let changed = combo_str(ui, id, &mut buf, options);
     if changed {
-        *current = T::from(buf);
+        *current = WorldId::from(buf);
     }
     changed
 }
 
-pub(crate) fn combo_kv_id<T>(
+pub(crate) fn combo_kv_id(
     ui: &mut Ui,
     id: &str,
-    current: &mut T,
+    current: &mut SystemId,
     options: &[(&str, &str)],
-) -> bool
-where
-    T: AsRef<str> + From<String>,
-{
+) -> bool {
     let mut buf = current.as_ref().to_string();
     let changed = combo_kv(ui, id, &mut buf, options);
     if changed {
-        *current = T::from(buf);
+        *current = SystemId::from(buf);
     }
     changed
 }

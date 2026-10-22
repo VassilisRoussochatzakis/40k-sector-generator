@@ -31,36 +31,9 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 .num_columns(6)
                 .striped(true)
                 .show(ui, |ui| {
-                    ui.label(
-                        RichText::new("ID")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("NAME")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("KIND")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("DESCRIPTION")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("HEXES")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("CENTRE")
-                            .color(palette::chrome_text_dim())
-                            .strong(),
-                    );
+                    for h in ["ID", "NAME", "KIND", "DESCRIPTION", "HEXES", "CENTRE"] {
+                        ui.label(RichText::new(h).color(palette::chrome_text_dim()).strong());
+                    }
                     ui.end_row();
                     for r in sector.regions.iter() {
                         ui.label(RichText::new(&r.id));

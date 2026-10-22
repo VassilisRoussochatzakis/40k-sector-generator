@@ -1,7 +1,7 @@
 //! Output writers + render backends.
 //!
 //! `writers` (originally `src/export.rs`) is the top-level dispatcher that
-//! `export_all` runs over the configured outputs. The other submodules are
+//! `export_all_with_progress` runs over the configured outputs. The other submodules are
 //! per-format renderers: PNG (`bitmap`), SVG (`svg_export`), interactive HTML
 //! (`html_export`), Markdown (`render`), the per-system map / theme
 //! (`system_map` / `map_theme`), the heatmap colour scale (`heatmap`),
@@ -10,7 +10,7 @@
 //!
 //! The original module `src/export.rs` was renamed to `writers.rs` to free up
 //! the `export` name for this parent directory. Everything that lived under
-//! `crate::export::*` (e.g. `export_all`, `write_md_and_json`) is hoisted
+//! `crate::export::*` (e.g. `export_all_with_progress`, `write_md_and_json`) is hoisted
 //! back via `pub use writers::*` below, so callers see no path change.
 
 pub mod bitmap;

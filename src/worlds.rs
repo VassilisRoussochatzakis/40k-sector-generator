@@ -1,7 +1,5 @@
 /// World parameter types. The enum set in this module is the authoritative
 /// taxonomy; project data is loaded from `worlds.toml` via [`load_worlds_data`].
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 // Worlds-data loading (`WorldError`, `WorldsLoad`, `load_worlds_data`) lives in
@@ -336,9 +334,6 @@ pub struct GenerationRow {
     /// Notable feature (I)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notable_feature: Option<NotableFeature>,
-    /// Counter count from COUNTIF formula (col J, stored as integer in the sheet).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub counter: Option<usize>,
     /// Weight formula result — numeric weight for random selection (col K).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub weight: Option<f64>,
@@ -356,31 +351,6 @@ pub struct World {
     pub tech_level: TechLevel,
     pub government: Government,
     pub notable_features: Vec<NotableFeature>,
-}
-
-// ── Key-tab parsing ──────────────────────────────────────────────────────────
-
-/// Reference tables keyed by column index from the Key sheet (1-based).
-#[derive(Debug, Default, Clone)]
-pub struct KeyTables {
-    /// Column A: star colour codes → enum variants.
-    pub star_colours: HashMap<String, StarColour>,
-    /// Column B: world type strings → enums.
-    pub world_types: HashMap<String, WorldType>,
-    /// Column C: atmosphere strings → enums.
-    pub atmospheres: HashMap<String, Atmosphere>,
-    /// Column D: temperature strings → enums.
-    pub temperatures: HashMap<String, Temperature>,
-    /// Column E: biosphere strings → enums.
-    pub biospheres: HashMap<String, Biosphere>,
-    /// Column F: population strings → enums.
-    pub populations: HashMap<String, Population>,
-    /// Column G: tech level strings → enums.
-    pub tech_levels: HashMap<String, TechLevel>,
-    /// Column H: government strings → enums.
-    pub governments: HashMap<String, Government>,
-    /// Column I: notable feature strings → enums (no mapping, just display names).
-    pub notable_features: Vec<String>,
 }
 
 // ── FromStr implementations for Key-tab enums ────────────────────────────────
@@ -639,44 +609,5 @@ impl AsRef<str> for NotableFeature {
 impl std::fmt::Display for NotableFeature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
-    }
-}
-
-impl KeyTables {
-    /// Build a complete key table from the compiled enum variant set.
-    ///
-    /// Enums are authoritative, so the lookup map is always
-    /// reconstructed from `VARIANTS`.
-    pub fn from_enums() -> Self {
-        let mut t = Self::default();
-        for v in StarColour::VARIANTS {
-            t.star_colours.insert(v.display_name().to_owned(), *v);
-        }
-        for v in WorldType::VARIANTS {
-            t.world_types.insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in Atmosphere::VARIANTS {
-            t.atmospheres.insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in Temperature::VARIANTS {
-            t.temperatures
-                .insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in Biosphere::VARIANTS {
-            t.biospheres.insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in Population::VARIANTS {
-            t.populations.insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in TechLevel::VARIANTS {
-            t.tech_levels.insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in Government::VARIANTS {
-            t.governments.insert(v.display_name().to_owned(), v.clone());
-        }
-        for v in NotableFeature::VARIANTS {
-            t.notable_features.push(v.display_name().to_owned());
-        }
-        t
     }
 }

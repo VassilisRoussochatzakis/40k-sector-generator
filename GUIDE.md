@@ -1234,7 +1234,7 @@ write_diagnostics          = false   # reserved flag; no extra diagnostic files 
 sector_scale        = 5          # integer scale multiplier for the sector map (1..=8)
 system_scale        = 4          # integer scale multiplier for per-system maps (1..=8)
 render_systems      = true       # generate per-system bitmap renders as well
-faction_fill        = true       # §8: tint each sector hex AND halo each per-system planet by dominant faction's FactionStyle.fill
+faction_fill        = true       # §8: halo each per-system planet by dominant faction's FactionStyle.fill
 heatmap             = "off"      # §10: per-system heatmap tint applied to the PNG.
                                  # one of: off | control | military | trade | industrial
                                  #         covert | faith | threat | intel
@@ -1933,14 +1933,14 @@ Each cluster gets:
 - A `name` derived from its chosen capital system (`"Subsector Aurelia"`).
 - The list of every (q, r) hex it covers, including empty ones — drives map borders.
 - Internal vs. border route classification.
-- Neighbor / connected subsector adjacency.
+- Connected subsector adjacency.
 - A summary: world-type counts, faction control basis-points, dominant
   factions, controlling faction (if any), capital system + capital world,
   per-faction `control_tier` (`absolute` / `clear` / `plurality` /
   `contested` / `presence` / `trace`).
   Beyond world-type, the summary also carries per-category count maps
-  (population, tech-level, government, star-colour, notable-feature, route-type,
-  route-stability, tag), and `dominant_factions` is capped at the top 3.
+  (population, tech-level, government, notable-feature, route-stability), and
+  `dominant_factions` is capped at the top 3.
 
 Cluster count derives from `target_systems_per_subsector` (default 12):
 `K = ceil(system_count / target)`. Controllable via `SubsectorConfig`:
@@ -3740,7 +3740,7 @@ BUILDER_REQS §34 (EX1..EX8). The EXPORT tab is the in-app face of `sectorforge 
 
 | Piece | Where it lives |
 |---|---|
-| EX1 formats + EX2 manifest | `panels/export.rs::show_formats` renders a checkbox per `OutputFormat` (`json` / `markdown` / `bitmap` / `svg` / `html`) that adds/removes it from `state.config.outputs.formats`, plus `write_manifest` / `pretty_json` / `write_per_system_files`. `run_bundle` calls [`sectorforge::export_sector`](src/lib.rs)`(&state.sector, &state.config.outputs, dir)`; the manifest write is gated by `write_manifest` inside `export_all` ([src/export/writers.rs](src/export/writers.rs)). Any edit sets `state.dirty`. **§V6 pre-export gate** — both `run_bundle` and `run_everything` first call `BuilderState::export_block_reason`, which re-validates the live sector (`revalidate_now` + `check_sector`) and returns `Some(reason)` on any validation error, invariant violation, or — under §V4 strict — validation warning; the export is then refused (surfaced via `ExportState::error`) instead of writing, mirroring the CLI `generate` refuse-on-error behaviour. |
+| EX1 formats + EX2 manifest | `panels/export.rs::show_formats` renders a checkbox per `OutputFormat` (`json` / `markdown` / `bitmap` / `svg` / `html`) that adds/removes it from `state.config.outputs.formats`, plus `write_manifest` / `pretty_json` / `write_per_system_files`. `run_bundle` calls [`sectorforge::export_sector`](src/lib.rs)`(&state.sector, &state.config.outputs, dir)`; the manifest write is gated by `write_manifest` inside `export_all_with_progress` ([src/export/writers.rs](src/export/writers.rs)). Any edit sets `state.dirty`. **§V6 pre-export gate** — both `run_bundle` and `run_everything` first call `BuilderState::export_block_reason`, which re-validates the live sector (`revalidate_now` + `check_sector`) and returns `Some(reason)` on any validation error, invariant violation, or — under §V4 strict — validation warning; the export is then refused (surfaced via `ExportState::error`) instead of writing, mirroring the CLI `generate` refuse-on-error behaviour. |
 | EX3 bitmap settings | `show_bitmap_settings` is a `DragValue`/checkbox/`ComboBox` grid over `state.config.outputs.bitmap`: `sector_scale` / `system_scale` (1..=8), `render_systems`, `faction_fill`, and a `heatmap` picker over `HeatmapMode::ALL`. |
 | EX4 HTML settings | `show_html_settings` edits `state.config.outputs.html`: theme picker over `HtmlTheme` (dark/parchment/hololithic), `player_observer` combo (faction ids from `state.sector.factions` + "(none)"), `player_min_confidence` slider, `size_warn_bytes`, `compact_json`. Faction ids are collected before borrowing `html` &mut to dodge the aliasing borrow. |
 | EX5 standalone-system | `show_standalone_system` collects seed / coord / index / markdown on `ExportState`; `generate_and_write_system` mirrors `generate-system` — `sectorforge::load_project` (from `state.project_path`), `generate_system_standalone`, then `write_system_json` (+ `render_system_markdown`) writing `<sys-id>.json` (+ `.md`) into the output folder. Gated on an open project. |
@@ -3906,7 +3906,6 @@ Common codes:
 | `WB_NO_USABLE_ROWS` | World data produced zero usable candidates |
 | `WB_EXCLUDED_ROWS` | At least one row was excluded, but at most half (warning) |
 | `WB_EXCLUDED_ROWS_SEVERE` | More rows were excluded than kept (`n > usable`) — escalated to an error, since the sector would generate from a fraction of its templates |
-| `KEY_TABLE_EMPTY` | A key table built from enums had no entries |
 | `OUT_NO_FORMATS` | `outputs.formats` is empty; nothing will be written (warning) |
 | `OUT_BITMAP_SCALE_RANGE` | `outputs.bitmap.sector_scale` / `system_scale` is outside `1..=8` |
 | `OUT_BITMAP_THEME_INVALID` | `outputs.bitmap.theme` does not resolve to a known map theme |
@@ -4101,7 +4100,7 @@ across runs, so a regression check is a diff away.
 | [src/export/subsectors/summary.rs](src/export/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/analysis/analytics.rs](src/analysis/analytics.rs) | §8 old/DONE.md analytics dashboard: faction balance + connectivity + flags |
 | [src/loading/presets.rs](src/loading/presets.rs) | §9 old/DONE.md preset library + scaffolder (`new`, `list-presets`) |
-| [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration). `clone_project_with_seed` per-candidate clones now `Arc::clone` the shared `ProjectCatalogs` (§TF-P-1) — one refcount bump replaces 14 deep clones of `world_tables` / `world_rows` / `factions` / etc., so seed search bandwidth scales with `config` + `input_digests` only. |
+| [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration). `clone_project_with_seed` per-candidate clones now `Arc::clone` the shared `ProjectCatalogs` (§TF-P-1) — one refcount bump replaces 14 deep clones of `world_rows` / `factions` / etc., so seed search bandwidth scales with `config` + `input_digests` only. |
 | [src/validate/diff.rs](src/validate/diff.rs) | §10 old/DONE.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
 | [src/analysis/history/mod.rs](src/analysis/history/mod.rs) | §1 NEW2.md/DONE deterministic `SectorChronicle`: typed dated / era-labelled history events with entity refs, consequences, route/subsector/region anchors, and `M{epoch}.{ddd}` notation. |
 | [src/analysis/personae.rs](src/analysis/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |

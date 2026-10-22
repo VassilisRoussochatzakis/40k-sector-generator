@@ -184,16 +184,15 @@ impl BuilderState {
                 file: "regenerate-world".into(),
                 message: "worlds catalog not loaded".into(),
             })?;
-        let mut pool = sectorforge::build_pool(
+        let mut pool = sectorforge::world_pool::build_pool(
             &input.catalogs.world_rows,
-            &input.catalogs.world_tables,
             &input.config.generation.world_selection,
         );
         if let Some(features) = &input.catalogs.authored_features {
-            sectorforge::apply_authored_features(&mut pool, features);
+            sectorforge::world_pool::apply_authored_features(&mut pool, features);
         }
         self.generation.world_reroll_counter = self.generation.world_reroll_counter.wrapping_add(1);
-        let (dto, source_row, tags) = sectorforge::regenerate_world_payload(
+        let (dto, source_row, tags) = sectorforge::generation::regenerate_world_payload(
             &input.config,
             &pool,
             star_colour,

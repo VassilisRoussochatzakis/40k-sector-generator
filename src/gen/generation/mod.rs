@@ -355,7 +355,6 @@ where
     // would consume the Arc when it's unique, but the seed-search loop holds
     // its own clones — borrowing keeps both paths cheap.
     let crate::loading::input::ProjectCatalogs {
-        world_tables,
         world_rows,
         authored_features,
         names,
@@ -385,11 +384,7 @@ where
     if Stage::WorldPool <= through {
         let source_rows = world_rows.len();
         let t_pool = Instant::now();
-        pool = crate::world_pool::build_pool(
-            world_rows,
-            world_tables,
-            &config.generation.world_selection,
-        );
+        pool = crate::world_pool::build_pool(world_rows, &config.generation.world_selection);
         if let Some(features) = &authored_features {
             crate::world_pool::apply_authored_features(&mut pool, features);
         }

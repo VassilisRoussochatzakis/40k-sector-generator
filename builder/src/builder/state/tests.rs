@@ -1865,7 +1865,6 @@ fn single_row_worlds_catalog() -> sectorforge::worlds_toml::WorldsConfig {
             tech: Some(TechLevel::High),
             government: Some(Government::MilitaryGovernor),
             notable_feature: None,
-            counter: None,
             weight: Some(1.0),
         }],
         ..Default::default()

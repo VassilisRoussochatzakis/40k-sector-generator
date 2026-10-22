@@ -46,7 +46,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::worlds::{GenerationRow, KeyTables, NotableFeature, StarColour, WorldType};
+use crate::worlds::{GenerationRow, NotableFeature, StarColour, WorldType};
 
 /// Default filename for the native worlds config inside a project's
 /// `data/worlds/` directory.
@@ -126,14 +126,6 @@ impl WorldsConfig {
         toml::to_string_pretty(self).map_err(|e| WorldsTomlError::Emit(e.to_string()))
     }
 
-    /// Convert into the existing loader-tuple shape so downstream code
-    /// (`world_pool::build_pool`) is untouched. Always uses the
-    /// enum-derived `KeyTables` since enums are the authoritative
-    /// variant set.
-    pub fn to_loader_inputs(&self) -> (KeyTables, Vec<GenerationRow>) {
-        (KeyTables::from_enums(), self.generation.clone())
-    }
-
     /// Resolved feature pool with parsed map keys. Returns the empty
     /// shape when no `[features]` block was authored.
     pub fn resolved_features(&self) -> Result<ResolvedFeaturePool, WorldsTomlError> {
@@ -182,7 +174,6 @@ impl ResolvedFeaturePool {
 /// Full worlds-data load result. Includes the authored structured
 /// feature pool (`§45 WD3`) when the TOML path is in use.
 pub struct WorldsLoad {
-    pub tables: KeyTables,
     pub rows: Vec<GenerationRow>,
     pub authored_features: Option<crate::worlds_toml::ResolvedFeaturePool>,
 }
@@ -198,7 +189,7 @@ pub fn load_worlds_data(data_dir: impl AsRef<Path>) -> Result<WorldsLoad, WorldE
     let toml_path = dir.join(crate::worlds_toml::DEFAULT_FILENAME);
     let cfg = crate::worlds_toml::WorldsConfig::from_path(&toml_path)
         .map_err(|e| WorldError::Invalid(format!("worlds.toml: {e}")))?;
-    let (tables, rows) = cfg.to_loader_inputs();
+    let rows = cfg.generation.clone();
     let features = cfg
         .resolved_features()
         .map_err(|e| WorldError::Invalid(format!("worlds.toml features: {e}")))?;
@@ -208,7 +199,6 @@ pub fn load_worlds_data(data_dir: impl AsRef<Path>) -> Result<WorldsLoad, WorldE
         Some(features)
     };
     Ok(WorldsLoad {
-        tables,
         rows,
         authored_features,
     })
@@ -231,7 +221,6 @@ mod tests {
                 tech: Some(TechLevel::High),
                 government: Some(Government::MilitaryGovernor),
                 notable_feature: Some(NotableFeature::PowerfulNobles),
-                counter: None,
                 weight: Some(4.0),
             }],
             features: FeaturePoolConfig {
@@ -295,15 +284,6 @@ mod tests {
         assert!(matches!(err, WorldsTomlError::BadVariant { .. }));
     }
 
-    #[test]
-    fn to_loader_inputs_uses_enum_derived_keytables() {
-        let cfg = sample();
-        let (tables, rows) = cfg.to_loader_inputs();
-        assert_eq!(rows.len(), 1);
-        assert!(tables.world_types.contains_key("Hive World"));
-        assert!(tables.star_colours.contains_key("G"));
-    }
-
     proptest::proptest! {
         /// TF-T-9: any `WorldsConfig` value (within our bounded shape) must
         /// round-trip through TOML emission/parsing. Catches escape bugs and
@@ -348,7 +328,6 @@ mod tests {
                     tech: None,
                     government: None,
                     notable_feature: Some(pick_feature[s % pick_feature.len()].clone()),
-                    counter: None,
                     weight: Some(1.0 + (s as f64) * 0.5),
                 });
             }

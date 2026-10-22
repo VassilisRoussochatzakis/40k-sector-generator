@@ -7,6 +7,10 @@ use serde::Serialize;
 use crate::input::ProjectInput;
 use crate::taxonomy;
 use crate::world_pool;
+use crate::worlds::{
+    Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
+    Temperature, WorldType,
+};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ValidationReport {
@@ -156,38 +160,26 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     // ── World workbook ──────────────────────────────────────────────────────
     let mut pool = world_pool::build_pool(
         &input.catalogs.world_rows,
-        &input.catalogs.world_tables,
         &input.config.generation.world_selection,
     );
     if let Some(features) = &input.catalogs.authored_features {
         world_pool::apply_authored_features(&mut pool, features);
     }
 
-    let t = &input.catalogs.world_tables;
     let key_counts: BTreeMap<String, usize> = [
-        ("star_colours", t.star_colours.len()),
-        ("world_types", t.world_types.len()),
-        ("atmospheres", t.atmospheres.len()),
-        ("temperatures", t.temperatures.len()),
-        ("biospheres", t.biospheres.len()),
-        ("populations", t.populations.len()),
-        ("tech_levels", t.tech_levels.len()),
-        ("governments", t.governments.len()),
-        ("notable_features", t.notable_features.len()),
+        ("star_colours", StarColour::VARIANTS.len()),
+        ("world_types", WorldType::VARIANTS.len()),
+        ("atmospheres", Atmosphere::VARIANTS.len()),
+        ("temperatures", Temperature::VARIANTS.len()),
+        ("biospheres", Biosphere::VARIANTS.len()),
+        ("populations", Population::VARIANTS.len()),
+        ("tech_levels", TechLevel::VARIANTS.len()),
+        ("governments", Government::VARIANTS.len()),
+        ("notable_features", NotableFeature::VARIANTS.len()),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v))
     .collect();
-
-    for (name, n) in &key_counts {
-        if *n == 0 {
-            errors.push(issue(
-                "KEY_TABLE_EMPTY",
-                &format!("Key table '{name}' has no entries"),
-                Severity::Error,
-            ));
-        }
-    }
 
     if input.catalogs.world_rows.is_empty() {
         errors.push(issue(

@@ -674,7 +674,6 @@ fn subsector(
         hex_cells,
         route_ids_internal: Vec::new(),
         route_ids_border: Vec::new(),
-        neighboring_subsector_ids: Vec::new(),
         connected_subsector_ids: Vec::new(),
         summary: SubsectorSummary {
             subsector_capital_system_id: capital.map(SystemId::new),

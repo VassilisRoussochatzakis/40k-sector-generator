@@ -80,7 +80,8 @@ pub(crate) fn run_random(args: RandomArgs) -> Result<ExitCode, SectorError> {
     // Mint here (not inside the core) so we can name the project dir after the
     // seed and echo a reproduce line even when the caller passed no seed.
     let seed = seed.unwrap_or_else(random_sector::mint_seed);
-    let dest = out.unwrap_or_else(|| Utf8PathBuf::from(format!("random-{}", dir_slug(&seed))));
+    let dest = out
+        .unwrap_or_else(|| Utf8PathBuf::from(format!("random-{}", random_sector::dir_slug(&seed))));
 
     log_progress(format_args!(
         "random: synthesising {} sector from baseline '{baseline}' (seed: {seed}) in {dest}",
@@ -201,20 +202,6 @@ fn reproduce_hint(size: SectorSize, baseline: &str, seed: &str) -> String {
         base
     } else {
         format!("{base} --baseline {baseline}")
-    }
-}
-
-/// Filesystem-safe slug for the default project directory name.
-fn dir_slug(seed: &str) -> String {
-    let s: String = seed
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
-        .take(16)
-        .collect();
-    if s.is_empty() {
-        "sector".to_string()
-    } else {
-        s
     }
 }
 

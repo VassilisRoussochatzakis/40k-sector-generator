@@ -472,7 +472,6 @@ impl App {
 
 fn sector_render_options(app: &App) -> sectorforge::bitmap::RenderOptions {
     sectorforge::bitmap::RenderOptions {
-        faction_fill: true,
         heatmap: app.heatmap_mode,
         theme: app.export_theme(),
         route_view_mode: app.route_view_mode,

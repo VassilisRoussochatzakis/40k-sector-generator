@@ -308,6 +308,22 @@ pub fn mint_seed() -> String {
     hex[..16].to_string()
 }
 
+/// Folder-name slug from a seed: keeps only ascii-alphanumeric / `-` / `_`,
+/// caps at 16 chars, and falls back to `"sector"` when nothing survives. Shared
+/// by the CLI `random` default `--out` and the builder's random / iterative wizards.
+pub fn dir_slug(seed: &str) -> String {
+    let s: String = seed
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(16)
+        .collect();
+    if s.is_empty() {
+        "sector".to_string()
+    } else {
+        s
+    }
+}
+
 /// Build the complete, fully-randomised [`AppConfig`] for `(seed, size)`.
 /// Exposed for the determinism tests — same inputs ⇒ identical config.
 #[must_use]

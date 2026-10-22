@@ -931,7 +931,7 @@ impl BuilderState {
         regions_override: Option<&sectorforge::regions::RegionsConfig>,
     ) -> Option<ProjectInput> {
         let worlds = self.data_catalogs.worlds.as_ref()?;
-        let (world_tables, world_rows) = worlds.to_loader_inputs();
+        let world_rows = worlds.generation.clone();
         let authored_features = worlds.resolved_features().ok();
         let root_dir = self
             .project_path
@@ -941,7 +941,6 @@ impl BuilderState {
             root_dir,
             config: self.config.clone(),
             catalogs: std::sync::Arc::new(sectorforge::ProjectCatalogs {
-                world_tables,
                 world_rows,
                 authored_features,
                 names: self.data_catalogs.names.clone().unwrap_or_default(),

@@ -214,31 +214,6 @@ fn system_count_equal_to_cells_is_not_overflow() {
     assert!(!has_err(&report, "GEN_SYSTEM_COUNT_OVERFLOW"));
 }
 
-// ── G3: KEY_TABLE_EMPTY ─────────────────────────────────────────────────────
-
-#[test]
-fn empty_key_table_is_error() {
-    let mut input = m42();
-    let c = std::sync::Arc::make_mut(&mut input.catalogs);
-    c.world_tables.world_types.clear();
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(has_err(&report, "KEY_TABLE_EMPTY"));
-    let issue = find(&report, "KEY_TABLE_EMPTY").unwrap();
-    assert!(
-        issue.message.contains("world_types"),
-        "msg: {}",
-        issue.message
-    );
-    assert_eq!(issue.message, "Key table 'world_types' has no entries");
-}
-
-#[test]
-fn intact_key_tables_have_no_empty_error() {
-    let input = m42();
-    let report = sectorforge::validate_project(&input).unwrap();
-    assert!(!has_err(&report, "KEY_TABLE_EMPTY"));
-}
-
 // ── G4: WB_NO_ROWS ──────────────────────────────────────────────────────────
 
 #[test]

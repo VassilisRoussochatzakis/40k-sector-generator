@@ -9,8 +9,6 @@ use crate::map_theme::MapTheme;
 /// can override without touching the project's TOML.
 #[derive(Debug, Clone)]
 pub struct RenderOptions {
-    /// Tint each system's hex by the dominant faction (§8).
-    pub faction_fill: bool,
     /// Overlay a heatmap tint per system (§10). `Off` disables it.
     pub heatmap: crate::heatmap::HeatmapMode,
     /// §13 NEW2.md: presentation-only map theme.
@@ -21,7 +19,6 @@ pub struct RenderOptions {
 impl Default for RenderOptions {
     fn default() -> Self {
         Self {
-            faction_fill: true,
             heatmap: crate::heatmap::HeatmapMode::Off,
             theme: MapTheme::gm_dark(),
             route_view_mode: crate::sector_model::RouteViewMode::default(),

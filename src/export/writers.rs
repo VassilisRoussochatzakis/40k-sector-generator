@@ -146,15 +146,7 @@ impl<W: io::Write> io::Write for ProgressWriter<'_, W> {
     }
 }
 
-pub fn export_all(
-    sector: &GeneratedSector,
-    output_config: &OutputConfig,
-    output_dir: &Utf8Path,
-) -> Result<(), SectorError> {
-    export_all_with_progress(sector, output_config, output_dir, &mut |_| {})
-}
-
-/// [`export_all`] with a progress callback invoked across the format writers —
+/// Write every configured output, with a progress callback invoked across the format writers —
 /// notably a live byte counter for the large `sector.json`. See
 /// [`ExportProgress`].
 pub fn export_all_with_progress(
@@ -185,7 +177,6 @@ pub fn export_all_with_progress(
             OutputFormat::Markdown => write_markdown(sector, output_dir)?,
             OutputFormat::Bitmap => {
                 let opts = crate::bitmap::RenderOptions {
-                    faction_fill: bm.faction_fill,
                     heatmap: bm.heatmap,
                     theme: map_theme.clone(),
                     route_view_mode: crate::sector_model::RouteViewMode::default(),

@@ -590,7 +590,7 @@ fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {
     use sectorforge::worlds_toml::WorldsConfig;
 
     // Re-read the worlds.toml directly so the catalog mirrors the on-disk
-    // file (the loader otherwise normalises into `KeyTables` + rows).
+    // file (the loader otherwise normalises into rows + a resolved feature pool).
     let worlds_path = input
         .root_dir
         .join(&input.config.inputs.world_data_dir)

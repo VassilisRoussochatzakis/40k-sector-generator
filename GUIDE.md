@@ -3975,7 +3975,7 @@ cargo bench --bench generation -- --quick # ~10s smoke
 cargo bench -p sectorforge-builder        # builder mutation bench (§T7 / §PERF1)
 ```
 
-Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`, plus the §42 500-system scale benches (`validate/500`, `invariants/500`, `derive_cold/500`, `derive_warm/500`). [benches/seed_search.rs](benches/seed_search.rs) adds `search/128_cand_200sys` (§PERF7).
+Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`, plus the §42 500-system scale benches (`validate/500`, `invariants/500`, `derive_cold/500`). [benches/seed_search.rs](benches/seed_search.rs) adds `search/128_cand_200sys` (§PERF7).
 
 Generation builds a world candidate pool once per project load. That pool also
 caches star-colour weight totals, so per-system star selection does not rescan
@@ -4285,7 +4285,7 @@ cargo run --release --features dhat-heap --bin dhat-profile -- examples/m42_proj
 
 [benches/generation.rs](benches/generation.rs) registers twelve groups across the
 tiny / normal / large scale matrix from the optimisation spec §5B (the §5B
-core phases below, plus the four 500-system scale benches and the
+core phases below, plus the three 500-system scale benches and the
 emit-path groups):
 
 - `generate_sector` — pure generation; isolated per iteration with
@@ -4298,6 +4298,8 @@ emit-path groups):
 - `encode_png_bytes` — PNG encoder cost on a pre-rasterised image. Splitting
   raster from encode lets you see whether image compression or pixel layout
   is the bottleneck.
+- `render_sector_png` — the full raster **+** encode path end-to-end
+  (RUST_FIXES.md FU-9), directly comparable with the two halves above.
 - `render_sector_svg` / `serialize_json` / `render_sector_markdown` — the other
   emit paths (SVG render, `sector.json` serialisation, Markdown render), each
   across the same scale matrix.
@@ -4308,11 +4310,11 @@ Run all groups: `cargo bench --bench generation`. Run one group:
 The §42 builder performance targets (PERF3–PERF7) are covered at the spec's
 500-system / 128-candidate scale by additional named benches in the same two
 files: `validate/500` (PERF3), `invariants/500` (PERF4), `derive_cold/500`
-(PERF5, full overlay set re-derived per iteration), `derive_warm/500` (PERF6,
-the `Arc`-clone cache-hit return path) in [benches/generation.rs](benches/generation.rs),
-and `search/128_cand_200sys` (PERF7) in [benches/seed_search.rs](benches/seed_search.rs).
-All five met budget in the last run (validate 257 µs, invariants 2 ms, cold
-derive 411 ms, warm derive 2.6 ms, search 2.2 s).
+(PERF5, full overlay set re-derived per iteration) in [benches/generation.rs](benches/generation.rs),
+and `search/128_cand_200sys` (PERF7) in [benches/seed_search.rs](benches/seed_search.rs);
+PERF6's warm (cache-hit) path is the builder bench's `derive/economy_warm` below.
+All four met budget in the last run (validate 257 µs, invariants 2 ms, cold
+derive 411 ms, search 2.2 s).
 
 The builder's own large-sector mutation bench
 [builder/benches/builder_mutations.rs](builder/benches/builder_mutations.rs)
@@ -4335,7 +4337,7 @@ whether the ~16.6 ms frame budget is reachable — 1.16 ms on `big_test` (200 sy
 525 routes). End-to-end
 FPS is still confirmed manually in the builder/viewer.
 
-Four additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
+Three additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
 own `[[bench]]` so it runs in isolation — they exist to validate the §2.3 perf
 claims before a perf fix is called done:
 
@@ -4346,8 +4348,6 @@ claims before a perf fix is called done:
 - [benches/influence_field.rs](benches/influence_field.rs) — `influence_field::build`
   across 10/20/30-a-side sectors; the dense `Vec<f32>` cost this measures is what
   the TF-S-5 sparse-vs-dense storage decision hinges on.
-- [benches/render_png.rs](benches/render_png.rs) — the full raster **+** encode path
-  end-to-end (the `generation` groups above time the two halves separately).
 
 Run one: `cargo bench --bench influence_field`.
 

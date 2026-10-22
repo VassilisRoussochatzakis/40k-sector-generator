@@ -25,9 +25,8 @@ use camino::Utf8PathBuf;
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 use sectorforge::config::AppConfig;
-use sectorforge::ids::SystemId;
 use sectorforge::invariants::check_sector;
-use sectorforge::sector_model::{GeneratedSector, HexCoord};
+use sectorforge::sector_model::GeneratedSector;
 use sectorforge::{generate_sector, load_project};
 
 use sectorforge_builder::{
@@ -68,67 +67,50 @@ fn bench_command_apply(c: &mut Criterion) {
     // occupancy check excludes the system itself) and still drives the full
     // `run` path: mutate, rebuild index, clear cache, re-check invariants.
     let first = sector.systems.first().expect("fixture has systems");
-    let move_id: SystemId = first.id.clone();
-    let move_coord: HexCoord = first.coord;
-    let rename_id: SystemId = first.id.clone();
-    let rename_to = format!("{}-bench", first.name);
+    let commands = [
+        // Cheap: move a single system to its own coordinate.
+        (
+            "move_system_cheap",
+            BuilderCommand::MoveSystem {
+                id: first.id.clone(),
+                from: first.coord,
+                to: first.coord,
+            },
+        ),
+        // Cheap: rename a single system.
+        (
+            "rename_system_cheap",
+            BuilderCommand::RenameSystem {
+                id: first.id.clone(),
+                from: String::new(), // `apply` uses `to`; `from` is only for revert.
+                to: format!("{}-bench", first.name),
+            },
+        ),
+        // Heavier: sector-wide archetype auto-assign (`archetypes::apply_all` over
+        // every system, then per-axis masking). `before` is filled by `apply`.
+        (
+            "auto_assign_archetypes_heavy",
+            BuilderCommand::AutoAssignArchetypes {
+                flags: ArchetypeApplyFlags::default(),
+                before: Vec::new(),
+            },
+        ),
+    ];
 
     let mut group = c.benchmark_group("command_apply");
-
-    // Cheap: move a single system to its own coordinate.
-    group.bench_function("move_system_cheap", |b| {
-        b.iter_batched(
-            || fresh_state(&sector, &config),
-            |mut state| {
-                state
-                    .run(black_box(BuilderCommand::MoveSystem {
-                        id: move_id.clone(),
-                        from: move_coord,
-                        to: move_coord,
-                    }))
-                    .expect("move_system");
-                black_box(state)
-            },
-            BatchSize::SmallInput,
-        );
-    });
-
-    // Cheap: rename a single system.
-    group.bench_function("rename_system_cheap", |b| {
-        b.iter_batched(
-            || fresh_state(&sector, &config),
-            |mut state| {
-                state
-                    .run(black_box(BuilderCommand::RenameSystem {
-                        id: rename_id.clone(),
-                        from: String::new(), // `apply` uses `to`; `from` is only for revert.
-                        to: rename_to.clone(),
-                    }))
-                    .expect("rename_system");
-                black_box(state)
-            },
-            BatchSize::SmallInput,
-        );
-    });
-
-    // Heavier: sector-wide archetype auto-assign (`archetypes::apply_all` over
-    // every system, then per-axis masking). `before` is filled by `apply`.
-    group.bench_function("auto_assign_archetypes_heavy", |b| {
-        b.iter_batched(
-            || fresh_state(&sector, &config),
-            |mut state| {
-                state
-                    .run(black_box(BuilderCommand::AutoAssignArchetypes {
-                        flags: ArchetypeApplyFlags::default(),
-                        before: Vec::new(),
-                    }))
-                    .expect("auto_assign_archetypes");
-                black_box(state)
-            },
-            BatchSize::SmallInput,
-        );
-    });
-
+    for (name, cmd) in commands {
+        group.bench_function(name, |b| {
+            b.iter_batched(
+                // The command is cloned here in setup, outside the timed routine.
+                || (fresh_state(&sector, &config), cmd.clone()),
+                |(mut state, cmd)| {
+                    state.run(black_box(cmd)).expect(name);
+                    black_box(state)
+                },
+                BatchSize::SmallInput,
+            );
+        });
+    }
     group.finish();
 }
 

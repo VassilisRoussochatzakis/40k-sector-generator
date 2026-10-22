@@ -15,22 +15,14 @@
 //!
 //! Run with: `cargo bench --bench seed_search`
 
+mod common;
+
 use std::hint::black_box;
 
-use camino::Utf8PathBuf;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use sectorforge::search::{Constraint, SearchConfig, WishesFile};
-use sectorforge::{load_project, run_seed_search, ProjectInput};
-
-fn project_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
-
-/// The loaded project is the per-candidate template — the search clones it
-/// (catalogs shared via `Arc`) and overrides only the seed.
-fn template() -> ProjectInput {
-    load_project(project_dir()).expect("load m42_project")
-}
+use sectorforge::run_seed_search;
+use sectorforge::search::Constraint::{self, ContestedWorldMin, RouteGraphConnected};
+use sectorforge::search::{SearchConfig, WishesFile};
 
 // docs/IMPROVEMENT.txt §42 PERF7 is specified on a 200-system project. A 30×30
 // grid (square — the geometry invariant) holds 200 systems. The search clones
@@ -40,64 +32,54 @@ const PERF7_SYSTEMS: usize = 200;
 const PERF7_DIM: u32 = 30;
 const PERF7_CANDIDATES: u32 = 128;
 
-/// 200-system per-candidate template for the PERF7 search measurement.
-fn template_200() -> ProjectInput {
-    let mut input = template();
-    input.config.generation.sector_width = PERF7_DIM;
-    input.config.generation.sector_height = PERF7_DIM;
-    input.config.generation.system_count = PERF7_SYSTEMS;
-    input
-}
-
-/// A wishes file with a fixed base seed and an *unsatisfiable* constraint
-/// (`ContestedWorldMin` with an impossible floor). Unlike `RouteGraphConnected`,
-/// this never passes, so the "lowest winning n" guard never trips and the full
-/// candidate budget is generated + analysed + evaluated — the worst case PERF7
-/// is meant to bound. `ContestedWorldMin` references no faction id, so it clears
-/// preflight unconditionally (no early-out).
-fn wishes_unsatisfiable(budget: u32) -> WishesFile {
+/// A wishes file with a fixed base seed, a `budget` of candidates and one
+/// constraint.
+fn wishes(budget: u32, constraint: Constraint) -> WishesFile {
     WishesFile {
         search: SearchConfig {
             base_seed: Some("bench-fixed-seed".into()),
             budget,
             report_top: 5,
         },
-        constraints: vec![Constraint::ContestedWorldMin {
-            min: u32::MAX,
-            n_way: None,
-        }],
+        constraints: vec![constraint],
     }
 }
 
-/// Build a wishes file with a fixed base seed and a constraint that forces the
-/// search to actually generate + analyse every candidate (an unsatisfiable
-/// floor on connectivity is cheap to evaluate but never short-circuits, so the
-/// whole budget runs — the worst case the bench wants to time).
-fn wishes(budget: u32) -> WishesFile {
-    WishesFile {
-        search: SearchConfig {
-            base_seed: Some("bench-fixed-seed".into()),
-            budget,
-            report_top: 5,
-        },
-        // RouteGraphConnected is a real graph constraint evaluated against the
-        // analytics report; pairing it with a tiny budget keeps the run short
-        // while still walking the full generate→analyze→evaluate path.
-        constraints: vec![Constraint::RouteGraphConnected],
-    }
-}
-
-fn bench_run_search(c: &mut Criterion) {
-    let template = template();
-    let mut group = c.benchmark_group("seed_search");
-    // Keep sample size low: each iteration generates `budget` whole sectors.
-    group.sample_size(10);
-    for budget in [4u32, 16u32] {
-        let wishes = wishes(budget);
+/// The loaded project is the per-candidate template — the search clones it
+/// (catalogs shared via `Arc`) and overrides only the seed.
+///
+/// `seed_search/{4,16}`: the stock project against `RouteGraphConnected`, a
+/// real graph constraint evaluated against the analytics report; the tiny
+/// budget keeps the run short while still walking the full
+/// generate→analyze→evaluate path.
+///
+/// `search/128_cand_200sys` — docs/IMPROVEMENT.txt §42 PERF7: evaluating 128
+/// candidates over a 200-system project must complete under 30 s. Its
+/// `ContestedWorldMin` floor is impossible: unlike `RouteGraphConnected` it
+/// never passes, so the "lowest winning n" guard never trips and every
+/// candidate fully generates + analyses + evaluates — the worst case PERF7
+/// bounds. It references no faction id, so it clears preflight
+/// unconditionally (no early-out).
+fn bench_search(c: &mut Criterion) {
+    let stock = common::load();
+    let perf7 = common::project(PERF7_DIM, PERF7_SYSTEMS);
+    let never = ContestedWorldMin {
+        min: u32::MAX,
+        n_way: None,
+    };
+    for (group, id, template, budget, constraint) in [
+        ("seed_search", "4", &stock, 4, RouteGraphConnected),
+        ("seed_search", "16", &stock, 16, RouteGraphConnected),
+        ("search", "128_cand_200sys", &perf7, PERF7_CANDIDATES, never),
+    ] {
+        let wishes = wishes(budget, constraint);
+        let mut group = c.benchmark_group(group);
+        // Keep sample size low: each iteration generates `budget` whole sectors.
+        group.sample_size(10);
         group.throughput(Throughput::Elements(u64::from(budget)));
         group.bench_with_input(
-            BenchmarkId::from_parameter(budget),
-            &(&template, &wishes),
+            BenchmarkId::from_parameter(id),
+            &(template, &wishes),
             |b, (template, wishes)| {
                 b.iter(|| {
                     black_box(
@@ -106,37 +88,9 @@ fn bench_run_search(c: &mut Criterion) {
                 });
             },
         );
+        group.finish();
     }
-    group.finish();
 }
 
-/// docs/IMPROVEMENT.txt §42 PERF7: evaluating 128 candidates over a 200-system
-/// project must complete under 30 s. Bench id `search/128_cand_200sys`. The
-/// unsatisfiable constraint forces all 128 candidates to fully generate +
-/// analyse + evaluate (no short-circuit), which is the worst case the target
-/// bounds.
-fn bench_search_perf7(c: &mut Criterion) {
-    let template = template_200();
-    let wishes = wishes_unsatisfiable(PERF7_CANDIDATES);
-    let mut group = c.benchmark_group("search");
-    // Each iteration generates 128 whole 200-system sectors; one sample is the
-    // most we can afford here. Criterion still reports a wall-clock estimate the
-    // PERF7 budget can be checked against.
-    group.sample_size(10);
-    group.throughput(Throughput::Elements(u64::from(PERF7_CANDIDATES)));
-    group.bench_with_input(
-        BenchmarkId::from_parameter("128_cand_200sys"),
-        &(&template, &wishes),
-        |b, (template, wishes)| {
-            b.iter(|| {
-                black_box(
-                    run_seed_search(black_box(template), black_box(wishes)).expect("search ok"),
-                )
-            });
-        },
-    );
-    group.finish();
-}
-
-criterion_group!(benches, bench_run_search, bench_search_perf7);
+criterion_group!(benches, bench_search);
 criterion_main!(benches);

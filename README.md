@@ -752,7 +752,7 @@ cargo clippy --workspace --all-targets -- -D warnings   # lint, warnings as erro
 cargo test --test it segmentum -- --ignored
 ```
 
-Several criterion benchmarks (`generation`, `briefing`, `seed_search`, `influence_field`, `render_png`) are defined as `[[bench]]` targets and are separate from the test suite.
+Several criterion benchmarks (`generation`, `briefing`, `seed_search`, `influence_field`) are defined as `[[bench]]` targets and are separate from the test suite.
 
 **Fuzzing.** The `fuzz/` crate (cargo-fuzz + `libfuzzer-sys`) fuzzes the attacker-controlled parser surfaces. It is deliberately kept *outside* the workspace because `libfuzzer-sys` requires a nightly toolchain, so `--workspace` builds stay on stable. Six targets cover the config/data parsers: `config_parse`, `worlds_toml_parse`, `factions_toml_parse`, `sector_json_parse`, `presets_load`, `map_theme_parse_color`.
 

@@ -188,7 +188,8 @@ fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
         if let Some(cfg) = state.data_catalogs.relations.as_mut() {
             cfg.feed_conflict = feed;
         }
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     if gen_changed {
         state.config.generation.relations.min_world_presence = min_pres;
@@ -568,7 +569,8 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
                 .clicked()
         {
             remove_override(state, &pair);
-            on_catalog_edited(state);
+            state.note_catalog_edit();
+            after_catalog_commit(state);
             return;
         }
         let badge = if pinned {
@@ -595,7 +597,8 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     if changed {
         upsert_override(state, ov);
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
 }
 
@@ -843,7 +846,8 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
     });
 
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     // §FRIENDLY_PANEL_PASS transform #7: a 🗑 click opens a confirm rather than
     // deleting inline. (Audit finding #8: the delete is now undoable via
@@ -947,7 +951,8 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
     });
 
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     // §FRIENDLY_PANEL_PASS transform #7: a 🗑 click opens a confirm rather than
     // deleting inline. (Audit finding #8: now undoable via `EditCatalog`; the
@@ -1046,7 +1051,8 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
     });
 
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     // §FRIENDLY_PANEL_PASS transform #7: a 🗑 click opens a confirm rather than
     // deleting inline. (Audit finding #8: now undoable via `EditCatalog`; the
@@ -1188,15 +1194,9 @@ pub(crate) fn delete_disposition_rule(state: &mut BuilderState, idx: usize) {
     }
 }
 
-fn on_catalog_edited(state: &mut BuilderState) {
-    // Audit finding #8: arm the coalescing session (see personae.rs), then run
-    // the shared post-edit bookkeeping.
-    state.note_catalog_edit();
-    after_catalog_commit(state);
-}
-
-/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
-/// and the out-of-session discrete deletes (which commit via `edit_catalogs`).
+/// Post-catalog-edit bookkeeping shared by the in-session edits (which first arm
+/// the coalescing session via `note_catalog_edit`, audit finding #8) and the
+/// out-of-session discrete deletes (which commit via `edit_catalogs`).
 /// Tracks the catalog file path for save, arms validation, and re-derives the
 /// relations matrix when auto-recompute is on. Deliberately does **not** call
 /// `note_catalog_edit` so the discrete-delete path does not re-open a session

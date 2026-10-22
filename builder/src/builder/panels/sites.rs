@@ -245,10 +245,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Generation settings").strong());
-    ensure_sites_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.sites.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.sites.get_or_insert_default();
     let mut changed = false;
     labeled(
         ui,
@@ -269,7 +266,8 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
         },
     );
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
 }
 
@@ -363,7 +361,6 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                                 "Real status, hidden in Players' view (schema: actual_status)",
                             );
                     }
-                    ui.label(RichText::new("").strong());
                     ui.end_row();
 
                     for s in &rows {
@@ -403,18 +400,6 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                                     "schema key: {}",
                                     s.actual_status.as_slug()
                                 ));
-                        }
-                        if ui
-                            .button("Show on map")
-                            .on_hover_text("Select this site and highlight its world on the map")
-                            .clicked()
-                        {
-                            state.selection.site_id = Some(s.id.clone());
-                            state.sites_panel.edit_target = Some(s.id.clone());
-                            state.focus_entity(EntityRef::World {
-                                system: s.system_id.clone(),
-                                world: s.world_id.clone(),
-                            });
                         }
                         ui.end_row();
                     }
@@ -577,25 +562,12 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             ui.label(site.hook.clone());
         },
     );
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("Show world on map")
-            .on_hover_text("Highlight this site's world on the map")
-            .clicked()
-        {
-            state.focus_entity(EntityRef::World {
-                system: site.system_id.clone(),
-                world: site.world_id.clone(),
-            });
-        }
-    });
 }
 
 // ── §ST1 / §ST2 manual entry editor ────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Hand-added sites").strong());
-    ensure_sites_catalog_if_needed(state);
     // Faction ids already present in the sector, for the controller dropdown.
     let faction_ids: Vec<FactionId> = state.sector.factions.iter().map(|f| f.id.clone()).collect();
     // World / system ids present in the sector, for the location dropdowns.
@@ -605,9 +577,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
             world_choices.push((sys.id.clone(), w.id.clone(), w.name.to_string()));
         }
     }
-    let Some(cfg) = state.data_catalogs.sites.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.sites.get_or_insert_default();
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
@@ -669,7 +639,8 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         })
     });
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     if let Some((idx, label)) = pending_delete {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
@@ -776,21 +747,7 @@ fn manual_site_editor(
         "Known status",
         "Status everyone can see (schema: public_status).",
         |ui| {
-            ui_kit::combo(
-                format!("st_manual_pub_{idx}"),
-                status_label(s.public_status),
-            )
-            .show_ui(ui, |ui| {
-                for v in STATUS_VARIANTS {
-                    if ui
-                        .selectable_value(&mut s.public_status, *v, status_label(*v))
-                        .on_hover_text(format!("schema key: {}", v.as_slug()))
-                        .changed()
-                    {
-                        changed = true;
-                    }
-                }
-            });
+            changed |= status_combo(ui, format!("st_manual_pub_{idx}"), &mut s.public_status);
         },
     );
     labeled(
@@ -798,21 +755,7 @@ fn manual_site_editor(
         "True status",
         "Real status (schema: actual_status). Make it differ from the known status to hide something from players.",
         |ui| {
-            ui_kit::combo(
-                format!("st_manual_act_{idx}"),
-                status_label(s.actual_status),
-            )
-            .show_ui(ui, |ui| {
-                for v in STATUS_VARIANTS {
-                    if ui
-                        .selectable_value(&mut s.actual_status, *v, status_label(*v))
-                        .on_hover_text(format!("schema key: {}", v.as_slug()))
-                        .changed()
-                    {
-                        changed = true;
-                    }
-                }
-            });
+            changed |= status_combo(ui, format!("st_manual_act_{idx}"), &mut s.actual_status);
         },
     );
     labeled(
@@ -820,24 +763,8 @@ fn manual_site_editor(
         "Known to",
         "Factions that secretly know the true status, separated by commas (schema: known_to).",
         |ui| {
-            let mut csv = s
-                .known_to
-                .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-            if ui
-                .add(egui::TextEdit::singleline(&mut csv).hint_text("faction ids, comma-separated"))
-                .changed()
-            {
-                s.known_to = csv
-                    .split(',')
-                    .map(|t| t.trim())
-                    .filter(|t| !t.is_empty())
-                    .map(FactionId::new)
-                    .collect();
-                changed = true;
-            }
+            changed |=
+                super::roster::csv_field(ui, &mut s.known_to, ",", "faction ids, comma-separated");
         },
     );
     labeled(
@@ -845,18 +772,7 @@ fn manual_site_editor(
         "Tags",
         "Free-form labels for filtering and flavour, separated by commas (schema: tags).",
         |ui| {
-            let mut tags = s.tags.join(",");
-            if ui
-                .add(egui::TextEdit::singleline(&mut tags).hint_text("tags, comma-separated"))
-                .changed()
-            {
-                s.tags = tags
-                    .split(',')
-                    .map(|t| t.trim().to_string())
-                    .filter(|t| !t.is_empty())
-                    .collect();
-                changed = true;
-            }
+            changed |= super::roster::csv_field(ui, &mut s.tags, ",", "tags, comma-separated");
         },
     );
     labeled(
@@ -867,6 +783,21 @@ fn manual_site_editor(
             changed |= ui.text_edit_multiline(&mut s.hook).changed();
         },
     );
+    changed
+}
+
+/// Status dropdown shared by the manual editor's "Known status" / "True status"
+/// rows. Returns `true` when the status changed.
+fn status_combo(ui: &mut Ui, id: String, status: &mut SiteStatus) -> bool {
+    let mut changed = false;
+    ui_kit::combo(id, status_label(*status)).show_ui(ui, |ui| {
+        for v in STATUS_VARIANTS {
+            changed |= ui
+                .selectable_value(status, *v, status_label(*v))
+                .on_hover_text(format!("schema key: {}", v.as_slug()))
+                .changed();
+        }
+    });
     changed
 }
 
@@ -1058,21 +989,9 @@ fn ensure_sites_catalog(state: &mut BuilderState) {
     state.note_catalog_edit();
 }
 
-fn ensure_sites_catalog_if_needed(state: &mut BuilderState) {
-    if state.data_catalogs.sites.is_none() {
-        state.data_catalogs.sites = Some(SitesConfig::default());
-    }
-}
-
-fn on_catalog_edited(state: &mut BuilderState) {
-    // Audit finding #8: arm the coalescing session (see personae.rs), then run
-    // the shared post-edit bookkeeping.
-    state.note_catalog_edit();
-    after_catalog_commit(state);
-}
-
-/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
-/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+/// Post-catalog-edit bookkeeping shared by the in-session edits (which first arm
+/// the coalescing session via `note_catalog_edit`, audit finding #8) and the
+/// out-of-session `delete_manual` (which commits via `edit_catalogs`).
 fn after_catalog_commit(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.sites.clone(), DEFAULT_SITES_PATH);
     state.mark_validation_dirty();

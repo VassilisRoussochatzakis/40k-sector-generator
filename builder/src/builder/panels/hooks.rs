@@ -37,7 +37,7 @@ use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use sectorforge::hooks::{Hook, HookAnchor, HookKind, HooksConfig};
-use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
+use sectorforge::ids::{RouteId, SystemId, WorldId};
 
 use crate::builder::state::{BuilderTab, ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
@@ -237,7 +237,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
         if focus_clicked {
             state.selection.hook_id = Some(h.id.to_string());
             state.hooks_panel.edit_target = Some(h.id.to_string());
-            focus_anchor(state, &h.anchor);
+            state.focus_entity(anchor_link(&h.anchor).1);
         } else if resp.clicked() {
             state.selection.hook_id = Some(h.id.to_string());
             state.hooks_panel.edit_target = Some(h.id.to_string());
@@ -289,7 +289,12 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         ui,
         "Happens at",
         "The place on the map this hook is about (schema: anchor).",
-        |ui| show_anchor_link(ui, state, &hook.anchor),
+        |ui| {
+            let (label, target) = anchor_link(&hook.anchor);
+            if ui.link(label).clicked() {
+                state.focus_entity(target);
+            }
+        },
     );
     labeled(
         ui,
@@ -372,7 +377,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             .on_hover_text("Jump to where this hook happens on the map.")
             .clicked()
         {
-            focus_anchor(state, &hook.anchor);
+            state.focus_entity(anchor_link(&hook.anchor).1);
         }
     });
 }
@@ -385,10 +390,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     // below can offer "choose from existing" instead of bare text entry. Taken
     // before the `&mut cfg` borrow because the editor closure also needs `cfg`.
     let anchors = existing_anchor_ids(state);
-    ensure_hooks_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.hooks.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.hooks.get_or_insert_default();
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
@@ -450,7 +452,8 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         })
     });
     if changed {
-        on_catalog_edited(state);
+        state.note_catalog_edit();
+        after_catalog_commit(state);
     }
     if let Some((idx, label)) = pending_delete {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
@@ -524,43 +527,29 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds
         "Happens at",
         "Whether this hook is anchored to a system, a world, or a route (schema: anchor).",
         |ui| {
-            let mut scope = anchor_scope(&h.anchor);
-            ui_kit::combo(
-                format!("hk_manual_scope_{idx}"),
-                match scope {
-                    AnchorScope::System => "A system",
-                    AnchorScope::World => "A world",
-                    AnchorScope::Route => "A route",
-                },
-            )
-            .show_ui(ui, |ui| {
-                if ui
-                    .selectable_value(&mut scope, AnchorScope::System, "A system")
-                    .changed()
-                {
-                    h.anchor = HookAnchor::System {
-                        system_id: SystemId::new(""),
-                    };
-                    changed = true;
-                }
-                if ui
-                    .selectable_value(&mut scope, AnchorScope::World, "A world")
-                    .changed()
-                {
-                    h.anchor = HookAnchor::World {
-                        system_id: SystemId::new(""),
-                        world_id: WorldId::new(""),
-                    };
-                    changed = true;
-                }
-                if ui
-                    .selectable_value(&mut scope, AnchorScope::Route, "A route")
-                    .changed()
-                {
-                    h.anchor = HookAnchor::Route {
-                        route_id: RouteId::new(""),
-                    };
-                    changed = true;
+            const SCOPES: [&str; 3] = ["A system", "A world", "A route"];
+            let mut scope = match h.anchor {
+                HookAnchor::World { .. } => 1,
+                HookAnchor::Route { .. } => 2,
+                _ => 0,
+            };
+            ui_kit::combo(format!("hk_manual_scope_{idx}"), SCOPES[scope]).show_ui(ui, |ui| {
+                for (i, label) in SCOPES.into_iter().enumerate() {
+                    if ui.selectable_value(&mut scope, i, label).changed() {
+                        h.anchor = match i {
+                            0 => HookAnchor::System {
+                                system_id: SystemId::new(""),
+                            },
+                            1 => HookAnchor::World {
+                                system_id: SystemId::new(""),
+                                world_id: WorldId::new(""),
+                            },
+                            _ => HookAnchor::Route {
+                                route_id: RouteId::new(""),
+                            },
+                        };
+                        changed = true;
+                    }
                 }
             });
         },
@@ -672,24 +661,7 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds
         "Factions involved",
         "Faction ids tied to this hook, separated by commas (schema: factions).",
         |ui| {
-            let mut csv = h
-                .factions
-                .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<_>>()
-                .join(", ");
-            if ui
-                .add(egui::TextEdit::singleline(&mut csv).hint_text("e.g. imperial, ork"))
-                .changed()
-            {
-                h.factions = csv
-                    .split(',')
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .map(FactionId::new)
-                    .collect();
-                changed = true;
-            }
+            changed |= super::roster::csv_field(ui, &mut h.factions, ", ", "e.g. imperial, ork");
         },
     );
     labeled(
@@ -783,22 +755,6 @@ fn id_or_custom_combo(
     *value != before
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum AnchorScope {
-    System,
-    World,
-    Route,
-}
-
-fn anchor_scope(a: &HookAnchor) -> AnchorScope {
-    match a {
-        HookAnchor::System { .. } => AnchorScope::System,
-        HookAnchor::World { .. } => AnchorScope::World,
-        HookAnchor::Route { .. } => AnchorScope::Route,
-        _ => AnchorScope::System,
-    }
-}
-
 fn blank_manual_hook(seq: usize) -> Hook {
     Hook {
         id: format!("hook-manual-{seq:04}").into(),
@@ -818,74 +774,33 @@ fn blank_manual_hook(seq: usize) -> Hook {
 
 // ── §HK6 anchor link / highlight ───────────────────────────────────────────
 
-fn show_anchor_link(ui: &mut Ui, state: &mut BuilderState, a: &HookAnchor) {
-    let label = anchor_label(a);
-    if ui.link(label).clicked() {
-        focus_anchor(state, a);
-    }
-}
-
-fn focus_anchor(state: &mut BuilderState, a: &HookAnchor) {
-    let target = match a {
-        HookAnchor::System { system_id } => {
-            if system_id.as_ref().is_empty() {
-                EntityRef::Tab(BuilderTab::Map)
-            } else {
-                EntityRef::System(system_id.clone())
-            }
-        }
-        HookAnchor::World {
-            system_id,
-            world_id,
-        } => {
-            if system_id.as_ref().is_empty() || world_id.as_ref().is_empty() {
-                EntityRef::Tab(BuilderTab::Map)
-            } else {
-                EntityRef::World {
-                    system: system_id.clone(),
-                    world: world_id.clone(),
-                }
-            }
-        }
-        HookAnchor::Route { route_id } => {
-            if route_id.as_ref().is_empty() {
-                EntityRef::Tab(BuilderTab::Map)
-            } else {
-                EntityRef::Route(route_id.clone())
-            }
-        }
-        _ => EntityRef::Tab(BuilderTab::Map),
-    };
-    state.focus_entity(target);
-}
-
-fn anchor_label(a: &HookAnchor) -> String {
+/// Link text and focus target for a hook's anchor. An unset id (or an unknown
+/// anchor kind) falls back to the MAP tab.
+fn anchor_link(a: &HookAnchor) -> (String, EntityRef) {
+    let map = EntityRef::Tab(BuilderTab::Map);
     match a {
-        HookAnchor::System { system_id } => {
-            if system_id.as_ref().is_empty() {
-                "(no system yet)".into()
-            } else {
-                format!("System {system_id}")
-            }
-        }
+        HookAnchor::System { system_id } if !system_id.as_ref().is_empty() => (
+            format!("System {system_id}"),
+            EntityRef::System(system_id.clone()),
+        ),
+        HookAnchor::System { .. } => ("(no system yet)".into(), map),
         HookAnchor::World {
             system_id,
             world_id,
-        } => {
-            if system_id.as_ref().is_empty() || world_id.as_ref().is_empty() {
-                "(no world yet)".into()
-            } else {
-                format!("World {world_id} in {system_id}")
-            }
-        }
-        HookAnchor::Route { route_id } => {
-            if route_id.as_ref().is_empty() {
-                "(no route yet)".into()
-            } else {
-                format!("Route {route_id}")
-            }
-        }
-        _ => "(unknown place)".into(),
+        } if !system_id.as_ref().is_empty() && !world_id.as_ref().is_empty() => (
+            format!("World {world_id} in {system_id}"),
+            EntityRef::World {
+                system: system_id.clone(),
+                world: world_id.clone(),
+            },
+        ),
+        HookAnchor::World { .. } => ("(no world yet)".into(), map),
+        HookAnchor::Route { route_id } if !route_id.as_ref().is_empty() => (
+            format!("Route {route_id}"),
+            EntityRef::Route(route_id.clone()),
+        ),
+        HookAnchor::Route { .. } => ("(no route yet)".into(), map),
+        _ => ("(unknown place)".into(), map),
     }
 }
 
@@ -954,21 +869,9 @@ fn ensure_hooks_catalog(state: &mut BuilderState) {
     state.note_catalog_edit();
 }
 
-fn ensure_hooks_catalog_if_needed(state: &mut BuilderState) {
-    if state.data_catalogs.hooks.is_none() {
-        state.data_catalogs.hooks = Some(HooksConfig::default());
-    }
-}
-
-fn on_catalog_edited(state: &mut BuilderState) {
-    // Audit finding #8: arm the coalescing session (see personae.rs), then run
-    // the shared post-edit bookkeeping.
-    state.note_catalog_edit();
-    after_catalog_commit(state);
-}
-
-/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
-/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+/// Post-catalog-edit bookkeeping shared by the in-session edits (which first arm
+/// the coalescing session via `note_catalog_edit`, audit finding #8) and the
+/// out-of-session `delete_manual` (which commits via `edit_catalogs`).
 /// Does **not** call `note_catalog_edit` so the discrete-delete path does not
 /// re-open a session after its own commit.
 fn after_catalog_commit(state: &mut BuilderState) {

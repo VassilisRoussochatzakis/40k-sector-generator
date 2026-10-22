@@ -149,10 +149,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Writing style").strong());
-    ensure_prose_catalog_if_needed(state);
-    let Some(cfg) = state.data_catalogs.prose.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.prose.get_or_insert_default();
     let mut changed = false;
     labeled(
         ui,
@@ -203,11 +200,8 @@ fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Sector overview").strong());
-    ensure_prose_catalog_if_needed(state);
     let report = state.prose_report.clone();
-    let Some(cfg) = state.data_catalogs.prose.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.prose.get_or_insert_default();
 
     let derived_overview = report.as_ref().map(|r| r.overview.clone());
     let mut is_override = cfg
@@ -280,7 +274,6 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// reading column. Both run sequentially so each takes `state` fresh.
 fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Per-system prose").strong());
-    ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
         ui_kit::placeholder(
             ui,
@@ -352,7 +345,6 @@ fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR1 per-system editor (right reading column) ─────────────────────────
 
 fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
         return;
     };
@@ -377,9 +369,7 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
         return;
     };
 
-    let Some(cfg) = state.data_catalogs.prose.as_mut() else {
-        return;
-    };
+    let cfg = state.data_catalogs.prose.get_or_insert_default();
     let mut is_override = cfg
         .overrides
         .systems
@@ -508,12 +498,6 @@ fn ensure_prose_catalog(state: &mut BuilderState) {
     // P6: the lazy seed above is a document-state write — arm the coalescing
     // session so the seeded catalog is tracked for dirty/undo.
     state.note_catalog_edit();
-}
-
-fn ensure_prose_catalog_if_needed(state: &mut BuilderState) {
-    if state.data_catalogs.prose.is_none() {
-        state.data_catalogs.prose = Some(ProseConfig::default());
-    }
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {

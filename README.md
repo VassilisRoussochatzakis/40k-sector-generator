@@ -140,12 +140,11 @@ What it **can** edit is confined to an already-built sector and its generation i
 
 - live map edits behind an **EDIT MAP** toggle on the sector/system views (add/remove systems, routes, planets);
 - a structured **EDIT-MAP** tab with MAP / ROUTES / FACTIONS / SETTINGS sub-tabs and per-system / per-world inspectors;
-- a typed, grid-based **worlds.toml data editor** (DATA-RAW tab) that saves back to disk;
-- with full project context (`sectorforge.toml` + `data/`), **RE-GENERATE / RE-ROLL** and **constraint search (Wishes)** that re-invoke the existing generation engine.
+- a typed, grid-based **worlds.toml data editor** (DATA-RAW tab) that saves back to disk.
 
 It can open/scaffold-new/save/save-as projects and export PNG / SVG / HTML / JSON bundle / per-system PNGs.
 
-**The builder-vs-viewer boundary:** the viewer hand-edits an already-built sector's data and can re-run the pipeline on a loaded project, but it has **no command bus and no undo/redo**. Free-form, stage-by-stage construction — world-pool curation, region/influence/chronicle authoring, presence/claim/roster/relations/economy overrides — lives only in the builder. In short: *view, analyze, and lightly edit an already-generated sector in the viewer; build a sector from scratch in the builder.*
+**The builder-vs-viewer boundary:** the viewer hand-edits an already-built sector's data, but it has **no command bus and no undo/redo**. Free-form, stage-by-stage construction — world-pool curation, region/influence/chronicle authoring, presence/claim/roster/relations/economy overrides — lives only in the builder. In short: *view, analyze, and lightly edit an already-generated sector in the viewer; build a sector from scratch in the builder.*
 
 Launch options (window opens at 1400×900):
 
@@ -156,7 +155,7 @@ cargo run -p sectorforge-viewer -- --segmentum path/to/segmentum.json   # open a
 cargo run -p sectorforge-viewer                           # start with no sector loaded
 ```
 
-`--project <dir>` resolves the first existing of `<dir>`, `<dir>/out/sector.json`, `<dir>/sector.json`; when the file sits in an `out/` dir it also sets the editor's project root, enabling the worlds.toml editor and the Generation/Wishes tabs.
+`--project <dir>` resolves the first existing of `<dir>`, `<dir>/out/sector.json`, `<dir>/sector.json`; when the file sits in an `out/` dir it also sets the editor's project root, enabling the worlds.toml editor.
 
 ## CLI reference
 

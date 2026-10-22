@@ -5,8 +5,6 @@ use std::sync::Arc;
 use camino::Utf8PathBuf;
 use rfd::FileDialog;
 
-use crate::editor::PreviewJobResult;
-
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 
@@ -256,105 +254,6 @@ impl App {
             }
         }
     }
-
-    pub(super) fn handle_preview_logic(&mut self, ctx: &egui::Context) {
-        // 1. Debounce timer
-        if let Some(timer) = self.editor.preview_timer {
-            if ctx.input(|i| i.time) >= timer {
-                self.editor.preview_timer = None;
-                if let Some(input) = self.editor.project_input.clone() {
-                    if let Some(job) = &self.editor.preview_job {
-                        job.cancel();
-                    }
-
-                    let ctx_clone = ctx.clone();
-                    let revision = self.editor.preview_revision;
-                    self.editor.preview_job = Some(crate::jobs::spawn_job(
-                        "preview-gen",
-                        revision,
-                        "Generating preview...",
-                        ctx_clone,
-                        move |job_ctx| {
-                            let result = sectorforge::generate_sector_with_progress_and_cancel(
-                                input,
-                                |event| job_ctx.set_progress(preview_progress(&event)),
-                                || job_ctx.is_cancelled(),
-                            );
-                            match result {
-                                Ok(sector) => PreviewJobResult::Ready(sector),
-                                Err(sectorforge::SectorError::GenerationCancelled) => {
-                                    PreviewJobResult::Cancelled
-                                }
-                                Err(err) => {
-                                    PreviewJobResult::Failed(format!("preview failed: {err}"))
-                                }
-                            }
-                        },
-                    ));
-                }
-            }
-        }
-
-        // 2. Job completion
-        let completed =
-            self.editor
-                .preview_job
-                .as_ref()
-                .and_then(|job| match job.receiver.try_recv() {
-                    Ok(result) => Some((job.revision, result)),
-                    Err(std::sync::mpsc::TryRecvError::Disconnected) => Some((
-                        job.revision,
-                        PreviewJobResult::Failed("preview worker disconnected".to_string()),
-                    )),
-                    Err(std::sync::mpsc::TryRecvError::Empty) => None,
-                });
-        if let Some((revision, result)) = completed {
-            self.editor.apply_preview_result(revision, result);
-            self.editor.preview_job = None;
-        }
-    }
-}
-
-fn preview_progress(event: &sectorforge::SectorProgress) -> f32 {
-    match event {
-        sectorforge::SectorProgress::WorldPoolBuilt { .. } => 0.05,
-        sectorforge::SectorProgress::SystemsPlaced { .. } => 0.1,
-        sectorforge::SectorProgress::RegionsBuilt { .. } => 0.12,
-        sectorforge::SectorProgress::SystemBuilt { current, total, .. } => {
-            0.12 + fraction(*current, *total) * 0.28
-        }
-        sectorforge::SectorProgress::FactionsAssigned { .. }
-        | sectorforge::SectorProgress::FactionsAggregated { .. } => 0.42,
-        sectorforge::SectorProgress::RoutesGenerated { .. }
-        | sectorforge::SectorProgress::RegionEffectsApplied { .. }
-        | sectorforge::SectorProgress::HiddenRoutesApplied { .. }
-        | sectorforge::SectorProgress::RouteControlsDerived { .. } => 0.55,
-        sectorforge::SectorProgress::RouteControlsProgress { current, total } => {
-            0.45 + fraction(*current, *total) * 0.08
-        }
-        sectorforge::SectorProgress::SystemStateDerived { current, total } => {
-            0.55 + fraction(*current, *total) * 0.1
-        }
-        sectorforge::SectorProgress::ManifestBuilt { .. } => 0.66,
-        sectorforge::SectorProgress::InfluenceFieldAnchorsProjected { current, total, .. }
-        | sectorforge::SectorProgress::InfluenceFieldCellsResolved { current, total, .. } => {
-            0.7 + fraction(*current, *total) * 0.1
-        }
-        sectorforge::SectorProgress::ChronicleSystemsScanned { current, total, .. }
-        | sectorforge::SectorProgress::ChronicleRoutesScanned { current, total, .. } => {
-            0.86 + fraction(*current, *total) * 0.08
-        }
-        sectorforge::SectorProgress::Complete { .. } => 1.0,
-        _ => 0.7,
-    }
-}
-
-fn fraction(current: usize, total: usize) -> f32 {
-    if total == 0 {
-        0.0
-    } else {
-        current as f32 / total as f32
-    }
 }
 
 /// Best-effort message from a `catch_unwind` payload (#25). Panic payloads are
@@ -371,70 +270,7 @@ fn panic_msg(payload: &(dyn std::any::Any + Send)) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{fraction, panic_msg, preview_progress};
-    use sectorforge::SectorProgress;
-
-    #[test]
-    fn fraction_zero_total_is_zero() {
-        assert_eq!(fraction(0, 0), 0.0);
-        assert_eq!(fraction(5, 0), 0.0);
-    }
-
-    #[test]
-    fn fraction_partial_is_ratio() {
-        assert_eq!(fraction(1, 2), 0.5);
-        assert_eq!(fraction(3, 4), 0.75);
-        assert_eq!(fraction(0, 4), 0.0);
-    }
-
-    #[test]
-    fn preview_progress_anchors_are_monotonic_at_known_points() {
-        let world_pool = preview_progress(&SectorProgress::WorldPoolBuilt {
-            rows: 0,
-            candidates: 0,
-            excluded: 0,
-        });
-        let systems = preview_progress(&SectorProgress::SystemsPlaced {
-            total: 0,
-            width: 0,
-            height: 0,
-        });
-        let regions = preview_progress(&SectorProgress::RegionsBuilt { count: 0 });
-        let routes = preview_progress(&SectorProgress::RoutesGenerated { routes: 0 });
-        let manifest = preview_progress(&SectorProgress::ManifestBuilt {
-            systems: 0,
-            worlds: 0,
-            routes: 0,
-        });
-        let complete = preview_progress(&SectorProgress::Complete {
-            systems: 0,
-            worlds: 0,
-            routes: 0,
-        });
-
-        assert!(world_pool < systems);
-        assert!(systems < regions);
-        assert!(regions < routes);
-        assert!(routes < manifest);
-        assert!(manifest < complete);
-        assert_eq!(complete, 1.0);
-    }
-
-    #[test]
-    fn preview_progress_system_built_scales_with_fraction() {
-        let mid = preview_progress(&SectorProgress::SystemBuilt {
-            current: 5,
-            total: 10,
-            worlds: 1,
-        });
-        let full = preview_progress(&SectorProgress::SystemBuilt {
-            current: 10,
-            total: 10,
-            worlds: 1,
-        });
-        assert!(mid < full);
-        assert!(mid > 0.12);
-    }
+    use super::panic_msg;
 
     // G6: the viewer save path's testable core. Encode refreshes manifest
     // counts then pretty-prints; assert it round-trips through serde and that

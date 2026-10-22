@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui};
+use egui::{RichText, ScrollArea, SidePanel, TopBottomPanel, Ui};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{GeneratedSector, GeneratedSystem};
@@ -17,12 +15,7 @@ impl App {
     }
 
     pub(super) fn draw_sector_layout(&mut self, ctx: &egui::Context) {
-        let preview_mode = self.editor.preview_sector.is_some();
-        let sector = if let Some(preview) = &self.editor.preview_sector {
-            Arc::new(preview.clone())
-        } else if let Some(sector) = self.sector.clone() {
-            sector
-        } else {
+        let Some(sector) = self.sector.clone() else {
             egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
@@ -30,25 +23,6 @@ impl App {
                 });
             return;
         };
-
-        if preview_mode {
-            egui::TopBottomPanel::top("preview_banner")
-                .frame(
-                    egui::Frame::none()
-                        // Preview-mode banner background fill, not a status color (AREA_F F5).
-                        .fill(egui::Color32::from_rgb(0, 80, 0))
-                        .inner_margin(4.0),
-                )
-                .show(ctx, |ui| {
-                    ui.centered_and_justified(|ui| {
-                        ui.label(
-                            RichText::new("PREVIEW MODE - APPLY CHANGES TO COMMIT")
-                                .strong()
-                                .color(Color32::WHITE),
-                        );
-                    });
-                });
-        }
 
         let overview_buckets = self.sector_overview_cache.buckets_for(&sector);
         if self.info_panel_open {
@@ -65,14 +39,8 @@ impl App {
                     ScrollArea::vertical().show(ui, |ui| {
                         // TF-P-4: hand info_panel the prebuilt faction-style index so its
                         // per-route / per-faction loops skip the O(N) `faction_style_by_id`
-                        // scan. `None` in preview mode — the cache reflects `self.sector`,
-                        // not the (possibly edited) preview — so the panel falls back to the
-                        // exact free-fn lookup against the preview sector (byte-identical).
-                        let info_cache = if preview_mode {
-                            None
-                        } else {
-                            self.sector_map_cache.as_ref()
-                        };
+                        // scan.
+                        let info_cache = self.sector_map_cache.as_ref();
                         if let Some(sel) = self.sector_selected_route.clone() {
                             if let Some(route) =
                                 sector.routes.iter().find(|r| r.id.as_str() == sel.as_str())

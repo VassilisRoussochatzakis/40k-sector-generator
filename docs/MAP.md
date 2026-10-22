@@ -254,7 +254,7 @@ per-view modules; `viewer/src/editor/` is the in-place sector/world editor.
 | [viewer/src/main.rs](../viewer/src/main.rs) | Viewer/editor binary entry (`sectorforge-viewer`) |
 | [viewer/src/lib.rs](../viewer/src/lib.rs) | Viewer crate root: module declarations, modular-by-entity layout |
 | [viewer/src/dashboard.rs](../viewer/src/dashboard.rs) | §8 sector analytics dashboard (lazy `SectorAnalysis`) |
-| [viewer/src/factions_overview.rs](../viewer/src/factions_overview.rs) | High-level faction overview/edit surface |
+| [viewer/src/factions_overview.rs](../viewer/src/factions_overview.rs) | High-level faction overview |
 | [viewer/src/preset_gallery.rs](../viewer/src/preset_gallery.rs) | §9 "New from preset" gallery window |
 | [viewer/src/route_planner.rs](../viewer/src/route_planner.rs) | Route planner: pathfind between two systems over the route graph |
 | [viewer/src/segmentum_view.rs](../viewer/src/segmentum_view.rs) | Segmentum overview widgets + on-disk bundle loading |
@@ -297,8 +297,6 @@ per-view modules; `viewer/src/editor/` is the in-place sector/world editor.
 | [viewer/src/editor/factions_panel.rs](../viewer/src/editor/factions_panel.rs) | Factions list editor (id/name/kind/disposition + system assignment) |
 | [viewer/src/editor/routes_panel.rs](../viewer/src/editor/routes_panel.rs) | Routes list editor (from/to/type/stability/distance) |
 | [viewer/src/editor/settings_panel.rs](../viewer/src/editor/settings_panel.rs) | Sector settings: id/title/seed/size/manifest hints |
-| [viewer/src/editor/generation_panel.rs](../viewer/src/editor/generation_panel.rs) | Generation settings for real-time building |
-| [viewer/src/editor/wishes_panel.rs](../viewer/src/editor/wishes_panel.rs) | `wishes.toml` editor + search integration |
 
 ## sectorforge-builder
 

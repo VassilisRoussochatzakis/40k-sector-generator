@@ -33,8 +33,6 @@ pub enum Tab {
     Routes,
     Factions,
     Settings,
-    Generation,
-    Wishes,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,23 +87,9 @@ pub enum SectorEditTool {
     Delete,
 }
 
-#[allow(clippy::large_enum_variant)]
-pub enum PreviewJobResult {
-    Ready(GeneratedSector),
-    Cancelled,
-    Failed(String),
-}
-
-impl sectorforge_gui_core::jobs::FromJobPanic for PreviewJobResult {
-    fn from_job_panic(message: String) -> Option<Self> {
-        Some(Self::Failed(format!("preview panicked: {message}")))
-    }
-}
-
 pub struct EditorState {
     pub sector: Option<GeneratedSector>,
     pub project_input: Option<sectorforge::input::ProjectInput>,
-    pub wishes: Option<sectorforge::search::WishesFile>,
     pub loaded_from: Option<String>,
     pub dirty: bool,
     /// Monotonic revision of `sector`, bumped on every mutation (`mark_dirty`)
@@ -127,18 +111,10 @@ pub struct EditorState {
     pub faction_sort: FactionSort,
     pub faction_pinned: BTreeSet<FactionId>,
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
-    pub auto_generate: bool,
     pub auto_save: bool,
     pub stable_ids_on_rename: bool,
     pub drag_id: Option<SystemId>,
     pub pending_route_start: Option<SystemId>,
-    pub search_outcome: Option<sectorforge::search::SearchOutcome>,
-    /// Live preview for generation config (§6.G3).
-    pub preview_sector: Option<GeneratedSector>,
-    pub preview_job: Option<crate::jobs::JobHandle<PreviewJobResult>>,
-    pub preview_timer: Option<f64>,
-    pub preview_revision: u64,
-    pub preview_error: Option<String>,
     /// Transient per-sector render cache for the editor map (AREA_F F4). Lazily
     /// built in `map_panel::show_map`, invalidated (`None`) on any sector change
     /// via `set_sector` / `mark_dirty`, so the `SectorView` render avoids the
@@ -152,7 +128,6 @@ impl Default for EditorState {
         Self {
             sector: None,
             project_input: None,
-            wishes: None,
             loaded_from: None,
             dirty: false,
             revision: 0,
@@ -167,17 +142,10 @@ impl Default for EditorState {
             faction_sort: FactionSort::default(),
             faction_pinned: BTreeSet::new(),
             route_view_mode: sectorforge::sector_model::RouteViewMode::default(),
-            auto_generate: false,
             auto_save: false,
             stable_ids_on_rename: true,
             drag_id: None,
             pending_route_start: None,
-            search_outcome: None,
-            preview_sector: None,
-            preview_job: None,
-            preview_timer: None,
-            preview_revision: 0,
-            preview_error: None,
             map_cache: None,
         }
     }
@@ -201,20 +169,6 @@ impl EditorState {
         self.dialog = Dialog::None;
         self.route_pick = None;
         self.pending_route_start = None;
-        self.invalidate_preview();
-        self.preview_timer = None;
-        self.preview_job = None;
-
-        // Try load wishes if we have project_input
-        self.wishes = None;
-        if let Some(pi) = &self.project_input {
-            let wishes_path = pi.root_dir.join("wishes.toml");
-            if wishes_path.exists() {
-                if let Ok(w) = sectorforge::search::load_wishes(&wishes_path) {
-                    self.wishes = Some(w);
-                }
-            }
-        }
     }
 
     pub(crate) fn mark_dirty(&mut self) {
@@ -223,88 +177,12 @@ impl EditorState {
         // Sector mutated — drop the stale editor map render cache (AREA_F F4).
         self.map_cache = None;
     }
-
-    pub(crate) fn schedule_preview(&mut self, due_time: f64) {
-        self.invalidate_preview();
-        self.preview_timer = Some(due_time);
-    }
-
-    pub(crate) fn invalidate_preview(&mut self) {
-        self.preview_revision = self.preview_revision.wrapping_add(1);
-        self.preview_sector = None;
-        self.preview_error = None;
-        if let Some(job) = &self.preview_job {
-            job.cancel();
-        }
-    }
-
-    pub(crate) fn apply_preview_result(&mut self, revision: u64, result: PreviewJobResult) -> bool {
-        if revision != self.preview_revision {
-            return false;
-        }
-        match result {
-            PreviewJobResult::Ready(sector) => {
-                self.preview_sector = Some(sector);
-                self.preview_error = None;
-            }
-            PreviewJobResult::Cancelled => {}
-            PreviewJobResult::Failed(message) => {
-                self.preview_sector = None;
-                self.preview_error = Some(message);
-            }
-        }
-        true
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use sectorforge::sector_model::empty_sector;
-    use std::sync::atomic::{AtomicU32, Ordering};
-    use std::sync::{mpsc, Arc, Mutex};
-
-    fn preview_job(revision: u64) -> crate::jobs::JobHandle<PreviewJobResult> {
-        let (_tx, rx) = mpsc::channel();
-        crate::jobs::JobHandle {
-            id: "preview-gen".to_string(),
-            revision,
-            description: "preview".to_string(),
-            progress: Arc::new(AtomicU32::new(0.0f32.to_bits())),
-            status: Arc::new(Mutex::new(None)),
-            cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            receiver: rx,
-        }
-    }
-
-    #[test]
-    fn stale_preview_revision_is_discarded_after_new_request() {
-        let mut state = EditorState {
-            preview_revision: 1,
-            preview_job: Some(preview_job(1)),
-            ..EditorState::default()
-        };
-        let cancel_flag = state.preview_job.as_ref().unwrap().cancelled.clone();
-
-        state.schedule_preview(2.0);
-
-        assert!(cancel_flag.load(Ordering::SeqCst));
-        assert_eq!(state.preview_revision, 2);
-        assert!(!state.apply_preview_result(
-            1,
-            PreviewJobResult::Ready(empty_sector("old", "Old", "old", 1, 1))
-        ));
-        assert!(state.preview_sector.is_none());
-
-        assert!(state.apply_preview_result(
-            2,
-            PreviewJobResult::Ready(empty_sector("new", "New", "new", 1, 1))
-        ));
-        assert_eq!(
-            state.preview_sector.as_ref().map(|s| s.seed.to_string()),
-            Some("new".to_string())
-        );
-    }
 
     // Gap 227: `set_sector` clears dirty, bumps revision (wrapping_add(1)), drops
     // the map cache, and resets transient editor state (selection/tab/dialog/

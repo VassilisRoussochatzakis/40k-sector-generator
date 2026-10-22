@@ -1571,7 +1571,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
 - **Workers are `std::thread` + `mpsc::channel`.** No async runtime in the
   GUI/builder workers. Generation, hashing, PNG export, and HTML export all
   run off the egui event loop
-  ([viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs),
+  ([builder/src/builder/preview.rs](builder/src/builder/preview.rs),
   [viewer/src/app/export_ui.rs](viewer/src/app/export_ui.rs),
   [gui-core/src/jobs.rs](gui-core/src/jobs.rs)). The GUI never blocks for
   more than the cost of dispatch. The library does pull in `rayon` (per
@@ -1583,8 +1583,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   monotonic revision attached to the input snapshot. When the worker returns,
   the GUI compares the result's revision to the current revision and discards
   any stale result. See `apply_result` in
-  [builder/src/builder/preview.rs:90](builder/src/builder/preview.rs#L90)
-  and `preview_revision` in [viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs).
+  [builder/src/builder/preview.rs:90](builder/src/builder/preview.rs#L90).
 - **Cooperative cancellation.** `generate_with_progress_and_cancel` takes a
   `should_cancel` closure that is polled at every major emit (see
   [src/gen/generation/mod.rs](src/gen/generation/mod.rs) — the `check_cancelled!` /
@@ -2346,7 +2345,7 @@ responsive columns of D1/D2/D5/D6/D9/D10/D11 were already delivered by §UO/§BE
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,
 built with egui + eframe. **It is not read-only** — it supports *limited*
 in-place editing of a loaded sector (map edits behind **EDIT MAP**, faction
-edits behind **EDIT MODE** / **DESIGNER**, the typed `worlds.toml` **Data**
+edits behind **EDIT MODE**, the typed `worlds.toml` **Data**
 editor, plus **SAVE** / **SAVE AS…** back to disk). Full sector construction
 (the command-bus undo/redo workspace) lives in `sectorforge-builder` (§8.2);
 the viewer's editing is the lighter subset listed below. It exposes the
@@ -2411,11 +2410,7 @@ following views via the top navigation bar:
   observed per-world presence while hiding subfaction and force details. Toggle
   **EDIT MODE** for broad changes: rename factions, adjust kind/disposition,
   add/delete top-level factions, set all/none system or world summary
-  presence, or rebuild summary presence from world records. Toggle
-  **DESIGNER** for ground-up catalog work: choose an overall faction preset
-  or custom kind, add/edit export rows with weights and world preferences,
-  import the loaded output's generated forces with **REPLACE FROM OUTPUT**,
-  and save the result as a `factions.toml`-compatible TOML file.
+  presence, or rebuild summary presence from world records.
 - **Data** (nav label **DATA-RAW**) — typed `worlds.toml` editor from inside
   the app, with **RELOAD** (re-read `worlds.toml` from disk, discarding unsaved
   edits) and **SAVE** toolbar buttons. Requires a loaded project
@@ -2528,8 +2523,8 @@ and inspect the output files.
 
 The viewer crate exposes `sectorforge_viewer::App`. The struct takes a
 `GeneratedSector` in `App::new(sector)` or launches empty via `App::new_empty()`.
-Use `app.with_project_dir(dir)` to attach a project directory for regeneration
-and data-editor preloading.
+Use `app.with_project_dir(dir)` to attach a project directory for data-editor
+preloading.
 
 ### 8.2 Builder (`sectorforge-builder`)
 

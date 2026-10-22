@@ -41,10 +41,6 @@ impl App {
                         editor::state::Tab::Routes => editor::show_routes(ui, &mut self.editor),
                         editor::state::Tab::Factions => editor::show_factions(ui, &mut self.editor),
                         editor::state::Tab::Settings => editor::show_settings(ui, &mut self.editor),
-                        editor::state::Tab::Generation => {
-                            editor::show_generation_settings(ui, &mut self.editor)
-                        }
-                        editor::state::Tab::Wishes => editor::show_wishes(ui, &mut self.editor),
                     }
                 });
             });

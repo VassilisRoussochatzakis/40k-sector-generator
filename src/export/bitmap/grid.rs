@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use image::{Rgba, RgbaImage};
 
-use crate::heatmap::{self, HeatCellRgb, HeatmapMode};
+use crate::heatmap::{self, HeatCellRgb};
 use crate::map_theme::MapTheme;
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
@@ -21,11 +21,7 @@ pub(super) fn compute_heatmap(
     sector: &GeneratedSector,
     opts: &RenderOptions,
 ) -> HashMap<crate::ids::SystemId, HeatCellRgb> {
-    if matches!(opts.heatmap, HeatmapMode::Off) {
-        HashMap::new()
-    } else {
-        heatmap::compute_rgb(sector, opts.heatmap)
-    }
+    heatmap::compute_rgb(sector, opts.heatmap)
 }
 
 pub(super) fn draw_hex_grid(

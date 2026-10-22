@@ -7,14 +7,13 @@
 //! renderer with `scale=1` — SVG resolves the physical size via its
 //! `width`/`height` attributes, so there is no separate resolution knob.
 
-use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use camino::Utf8Path;
 
 use crate::errors::SectorError;
 use crate::export::render_core::RenderOptions;
-use crate::heatmap::{self, HeatmapMode};
+use crate::heatmap;
 use crate::map_theme::{LabelDensity, LegendStyle, MapTheme};
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
@@ -80,11 +79,7 @@ pub fn render_sector_svg(
     let subs = subsectors.unwrap_or(&[]);
     let draw_subsectors = !subs.is_empty() && opts.theme.show_subsector_borders;
 
-    let heat = if matches!(opts.heatmap, HeatmapMode::Off) {
-        HashMap::new()
-    } else {
-        heatmap::compute_rgb(sector, opts.heatmap)
-    };
+    let heat = heatmap::compute_rgb(sector, opts.heatmap);
     let heat_tints = compute_heat_tints(sector, opts, &heat);
 
     draw_hex_grid(&mut s, sector, &heat_tints, &opts.theme);

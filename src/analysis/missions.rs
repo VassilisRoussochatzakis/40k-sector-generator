@@ -119,7 +119,7 @@ enum_slug!(MissionKind {
     Recovery => "recovery",
     Defense => "defense",
     Exploration => "exploration",
-}, display);
+});
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -134,7 +134,7 @@ enum_slug!(MissionScale {
     OneShot => "one_shot",
     ShortArc => "short_arc",
     CampaignArc => "campaign_arc",
-}, display);
+});
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -151,7 +151,7 @@ enum_slug!(MissionVisibility {
     Restricted => "restricted",
     Secret => "secret",
     Misinformation => "misinformation",
-}, display);
+});
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

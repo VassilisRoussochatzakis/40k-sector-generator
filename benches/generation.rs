@@ -145,7 +145,7 @@ fn bench_derive_cold_500(c: &mut Criterion) {
             black_box(sectorforge::derive_hooks_with(&sector, &cats.hooks));
             black_box(sectorforge::derive_missions_with(&sector, &cats.missions));
             black_box(sectorforge::derive_prose_with(&sector, &cats.prose));
-            black_box(sectorforge::derive_interestingness(&sector));
+            black_box(sectorforge::interestingness::derive(&sector));
         });
     });
     group.finish();

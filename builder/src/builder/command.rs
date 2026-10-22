@@ -897,12 +897,7 @@ impl BuilderCommand {
             Self::BulkEditWorlds { before, after } => {
                 before.clear();
                 for (wid, new_w) in after.iter() {
-                    if let Some(w) = sector
-                        .systems
-                        .iter_mut()
-                        .flat_map(|s| s.worlds.iter_mut())
-                        .find(|w| w.id == *wid)
-                    {
+                    if let Ok(w) = world_mut(sector, wid) {
                         before.push((wid.clone(), w.clone()));
                         *w = new_w.clone();
                     }

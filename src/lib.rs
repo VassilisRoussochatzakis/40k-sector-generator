@@ -739,9 +739,6 @@ pub fn write_segmentum(
     segmentum::write_report(output_dir.as_ref(), seg)
 }
 
-/// §18 NEW2.md: derive an interestingness scorecard for a sector.
-pub use interestingness::derive as derive_interestingness;
-
 /// §18 NEW2.md: derive with explicit config.
 pub use interestingness::derive_with as derive_interestingness_with;
 

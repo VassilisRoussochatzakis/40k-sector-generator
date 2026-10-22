@@ -27,29 +27,24 @@ macro_rules! world_enum {
 
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
+world_enum! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum StarColour {
-    BlueHypergiant, // O
-    BlueWhite,      // B
-    White,          // A
-    YellowWhite,    // F
-    Yellow,         // G
-    OrangeDwarf,    // K
-    RedDwarf,       // M
+StarColour {
+    BlueHypergiant => "O",
+    BlueWhite => "B",
+    White => "A",
+    YellowWhite => "F",
+    Yellow => "G",
+    OrangeDwarf => "K",
+    RedDwarf => "M",
+}
 }
 
 impl StarColour {
+    /// Spectral code — the `display_name` label.
     pub fn code(self) -> &'static str {
-        match self {
-            Self::BlueHypergiant => "O",
-            Self::BlueWhite => "B",
-            Self::White => "A",
-            Self::YellowWhite => "F",
-            Self::Yellow => "G",
-            Self::OrangeDwarf => "K",
-            Self::RedDwarf => "M",
-        }
+        self.display_name()
     }
 
     pub fn short_name(self) -> &'static str {
@@ -644,28 +639,6 @@ impl AsRef<str> for NotableFeature {
 impl std::fmt::Display for NotableFeature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
-    }
-}
-
-// ── StarColour variants + canonical display name ─────────────────────────────
-//
-// `world_enum!` (top of file) generates `VARIANTS` + `display_name` for the
-// other key-tab enums; `StarColour` keeps this hand-written pair because its
-// `display_name` is the spectral `code()`. `display_name` matches `FromStr`
-// keys and is used for GUI dropdown labels.
-
-impl StarColour {
-    pub const VARIANTS: &'static [Self] = &[
-        Self::BlueHypergiant,
-        Self::BlueWhite,
-        Self::White,
-        Self::YellowWhite,
-        Self::Yellow,
-        Self::OrangeDwarf,
-        Self::RedDwarf,
-    ];
-    pub fn display_name(self) -> &'static str {
-        self.code()
     }
 }
 

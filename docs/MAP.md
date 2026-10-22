@@ -41,7 +41,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 
 | File | Purpose |
 |---|---|
-| [src/worlds.rs](../src/worlds.rs) | Canonical world enums, declared via the module-private `world_enum!` macro (one `Variant => "Label"` line drives the enum, `VARIANTS` order and `display_name`; `StarColour` stays hand-written); re-exports the worlds-data loader from `worlds_toml` |
+| [src/worlds.rs](../src/worlds.rs) | Canonical world enums, declared via the module-private `world_enum!` macro (one `Variant => "Label"` line drives the enum, `VARIANTS` order and `display_name`; `StarColour`'s labels are its spectral codes); re-exports the worlds-data loader from `worlds_toml` |
 | [src/worlds_toml.rs](../src/worlds_toml.rs) | §45 native typed `worlds.toml` config (sole world-data format) + its loader (`WorldError`/`WorldsLoad`/`load_worlds_data`, C6) |
 | [src/lib.rs](../src/lib.rs) | Public API surface (doc-tests + `# Errors`); re-aliases moved modules back to root; pure-forwarding facades (`generate_sector`, `validate_sector`, `analyze_sector`, `derive_*_with`, …) are `pub use module::fn as name;` re-exports, adapting ones stay `pub fn` |
 | [src/macros.rs](../src/macros.rs) | Crate-internal `macro_rules!` (`#[macro_use]`): `enum_slug!` — `as_slug` for a fieldless enum from verbatim variant→slug pairs (B-S3); `const` form for const-fn slugs, and a trailing `, display` option that emits `Display` = `as_slug()` |

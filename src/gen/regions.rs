@@ -606,13 +606,27 @@ pub fn apply_route_effects_with_progress(
                     _ => None,
                 };
                 let outcome = target.map_or_else(RouteEffectOutcome::default, |target| {
-                    apply_route_stability_with_bridge_progress(
+                    if target == RouteStability::Perilous
+                        && routes[idx].stability != RouteStability::Perilous
+                    {
+                        summary.bridge_checks += 1;
+                        if should_report_region_route_progress(
+                            summary.bridge_checks,
+                            summary.routes,
+                        ) {
+                            progress(RegionRouteEffectsProgress::BridgeCheckStarted {
+                                check: summary.bridge_checks,
+                                route_index: idx + 1,
+                                total_routes: summary.routes,
+                                route_id: routes[idx].id.to_string(),
+                            });
+                        }
+                    }
+                    apply_route_stability(
                         routes,
                         idx,
                         target,
                         &format!("region:{}", cond.as_slug()),
-                        &mut summary,
-                        &mut progress,
                     )
                 });
                 if outcome.changed {
@@ -638,30 +652,6 @@ pub fn apply_route_effects_with_progress(
     count_route_stabilities(routes, &mut summary);
     progress(RegionRouteEffectsProgress::Completed { summary });
     summary
-}
-
-fn apply_route_stability_with_bridge_progress(
-    routes: &mut [GeneratedRoute],
-    idx: usize,
-    target: RouteStability,
-    tag: &str,
-    summary: &mut RegionRouteEffectsSummary,
-    progress: &mut impl FnMut(RegionRouteEffectsProgress),
-) -> RouteEffectOutcome {
-    let needs_bridge_check =
-        target == RouteStability::Perilous && routes[idx].stability != RouteStability::Perilous;
-    if needs_bridge_check {
-        summary.bridge_checks += 1;
-        if should_report_region_route_progress(summary.bridge_checks, summary.routes) {
-            progress(RegionRouteEffectsProgress::BridgeCheckStarted {
-                check: summary.bridge_checks,
-                route_index: idx + 1,
-                total_routes: summary.routes,
-                route_id: routes[idx].id.to_string(),
-            });
-        }
-    }
-    apply_route_stability(routes, idx, target, tag)
 }
 
 fn count_route_stabilities(routes: &[GeneratedRoute], summary: &mut RegionRouteEffectsSummary) {

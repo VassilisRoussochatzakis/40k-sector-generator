@@ -143,7 +143,7 @@ enum_slug!(HookKind {
     SuccessionDispute => "succession_dispute",
     StarvingWorld => "starving_world",
     LifelineLane => "lifeline_lane",
-}, display);
+});
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 

@@ -60,11 +60,8 @@ fn gilt_rule(ui: &mut Ui) {
     let accent = design::accent(ui);
     let w = ui.available_width();
     let (rect, _) = ui.allocate_exact_size(egui::vec2(w, 1.0), egui::Sense::hover());
-    ui.painter().rect_filled(
-        rect,
-        0.0,
-        Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 130),
-    );
+    ui.painter()
+        .rect_filled(rect, 0.0, palette::with_alpha(accent, 130));
 }
 
 /// Same framed box as [`section`], but the body collapses. Drop-in replacement

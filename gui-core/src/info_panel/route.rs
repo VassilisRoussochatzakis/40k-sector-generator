@@ -8,7 +8,7 @@ use sectorforge::sector_model::{GeneratedRoute, GeneratedSector};
 use crate::palette::{faction_style_by_id, stability_color};
 use crate::sector_view::SectorMapCache;
 
-use super::{dim, kv, legend_route_row, legend_row, section, short, title};
+use super::{kv, legend_route_row, legend_row, list_block, section, short, title};
 
 pub fn route_summary(
     ui: &mut Ui,
@@ -52,13 +52,7 @@ pub fn route_summary(
         },
     );
 
-    if !route.tags.is_empty() {
-        ui.add_space(8.0);
-        section(ui, "TAGS");
-        for t in &route.tags {
-            dim(ui, &t.to_uppercase());
-        }
-    }
+    list_block(ui, "TAGS", &route.tags, true);
 
     if !route.controls.is_empty() {
         ui.add_space(8.0);

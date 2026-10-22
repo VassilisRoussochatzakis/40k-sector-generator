@@ -95,7 +95,6 @@ fn main() -> ExitCode {
         native_options,
         Box::new(move |cc| {
             // §BEAUTY §5.5: register bundled faces before the first theme apply.
-            // No-op unless the `bundled-fonts` feature is on.
             sectorforge_gui_core::fonts::install(&cc.egui_ctx);
             Ok(Box::new(app))
         }),

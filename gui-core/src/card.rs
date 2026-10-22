@@ -17,6 +17,7 @@
 use egui::{Align, Color32, Layout, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2};
 
 use crate::design;
+use crate::palette::with_alpha;
 
 /// A selectable, hover-animated plate row — the showcase faction-card recipe.
 ///
@@ -234,18 +235,10 @@ fn paint_void_plate(ui: &Ui, rect: Rect, t_h: f32, t_s: f32) {
     //    gradient fill, and a square-cornered mesh would fray the rounded corners
     //    at this row height.
     let bot = design::VOID_BOTTOM;
-    painter.rect_filled(
-        rect,
-        r,
-        Color32::from_rgba_unmultiplied(bot.r(), bot.g(), bot.b(), (236.0 * t_s) as u8),
-    );
+    painter.rect_filled(rect, r, with_alpha(bot, (236.0 * t_s) as u8));
     let top = design::VOID_TOP;
     let top_half = Rect::from_min_max(rect.min, Pos2::new(rect.right(), rect.center().y));
-    painter.rect_filled(
-        top_half,
-        r,
-        Color32::from_rgba_unmultiplied(top.r(), top.g(), top.b(), (66.0 * t_s) as u8),
-    );
+    painter.rect_filled(top_half, r, with_alpha(top, (66.0 * t_s) as u8));
 
     // 2) Starfield. Positions are hashed from the row's rect, so each tab keeps a
     //    stable constellation; every star twinkles on its own phase. This is pure
@@ -268,12 +261,7 @@ fn paint_void_plate(ui: &Ui, rect: Rect, t_h: f32, t_s: f32) {
         painter.circle_filled(
             Pos2::new(px, py),
             if bright { 1.5 } else { 0.9 },
-            Color32::from_rgba_unmultiplied(
-                star.r(),
-                star.g(),
-                star.b(),
-                (peak * twinkle * t_s) as u8,
-            ),
+            with_alpha(star, (peak * twinkle * t_s) as u8),
         );
     }
     // Keep the twinkle alive while a tab is selected, but throttled — a perpetual
@@ -285,10 +273,7 @@ fn paint_void_plate(ui: &Ui, rect: Rect, t_h: f32, t_s: f32) {
     painter.rect_stroke(
         rect,
         r,
-        Stroke::new(
-            1.0,
-            Color32::from_rgba_unmultiplied(star.r(), star.g(), star.b(), (150.0 * t_s) as u8),
-        ),
+        Stroke::new(1.0, with_alpha(star, (150.0 * t_s) as u8)),
     );
 }
 

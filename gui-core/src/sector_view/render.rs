@@ -12,15 +12,10 @@ use sectorforge::sector_model::{GeneratedSector, HexCoord};
 
 use crate::info_panel::short;
 use crate::map_theme::RenderMapTheme;
-use crate::palette::darken;
+use crate::palette::{darken, with_alpha};
 use crate::visual_tokens::MapSystemGlyph;
 
 use super::cache::{SectorMapCache, StarDust};
-
-const SYSTEM_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
-const SYSTEM_PIP_MIN_VISIBLE_PX: f32 = 3.0;
-const SUBSECTOR_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
-const REGION_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
 
 /// True when a map theme's background is dark enough for the void flourishes
 /// (star dust + vignette). Light themes such as `print_mono` skip them.
@@ -153,8 +148,8 @@ pub(super) fn paint_vignette(painter: &egui::Painter, rect: egui::Rect) {
 /// Imperial instrument rather than a bare rectangle. `accent` is the active
 /// chrome accent, so the frame recolors with the theme. Live-only.
 pub(super) fn paint_chart_frame(painter: &egui::Painter, rect: egui::Rect, accent: Color32) {
-    let dim = Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 70);
-    let bright = Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 200);
+    let dim = with_alpha(accent, 70);
+    let bright = with_alpha(accent, 200);
     // Inset hairline border.
     painter.rect_stroke(rect.shrink(1.5), 2.0, Stroke::new(1.0, dim));
     // Corner brackets + rivets — short L-marks at each corner, brass.
@@ -200,7 +195,7 @@ impl SectorGeom {
     /// Screen-space center of axial cell `(q, r)`.
     #[must_use]
     pub fn hex_center(&self, q: i32, r: i32) -> Pos2 {
-        hex_center_xy(q, r, self) + self.origin.to_vec2()
+        hex_center(q, r, self) + self.origin.to_vec2()
     }
 
     /// Total pixel size of the hex grid (used for `Sense::drag` allocation in
@@ -330,17 +325,13 @@ pub fn paint_system_rings<F>(
     }
 }
 
-fn hex_center_xy(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
+pub(super) fn hex_center(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
     let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
     let x = g.margin + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
     let y = g.margin + vert_step * r as f32 + g.hex_size;
     Pos2::new(x, y)
-}
-
-pub(super) fn hex_center(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
-    hex_center_xy(q, r, g)
 }
 
 pub(super) fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
@@ -352,32 +343,24 @@ pub(super) fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
     out
 }
 
+/// Filled hex (a disc when too small to read as one), with a zoom-scaled
+/// hairline `outline` or none.
 pub(super) fn draw_hex(
     painter: &egui::Painter,
     c: Pos2,
     size: f32,
     fill: Color32,
-    outline: Color32,
+    outline: Option<Color32>,
 ) {
     if size < 3.0 {
         painter.circle_filled(c, size * 0.9, fill);
         return;
     }
+    let stroke = outline.map_or(Stroke::NONE, |o| {
+        Stroke::new(if size < 8.0 { 0.5 } else { 1.0 }, o)
+    });
     let pts = hex_vertices(c, size).to_vec();
-    painter.add(egui::Shape::convex_polygon(
-        pts,
-        fill,
-        Stroke::new(if size < 8.0 { 0.5 } else { 1.0 }, outline),
-    ));
-}
-
-pub(super) fn draw_hex_fill(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32) {
-    if size < 3.0 {
-        painter.circle_filled(c, size * 0.9, fill);
-        return;
-    }
-    let pts = hex_vertices(c, size).to_vec();
-    painter.add(egui::Shape::convex_polygon(pts, fill, Stroke::NONE));
+    painter.add(egui::Shape::convex_polygon(pts, fill, stroke));
 }
 
 pub(super) fn draw_system_glyph(
@@ -483,33 +466,26 @@ pub(super) fn label_intersects_rect(
     .intersects(rect)
 }
 
-pub(super) fn system_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
-    // Names must shrink with zoom; a fixed UI-text floor overwhelms huge maps.
-    let label_size = hex_size * theme.system_label_font.mul;
-    (label_size >= SYSTEM_LABEL_MIN_VISIBLE_PX).then_some(label_size)
+/// Font px `hex_size * mul` for a map label, or `None` once it is under ~3px.
+/// Labels, pips and region chips scale linearly with zoom, then vanish when
+/// too small to read — never floor at a fixed px: a floor overwhelms huge maps
+/// and makes chips balloon relative to the shrinking map as the user zooms out.
+fn label_px(hex_size: f32, mul: f32) -> Option<f32> {
+    let px = hex_size * mul;
+    (px >= 3.0).then_some(px)
 }
 
-pub(super) fn system_pip_metrics(theme: &RenderMapTheme, hex_size: f32) -> Option<(f32, f32)> {
-    // Pips follow labels: shrink with zoom, then vanish when unreadable.
-    let font_size = hex_size * theme.pip_font.mul;
-    let disc_r = hex_size * theme.pip_disc_radius.mul;
-    (font_size >= SYSTEM_PIP_MIN_VISIBLE_PX).then_some((font_size, disc_r))
+pub(super) fn system_label_font_px(hex_size: f32) -> Option<f32> {
+    label_px(hex_size, 0.28)
 }
 
-fn region_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
-    // Match system labels: scale linearly with zoom, then vanish when too
-    // small to read — never floor at a fixed px. A floor makes the chip
-    // balloon relative to the shrinking map as the user zooms out.
-    let label_size = hex_size * theme.region_label_font.mul;
-    (label_size >= REGION_LABEL_MIN_VISIBLE_PX).then_some(label_size)
+/// Pip font px + disc radius; pips follow labels.
+pub(super) fn system_pip_metrics(hex_size: f32) -> Option<(f32, f32)> {
+    label_px(hex_size, 0.36).map(|font| (font, hex_size * 0.22))
 }
 
-pub(super) fn subsector_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
-    if hex_size >= 40.0 {
-        return None;
-    }
-    let label_size = hex_size * theme.subsector_label_font.mul;
-    (label_size >= SUBSECTOR_LABEL_MIN_VISIBLE_PX).then_some(label_size)
+pub(super) fn subsector_label_font_px(hex_size: f32) -> Option<f32> {
+    label_px(hex_size, 0.36).filter(|_| hex_size < 40.0)
 }
 
 pub(super) fn draw_capital_marker(
@@ -518,7 +494,7 @@ pub(super) fn draw_capital_marker(
     hex_size: f32,
     theme: &RenderMapTheme,
 ) {
-    let r = theme.capital_marker_radius.px(hex_size);
+    let r = (hex_size * 0.15).max(3.5);
     let cy = c.y - hex_size * 0.55;
     let pts = vec![
         Pos2::new(c.x, cy - r),
@@ -565,7 +541,7 @@ pub(super) fn draw_region_labels(
     if sector.regions.is_empty() {
         return;
     }
-    let Some(font_px) = region_label_font_px(theme, g.hex_size) else {
+    let Some(font_px) = label_px(g.hex_size, 0.31) else {
         return;
     };
     let font = FontId::monospace(font_px);

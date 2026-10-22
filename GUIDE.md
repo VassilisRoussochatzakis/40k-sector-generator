@@ -2153,17 +2153,13 @@ showcase-quality tier on top of §UO; playbook in [docs/BEAUTY.md](docs/BEAUTY.m
   change.
 
 - *Typography* ([gui-core/src/fonts.rs](gui-core/src/fonts.rs), `§BEAUTY §5.5`) — the
-  custom-font registration path, gated by the `bundled-fonts` Cargo feature on
-  `gui-core`. The three OFL faces now live in the repo
+  custom-font registration path. The three OFL faces live in the repo
   ([gui-core/assets/fonts/](gui-core/assets/fonts/) `display.ttf` / `body.ttf` /
-  `mono.ttf`), and **both apps enable the feature in their own `default` feature**
-  (`default = ["sectorforge-gui-core/bundled-fonts"]` in
-  [builder/Cargo.toml](builder/Cargo.toml) / [viewer/Cargo.toml](viewer/Cargo.toml)),
-  so the bundled faces are now the **default** typography — build with
-  `--no-default-features` to fall back to egui's `default_fonts`. `gui-core` itself
-  keeps the feature off by default, so its map-snapshot golden suite
-  ([gui-core/tests/map_snapshots.rs](gui-core/tests/map_snapshots.rs)) still renders on
-  stock egui fonts. `fonts::install(ctx)` — called once from each app's eframe creation
+  `mono.ttf`) and are always embedded — there is no feature flag and no stock-egui
+  fallback build, so the bundled faces are both apps' typography. The map-snapshot
+  golden suite ([gui-core/tests/map_snapshots.rs](gui-core/tests/map_snapshots.rs))
+  never calls `fonts::install`, so it still renders on stock egui fonts.
+  `fonts::install(ctx)` — called once from each app's eframe creation
   closure ([builder](builder/src/main.rs) / [viewer](viewer/src/main.rs) `main.rs`),
   *before* the first `Theme::apply` — embeds the three faces via
   `FontData::from_static(include_bytes!("../assets/fonts/{display,body,mono}.ttf"))`
@@ -2174,7 +2170,7 @@ showcase-quality tier on top of §UO; playbook in [docs/BEAUTY.md](docs/BEAUTY.m
   the body face becomes the front of egui's `Proportional` family, the mono face the
   front of `Monospace`, and the display face its own named family
   (`design::FONT_DISPLAY`) that titles request through `design::display_family()` — so
-  `theme.rs` routing `Heading` through it now resolves to the real display face.
+  `theme.rs` routing `Heading` through it resolves to the real display face.
   [gui-core/assets/fonts/FONTS.md](gui-core/assets/fonts/FONTS.md) documents the
   filenames + suggested faces.
 
@@ -2564,18 +2560,18 @@ startup smoke runs for `sectorforge-builder --project examples/m42_project`
 and `sectorforge-viewer --project examples/m42_project`.
 
 Every map element — hex tile, route, system glyph, label, region tint, overlay
-ring — reads its colour and sizing from
+ring — reads its colour from
 [`RenderMapTheme`](gui-core/src/map_theme.rs). Apps either pass a customised theme via
 `SectorView { theme: Some(&...), .. }` or leave it `None` to fall back to
-[`RenderMapTheme::default`]. Sizing is expressed as `ScaledSize { mul, min }`,
-which the painter resolves with `hex_size * mul` floored at `min`. Screen-text
-labels (system, subsector, pip, **and region**) are the exception: they take
-only the `mul` and scale linearly with zoom via the `*_font_px` helpers in
-[sector_view/render.rs](gui-core/src/sector_view/render.rs), then disappear below a ~3px
-`*_MIN_VISIBLE_PX` threshold rather than flooring at `min` — a floor would make
-the chip balloon relative to the shrinking map as the user zooms out. To restyle
-the map, edit one struct; the viewer, the editor MAP panel, and the builder MAP
-tab all follow. Named `RenderMapTheme` to disambiguate from
+[`RenderMapTheme::default`]. Its one size, the theme-scaled route thickness, is a
+`ScaledSize { mul, min }` resolved as `hex_size * mul` floored at `min`; fixed
+geometry (star radius, ring bumps, glow widths, label scales) is written inline at
+the paint sites in [sector_view/](gui-core/src/sector_view/). Screen-text labels
+(system, subsector, pip, **and region**) scale linearly with zoom through
+`label_px` in [sector_view/render.rs](gui-core/src/sector_view/render.rs), then
+disappear below ~3px rather than flooring — a floor would make the chip balloon
+relative to the shrinking map as the user zooms out. To recolour the map, edit one
+struct; the viewer, the editor MAP panel, and the builder MAP tab all follow. Named `RenderMapTheme` to disambiguate from
 [`sectorforge::map_theme::MapTheme`](src/export/map_theme.rs) — the data-layer
 counterpart that PNG/SVG exports consume.
 
@@ -4388,6 +4384,14 @@ pixel geometry and rounding. The viewer's feature pages share a frame helper
 (`page`), and the sector map and route planner share cursor-anchored zoom (hex size
 clamped to 5–250) and drag handling (`update_map_navigation`) in
 [viewer/src/app/mod.rs](viewer/src/app/mod.rs).
+
+In [gui-core/](gui-core/src/lib.rs) the culled route passes share `visible_segment`,
+map labels share one ~3px `label_px` gate, the info panel's TAGS/NOTES and CONTROL
+blocks share `list_block` / `opt_kv_block`, the painted buttons share `button_frame`,
+alpha restamps go through `palette::with_alpha`, the route-control legend reuses the
+map glyph's `paint_route_control_shape`, the heatmap and overview caches key on one
+`SectorFingerprint`, and `palette::contrast_text` wraps the export's
+`system_map::contrast_text`.
 
 Archetype rules update each system directly without staging maps. Regional route
 effects share the stability update while preserving distance floors, bridge

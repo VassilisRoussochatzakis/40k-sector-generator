@@ -25,32 +25,35 @@ use crate::{design, palette};
 /// Returns the click [`Response`] — use `.clicked()`. For a disabled look, gate
 /// the call site (`ui.add_enabled_ui(enabled, |ui| primary_button(ui, …))`).
 pub fn primary_button(ui: &mut Ui, label: &str) -> Response {
-    let font = FontId::new(design::BODY, FontFamily::Proportional);
-    let galley = ui
-        .painter()
-        .layout_no_wrap(label.to_owned(), font.clone(), Color32::WHITE);
+    let min = Vec2::new(96.0, ui.spacing().interact_size.y + design::SPACE_XS);
     let pad = Vec2::new(design::SPACE_LG, design::SPACE_SM);
-    let size = Vec2::new(
-        (galley.size().x + pad.x * 2.0).max(96.0),
-        (galley.size().y + pad.y * 2.0).max(ui.spacing().interact_size.y + design::SPACE_XS),
-    );
-    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
-
-    let ctx = ui.ctx().clone();
-    let id = response.id;
-    let t_hover = design::ease_out_cubic(ctx.animate_bool_with_time(
-        id.with("h"),
-        response.hovered(),
-        design::MOTION_BASE,
-    ));
-    let t_press = design::ease_out_cubic(ctx.animate_bool_with_time(
-        id.with("p"),
+    let (font, rect, response, t_hover) = button_frame(ui, label, pad, min);
+    let t_press = design::ease_out_cubic(ui.ctx().animate_bool_with_time(
+        response.id.with("p"),
         response.is_pointer_button_down_on(),
         design::MOTION_FAST,
     ));
 
     paint_primary(ui, rect, &font, label, t_hover, t_press);
     response
+}
+
+/// The buttons' shared prologue: lay `label` out in the body font, allocate a
+/// click target of its size plus `pad` per side (at least `min`), and ease the
+/// hover. Returns `(font, rect, response, t_hover)`.
+fn button_frame(ui: &mut Ui, label: &str, pad: Vec2, min: Vec2) -> (FontId, Rect, Response, f32) {
+    let font = FontId::new(design::BODY, FontFamily::Proportional);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), font.clone(), Color32::WHITE);
+    let (rect, response) =
+        ui.allocate_exact_size((galley.size() + pad * 2.0).max(min), Sense::click());
+    let t_hover = design::ease_out_cubic(ui.ctx().animate_bool_with_time(
+        response.id,
+        response.hovered(),
+        design::MOTION_BASE,
+    ));
+    (font, rect, response, t_hover)
 }
 
 fn paint_primary(ui: &Ui, rect: Rect, font: &FontId, label: &str, t_hover: f32, t_press: f32) {
@@ -190,31 +193,14 @@ pub fn toggle(ui: &mut Ui, on: &mut bool) -> Response {
 /// dangerous without shouting at rest the way [`primary_button`] does — reserve
 /// it for delete / remove confirms. Theme-aware via [`palette::danger`].
 pub fn danger_button(ui: &mut Ui, label: &str) -> Response {
-    let font = FontId::new(design::BODY, FontFamily::Proportional);
-    let galley = ui
-        .painter()
-        .layout_no_wrap(label.to_owned(), font.clone(), Color32::WHITE);
+    let min = Vec2::new(0.0, ui.spacing().interact_size.y);
     let pad = Vec2::new(design::SPACE_MD, design::SPACE_SM);
-    let size = Vec2::new(
-        galley.size().x + pad.x * 2.0,
-        (galley.size().y + pad.y * 2.0).max(ui.spacing().interact_size.y),
-    );
-    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
-    let t_hover = design::ease_out_cubic(ui.ctx().animate_bool_with_time(
-        response.id,
-        response.hovered(),
-        design::MOTION_BASE,
-    ));
+    let (font, rect, response, t_hover) = button_frame(ui, label, pad, min);
 
     let danger = palette::danger();
     let r = design::RADIUS_SM;
     let painter = ui.painter_at(rect);
-    let fill = Color32::from_rgba_unmultiplied(
-        danger.r(),
-        danger.g(),
-        danger.b(),
-        (200.0 * t_hover) as u8,
-    );
+    let fill = palette::with_alpha(danger, (200.0 * t_hover) as u8);
     painter.rect_filled(rect, r, fill);
     painter.rect_stroke(rect, r, Stroke::new(1.0, danger));
     let ink = design::lerp_color(danger, Color32::from_rgb(244, 240, 236), t_hover);
@@ -227,31 +213,14 @@ pub fn danger_button(ui: &mut Ui, label: &str) -> Response {
 /// For tertiary actions (an add `+`, an inline dismiss) that should recede until
 /// pointed at. Theme-aware via [`palette::chrome_text_dim`] / [`palette::chrome_text`].
 pub fn ghost_button(ui: &mut Ui, label: &str) -> Response {
-    let font = FontId::new(design::BODY, FontFamily::Proportional);
-    let galley = ui
-        .painter()
-        .layout_no_wrap(label.to_owned(), font.clone(), Color32::WHITE);
+    let min = Vec2::new(0.0, ui.spacing().interact_size.y);
     let pad = Vec2::new(design::SPACE_SM, design::SPACE_XS);
-    let size = Vec2::new(
-        galley.size().x + pad.x * 2.0,
-        (galley.size().y + pad.y * 2.0).max(ui.spacing().interact_size.y),
-    );
-    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
-    let t_hover = design::ease_out_cubic(ui.ctx().animate_bool_with_time(
-        response.id,
-        response.hovered(),
-        design::MOTION_BASE,
-    ));
+    let (font, rect, response, t_hover) = button_frame(ui, label, pad, min);
 
     let r = design::RADIUS_SM;
     let hover_bg = ui.visuals().widgets.hovered.bg_fill;
     let painter = ui.painter_at(rect);
-    let fill = Color32::from_rgba_unmultiplied(
-        hover_bg.r(),
-        hover_bg.g(),
-        hover_bg.b(),
-        (160.0 * t_hover) as u8,
-    );
+    let fill = palette::with_alpha(hover_bg, (160.0 * t_hover) as u8);
     painter.rect_filled(rect, r, fill);
     let ink = design::lerp_color(palette::chrome_text_dim(), palette::chrome_text(), t_hover);
     painter.text(rect.center(), Align2::CENTER_CENTER, label, font, ink);

@@ -1,7 +1,9 @@
 //! Visual tokens for the sector map renderer.
 //!
-//! `RenderMapTheme` is the single source of truth for every colour and sizing
-//! constant that [`crate::sector_view::SectorView`] paints. Apps either pass a
+//! `RenderMapTheme` is the single source of truth for every colour (plus the
+//! theme-scaled route thickness) that [`crate::sector_view::SectorView`]
+//! paints; fixed geometry (star radius, ring bumps, glow widths, label scales)
+//! is written inline at the paint sites. Apps either pass a
 //! customised theme or use [`RenderMapTheme::default`]; the viewer, the
 //! editor's MAP panel, and the builder's MAP tab all read the same theme, so
 //! adding a new map element is a one-place change.
@@ -81,35 +83,8 @@ pub struct RenderMapTheme {
     /// the data-layer `MapTheme::region_tint_strength` so the live map matches
     /// the exported PNG; threaded through by [`Self::from_map_theme`].
     pub region_tint_strength: f32,
-    // -- sizing tokens (multiplier · hex_size, floored at min) -------------
-    pub star_radius_mul: f32,
+    // -- sizing token (multiplier · hex_size, floored at min) --------------
     pub route_thickness: ScaledSize,
-    pub subsector_border_thickness: ScaledSize,
-    pub capital_marker_radius: ScaledSize,
-    pub pip_font: ScaledSize,
-    pub pip_disc_radius: ScaledSize,
-    pub system_label_font: ScaledSize,
-    pub subsector_label_font: ScaledSize,
-    pub region_label_font: ScaledSize,
-    // -- glow alphas (0..=255) on premultiplied glow colours ----------------
-    pub path_glow_alpha: u8,
-    pub selection_glow_alpha: u8,
-    // -- ring radius bumps (added to hex_size) -----------------------------
-    pub pinned_ring_bump: f32,
-    pub selection_ring_bump: f32,
-    pub waypoint_ring_bump: f32,
-    // -- ring stroke widths ------------------------------------------------
-    pub pinned_ring_thickness: f32,
-    pub selection_ring_thickness: f32,
-    pub multi_select_ring_thickness: f32,
-    pub waypoint_ring_thickness: f32,
-    // -- route overlay thickness multipliers (× route_thickness) -----------
-    pub path_glow_mul: f32,
-    pub path_core_mul: f32,
-    pub selection_glow_mul: f32,
-    pub selection_core_mul: f32,
-    pub pending_route_preview_mul: f32,
-    pub pending_route_preview_min: f32,
 }
 
 impl RenderMapTheme {
@@ -134,8 +109,8 @@ impl RenderMapTheme {
     /// palette + thickness, the region-label overlay (label/background/outline,
     /// re-tinted from the theme's text/panel/border tokens), and
     /// `region_tint_strength`. Tokens the data layer genuinely has no analogue
-    /// for — selection and path-highlight glow, the eight region-condition
-    /// overlay colours, and the sizing tokens — keep their
+    /// for — selection and path-highlight glow and the eight region-condition
+    /// overlay colours — keep their
     /// [`RenderMapTheme::default`] values via the `..base` tail so the live map
     /// stays legible. Threading `region_tint_strength` here keeps the live
     /// region wash in step with the exported PNG (notably on light themes such
@@ -247,34 +222,7 @@ impl Default for RenderMapTheme {
             // default render theme (and the map-snapshot suite) is unchanged.
             region_tint_strength: 0.5,
 
-            star_radius_mul: 0.2016,
             route_thickness: ScaledSize::new(0.08, 2.0),
-            subsector_border_thickness: ScaledSize::new(0.10, 2.5),
-            capital_marker_radius: ScaledSize::new(0.15, 3.5),
-            pip_font: ScaledSize::new(0.36, 11.0),
-            pip_disc_radius: ScaledSize::new(0.22, 8.0),
-            system_label_font: ScaledSize::new(0.28, 9.0),
-            subsector_label_font: ScaledSize::new(0.36, 11.0),
-            region_label_font: ScaledSize::new(0.31, 10.0),
-
-            path_glow_alpha: 70,
-            selection_glow_alpha: 75,
-
-            pinned_ring_bump: 5.0,
-            selection_ring_bump: 2.0,
-            waypoint_ring_bump: 4.0,
-
-            pinned_ring_thickness: 1.5,
-            selection_ring_thickness: 2.5,
-            multi_select_ring_thickness: 2.0,
-            waypoint_ring_thickness: 2.5,
-
-            path_glow_mul: 3.2,
-            path_core_mul: 1.8,
-            selection_glow_mul: 3.6,
-            selection_core_mul: 1.9,
-            pending_route_preview_mul: 1.4,
-            pending_route_preview_min: 2.5,
         }
     }
 }
@@ -316,7 +264,7 @@ mod tests {
     // ── Gap 5: from_map_theme `..base` preservation ───────────────────────────
     // Fields the data layer carries (`bg`, route colours, …) come from the
     // resolved `MapTheme`; everything else (selection, path glow, the region
-    // overlay palette, `star_radius_mul`, …) is preserved from
+    // overlay palette, …) is preserved from
     // `RenderMapTheme::default()` via the `..base` struct-update tail.
     #[test]
     fn from_map_theme_carries_bg_from_data() {
@@ -354,9 +302,6 @@ mod tests {
         // The entire region-overlay palette is preserved (spot-check both ends).
         assert_eq!(rt.region_warp_storm, base.region_warp_storm);
         assert_eq!(rt.region_empyric_bleed, base.region_empyric_bleed);
-        // A preserved scalar sizing token.
-        assert_eq!(rt.star_radius_mul, base.star_radius_mul);
-        assert_eq!(rt.selection_glow_alpha, base.selection_glow_alpha);
     }
 
     // ── Gap 11: route_color / region_color / ScaledSize::px ───────────────────

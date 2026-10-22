@@ -345,8 +345,8 @@ mod tests {
 
     #[test]
     fn bundled_fonts_nav_plate_centers_are_clickable() {
-        // Regression for the "dead tabs" bug: with the bundled OFL fonts (the
-        // shipping default — see `default = bundled-fonts`) the inner row label
+        // Regression for the "dead tabs" bug: with the bundled OFL fonts (what
+        // both apps always ship) the inner row label
         // is taller than egui's built-in face and grows to fill the plate's
         // centre. Before the `card::selectable_plate` fix that non-clickable
         // label became the topmost widget under the pointer and swallowed the

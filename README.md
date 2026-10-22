@@ -731,7 +731,7 @@ All four crates share one version (0.1.0), edition (2021), and MSRV (1.87) via `
 | `sectorforge-viewer` | `viewer/` | Egui viewer (eframe) with limited in-place editing (map/faction/world edits, `worlds.toml` data editor, save/save-as). Depends on `sectorforge` + `sectorforge-gui-core`. |
 | `sectorforge-gui-core` | `gui-core/` | Shared egui widget library (`SectorView`, palette, `info_panel`, and the rest of the GUI chrome) used by both the builder and viewer. Owns the raw paint primitives; `#![forbid(unsafe_code)]`. |
 
-The builder and viewer both enable the `sectorforge-gui-core/bundled-fonts` feature by default, so the shipping apps build with bundled fonts on (the gui-core feature itself is opt-in/off by default). Integration tests live as a single-binary suite under `tests/it/`.
+The builder and viewer both ship the bundled fonts that `gui-core` always embeds (no feature flag). Integration tests live as a single-binary suite under `tests/it/`.
 
 ## Development
 

@@ -7,6 +7,7 @@ use egui::{Color32, Ui};
 
 use sectorforge::sector_model::{GeneratedSector, RoutePattern};
 
+use crate::heatmap::SectorFingerprint;
 use crate::palette::{self, faction_style_by_id, stability_color, PATH_HIGHLIGHT};
 use crate::sector_view::SectorMapCache;
 use sectorforge::importance::{
@@ -15,42 +16,15 @@ use sectorforge::importance::{
 
 use super::{dim, legend_control_row, legend_route_row, legend_row, section, short, title};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct SectorOverviewCacheKey {
-    sector_id: String,
-    seed: String,
-    width: u32,
-    height: u32,
-    system_count: usize,
-    world_count: usize,
-    route_count: usize,
-    faction_count: usize,
-}
-
-impl SectorOverviewCacheKey {
-    fn from_sector(sector: &GeneratedSector) -> Self {
-        Self {
-            sector_id: sector.id.to_string(),
-            seed: sector.seed.to_string(),
-            width: sector.width,
-            height: sector.height,
-            system_count: sector.systems.len(),
-            world_count: sector.systems.iter().map(|s| s.worlds.len()).sum(),
-            route_count: sector.routes.len(),
-            faction_count: sector.factions.len(),
-        }
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct SectorOverviewCache {
-    key: Option<SectorOverviewCacheKey>,
+    key: Option<SectorFingerprint>,
     buckets: Option<Arc<Vec<DisplayBucket>>>,
 }
 
 impl SectorOverviewCache {
     pub fn buckets_for(&mut self, sector: &GeneratedSector) -> Arc<Vec<DisplayBucket>> {
-        let key = SectorOverviewCacheKey::from_sector(sector);
+        let key = SectorFingerprint::of(sector);
         if self.key.as_ref() != Some(&key) || self.buckets.is_none() {
             self.key = Some(key);
             self.buckets = Some(Arc::new(compute_display_buckets(

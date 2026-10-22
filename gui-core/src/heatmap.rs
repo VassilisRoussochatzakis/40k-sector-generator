@@ -30,13 +30,16 @@ impl From<HeatCellRgb> for HeatCell {
 
 pub type HeatmapCells = HashMap<sectorforge::ids::SystemId, HeatCell>;
 
+/// Cheap change detector (identity + entity counts) keying the derived-data
+/// caches: [`HeatmapCache`] and `info_panel`'s `SectorOverviewCache`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct HeatmapCacheKey {
+pub(crate) struct SectorFingerprint {
     sector_id: String,
     seed: String,
     width: u32,
     height: u32,
     system_count: usize,
+    world_count: usize,
     route_count: usize,
     faction_count: usize,
     region_count: usize,
@@ -44,14 +47,15 @@ struct HeatmapCacheKey {
     economy_route_count: usize,
 }
 
-impl HeatmapCacheKey {
-    fn from_sector(sector: &GeneratedSector) -> Self {
+impl SectorFingerprint {
+    pub(crate) fn of(sector: &GeneratedSector) -> Self {
         Self {
             sector_id: sector.id.to_string(),
             seed: sector.seed.to_string(),
             width: sector.width,
             height: sector.height,
             system_count: sector.systems.len(),
+            world_count: sector.systems.iter().map(|s| s.worlds.len()).sum(),
             route_count: sector.routes.len(),
             faction_count: sector.factions.len(),
             region_count: sector.regions.len(),
@@ -63,7 +67,7 @@ impl HeatmapCacheKey {
 
 #[derive(Debug, Default)]
 pub struct HeatmapCache {
-    key: Option<HeatmapCacheKey>,
+    key: Option<SectorFingerprint>,
     mode: HeatmapMode,
     cells: Option<Arc<HeatmapCells>>,
 }
@@ -78,7 +82,7 @@ impl HeatmapCache {
             return None;
         }
 
-        let key = HeatmapCacheKey::from_sector(sector);
+        let key = SectorFingerprint::of(sector);
         let needs_recompute =
             self.key.as_ref() != Some(&key) || self.mode != mode || self.cells.is_none();
 

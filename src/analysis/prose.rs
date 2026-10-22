@@ -123,11 +123,6 @@ pub struct SystemProse {
 // ── Entry point ────────────────────────────────────────────────────────────────
 
 #[must_use]
-pub fn derive(sector: &GeneratedSector) -> ProseReport {
-    derive_with(sector, &ProseConfig::default())
-}
-
-#[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
     let faction_names: BTreeMap<&str, &str> = sector
         .factions
@@ -466,8 +461,8 @@ mod tests {
     fn deterministic_prose() {
         let mut sec = empty_sector();
         sec.systems.push(system("sys-0001"));
-        let a = derive(&sec);
-        let b = derive(&sec);
+        let a = derive_with(&sec, &ProseConfig::default());
+        let b = derive_with(&sec, &ProseConfig::default());
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()

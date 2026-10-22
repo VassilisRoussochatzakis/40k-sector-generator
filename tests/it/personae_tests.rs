@@ -18,7 +18,7 @@ use crate::shared::{
 #[test]
 fn report_metadata_mirrors_sector() {
     let sector = fixture_sector();
-    let report = personae::derive(sector);
+    let report = personae::derive_with(sector, &PersonaeConfig::default());
     assert_eq!(report.sector_id, sector.id.to_string());
     assert_eq!(report.seed, sector.seed.to_string());
 }
@@ -26,7 +26,7 @@ fn report_metadata_mirrors_sector() {
 #[test]
 fn every_persona_references_real_faction_and_anchor() {
     let sector = fixture_sector();
-    let report = personae::derive(sector);
+    let report = personae::derive_with(sector, &PersonaeConfig::default());
 
     let faction_ids: std::collections::BTreeSet<&str> =
         sector.factions.iter().map(|f| f.id.as_str()).collect();
@@ -74,7 +74,7 @@ fn persona_names_are_unique_across_sector() {
     // sector-wide name space is collision-free. (Persona `id` strings can
     // legitimately collide when the same faction is anchored to the same
     // world/system slot via multiple dominance entries — that is by design.)
-    let report = personae::derive(fixture_sector());
+    let report = personae::derive_with(fixture_sector(), &PersonaeConfig::default());
     let mut seen = std::collections::BTreeSet::new();
     for p in &report.personae {
         assert!(
@@ -123,7 +123,7 @@ fn max_per_world_and_per_system_caps_honoured() {
 #[test]
 fn render_markdown_includes_stable_anchors() {
     let sector = fixture_sector();
-    let report = personae::derive(sector);
+    let report = personae::derive_with(sector, &PersonaeConfig::default());
     let md = personae::render_markdown(&report);
 
     assert!(
@@ -144,7 +144,9 @@ fn render_markdown_includes_stable_anchors() {
 
 #[test]
 fn derive_is_deterministic_for_fixture() {
-    assert_derive_deterministic(|| personae::derive(fixture_sector()));
+    assert_derive_deterministic(|| {
+        personae::derive_with(fixture_sector(), &PersonaeConfig::default())
+    });
 }
 
 proptest! {
@@ -157,8 +159,8 @@ proptest! {
     fn personae_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
         let s1 = gen_sector(&seed);
         let s2 = gen_sector(&seed);
-        let a = personae::derive(&s1);
-        let b = personae::derive(&s2);
+        let a = personae::derive_with(&s1, &PersonaeConfig::default());
+        let b = personae::derive_with(&s2, &PersonaeConfig::default());
         prop_assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()

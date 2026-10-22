@@ -229,7 +229,7 @@ fn union(parent: &mut [usize], a: usize, b: usize) {
     }
 }
 
-fn find_root(parent: &mut [usize], mut i: usize) -> usize {
+pub(crate) fn find_root(parent: &mut [usize], mut i: usize) -> usize {
     while parent[i] != i {
         parent[i] = parent[parent[i]];
         i = parent[i];

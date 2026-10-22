@@ -25,7 +25,6 @@ pub struct ValidationIssue {
     pub code: String,
     pub message: String,
     pub path: Option<String>,
-    pub row: Option<usize>,
     pub severity: Severity,
 }
 
@@ -35,13 +34,11 @@ pub struct ValidationIssue {
 pub enum Severity {
     Error,
     Warning,
-    Info,
 }
 
 enum_slug!(Severity {
     Error => "error",
     Warning => "warning",
-    Info => "info",
 }, display);
 
 #[derive(Debug, Clone, Serialize)]
@@ -252,7 +249,6 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                 code: FACTION_DUPLICATE_ID.to_string(),
                 message: format!("duplicate faction id '{}'", f.id),
                 path: Some(format!("factions[{idx}]")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -261,7 +257,6 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                 code: FACTION_BAD_WEIGHT.to_string(),
                 message: format!("faction '{}' has non-positive or non-finite weight", f.id),
                 path: Some(format!("factions[{idx}]")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -271,7 +266,6 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                     code: FACTION_UNKNOWN_WORLD_TYPE.to_string(),
                     message: format!("faction '{}' references unknown world type '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_world_types")),
-                    row: None,
                     severity: Severity::Warning,
                 });
             }
@@ -282,7 +276,6 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                     code: FACTION_UNKNOWN_GOVERNMENT.to_string(),
                     message: format!("faction '{}' references unknown government '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_governments")),
-                    row: None,
                     severity: Severity::Warning,
                 });
             }
@@ -293,7 +286,6 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                     code: FACTION_UNKNOWN_FEATURE.to_string(),
                     message: format!("faction '{}' references unknown feature '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_notable_features")),
-                    row: None,
                     severity: Severity::Warning,
                 });
             }
@@ -323,7 +315,6 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                     code: ROUTE_BAD_MULTIPLIER.to_string(),
                     message: "route modifier multiplier must be positive and finite".to_string(),
                     path: Some(format!("routes.modifiers[{i}]")),
-                    row: None,
                     severity: Severity::Error,
                 });
             }
@@ -389,7 +380,6 @@ fn validate_relations(
                     code: RELATIONS_KIND_RULE_EMPTY.to_string(),
                     message: format!("relations.kind_rules[{i}] has empty kind id"),
                     path: Some(format!("relations.kind_rules[{i}]")),
-                    row: None,
                     severity: Severity::Warning,
                 });
             }
@@ -416,7 +406,6 @@ fn validate_relations(
                         "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
                     path: Some(format!("relations.pair_overrides[{i}].{slot}")),
-                    row: None,
                     severity: Severity::Error,
                 });
             }
@@ -431,7 +420,6 @@ fn validate_relations(
                         "relations.overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
                     path: Some(format!("relations.overrides[{i}].{slot}")),
-                    row: None,
                     severity: Severity::Error,
                 });
             }
@@ -443,7 +431,6 @@ fn validate_relations(
                 code: RELATIONS_KIND_RULE_EMPTY.to_string(),
                 message: format!("relations.kind_rules[{i}] has empty kind id"),
                 path: Some(format!("relations.kind_rules[{i}]")),
-                row: None,
                 severity: Severity::Warning,
             });
         }
@@ -495,7 +482,6 @@ fn validate_regions(
                     c.weight
                 ),
                 path: Some(format!("regions.conditions[{i}].weight")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -519,7 +505,6 @@ fn validate_economy(
                     "economy.by_tech_level[{k}] = {v} is not a finite non-negative number"
                 ),
                 path: Some(format!("economy.by_tech_level.{k}")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -532,7 +517,6 @@ fn validate_economy(
                     "economy.by_population[{k}] = {v} is not a finite non-negative number"
                 ),
                 path: Some(format!("economy.by_population.{k}")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -561,7 +545,6 @@ fn validate_resource_rule(
                     code: RESOURCE_SCORE_BAD.to_string(),
                     message: format!("resources.{scope}.{name}.{field} = {v} is not 0..=100"),
                     path: Some(path(field)),
-                    row: None,
                     severity: Severity::Error,
                 });
             }
@@ -585,7 +568,6 @@ fn validate_resource_rule(
                     "resources.{scope}.{name}.trade_multiplier = {v} is not finite non-negative"
                 ),
                 path: Some(path("trade_multiplier")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -598,7 +580,6 @@ fn validate_resource_rule(
                     "resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"
                 ),
                 path: Some(path("supply_resilience")),
-                row: None,
                 severity: Severity::Error,
             });
         }
@@ -610,7 +591,6 @@ fn issue(code: &str, message: &str, severity: Severity) -> ValidationIssue {
         code: code.to_string(),
         message: message.to_string(),
         path: None,
-        row: None,
         severity,
     }
 }

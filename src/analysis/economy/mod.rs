@@ -28,7 +28,7 @@ pub use config::{
     RouteEconomy, StrategicOutput, StrategicOutputRule, StrategicPriority, SupplyRisk,
     SystemEconomy, TitheStatus, WorldEconomy, RESOURCE_KEYS, STRATEGIC_RESOURCE_KEYS,
 };
-pub use derive::{apply_stability_nudge, derive, derive_with, load_economy_file};
+pub use derive::{apply_stability_nudge, derive_with, load_economy_file};
 pub use render::{render_markdown, write_report};
 
 #[cfg(test)]
@@ -156,6 +156,13 @@ mod tests {
         }
     }
 
+    fn enabled_cfg() -> EconomyConfig {
+        EconomyConfig {
+            enabled: true,
+            ..Default::default()
+        }
+    }
+
     #[test]
     fn disabled_yields_empty() {
         let s = sector(vec![sys(
@@ -183,7 +190,7 @@ mod tests {
                 "population:massive",
             )],
         )]);
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         assert!(r.enabled);
         assert!(r.worlds[0].vector.foodstuffs < 0.0);
     }
@@ -210,8 +217,8 @@ mod tests {
                 )],
             ),
         ]);
-        let a = derive(&s);
-        let b = derive(&s);
+        let a = derive_with(&s, &enabled_cfg());
+        let b = derive_with(&s, &enabled_cfg());
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
@@ -241,7 +248,7 @@ mod tests {
             ),
         ]);
         s.routes = vec![route("route-1", "sys-0001", "sys-0002")];
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         assert!(r.strategic_output.food > 0.0);
         assert!(r.dependency_edges.iter().any(|e| {
             e.from_system_id == "sys-0001" && e.to_system_id == "sys-0002" && e.resource == "food"
@@ -307,7 +314,7 @@ mod tests {
                 "population:massive",
             )],
         )]);
-        let report = derive(&s);
+        let report = derive_with(&s, &enabled_cfg());
         assert!(report.worlds[0].stranded, "precondition: world is stranded");
         apply_stability_nudge(&report, &mut s);
         assert!(
@@ -327,7 +334,7 @@ mod tests {
         );
         w.stability.famine_or_resource_stress = 95.0;
         let mut s = sector(vec![sys("sys-0001", vec![w])]);
-        let report = derive(&s);
+        let report = derive_with(&s, &enabled_cfg());
         assert!(report.worlds[0].stranded);
         apply_stability_nudge(&report, &mut s);
         // 95 + 20 = 115 → clamp(0,100) = 100.
@@ -350,7 +357,7 @@ mod tests {
                 "population:massive",
             )],
         )]);
-        let report = derive(&s);
+        let report = derive_with(&s, &enabled_cfg());
         assert!(
             !report.worlds[0].stranded,
             "AgriWorld should not be stranded"
@@ -392,7 +399,7 @@ mod tests {
                 "population:massive",
             )],
         )]);
-        let report = derive(&s);
+        let report = derive_with(&s, &enabled_cfg());
         apply_stability_nudge(&report, &mut s);
         let st = s.systems[0].worlds[0].stability;
         // Only famine_or_resource_stress is nudged; the other fields stay default.
@@ -433,7 +440,7 @@ mod tests {
         s.routes = vec![route_full(
             "r1", "sys-0001", "sys-0002", 1, stability, controls,
         )];
-        derive(&s).routes[0].friction
+        derive_with(&s, &enabled_cfg()).routes[0].friction
     }
 
     #[test]
@@ -553,7 +560,7 @@ mod tests {
                 vec![],
             ),
         ];
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         let food_edges: Vec<&DependencyEdge> = r
             .dependency_edges
             .iter()
@@ -599,7 +606,7 @@ mod tests {
             RouteStability::Stable,
             vec![],
         )];
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         assert!(
             !r.dependency_edges
                 .iter()
@@ -641,7 +648,7 @@ mod tests {
             RouteStability::Perilous,
             vec![],
         )];
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         assert!(r.dependency_edges.is_empty());
     }
 
@@ -677,7 +684,7 @@ mod tests {
             RouteStability::Stable,
             vec![],
         )];
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         assert!(
             !r.dependency_edges
                 .iter()
@@ -747,7 +754,7 @@ mod tests {
                 vec![],
             ),
         ];
-        let r = derive(&s);
+        let r = derive_with(&s, &enabled_cfg());
         assert!(r.dependency_edges.len() >= 2, "expected at least two edges");
         let keys: Vec<(String, String, String)> = r
             .dependency_edges

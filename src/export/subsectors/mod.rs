@@ -647,7 +647,7 @@ fn push_unique(v: &mut Vec<String>, s: String) {
     }
 }
 
-mod summary;
+pub(crate) mod summary;
 use summary::{
     pick_capital, populate_summary, population_rank, resolve_system_owners, tech_rank,
     SummaryParams,

@@ -5,7 +5,6 @@
 //! normalizers, and `load_relations_file`.
 
 use std::collections::BTreeMap;
-use std::fs;
 
 use camino::Utf8Path;
 use rand::Rng;
@@ -650,11 +649,5 @@ fn clamp_score(v: f32) -> u8 {
 /// Returns [`SectorError::ConfigParse`] if the file is malformed or
 /// [`SectorError::Io`] if it cannot be read.
 pub fn load_relations_file(path: &Utf8Path) -> Result<RelationsConfig, SectorError> {
-    if !path.exists() {
-        return Ok(RelationsConfig::default());
-    }
-    let text = fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
-    let parsed: super::config::RelationsFile = toml::from_str(&text)
-        .map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))?;
-    Ok(parsed.relations)
+    crate::analysis::load_toml_or_default(path).map(|f: super::config::RelationsFile| f.relations)
 }

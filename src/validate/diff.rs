@@ -39,16 +39,11 @@ pub struct DiffConfig {
     /// Skip per-route detail. Default false.
     #[serde(default)]
     pub skip_routes: bool,
-    /// Minimum absolute change in faction projection power to report. Smaller
-    /// movements are filtered as noise. Default 1.0.
+    /// Minimum absolute change in faction projection power (and in a sector
+    /// economy-resource balance) to report. Smaller movements are filtered as
+    /// noise. Default 1.0.
     #[serde(default = "default_min_delta")]
     pub min_faction_delta: f32,
-    /// Minimum absolute change in a sector economy-resource balance to report.
-    /// Defaults to the same value as `min_faction_delta` (1.0) so existing
-    /// behaviour is unchanged, but lets the economy threshold be tuned
-    /// independently of the faction-projection threshold.
-    #[serde(default = "default_min_delta")]
-    pub min_economy_delta: f32,
     /// Number of top faction deltas listed in the Markdown digest. Default 10.
     #[serde(default = "default_top_n")]
     pub top_faction_deltas: u32,
@@ -60,7 +55,6 @@ impl Default for DiffConfig {
             skip_worlds: false,
             skip_routes: false,
             min_faction_delta: default_min_delta(),
-            min_economy_delta: default_min_delta(),
             top_faction_deltas: default_top_n(),
         }
     }
@@ -381,7 +375,7 @@ fn diff_economy(
             let b = pull(&before.economy);
             let a = pull(&after.economy);
             let d = a - b;
-            if d.abs() >= cfg.min_economy_delta {
+            if d.abs() >= cfg.min_faction_delta {
                 deltas.push(EconomyBalanceChange {
                     resource: (*k).to_string(),
                     before: b,
@@ -1447,14 +1441,5 @@ mod tests {
             md.contains("(`f9`)"),
             "the single row is the strongest delta"
         );
-    }
-
-    /// #38: `min_economy_delta` defaults to the same value as `min_faction_delta`
-    /// so the economy threshold behaviour is unchanged unless tuned.
-    #[test]
-    fn min_economy_delta_defaults_to_faction_delta() {
-        let cfg = DiffConfig::default();
-        assert_eq!(cfg.min_economy_delta, cfg.min_faction_delta);
-        assert_eq!(cfg.min_economy_delta, default_min_delta());
     }
 }

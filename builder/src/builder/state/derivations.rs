@@ -609,10 +609,10 @@ impl BuilderState {
             sectorforge::economy::StrategicOutput,
         > = BTreeMap::new();
         for w in &report.worlds {
-            let v = by_system.entry(w.system_id.clone()).or_default();
-            for (f, o) in v.fields_mut().into_iter().zip(w.vector.fields()) {
-                *f += o;
-            }
+            by_system
+                .entry(w.system_id.clone())
+                .or_default()
+                .add_assign(&w.vector);
             strat_by_system
                 .entry(w.system_id.clone())
                 .or_default()
@@ -654,13 +654,7 @@ impl BuilderState {
         let mut sector_balance = ResourceVector::default();
         let mut strategic = sectorforge::economy::StrategicOutput::default();
         for sy in &report.systems {
-            for (f, o) in sector_balance
-                .fields_mut()
-                .into_iter()
-                .zip(sy.vector.fields())
-            {
-                *f += o;
-            }
+            sector_balance.add_assign(&sy.vector);
             strategic.add_assign(&sy.strategic_output);
         }
         report.sector_balance = sector_balance;

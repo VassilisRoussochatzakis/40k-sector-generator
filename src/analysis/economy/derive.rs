@@ -4,7 +4,6 @@
 //! `economy.toml` loader and the optional famine-stress stability nudge.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 
 use camino::Utf8Path;
 
@@ -36,27 +35,10 @@ use super::tables::{
 /// Returns [`SectorError::ConfigParse`] on malformed TOML and
 /// [`SectorError::Io`] on read failure.
 pub fn load_economy_file(path: &Utf8Path) -> Result<EconomyConfig, SectorError> {
-    if !path.exists() {
-        return Ok(EconomyConfig::default());
-    }
-    let text = fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
-    let parsed: EconomyFile = toml::from_str(&text)
-        .map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))?;
-    Ok(parsed.into_config())
+    crate::analysis::load_toml_or_default(path).map(EconomyFile::into_config)
 }
 
 // ── Derivation ────────────────────────────────────────────────────────────────
-
-#[must_use]
-pub fn derive(sector: &GeneratedSector) -> EconomyReport {
-    derive_with(
-        sector,
-        &EconomyConfig {
-            enabled: true,
-            ..Default::default()
-        },
-    )
-}
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyReport {
@@ -93,7 +75,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 .copied()
                 .unwrap_or_else(|| default_population_multiplier(&pop_tag));
             let vector = base.scale(tech * pop);
-            sys_vec = add(&sys_vec, &vector);
+            sys_vec.add_assign(&vector);
             let (strategic_output, supply_resilience) =
                 derive_world_strategic_output(w, cfg, &pop_tag);
             sys_strategic.add_assign(&strategic_output);
@@ -261,7 +243,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
     let mut sector_balance = ResourceVector::default();
     let mut strategic_output = StrategicOutput::default();
     for sy in &systems {
-        sector_balance = add(&sector_balance, &sy.vector);
+        sector_balance.add_assign(&sy.vector);
         strategic_output.add_assign(&sy.strategic_output);
     }
 
@@ -489,15 +471,6 @@ fn friction_for(r: &GeneratedRoute) -> f32 {
         - (max_interdiction / ROUTE_INTERDICTION_DIVISOR).clamp(0.0, ROUTE_INTERDICTION_MAX_MALUS);
     f *= 1.0 + (max_patrol / ROUTE_PATROL_DIVISOR).clamp(0.0, ROUTE_PATROL_MAX_BONUS);
     f.clamp(0.0, 1.5)
-}
-
-fn add(a: &ResourceVector, b: &ResourceVector) -> ResourceVector {
-    let mut out = a.clone();
-    let bs = b.fields();
-    for (o, bf) in out.fields_mut().into_iter().zip(bs) {
-        *o += bf;
-    }
-    out
 }
 
 /// §12 stability nudge: increase `famine_or_resource_stress` on every world

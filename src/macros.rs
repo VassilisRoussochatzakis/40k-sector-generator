@@ -92,7 +92,7 @@ mod slug_parity_tests {
 
         assert_slug_serde_parity! {
             // ── validate ────────────────────────────────────────────────
-            crate::validation::Severity => [Error, Warning, Info],
+            crate::validation::Severity => [Error, Warning],
 
             // ── analysis::personae ──────────────────────────────────────
             crate::personae::DominanceTier => [

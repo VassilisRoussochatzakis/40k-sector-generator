@@ -216,7 +216,6 @@ fn warn_validation() -> sectorforge::validation::ValidationReport {
             code: "W".into(),
             message: "w".into(),
             path: None,
-            row: None,
             severity: Severity::Warning,
         }],
         world_workbook: WorldWorkbookValidation {

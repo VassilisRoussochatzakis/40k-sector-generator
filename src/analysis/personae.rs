@@ -239,11 +239,6 @@ enum_slug!(SystemSlot {
 // ── Entry point ────────────────────────────────────────────────────────────────
 
 #[must_use]
-pub fn derive(sector: &GeneratedSector) -> PersonaeReport {
-    derive_with(sector, &PersonaeConfig::default())
-}
-
-#[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeReport {
     let faction_kind: BTreeMap<&str, &str> = sector
         .factions
@@ -1506,8 +1501,8 @@ mod tests {
             archetype: Default::default(),
         });
 
-        let a = derive(&sec);
-        let b = derive(&sec);
+        let a = derive_with(&sec, &PersonaeConfig::default());
+        let b = derive_with(&sec, &PersonaeConfig::default());
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
@@ -1555,7 +1550,7 @@ mod tests {
             power: PowerProfile::default(),
         });
 
-        let report = derive(&sec);
+        let report = derive_with(&sec, &PersonaeConfig::default());
         let tiers: Vec<FactionTier> = report
             .personae
             .iter()

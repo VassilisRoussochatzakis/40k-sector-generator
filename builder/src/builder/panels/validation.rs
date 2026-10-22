@@ -77,13 +77,12 @@ pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 
 /// Build a stable selection key from an issue's content. `ValidationIssue`
 /// has no unique id and does not derive `Hash`/`Eq`, so we key on the fields
-/// that together identify a row (code + path + row + message).
+/// that together identify a row (code + path + message).
 fn issue_key(issue: &ValidationIssue) -> String {
     format!(
-        "{}|{}|{}|{}",
+        "{}|{}|{}",
         issue.code,
         issue.path.as_deref().unwrap_or(""),
-        issue.row.map(|r| r.to_string()).unwrap_or_default(),
         issue.message,
     )
 }
@@ -200,13 +199,12 @@ fn issue_row(
     let is_selected = selected_key(ui).as_deref() == Some(key.as_str());
     // §BEAUTY: animated selectable plate. The severity dot keeps its
     // meaning-carrying colour; the headline is the human message with the
-    // file/row anchor prefixed when present; the diagnostic rule code rides
+    // file anchor prefixed when present; the diagnostic rule code rides
     // along after as a dim secondary token (real identifier, but not the thing
     // a reader scans for).
-    let label = match (&issue.path, issue.row) {
-        (Some(p), Some(r)) => format!("{} ({p}, row {r})", issue.message),
-        (Some(p), None) => format!("{} ({p})", issue.message),
-        (None, _) => issue.message.clone(),
+    let label = match &issue.path {
+        Some(p) => format!("{} ({p})", issue.message),
+        None => issue.message.clone(),
     };
     let (resp, _) = card::selectable_plate(ui, ("vrow", &key), is_selected, |ui| {
         ui.label(RichText::new("●").color(colour));
@@ -279,7 +277,6 @@ fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, issue: &Valid
     let (colour, sev_label) = match issue.severity {
         Severity::Error => (palette::danger(), "Error"),
         Severity::Warning => (palette::warning(), "Warning"),
-        Severity::Info => (Color32::GRAY, "Info"),
         _ => (Color32::GRAY, "Info"),
     };
     // The visible section title reads as the severity; the diagnostic code is
@@ -301,9 +298,6 @@ fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, issue: &Valid
 
             if let Some(path) = &issue.path {
                 ui_kit::kv(ui, "Location", path);
-            }
-            if let Some(row) = issue.row {
-                ui_kit::kv(ui, "Line", &row.to_string());
             }
 
             // Focus deep-link: jump the §P4 project tree / TOML editor to the
@@ -416,7 +410,6 @@ mod tests {
             code: code.into(),
             message: "msg".into(),
             path: path.map(str::to_string),
-            row: None,
             severity,
         }
     }
@@ -454,7 +447,7 @@ mod tests {
     fn issue_key_disambiguates_rows() {
         let a = issue("DUP", Some("factions[1]"), Severity::Error);
         let mut b = issue("DUP", Some("factions[1]"), Severity::Error);
-        b.row = Some(7);
+        b.message = "other".into();
         assert_ne!(issue_key(&a), issue_key(&b));
         // Identical content yields a stable key (selection survives re-derive).
         assert_eq!(

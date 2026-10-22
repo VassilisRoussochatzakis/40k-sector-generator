@@ -241,6 +241,7 @@ fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation
 }
 
 fn navigable_component_count(s: &GeneratedSector, restore_region_perilous: bool) -> usize {
+    use crate::routes::find_root;
     use crate::sector_model::RouteStability;
     let idx: BTreeMap<&str, usize> = s
         .systems
@@ -274,14 +275,6 @@ fn navigable_component_count(s: &GeneratedSector, restore_region_perilous: bool)
         roots.insert(find_root(&mut parent, i));
     }
     roots.len()
-}
-
-fn find_root(parent: &mut [usize], mut i: usize) -> usize {
-    while parent[i] != i {
-        parent[i] = parent[parent[i]];
-        i = parent[i];
-    }
-    i
 }
 
 /// §12 NEW.md invariant: when the economy derivation ran (`enabled == true`)

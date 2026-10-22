@@ -7,6 +7,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::export::subsectors::summary::{population_rank, tech_rank};
 use crate::factions::FactionDef;
 use crate::ids::FactionId;
 use crate::sector_model::{
@@ -636,21 +637,8 @@ pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<FactionI
 }
 
 fn strategic_value(w: &GeneratedWorld) -> f32 {
-    let pop: f32 = match w.world.population {
-        crate::worlds::Population::Uninhabited => 0.0,
-        crate::worlds::Population::Minimal => 1.0,
-        crate::worlds::Population::SoleSettlement => 2.0,
-        crate::worlds::Population::LightlyPopulated => 3.0,
-        crate::worlds::Population::DenselyPopulated => 4.0,
-        crate::worlds::Population::ExtremelyDense => 5.0,
-    };
-    let tech: f32 = match w.world.tech_level {
-        crate::worlds::TechLevel::Primitive => 0.0,
-        crate::worlds::TechLevel::Low => 1.0,
-        crate::worlds::TechLevel::Standard => 2.0,
-        crate::worlds::TechLevel::High => 3.0,
-        crate::worlds::TechLevel::Archaeotech | crate::worlds::TechLevel::XenoHybrid => 4.0,
-    };
+    let pop = population_rank(&w.world.population) as f32;
+    let tech = tech_rank(&w.world.tech_level) as f32;
     (1.0_f32 + pop + tech).max(0.5)
 }
 

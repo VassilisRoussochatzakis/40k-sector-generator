@@ -150,6 +150,15 @@ impl ResourceVector {
         ]
     }
 
+    /// Sum `other`'s fields into `self`, in declaration order — the
+    /// [`StrategicOutput::add_assign`] counterpart.
+    pub fn add_assign(&mut self, other: &Self) {
+        let others = other.fields();
+        for (f, o) in self.fields_mut().into_iter().zip(others) {
+            *f += o;
+        }
+    }
+
     pub(super) fn scale(mut self, factor: f32) -> Self {
         for f in self.fields_mut() {
             *f *= factor;

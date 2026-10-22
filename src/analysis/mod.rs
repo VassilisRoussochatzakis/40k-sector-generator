@@ -41,6 +41,11 @@ pub mod stability;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
+use camino::Utf8Path;
+use serde::de::DeserializeOwned;
+
+use crate::errors::SectorError;
+
 /// Descending `f32` comparison with the crate-wide NaN policy: NaN sorts as a
 /// tie (`Equal`). Centralizes the historical `partial_cmp(..).unwrap_or(Equal)`
 /// idiom that was hand-copied across the analysis sorts (§B9), so the policy
@@ -83,6 +88,23 @@ pub(crate) fn cap_per_anchor<T: WeightedAnchored>(items: &mut Vec<T>, cap: u32) 
             false
         }
     });
+}
+
+/// Read and parse a TOML config file; a missing file yields `T::default()`.
+/// Shared body of the `economy.toml` / `relations.toml` loaders.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on read failure and
+/// [`SectorError::ConfigParse`] on malformed TOML.
+pub(crate) fn load_toml_or_default<T: DeserializeOwned + Default>(
+    path: &Utf8Path,
+) -> Result<T, SectorError> {
+    if !path.exists() {
+        return Ok(T::default());
+    }
+    let text = std::fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
+    toml::from_str(&text).map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))
 }
 
 #[cfg(test)]

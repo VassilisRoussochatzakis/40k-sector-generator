@@ -4,6 +4,7 @@ use camino::Utf8PathBuf;
 use serde::Serialize;
 
 use sectorforge::config::OutputFormat;
+use sectorforge::history::should_report_progress;
 use sectorforge::validation::Severity;
 use sectorforge::{SectorProgress, SegmentumProgress};
 
@@ -132,7 +133,6 @@ fn severity_tag(s: Severity) -> &'static str {
     match s {
         Severity::Error => "ERROR",
         Severity::Warning => "WARN",
-        Severity::Info => "INFO",
         _ => "UNKNOWN",
     }
 }
@@ -421,7 +421,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             worlds,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: generated systems {current}/{total} (last {worlds} world(s))"
             ));
@@ -452,7 +452,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             changed_routes,
             bridge_checks,
             bridges_preserved,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: region route effects scanned {current}/{total} route(s), affected {affected_routes}, changed {changed_routes}, bridge checks {bridge_checks}, preserved {bridges_preserved}"
             ));
@@ -508,7 +508,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             "{prefix}: applied hidden routes (+{added}, total {routes})"
         )),
         SectorProgress::RouteControlsProgress { current, total }
-            if should_log_progress(current, total) =>
+            if should_report_progress(current, total) =>
         {
             log_progress(format_args!(
                 "{prefix}: derived route control {current}/{total}"
@@ -518,7 +518,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             log_progress(format_args!("{prefix}: derived control for {routes} route(s)"));
         }
         SectorProgress::SystemStateDerived { current, total }
-            if should_log_progress(current, total) =>
+            if should_report_progress(current, total) =>
         {
             log_progress(format_args!("{prefix}: derived system state {current}/{total}"));
         }
@@ -588,7 +588,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             events,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: chronicle scanned systems {current}/{total} ({events} event(s))"
             ));
@@ -597,7 +597,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             events,
-        } if should_log_progress(current, total) => {
+        } if should_report_progress(current, total) => {
             log_progress(format_args!(
                 "{prefix}: chronicle scanned routes {current}/{total} ({events} event(s))"
             ));
@@ -624,19 +624,6 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             log_progress(format_args!("{prefix}: stage `{stage}` took {millis} ms"));
         }
         _ => {}
-    }
-}
-
-fn should_log_progress(current: usize, total: usize) -> bool {
-    current == 1 || current == total || current.is_multiple_of(progress_stride(total))
-}
-
-fn progress_stride(total: usize) -> usize {
-    match total {
-        0..=25 => 1,
-        26..=100 => 10,
-        101..=500 => 25,
-        _ => 100,
     }
 }
 

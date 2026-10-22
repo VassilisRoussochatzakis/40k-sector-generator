@@ -761,7 +761,7 @@ fn any_capital_like<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> bool {
     iter.into_iter().any(is_capital_like_tag)
 }
 
-pub(super) fn population_rank(value: &Population) -> i32 {
+pub(crate) fn population_rank(value: &Population) -> i32 {
     match value {
         Population::Uninhabited => 0,
         Population::Minimal => 1,
@@ -772,7 +772,7 @@ pub(super) fn population_rank(value: &Population) -> i32 {
     }
 }
 
-pub(super) fn tech_rank(value: &TechLevel) -> i32 {
+pub(crate) fn tech_rank(value: &TechLevel) -> i32 {
     match value {
         TechLevel::Primitive => 0,
         TechLevel::Low => 1,

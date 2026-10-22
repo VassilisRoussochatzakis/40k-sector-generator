@@ -795,48 +795,7 @@ where
             name: "influence field overlay",
         });
         sector.influence_field =
-            crate::influence_field::build_with_progress(&sector, |event| match event {
-                crate::influence_field::InfluenceFieldProgress::Started {
-                    systems,
-                    anchors,
-                    cells,
-                    radius,
-                } => progress(SectorProgress::InfluenceFieldStarted {
-                    systems,
-                    anchors,
-                    cells,
-                    radius,
-                }),
-                crate::influence_field::InfluenceFieldProgress::AnchorsProjected {
-                    current,
-                    total,
-                    touched_cells,
-                } => progress(SectorProgress::InfluenceFieldAnchorsProjected {
-                    current,
-                    total,
-                    touched_cells,
-                }),
-                crate::influence_field::InfluenceFieldProgress::CellsResolved {
-                    current,
-                    total,
-                    claimed_cells,
-                } => progress(SectorProgress::InfluenceFieldCellsResolved {
-                    current,
-                    total,
-                    claimed_cells,
-                }),
-                crate::influence_field::InfluenceFieldProgress::BandsBuilt {
-                    bands,
-                    claimed_cells,
-                } => progress(SectorProgress::InfluenceFieldBandsBuilt {
-                    bands,
-                    claimed_cells,
-                }),
-                crate::influence_field::InfluenceFieldProgress::Complete { cells, bands } => {
-                    progress(SectorProgress::InfluenceFieldComplete { cells, bands });
-                }
-            })
-            .into();
+            crate::influence_field::build_with_progress(&sector, &mut progress).into();
         emit!(SectorProgress::OverlayDerived {
             name: "influence_field",
         });

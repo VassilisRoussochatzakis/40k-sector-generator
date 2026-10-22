@@ -210,6 +210,24 @@ pub struct StrategicOutputRule {
     pub supply_resilience: Option<f32>,
 }
 
+impl StrategicOutputRule {
+    /// The ten score overrides, in `StrategicOutput::fields_mut` order.
+    pub(super) fn scores(&self) -> [Option<f32>; 10] {
+        [
+            self.food,
+            self.ore,
+            self.manufacturing,
+            self.arms,
+            self.ships,
+            self.pilgrimage,
+            self.psyker_tithe,
+            self.manpower,
+            self.knowledge,
+            self.xenos_value,
+        ]
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
 pub struct StrategicOutput {
     #[serde(default)]
@@ -255,7 +273,7 @@ impl StrategicOutput {
     /// Mutable refs to every score field, in declaration order. Single source
     /// of the field list for the per-field arithmetic helpers (B5) — adding a
     /// field here flows it into `add_assign` / `scale` / `clamp_scores` at once.
-    fn fields_mut(&mut self) -> [&mut f32; 10] {
+    pub(super) fn fields_mut(&mut self) -> [&mut f32; 10] {
         [
             &mut self.food,
             &mut self.ore,

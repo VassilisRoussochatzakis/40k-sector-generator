@@ -303,8 +303,8 @@ mod tests {
 
     #[test]
     fn apply_stability_nudge_bumps_stranded_world_famine() {
-        // Lone HiveWorld: built-in foodstuffs -40 × pop massive 1.5 × tech 1.0 =
-        // -60 ≤ -20, no routes ⇒ stranded.
+        // Lone HiveWorld: built-in foodstuffs -40 × pop 1.0 (no built-in
+        // "population:massive" arm) × tech 1.0 = -40 ≤ -20, no routes ⇒ stranded.
         let mut s = sector(vec![sys(
             "sys-0001",
             vec![world(
